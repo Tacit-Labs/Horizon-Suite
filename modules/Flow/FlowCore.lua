@@ -265,11 +265,10 @@ local function RestyleRewardText(size)
 
     -- The "Rewards" heading is a named child rather than a plain region on
     -- every client that has it, so it is handled separately and guarded.
+    -- Flow draws its own column header, so Blizzard's ornate one is hidden
+    -- rather than restyled; two headings for one block reads as a bug.
     local header = rewards.Header or _G.QuestInfoRewardsFrameHeader
-    if header and header.SetTextColor then
-        ApplyFont(header, size)
-        header:SetTextColor(0.78, 0.78, 0.84, 1)
-    end
+    if header and header.Hide then pcall(header.Hide, header) end
 end
 
 --- Repaint whichever quest panel is currently showing.

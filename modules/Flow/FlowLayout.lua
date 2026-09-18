@@ -1,17 +1,25 @@
 --[[
     Horizon Suite - Flow - Layout
 
-    Everything that changes the SHAPE of the quest window rather than its
-    colours: squaring the frame up, hugging the content instead of keeping
-    Blizzard's fixed 384x512, carding the reward block, and pulling the panel
-    buttons into a real footer.
+    Flow owns the quest window's layout outright: a wide horizontal panel in the
+    centre of the screen, with the story, the objectives and the rewards as
+    three columns under a title strip.
 
-    None of this touches a protected path. QuestFrame is resized and its own
-    buttons are re-anchored, but Show, Hide and SetParent are never called on
-    it, so the UIPanel system keeps ownership of when the window appears.
+    This is a deliberate step past the original "host, do not reparent" design.
+    Blizzard's QuestInfo only ever flows vertically in a single column, so a
+    horizontal layout cannot be expressed through its template element system.
+    What Blizzard keeps is everything that matters for correctness: the reward
+    buttons and their click handlers, the accept, decline and complete handlers,
+    and ownership of when the window shows. Flow never calls AcceptQuest or
+    GetQuestReward, and never calls Show, Hide or SetParent on QuestFrame.
 
-    Blizzard: QuestFrame, its four panels, QuestInfoRewardsFrame and the panel
-    action buttons.
+    QuestInfoFrame IS reparented, out of Blizzard's scroll frame and onto
+    QuestFrame, so the columns are not clipped by a scroll area sized for a
+    narrow vertical list. That is safe because QuestInfo_Display reassigns the
+    parent on every single display, so the map's details pane and the quest log
+    popup reclaim it automatically the moment either of them draws.
+
+    Blizzard: QuestFrame, UIPanelWindows, QuestInfoFrame, QuestInfoRewardsFrame.
 ]]
 
 local addon = _G.HorizonSuite
@@ -19,18 +27,23 @@ if not addon then return end
 
 addon.Flow = addon.Flow or {}
 local F = addon.Flow
+local L = addon.L
 
+local FRAME_WIDTH   = 880
+local HEADER_HEIGHT = 42
 local FOOTER_HEIGHT = 46
-local FOOTER_PAD    = 20
-local FOOTER_GAP    = 10
-local BUTTON_HEIGHT = 24
-local CONTENT_TOP   = 18
-local MIN_HEIGHT    = 200
-local MAX_HEIGHT    = 620
+local COL_PAD       = 18
+local MIN_HEIGHT    = 190
+local MAX_HEIGHT    = 460
 
--- Buttons Blizzard shows on each panel. Flow lays out whichever are visible
--- rather than assuming which panel is up, so an unexpected combination still
--- produces a sane footer instead of an empty one.
+-- Column weights: the story gets the most room because it is the only column
+-- whose length Flow cannot predict.
+local COL_WEIGHTS = { 1.5, 1.05, 1.05 }
+
+local BUTTON_HEIGHT = 24
+local BUTTON_WIDTH  = 108
+local BUTTON_GAP    = 9
+
 local ACTION_BUTTONS = {
     "QuestFrameAcceptButton",
     "QuestFrameDeclineButton",
@@ -41,25 +54,81 @@ local ACTION_BUTTONS = {
     "QuestFrameGreetingGoodbyeButton",
 }
 
--- Buttons that read as the affirmative action and get the accent fill.
 local PRIMARY_BUTTONS = {
     QuestFrameAcceptButton        = true,
     QuestFrameCompleteButton      = true,
     QuestFrameCompleteQuestButton = true,
 }
 
-local rewardCard, footer
+local PANEL_NAMES = {
+    "QuestFrameDetailPanel",
+    "QuestFrameProgressPanel",
+    "QuestFrameRewardPanel",
+    "QuestFrameGreetingPanel",
+}
+
+local BACKDROP = {
+    bgFile   = "Interface\\ChatFrame\\ChatFrameBackground",
+    edgeFile = "Interface\\ChatFrame\\ChatFrameBackground",
+    edgeSize = 1,
+    insets   = { left = 1, right = 1, top = 1, bottom = 1 },
+}
+
+local columns, dividers, footerHint
 local styledButtons = {}
+local savedPanelEntry, panelEntrySaved = nil, false
+
+-- ---------------------------------------------------------------------------
+-- Geometry
+-- ---------------------------------------------------------------------------
+
+--- Left edge and width of each column, in frame-local coordinates.
+--- @return table cols Array of { x = number, w = number }
+local function ColumnGeometry()
+    local inner = FRAME_WIDTH
+    local total = 0
+    for i = 1, #COL_WEIGHTS do total = total + COL_WEIGHTS[i] end
+
+    local cols, x = {}, 0
+    for i = 1, #COL_WEIGHTS do
+        local w = (inner * COL_WEIGHTS[i]) / total
+        cols[i] = { x = x, w = w }
+        x = x + w
+    end
+    return cols
+end
+
+--- Lazily build the column headers and the hairline dividers between columns.
+--- @param frame Frame QuestFrame
+--- @return nil
+local function EnsureColumns(frame)
+    if columns then return end
+
+    columns, dividers = {}, {}
+    local labels = { "FLOW_COL_STORY", "FLOW_COL_OBJECTIVES", "FLOW_COL_REWARDS" }
+
+    for i = 1, 3 do
+        local header = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+        header:SetJustifyH("LEFT")
+        header:SetText(L[labels[i]])
+        columns[i] = { header = header }
+
+        if i > 1 then
+            local line = frame:CreateTexture(nil, "ARTWORK")
+            line:SetWidth(1)
+            dividers[i] = line
+        end
+    end
+
+    footerHint = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    footerHint:SetJustifyH("LEFT")
+    footerHint:SetText(L["FLOW_ESCAPE_HINT"])
+end
 
 -- ---------------------------------------------------------------------------
 -- Buttons
 -- ---------------------------------------------------------------------------
 
---- Strip a Blizzard button's art and give it a flat Horizon fill.
---- Idempotent: the texture strip only runs the first time a button is seen.
---- @param button Button
---- @param primary boolean Accent fill rather than outline
---- @return nil
 local function StyleButton(button, primary)
     if not button or not button.CreateTexture then return end
 
@@ -83,21 +152,13 @@ local function StyleButton(button, primary)
         local fill = CreateFrame("Frame", nil, button, "BackdropTemplate")
         fill:SetAllPoints(button)
         fill:SetFrameLevel(math.max(0, (button:GetFrameLevel() or 1) - 1))
-        fill:SetBackdrop({
-            bgFile   = "Interface\\ChatFrame\\ChatFrameBackground",
-            edgeFile = "Interface\\ChatFrame\\ChatFrameBackground",
-            edgeSize = 1,
-            insets   = { left = 1, right = 1, top = 1, bottom = 1 },
-        })
+        fill:SetBackdrop(BACKDROP)
         button._hsFlowFill = fill
 
-        -- Remembered so Disable can put the button back where Blizzard had it,
-        -- rather than leaving it in Flow's footer until the next reload.
         if button.GetPoint and button:GetNumPoints() > 0 then
             button._hsFlowPoint = { button:GetPoint(1) }
         end
         button._hsFlowSize = { button:GetWidth(), button:GetHeight() }
-
         styledButtons[button] = true
     end
 
@@ -110,7 +171,7 @@ local function StyleButton(button, primary)
             fill:SetBackdropColor(ar, ag, ab, 1)
             fill:SetBackdropBorderColor(ar, ag, ab, 1)
         else
-            fill:SetBackdropColor(0.13, 0.13, 0.16, 1)
+            fill:SetBackdropColor(0.11, 0.11, 0.14, 1)
             fill:SetBackdropBorderColor(0.24, 0.24, 0.28, 1)
         end
         fill:Show()
@@ -125,15 +186,11 @@ local function StyleButton(button, primary)
         end
         if F.GetFontPath then
             local path = F.GetFontPath()
-            local size = tonumber(addon.GetDB and addon.GetDB("flowFontSize", 13)) or 13
-            if path then pcall(label.SetFont, label, path, size, "") end
+            if path then pcall(label.SetFont, label, path, 12, "") end
         end
     end
 end
 
---- Restore a button's Blizzard look as far as we can. hooksecurefunc-free, so
---- this is a best-effort re-show of the textures the strip hid.
---- @return nil
 local function RestoreButtons()
     for button in pairs(styledButtons) do
         if button._hsFlowFill then button._hsFlowFill:Hide() end
@@ -156,27 +213,10 @@ local function RestoreButtons()
     end
 end
 
--- ---------------------------------------------------------------------------
--- Footer
--- ---------------------------------------------------------------------------
-
---- Re-anchor whichever panel buttons are visible into an evenly split footer
---- along the bottom of the window.
---- @param width number Frame width
+--- Action buttons, right-aligned in the footer with the affirmative one last.
+--- @param frame Frame QuestFrame
 --- @return nil
-local function LayoutFooter(width)
-    local frame = _G.QuestFrame
-    if not frame then return end
-
-    if not footer then
-        footer = CreateFrame("Frame", "HorizonFlowFooter", frame)
-        footer:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 0, 0)
-        footer:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 0, 0)
-        footer:SetHeight(FOOTER_HEIGHT)
-    end
-    footer:SetFrameLevel(math.max(1, (frame:GetFrameLevel() or 1) + 1))
-    footer:Show()
-
+local function LayoutFooter(frame)
     local visible = {}
     for i = 1, #ACTION_BUTTONS do
         local button = _G[ACTION_BUTTONS[i]]
@@ -186,160 +226,215 @@ local function LayoutFooter(width)
     end
     if #visible == 0 then return end
 
-    local usable = width - (FOOTER_PAD * 2) - (FOOTER_GAP * (#visible - 1))
-    local each   = math.max(60, usable / #visible)
+    -- Affirmative action sits rightmost, where the eye finishes.
+    table.sort(visible, function(a, b)
+        local pa = PRIMARY_BUTTONS[a:GetName() or ""] and 1 or 0
+        local pb = PRIMARY_BUTTONS[b:GetName() or ""] and 1 or 0
+        return pa < pb
+    end)
 
-    for i = 1, #visible do
+    local y = (FOOTER_HEIGHT - BUTTON_HEIGHT) / 2
+
+    -- Anchored right to left, each button hanging off the one after it, so the
+    -- footer needs no cumulative offset arithmetic.
+    for i = #visible, 1, -1 do
         local button = visible[i]
         StyleButton(button, PRIMARY_BUTTONS[button:GetName() or ""] and true or false)
         button:ClearAllPoints()
-        button:SetSize(each, BUTTON_HEIGHT)
-        button:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT",
-            FOOTER_PAD + ((each + FOOTER_GAP) * (i - 1)),
-            (FOOTER_HEIGHT - BUTTON_HEIGHT) / 2)
-    end
-end
-
--- ---------------------------------------------------------------------------
--- Reward card
--- ---------------------------------------------------------------------------
-
---- Draw the shared card surface behind Blizzard's reward block.
---- The card is anchored to the rewards frame with padding, so it tracks
---- whatever size Blizzard gave it without Flow having to measure the contents.
---- @return nil
-local function LayoutRewardCard()
-    local rewards = _G.QuestInfoRewardsFrame
-    local parent  = _G.QuestInfoFrame
-    if not rewards or not parent then
-        if rewardCard then rewardCard:Hide() end
-        return
-    end
-
-    if not rewards.IsShown or not rewards:IsShown() then
-        if rewardCard then rewardCard:Hide() end
-        return
-    end
-
-    if not rewardCard then
-        rewardCard = CreateFrame("Frame", "HorizonFlowRewardCard", parent, "BackdropTemplate")
-    end
-
-    rewardCard:SetParent(rewards:GetParent() or parent)
-    rewardCard:SetFrameLevel(math.max(0, (rewards:GetFrameLevel() or 1) - 1))
-    rewardCard:ClearAllPoints()
-    rewardCard:SetPoint("TOPLEFT", rewards, "TOPLEFT", -12, 10)
-    rewardCard:SetPoint("BOTTOMRIGHT", rewards, "BOTTOMRIGHT", 12, -10)
-    if F.StyleCard then F.StyleCard(rewardCard) end
-    rewardCard:Show()
-end
-
--- ---------------------------------------------------------------------------
--- Frame sizing
--- ---------------------------------------------------------------------------
-
---- Lowest point reached by anything Flow knows is on screen, in the frame's own
---- coordinate space.
----
---- Measured from GetBottom rather than from QuestInfoFrame's height, because
---- the latter depends on Blizzard internals this code has never seen. Screen
---- coordinates are scale-relative, so both ends of the subtraction are taken
---- from frames in the same scale chain.
---- @param frame Frame QuestFrame
---- @return number|nil contentHeight
-local function MeasureContent(frame)
-    local top = frame:GetTop()
-    if not top then return nil end
-
-    local lowest
-    local candidates = {}
-
-    if F.GetDrawnFrames then
-        local drawn = F.GetDrawnFrames()
-        for i = 1, #drawn do candidates[#candidates + 1] = drawn[i] end
-    end
-    candidates[#candidates + 1] = _G.QuestInfoRewardsFrame
-    candidates[#candidates + 1] = _G.QuestInfoDescriptionText
-    candidates[#candidates + 1] = _G.QuestInfoTitleHeader
-
-    for i = 1, #candidates do
-        local c = candidates[i]
-        if c and c.IsShown and c:IsShown() and c.GetBottom then
-            local b = c:GetBottom()
-            if b and (not lowest or b < lowest) then lowest = b end
-        end
-    end
-
-    if not lowest then return nil end
-    return top - lowest
-end
-
-local PANEL_NAMES = {
-    "QuestFrameDetailPanel",
-    "QuestFrameProgressPanel",
-    "QuestFrameRewardPanel",
-    "QuestFrameGreetingPanel",
-}
-
---- Widening QuestFrame alone changes nothing a player can see: the panels and
---- their scroll frames carry their own sizes, so the content stays in a narrow
---- column on the left. Push the new width down through both.
---- @param frame Frame QuestFrame
---- @param width number
---- @return nil
-local function ResizePanels(frame, width)
-    for i = 1, #PANEL_NAMES do
-        local panel = _G[PANEL_NAMES[i]]
-        if panel and panel.IsShown and panel:IsShown() then
-            pcall(panel.SetWidth, panel, width)
-
-            if panel.GetChildren then
-                local children = { panel:GetChildren() }
-                for j = 1, #children do
-                    local child = children[j]
-                    if child and child.GetObjectType and child:GetObjectType() == "ScrollFrame" then
-                        pcall(child.SetWidth, child, width - (FOOTER_PAD * 2))
-                        local scrollChild = child.GetScrollChild and child:GetScrollChild()
-                        if scrollChild and scrollChild.SetWidth then
-                            pcall(scrollChild.SetWidth, scrollChild, width - (FOOTER_PAD * 2))
-                        end
-                    end
-                end
-            end
+        button:SetSize(BUTTON_WIDTH, BUTTON_HEIGHT)
+        if i == #visible then
+            button:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -COL_PAD, y)
+        else
+            button:SetPoint("RIGHT", visible[i + 1], "LEFT", -BUTTON_GAP, 0)
         end
     end
 end
 
---- Square the window up: fixed content width, height hugging the content.
+-- ---------------------------------------------------------------------------
+-- Rewards
+-- ---------------------------------------------------------------------------
+
+--- Stack Blizzard's reward buttons vertically so they fit a narrow column.
+--- Blizzard lays them out two per row at its own width, which overflows a third
+--- of an 880 frame. Only position and size are touched; the icons, names,
+--- tooltips and click handlers stay Blizzard's.
+--- @param rewards Frame QuestInfoRewardsFrame
+--- @param width number Column width
+--- @return number height Space the stack occupies
+local function StackRewardButtons(rewards, width)
+    local buttons = rewards.RewardButtons
+    if type(buttons) ~= "table" then return rewards:GetHeight() or 0 end
+
+    local y, count = 0, 0
+    for i = 1, #buttons do
+        local b = buttons[i]
+        if b and b.IsShown and b:IsShown() then
+            b:ClearAllPoints()
+            b:SetPoint("TOPLEFT", rewards, "TOPLEFT", 0, -y)
+            if b.SetWidth then pcall(b.SetWidth, b, width) end
+            y = y + (b:GetHeight() or 32) + 4
+            count = count + 1
+        end
+    end
+    if count == 0 then return rewards:GetHeight() or 0 end
+    return y
+end
+
+-- ---------------------------------------------------------------------------
+-- Centring
+-- ---------------------------------------------------------------------------
+
+--- Ask the UIPanel system to centre the window instead of parking it on the
+--- left. Going through UIPanelWindows rather than fighting it with SetPoint
+--- keeps ESC handling and the panel system's show and hide intact.
+--- @return nil
+local function ApplyCentring()
+    local windows = _G.UIPanelWindows
+    if type(windows) ~= "table" then return end
+
+    if not panelEntrySaved then
+        savedPanelEntry = windows["QuestFrame"]
+        panelEntrySaved = true
+    end
+
+    windows["QuestFrame"] = { area = "center", pushable = 0, whileDead = 1 }
+
+    local frame = _G.QuestFrame
+    if frame and frame.IsShown and frame:IsShown() then
+        frame:ClearAllPoints()
+        frame:SetPoint("CENTER", _G.UIParent, "CENTER", 0, 60)
+    end
+end
+
+local function RestoreCentring()
+    if not panelEntrySaved then return end
+    local windows = _G.UIPanelWindows
+    if type(windows) == "table" then
+        windows["QuestFrame"] = savedPanelEntry
+    end
+    panelEntrySaved = false
+    savedPanelEntry = nil
+end
+
+-- ---------------------------------------------------------------------------
+-- The layout pass
+-- ---------------------------------------------------------------------------
+
+--- Lay the quest window out as three columns in a wide centred panel.
 --- @return nil
 function F.ApplyShape()
     local frame = _G.QuestFrame
     if not frame or not frame.SetSize then return end
     if not (addon.GetDB and addon.GetDB("flowAutoSize", true)) then return end
 
-    local width = (F.FRAME_WIDTH or 420)
+    local info = _G.QuestInfoFrame
+    if not info then return end
 
-    pcall(frame.SetWidth, frame, width)
-    ResizePanels(frame, width)
+    EnsureColumns(frame)
+    ApplyCentring()
 
-    -- Measured after the width change, because a narrower column wraps text
-    -- differently and would give a height for a layout that no longer exists.
-    local content = MeasureContent(frame)
-    if content then
-        local height = content + CONTENT_TOP + FOOTER_HEIGHT + 10
-        height = math.max(MIN_HEIGHT, math.min(MAX_HEIGHT, height))
-        pcall(frame.SetHeight, frame, height)
+    pcall(frame.SetWidth, frame, FRAME_WIDTH)
+
+    -- Panels fill the frame; their scroll frames are taken out of the picture
+    -- entirely, since Flow positions the content itself.
+    for i = 1, #PANEL_NAMES do
+        local panel = _G[PANEL_NAMES[i]]
+        if panel and panel.IsShown and panel:IsShown() then
+            pcall(panel.SetWidth, panel, FRAME_WIDTH)
+            if panel.GetChildren then
+                local children = { panel:GetChildren() }
+                for j = 1, #children do
+                    local child = children[j]
+                    if child and child.GetObjectType and child:GetObjectType() == "ScrollFrame" then
+                        pcall(child.SetWidth, child, FRAME_WIDTH)
+                    end
+                end
+            end
+        end
     end
 
-    LayoutRewardCard()
-    LayoutFooter(width)
+    -- Out of the scroll frame so nothing clips the columns. QuestInfo_Display
+    -- reassigns this on every display, so the map pane reclaims it by itself.
+    pcall(info.SetParent, info, frame)
+    info:ClearAllPoints()
+    info:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, -HEADER_HEIGHT)
+    info:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 0, FOOTER_HEIGHT)
+
+    local cols = ColumnGeometry()
+    local top  = -(HEADER_HEIGHT + 14)
+    local heights = { 0, 0, 0 }
+
+    for i = 1, 3 do
+        local header = columns[i].header
+        header:ClearAllPoints()
+        header:SetPoint("TOPLEFT", frame, "TOPLEFT", cols[i].x + COL_PAD, top)
+        header:SetTextColor(0.43, 0.43, 0.48, 1)
+        if F.GetFontPath then
+            local path = F.GetFontPath()
+            if path then pcall(header.SetFont, header, path, 10, "") end
+        end
+        header:Show()
+    end
+
+    local bodyTop = top - 18
+
+    -- Column 1: the story.
+    local desc = _G.QuestInfoDescriptionText
+    if desc and desc.IsShown and desc:IsShown() then
+        local w = cols[1].w - (COL_PAD * 2)
+        desc:ClearAllPoints()
+        desc:SetWidth(w)
+        desc:SetPoint("TOPLEFT", frame, "TOPLEFT", cols[1].x + COL_PAD, bodyTop)
+        heights[1] = desc:GetStringHeight() or 0
+    end
+
+    -- Column 2: the objectives band.
+    local drawn = F.GetDrawnFrames and F.GetDrawnFrames() or {}
+    local band = drawn[1]
+    if band and band.IsShown and band:IsShown() then
+        local w = cols[2].w - (COL_PAD * 2)
+        band:ClearAllPoints()
+        band:SetWidth(w)
+        band:SetPoint("TOPLEFT", frame, "TOPLEFT", cols[2].x + COL_PAD, bodyTop)
+        heights[2] = band:GetHeight() or 0
+    end
+
+    -- Column 3: Blizzard's reward block, stacked to fit.
+    local rewards = _G.QuestInfoRewardsFrame
+    if rewards and rewards.IsShown and rewards:IsShown() then
+        local w = cols[3].w - (COL_PAD * 2)
+        rewards:ClearAllPoints()
+        rewards:SetWidth(w)
+        rewards:SetPoint("TOPLEFT", frame, "TOPLEFT", cols[3].x + COL_PAD, bodyTop)
+        heights[3] = StackRewardButtons(rewards, w)
+    end
+
+    local tallest = math.max(heights[1], heights[2], heights[3])
+    local height = HEADER_HEIGHT + 32 + tallest + 16 + FOOTER_HEIGHT
+    height = math.max(MIN_HEIGHT, math.min(MAX_HEIGHT, height))
+    pcall(frame.SetHeight, frame, height)
+
+    for i = 2, 3 do
+        local line = dividers[i]
+        if line then
+            line:ClearAllPoints()
+            line:SetPoint("TOP", frame, "TOPLEFT", cols[i].x, -HEADER_HEIGHT)
+            line:SetHeight(height - HEADER_HEIGHT - FOOTER_HEIGHT)
+            line:SetColorTexture(0.14, 0.14, 0.17, 1)
+            line:Show()
+        end
+    end
+
+    footerHint:ClearAllPoints()
+    footerHint:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", COL_PAD, (FOOTER_HEIGHT - 12) / 2)
+    footerHint:SetTextColor(0.33, 0.33, 0.37, 1)
+    footerHint:Show()
+
+    LayoutFooter(frame)
 end
 
---- Re-run the shape pass on the next frame.
----
---- Blizzard sizes some blocks lazily, so a measurement taken inside the display
---- hook can be one frame stale: the reward card lands misaligned and the window
---- is cut short. One deferred pass settles it without polling.
+--- Re-run the layout on the next frame. Blizzard sizes the reward block lazily,
+--- so a measurement taken inside the display hook can be one frame stale.
 --- @return nil
 function F.ApplyShapeDeferred()
     if not C_Timer or not C_Timer.After then return end
@@ -364,12 +459,21 @@ function F.ApplyCloseButton()
     end
 end
 
---- Undo everything in this file, as far as is reachable.
+--- Undo everything in this file, as far as is reachable. A reload is still the
+--- exact restore; this is the mid-session escape hatch behind /h flow restore.
 --- @return nil
 function F.ResetShape()
-    if footer then footer:Hide() end
-    if rewardCard then rewardCard:Hide() end
+    if columns then
+        for i = 1, #columns do
+            if columns[i].header then columns[i].header:Hide() end
+        end
+    end
+    if dividers then
+        for _, line in pairs(dividers) do if line then line:Hide() end end
+    end
+    if footerHint then footerHint:Hide() end
     RestoreButtons()
+    RestoreCentring()
     local close = _G.QuestFrameCloseButton
     if close then pcall(close.Show, close) end
 end
