@@ -58,6 +58,40 @@ local DASHBOARD_BG_ORDER = {
 }
 addon.DashboardBackgroundThemeOrder = DASHBOARD_BG_ORDER
 
+local BG_THEME_LABEL_KEYS = {
+    horizon           = "FOCUS_DASHBOARD_BACKGROUND_MINIMALISTIC",
+    midnight          = "FOCUS_DASHBOARD_BACKGROUND_MIDNIGHT",
+    teldrassilburns   = "FOCUS_DASHBOARD_BACKGROUND_TELDRASSIL_BURNS",
+    nightfae          = "FOCUS_DASHBOARD_BACKGROUND_NIGHTFAE",
+    ardenweald        = "FOCUS_DASHBOARD_BACKGROUND_ARDENWEALD",
+    zinazshari        = "FOCUS_DASHBOARD_BACKGROUND_ZIN_AZSHARI",
+    suramargarden     = "FOCUS_DASHBOARD_BACKGROUND_SURAMAR_GARDEN",
+    quelthalas        = "DASH_BACKGROUND_QUEL_THALAS",
+    twilightvineyards = "FOCUS_DASHBOARD_BACKGROUND_TWILIGHT_VINEYARDS",
+    zulaman           = "FOCUS_DASHBOARD_BACKGROUND_ZUL_AMAN",
+    illidan           = "FOCUS_DASHBOARD_BACKGROUND_ILLIDAN",
+    lichking          = "FOCUS_DASHBOARD_BACKGROUND_LICH_KING",
+    tbcanniversary    = "FOCUS_DASHBOARD_BACKGROUND_TBC_ANNIVERSARY",
+    beledarslight     = "FOCUS_DASHBOARD_BACKGROUND_BELEDARS_LIGHT",
+    talents           = "FOCUS_DASHBOARD_BACKGROUND_CLASS_TALENTS",
+}
+
+--- Dropdown rows for every background theme, shared by the Axis dashboard
+--- picker and Flow's quest box picker so the two can never list different
+--- backgrounds or label the same one differently.
+--- @return table rows Array of { label, id }
+function addon.HorizonBackgroundDropdownOptions()
+    local L = addon.L
+    local order = addon.DashboardBackgroundThemeOrder or { "horizon", "midnight", "talents" }
+    local out = {}
+    for i = 1, #order do
+        local id = order[i]
+        local key = BG_THEME_LABEL_KEYS[id]
+        out[#out + 1] = { key and L[key] or id, id }
+    end
+    return out
+end
+
 local function NormalizeDashboardThemeId(themeId)
     if themeId == "horizon" then
         return "horizon"
@@ -173,6 +207,17 @@ local function ResolveDashboardBackgroundTarget(themeId)
         return { kind = "atlas", atlas = atlas, signature = "talents:" .. atlas }
     end
     return { kind = "clear", signature = "horizon" }
+end
+
+--- Resolve a background theme id to something drawable, for consumers outside
+--- the dashboard frame (Flow's quest box).
+---
+--- Exported rather than copied so the theme list and the art paths stay in one
+--- place; a duplicated file map drifts the moment a background is added.
+--- @param themeId string|nil
+--- @return table target { kind = "clear"|"texture"|"atlas", path?, atlas?, signature }
+function addon.ResolveHorizonBackgroundTarget(themeId)
+    return ResolveDashboardBackgroundTarget(NormalizeDashboardThemeId(themeId))
 end
 
 local function ApplyDashboardBgToTexture(tex, target)

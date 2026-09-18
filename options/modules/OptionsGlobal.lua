@@ -56,47 +56,13 @@ local categories = {
                     end
                 end,
             }
+            -- Delegates to the shared resolver in DashboardBackground.lua so the
+            -- dashboard picker and Flow's quest box picker cannot drift apart.
             local function dashboardBackgroundDropdownOptions()
-                local order = addon.DashboardBackgroundThemeOrder or { "horizon", "midnight", "talents" }
-                local out = {}
-                for _, id in ipairs(order) do
-                    local label
-                    if id == "horizon" then
-                        label = L["FOCUS_DASHBOARD_BACKGROUND_MINIMALISTIC"]
-                    elseif id == "midnight" then
-                        label = L["FOCUS_DASHBOARD_BACKGROUND_MIDNIGHT"]
-                    elseif id == "teldrassilburns" then
-                        label = L["FOCUS_DASHBOARD_BACKGROUND_TELDRASSIL_BURNS"]
-                    elseif id == "nightfae" then
-                        label = L["FOCUS_DASHBOARD_BACKGROUND_NIGHTFAE"]
-                    elseif id == "ardenweald" then
-                        label = L["FOCUS_DASHBOARD_BACKGROUND_ARDENWEALD"]
-                    elseif id == "zinazshari" then
-                        label = L["FOCUS_DASHBOARD_BACKGROUND_ZIN_AZSHARI"]
-                    elseif id == "suramargarden" then
-                        label = L["FOCUS_DASHBOARD_BACKGROUND_SURAMAR_GARDEN"]
-                    elseif id == "quelthalas" then
-                        label = L["DASH_BACKGROUND_QUEL_THALAS"]
-                    elseif id == "twilightvineyards" then
-                        label = L["FOCUS_DASHBOARD_BACKGROUND_TWILIGHT_VINEYARDS"]
-                    elseif id == "zulaman" then
-                        label = L["FOCUS_DASHBOARD_BACKGROUND_ZUL_AMAN"]
-                    elseif id == "illidan" then
-                        label = L["FOCUS_DASHBOARD_BACKGROUND_ILLIDAN"]
-                    elseif id == "lichking" then
-                        label = L["FOCUS_DASHBOARD_BACKGROUND_LICH_KING"]
-                    elseif id == "tbcanniversary" then
-                        label = L["FOCUS_DASHBOARD_BACKGROUND_TBC_ANNIVERSARY"]
-                    elseif id == "beledarslight" then
-                        label = L["FOCUS_DASHBOARD_BACKGROUND_BELEDARS_LIGHT"]
-                    elseif id == "talents" then
-                        label = L["FOCUS_DASHBOARD_BACKGROUND_CLASS_TALENTS"]
-                    else
-                        label = id
-                    end
-                    out[#out + 1] = { label, id }
+                if addon.HorizonBackgroundDropdownOptions then
+                    return addon.HorizonBackgroundDropdownOptions()
                 end
-                return out
+                return { { L["FOCUS_DASHBOARD_BACKGROUND_MIDNIGHT"], "midnight" } }
             end
             opts[#opts + 1] = {
                 type = "dropdown",

@@ -19,6 +19,19 @@ local Color   = addon.Color
 local D   = addon.FLOW_DEFAULTS
 local LIM = addon.FLOW_LIMITS
 
+-- "Follow the dashboard" is offered as a theme rather than a separate toggle,
+-- so the picker reads as one decision instead of two.
+local FOLLOW_DASHBOARD = (addon.Flow and addon.Flow.THEME_FOLLOW_DASHBOARD) or "__dashboard__"
+
+local function flowBackgroundThemeOptions()
+    local out = { { L["FLOW_BACKGROUND_FOLLOW_DASHBOARD"], FOLLOW_DASHBOARD } }
+    local shared = addon.HorizonBackgroundDropdownOptions and addon.HorizonBackgroundDropdownOptions()
+    if type(shared) == "table" then
+        for i = 1, #shared do out[#out + 1] = shared[i] end
+    end
+    return out
+end
+
 local categories = {
     {
         key       = "Flow",
@@ -34,6 +47,18 @@ local categories = {
                 D.flowBackdropOpacity),
             Toggle(L["FLOW_SHOW_BORDER"], L["FLOW_SHOW_BORDER_DESC"],
                 "flowShowBorder", D.flowShowBorder),
+            Toggle(L["FLOW_BACKGROUND_ART"], L["FLOW_BACKGROUND_ART_DESC"],
+                "flowShowBackgroundArt", D.flowShowBackgroundArt),
+            { type = "dropdown", name = L["FLOW_BACKGROUND_THEME"], desc = L["FLOW_BACKGROUND_THEME_DESC"],
+              dbKey = "flowBackgroundTheme", searchable = true,
+              options = flowBackgroundThemeOptions,
+              get = function() return getDB("flowBackgroundTheme", FOLLOW_DASHBOARD) end,
+              set = function(v) setDB("flowBackgroundTheme", v) end,
+              visibleWhen = function() return getDB("flowShowBackgroundArt", D.flowShowBackgroundArt) ~= false end },
+            Slider(L["FLOW_BACKGROUND_OPACITY"], L["FLOW_BACKGROUND_OPACITY_DESC"],
+                "flowBackgroundOpacity", LIM.flowBackgroundOpacity.min, LIM.flowBackgroundOpacity.max,
+                D.flowBackgroundOpacity,
+                { visibleWhen = function() return getDB("flowShowBackgroundArt", D.flowShowBackgroundArt) ~= false end }),
             { type = "dropdown", name = L["FLOW_FONT"], desc = L["FLOW_FONT_DESC"],
               dbKey = "flowFontPath", searchable = true,
               options = function() return GetPerElementFontDropdownOptions("flowFontPath") end,

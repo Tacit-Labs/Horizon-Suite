@@ -302,6 +302,7 @@ function F.Restyle()
     end
     footerFill:SetColorTexture(
         math.min(1, br + 0.03), math.min(1, bg + 0.03), math.min(1, bb + 0.04), alpha)
+    if F.ApplyBackground then F.ApplyBackground(c) end
     c:Show()
 
     local size = tonumber(GetDB("flowFontSize", 13)) or 13
@@ -310,6 +311,7 @@ function F.Restyle()
 
     if F.ApplyCloseButton then F.ApplyCloseButton() end
     if F.ApplyShape then F.ApplyShape() end
+    if F.ApplyShapeDeferred then F.ApplyShapeDeferred() end
 end
 
 -- ---------------------------------------------------------------------------
@@ -379,6 +381,7 @@ function F.Disable()
     if F.RestoreTemplates then F.RestoreTemplates() end
     if F.HideBand then F.HideBand() end
     if F.ResetShape then F.ResetShape() end
+    if F.HideBackground then F.HideBackground() end
     if chrome then chrome:Hide() end
     if pill then pill:Hide() end
     F.RestoreFrameArt()

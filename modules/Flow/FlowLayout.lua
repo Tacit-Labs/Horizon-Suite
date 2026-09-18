@@ -335,6 +335,22 @@ function F.ApplyShape()
     LayoutFooter(width)
 end
 
+--- Re-run the shape pass on the next frame.
+---
+--- Blizzard sizes some blocks lazily, so a measurement taken inside the display
+--- hook can be one frame stale: the reward card lands misaligned and the window
+--- is cut short. One deferred pass settles it without polling.
+--- @return nil
+function F.ApplyShapeDeferred()
+    if not C_Timer or not C_Timer.After then return end
+    C_Timer.After(0, function()
+        local frame = _G.QuestFrame
+        if frame and frame.IsShown and frame:IsShown() then
+            pcall(F.ApplyShape)
+        end
+    end)
+end
+
 --- Hide Blizzard's corner close button. ESC still closes the window, and the
 --- footer carries Decline, Cancel or Goodbye on every panel that has one.
 --- @return nil

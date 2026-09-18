@@ -351,6 +351,18 @@ function F.ShowLore()
         return nil
     end
 
+    -- Blizzard fades the quest description in from alpha 0, driven by an
+    -- OnUpdate that only runs on the normal QUEST_DETAIL flow. The expander
+    -- re-runs QuestInfo_Display directly, so that driver never ticks and the
+    -- text stays invisible: laid out, sized, alpha 0. Force it visible rather
+    -- than relying on a fade that is not going to happen.
+    if shown.Show then shown:Show() end
+    if shown.SetAlpha then shown:SetAlpha(1) end
+    if _G.QuestInfoFrame then
+        _G.QuestInfoFrame.fadingFrame = nil
+        _G.QuestInfoFrame.fading = nil
+    end
+
     if shown.SetWidth then shown:SetWidth(ContentWidth()) end
     if shown.SetTextColor then shown:SetTextColor(0.60, 0.60, 0.66, 1) end
     ApplyFont(shown, FontSize())

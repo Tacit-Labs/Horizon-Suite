@@ -22,6 +22,9 @@ addon.FLOW_KEYS = {
     flowShowTypePill    = true,
     flowAutoSize        = true,
     flowHideCloseButton = true,
+    flowShowBackgroundArt = true,
+    flowBackgroundTheme   = true,
+    flowBackgroundOpacity = true,
     classColorFlow      = true,
 }
 
@@ -35,9 +38,12 @@ addon.FLOW_DEFAULTS = {
     flowShowTypePill    = true,
     flowAutoSize        = true,
     flowHideCloseButton = true,
+    flowShowBackgroundArt = true,
+    flowBackgroundOpacity = 35,
 }
 
 addon.FLOW_LIMITS = {
     flowBackdropOpacity = { min = 0, max = 100 },
     flowFontSize        = { min = 9, max = 22  },
+    flowBackgroundOpacity = { min = 0, max = 80 },
 }

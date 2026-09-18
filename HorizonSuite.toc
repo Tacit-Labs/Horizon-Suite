@@ -111,6 +111,7 @@ modules/Presence/PresenceModule.lua
 
 modules/Flow/FlowTemplates.lua
 modules/Flow/FlowQuestBand.lua
+modules/Flow/FlowBackground.lua
 modules/Flow/FlowLayout.lua
 modules/Flow/FlowCore.lua
 modules/Flow/FlowSlash.lua
