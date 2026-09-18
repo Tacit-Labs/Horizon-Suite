@@ -10,6 +10,17 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [5.9.0] – 2026-09-18
+
+### ✨ New Features
+- **(Core) World of Warcraft: Forever** — Horizon Suite now loads on the Forever beta from the same package as Retail. Settings for systems Forever does not have (Mythic+, Delves, housing, the Great Vault, specialisations and the Traveler's Log) stay out of the way there, and `/h platform` shows what your client supports. Known beta issue: the Forever client does not yet read saved settings back at login, so settings reset on reload until Blizzard fixes it.
+
+### 🔧 Improvements
+- **(Core)** SubtleGrind joins the supporters wall on the Welcome page.
+- **(Core)** A module that fails to start now says so in chat instead of silently staying off.
+
+---
+
 ## [5.8.0] – 2026-09-12
 
 ### ✨ New Features
