@@ -109,6 +109,12 @@ modules/Presence/PresenceErrors.lua
 modules/Presence/PresenceSlash.lua
 modules/Presence/PresenceModule.lua
 
+modules/Flow/FlowTemplates.lua
+modules/Flow/FlowQuestBand.lua
+modules/Flow/FlowCore.lua
+modules/Flow/FlowSlash.lua
+modules/Flow/FlowModule.lua
+
 modules/Augment/ToastStyles/AugmentToastStyles.lua
 modules/Augment/LootFrame/AugmentState.lua
 modules/Augment/LootFrame/AugmentParsing.lua
@@ -166,11 +172,13 @@ options/modules/defaults/OptionsDefaultsInsight.lua
 options/modules/defaults/OptionsDefaultsEssence.lua
 options/modules/defaults/OptionsDefaultsVista.lua
 options/modules/defaults/OptionsDefaultsFocus.lua
+options/modules/defaults/OptionsDefaultsFlow.lua
 options/modules/defaults/OptionsDefaultsAxis.lua
 options/modules/OptionsAxis.lua
 options/modules/OptionsGlobal.lua
 options/modules/OptionsFocus.lua
 options/modules/OptionsPresence.lua
+options/modules/OptionsFlow.lua
 options/modules/OptionsInsight.lua
 options/modules/OptionsEssence.lua
 options/modules/OptionsVista.lua

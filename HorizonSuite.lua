@@ -148,6 +148,7 @@ function addon:EnsureModulesDB()
         db.modules.augment = { enabled = false }
         db.modules.vista = { enabled = false }
         db.modules.essence = { enabled = false }
+        db.modules.flow = { enabled = false }
     end
     -- Migrate old Vista (Presence) module key to Presence; repurpose vista for minimap.
     -- Guarded by db._migrations so this runs exactly once, preventing replays that
@@ -179,6 +180,11 @@ function addon:EnsureModulesDB()
     -- Ensure essence exists for existing installs; disabled by default (beta)
     if not db.modules.essence then
         db.modules.essence = { enabled = false }
+    end
+
+    -- Ensure flow exists for existing installs; disabled by default (new module)
+    if not db.modules.flow then
+        db.modules.flow = { enabled = false }
     end
 
     -- Module on/off follows the active profile: sync db.modules from the active

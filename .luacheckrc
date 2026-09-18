@@ -263,6 +263,28 @@ read_globals = {
     "GetSpecializationInfoByID",
     "GetSpecializationRoleByID",
 
+    -- Quest frame globals (Flow)
+    "QuestFrame",
+    "QuestFrameDetailPanel",
+    "QuestFrameProgressPanel",
+    "QuestFrameRewardPanel",
+    "QuestFrameGreetingPanel",
+    "QuestInfoFrame",
+    "QuestInfoTitleHeader",
+    "QuestInfoDescriptionText",
+    "QuestInfoObjectivesText",
+    "QuestInfo_Display",
+    "QuestInfo_ShowObjectivesHeader",
+    "QuestInfo_ShowObjectivesText",
+    "QuestInfo_ShowDescriptionText",
+    "QUEST_TEMPLATE_DETAIL",
+    "QUEST_TEMPLATE_PROGRESS",
+    "QUEST_TEMPLATE_REWARD",
+    "QuestFrame_GetMaterial",
+    "GetObjectiveText",
+    "GetQuestID",
+    "UIFrameFadeIn",
+
     -- Quest functions
     "GetQuestLogTitle",
     "GetQuestLink",

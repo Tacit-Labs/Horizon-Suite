@@ -708,6 +708,7 @@ addon.BrandDisplay = {
         insight = L["NAME_ADDON_TOOLTIPS"],
         augment = L["NAME_ADDON_LOOT"],
         essence = L["NAME_ADDON_CHARACTER"],
+        flow = L["NAME_ADDON_FLOW"],
         meridian = L["NAME_ADDON_C-----S"],
     },
     -- Human-readable descriptions shown in "Subtitle" and "simple" name modes.
@@ -719,6 +720,7 @@ addon.BrandDisplay = {
         insight  = L["AXIS_MODULE_NAME_SIMPLE_TOOLTIPS"],
         augment  = L["AXIS_MODULE_NAME_SIMPLE_LOOT"],
         essence  = L["AXIS_MODULE_NAME_SIMPLE_CHARACTER"],
+        flow     = L["AXIS_MODULE_NAME_SIMPLE_FLOW"],
         meridian = L["AXIS_MODULE_NAME_SIMPLE_C-----S"],
     },
 }
