@@ -108,6 +108,15 @@ function Platform.Print()
     local moduleKeys = {}
     for key in pairs(addon.modules or {}) do moduleKeys[#moduleKeys + 1] = key end
     table.sort(moduleKeys)
+    local charKey = addon._GetCurrentCharacterProfileKey and addon._GetCurrentCharacterProfileKey()
+    local activeKey = addon.GetActiveProfileKey and addon.GetActiveProfileKey()
+    local profileKeys = {}
+    if db and type(db.profiles) == "table" then
+        for k in pairs(db.profiles) do profileKeys[#profileKeys + 1] = tostring(k) end
+        table.sort(profileKeys)
+    end
+    out(("Profile: character=%s active=%s; saved profiles: %s"):format(
+        tostring(charKey), tostring(activeKey), #profileKeys > 0 and table.concat(profileKeys, ", ") or "none"))
     out(("Modules (saved / running), HorizonDB %s:"):format(db and "loaded" or "|cFFFF4444missing|r"))
     for _, key in ipairs(moduleKeys) do
         local saved = db and db.modules and db.modules[key] and db.modules[key].enabled
