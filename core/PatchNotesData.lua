@@ -14,6 +14,23 @@ local addon = _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["5.9.0"] = {
+        date = "2026-09-18",
+        {
+            section = "New Features",
+            bullets = {
+                "Core: Horizon Suite now loads on World of Warcraft: Forever from the same package as Retail. Settings for systems Forever does not have (Mythic+, Delves, housing, the Great Vault, specialisations and the Traveler's Log) stay out of the way there, and /h platform shows what your client supports. Known beta issue: the Forever client does not yet read saved settings back at login, so settings reset on reload until Blizzard fixes it.",
+            },
+        },
+        {
+            section = "Improvements",
+            bullets = {
+                "Core: SubtleGrind joins the supporters wall on the Welcome page.",
+                "Core: a module that fails to start now says so in chat instead of silently staying off.",
+            },
+        },
+    },
+
     ["5.8.0"] = {
         date = "2026-09-12",
         {
