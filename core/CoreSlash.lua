@@ -52,6 +52,7 @@ local function ShowCoreHelp()
     HSPrint("  /h notes             - Show latest patch notes")
     HSPrint("  /h devmode           - Toggle Dev Mode (show Blizzard tracker alongside Focus)")
     HSPrint("  /h platform          - Show client (Retail / Forever) and capability table")
+    HSPrint("  /h platform probe    - Query each game system live (settles unverified capabilities)")
     HSPrint("  /hlocaledev          - Toggle locale dev mode (UI shows locale keys; reload required)")
     HSPrint("  /h focus [cmd]       - Tracker (toggle, collapse, test, ...)")
     HSPrint("  /hfs delvedebug      - Delve / Nemesis widget debug (alias: /h debug focus delvedebug)")
@@ -109,9 +110,9 @@ local function OnSlashCommand(msg)
         return
     end
 
-    if lower == "platform" then
+    if lower == "platform" or lower == "platform probe" then
         if addon.Platform and addon.Platform.Print then
-            addon.Platform.Print()
+            if lower == "platform probe" then addon.Platform.Probe() else addon.Platform.Print() end
         else
             HSPrint("Platform table not loaded.")
         end
