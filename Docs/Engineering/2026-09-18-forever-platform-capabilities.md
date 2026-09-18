@@ -61,9 +61,25 @@ live and prints what it returns.
 - One TOC. `## Interface: 120100, 16001` and one package. No `_Forever.toc`:
   neither the BigWigs packager nor any addon site has a Forever flavour yet.
 
+## Beta client: SavedVariables are written but not read back
+
+On the Forever beta (build 69913) the client writes `HorizonDB` to
+`WTF\Account\<id>\SavedVariables\HorizonSuite.lua` at reload, but hands nothing
+back at the next load: `/h platform` reports **NOT restored**, and every module
+starts from defaults. Verified against the file on disk (both the root module
+list and the character profile said `enabled = true` while the running addon
+started empty) and reproduced on the branch's first commit, so it is the client,
+not the addon. Until Blizzard fixes it, settings and module toggles on the beta
+do not survive a reload. Retail is unaffected.
+
+Two hardening changes came out of chasing this and stay on their own merits:
+a module that throws while starting now prints the error instead of silently
+staying off, and no bare-name profile is minted before the realm is known.
+
 ## Open items
 
 - Confirm task quests and scenarios once a higher-level character can look.
+- Re-test persistence on each new beta build; drop this section when it holds.
 - Per-spec profiles: the toggle is hidden on Forever and resolution falls back
   to the character key; existing Retail spec profiles are untouched.
-- Product folder on the Windows test box is `_classic_beta_` (to confirm).
+- Product folder on the Windows test box is `_classic_beta_` (confirmed).
