@@ -110,6 +110,7 @@ function addon.DashboardModuleGuide_Init(env)
         for _, row in ipairs({
             { key = "augment", label = "Augment", tag = prevTag, when = PREVIEW_MODULE_KEYS },
             { key = "essence", label = "Essence", tag = prevTag, when = PREVIEW_MODULE_KEYS },
+            { key = "flow", label = "Flow", tag = prevTag, when = PREVIEW_MODULE_KEYS },
             { key = "meridian", label = "Meridian", tag = soonTag, when = COMING_SOON_MODULE_KEYS },
         }) do
             if row.when[row.key] then
@@ -355,6 +356,11 @@ function addon.DashboardModuleGuide_Init(env)
     essenceBody:SetWordWrap(true)
     essenceBody:SetSpacing(4)
 
+    local flowCard = CreateGuideAccordionCard(content, ModuleGuideSectionTitle("flow"), false, RunAccordionLayout)
+    local flowBody = MakeDashboardWelcomeMixedScriptText(flowCard.settingsContainer, L["DASH_GUIDE_MOD_FLOW_BODY"], 12, 0.62, 0.65, 0.70, "LEFT")
+    flowBody:SetWordWrap(true)
+    flowBody:SetSpacing(4)
+
     local meridianCard = CreateGuideAccordionCard(content, ModuleGuideSectionTitle("meridian"), false, RunAccordionLayout)
     local meridianBody = MakeDashboardWelcomeMixedScriptText(meridianCard.settingsContainer, L["DASH_GUIDE_MOD_MERIDIAN_BODY"], 12, 0.62, 0.65, 0.70, "LEFT")
     meridianBody:SetWordWrap(true)
@@ -389,6 +395,7 @@ function addon.DashboardModuleGuide_Init(env)
         layoutAccordionCard(insightCard, { insightBody }, 10)
         layoutAccordionCard(augmentCard, { augmentBody }, 10)
         layoutAccordionCard(essenceCard, { essenceBody }, 10)
+        layoutAccordionCard(flowCard, { flowBody }, 10)
         layoutAccordionCard(meridianCard, { meridianBody }, 10)
         return y
     end
