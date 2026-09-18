@@ -297,7 +297,17 @@ local function OnAddonLoaded(addonName)
         for key in pairs(addon.modules or {}) do
             local modDb = db and db.modules and db.modules[key]
             if modDb and modDb.enabled ~= false then
-                addon:EnableModule(key)
+                -- One module failing to start must not leave the rest off, and the
+                -- failure must be visible: the DB keeps saying enabled while the
+                -- runtime flag stays false, which reads as "settings did not save".
+                local ok, err = pcall(addon.EnableModule, addon, key)
+                if not ok then
+                    addon.modules[key].enableError = tostring(err)
+                    if addon.HSPrint then
+                        addon.HSPrint(("|cFFFF4444%s failed to start:|r %s"):format(key, tostring(err)))
+                    end
+                    if geterrorhandler then geterrorhandler()(err) end
+                end
             end
         end
     elseif addonName == "Blizzard_WorldMap" then

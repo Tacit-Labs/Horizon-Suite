@@ -101,6 +101,22 @@ function Platform.Print()
         local note = Platform.unverified[key] and "  (unverified on Forever)" or ""
         out(("  %-16s %s%s"):format(key, state, note))
     end
+    -- Module state: saved (what the DB says) against running (what actually started).
+    -- A saved=yes / running=no pair means the module threw while starting; the
+    -- error is kept on the module record and printed at load.
+    local db = _G[addon.DATABASE]
+    local moduleKeys = {}
+    for key in pairs(addon.modules or {}) do moduleKeys[#moduleKeys + 1] = key end
+    table.sort(moduleKeys)
+    out(("Modules (saved / running), HorizonDB %s:"):format(db and "loaded" or "|cFFFF4444missing|r"))
+    for _, key in ipairs(moduleKeys) do
+        local saved = db and db.modules and db.modules[key] and db.modules[key].enabled
+        local m = addon.modules[key]
+        local savedText = saved == nil and "unset" or (saved and "yes" or "no")
+        local runText = m.enabled and "|cFF00FF00yes|r" or "|cFFFF4444no|r"
+        local errText = m.enableError and ("  error: " .. m.enableError) or ""
+        out(("  %-10s %-6s %s%s"):format(key, savedText, runText, errText))
+    end
 end
 
 -- ---------------------------------------------------------------------------
