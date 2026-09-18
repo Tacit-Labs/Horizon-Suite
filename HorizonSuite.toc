@@ -1,4 +1,4 @@
-## Interface: 120100
+## Interface: 120100, 16001
 ## Title: Horizon Suite
 ## Notes: Core addon with pluggable modules.
 ## Author: Crystilac
@@ -10,6 +10,7 @@
 ## X-Wago-ID: jK8gY56y
 
 HorizonSuite.lua
+core/Platform.lua
 locales/LocaleCore.lua
 locales/horizon/enUS.lua
 locales/LocaleDevCapture.lua
@@ -177,6 +178,7 @@ options/modules/OptionsAugment.lua
 options/modules/OptionsAugmentTalkingHead.lua
 options/modules/OptionsAugmentAlerts.lua
 options/modules/OptionsFocusIntegrations.lua
+options/OptionsPlatform.lua
 options/OptionsSearch.lua
 options/HorizonIconPicker.lua
 options/SettingsBridge.lua

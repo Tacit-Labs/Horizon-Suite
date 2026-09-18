@@ -100,6 +100,49 @@ addon.OUTLINE_OPTIONS                  = OUTLINE_OPTIONS
 addon.VALID_OUTLINE_VALUES             = VALID_OUTLINE_VALUES
 addon.BrandModule                      = BrandModule
 addon.Section                          = Section
+
+-- ---------------------------------------------------------------------------
+-- Platform gating. A row or Section carrying `requires = "<capability>"` is
+-- dropped from the options tree when addon.Platform.Has(capability) is false
+-- (e.g. Mythic+ rows on WoW: Forever). options/OptionsPlatform.lua runs the
+-- prune once over addon.OptionCategories after every module has registered.
+-- ---------------------------------------------------------------------------
+
+-- Attach a capability requirement to an option built by a helper that takes no opts table.
+-- @param capability string  Key in addon.Platform.has
+-- @param option table
+-- @return table  The same option, tagged
+function addon.RequireCapability(capability, option)
+    if type(option) == "table" then option.requires = capability end
+    return option
+end
+
+-- Return a copy of an option list without rows whose capability is absent.
+-- Recurses into column layouts ({ type = "columns", left = { options }, right = { options } }).
+-- @param list table|nil
+-- @return table|nil
+function addon.PruneOptionsForPlatform(list)
+    if type(list) ~= "table" then return list end
+    local P = addon.Platform
+    local out = {}
+    for _, row in ipairs(list) do
+        local keep = true
+        if type(row) == "table" and row.requires and P and not P.Has(row.requires) then
+            keep = false
+        end
+        if keep then
+            if type(row) == "table" and row.type == "columns" then
+                for _, side in ipairs({ "left", "right" }) do
+                    if type(row[side]) == "table" and type(row[side].options) == "table" then
+                        row[side].options = addon.PruneOptionsForPlatform(row[side].options)
+                    end
+                end
+            end
+            out[#out + 1] = row
+        end
+    end
+    return out
+end
 addon.Header                           = Header
 addon.ModuleReloadPrompt               = ModuleReloadPrompt
 addon.Button                           = Button

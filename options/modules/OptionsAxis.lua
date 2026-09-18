@@ -219,6 +219,7 @@ local categories = {
                 name = L["AXIS_ENABLE"],
                 desc = L["AXIS_PICK_DIFFERENT_PROFILES_PER_SPEC"],
                 dbKey = "_profiles_usePerSpec",
+                requires = "specs",
                 refreshIds = {
                     "_profiles_current",
                     "_profiles_spec_1",
@@ -289,6 +290,7 @@ local categories = {
                     type = "dropdown",
                     name = specNameFn,
                     dbKey = "_profiles_spec_" .. tostring(specIndex),
+                    requires = "specs",
                     options = specProfileOptions,
                     hidden = specHiddenFn,
                     disabled = function()

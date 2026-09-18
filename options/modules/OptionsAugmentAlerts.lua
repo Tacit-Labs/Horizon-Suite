@@ -160,7 +160,7 @@ local category = {
                       get = function() return getDB("alertsMailEnabled", D.alertsMailEnabled) end,
                       set = function(v) setDB("alertsMailEnabled", v); applyAlerts() end,
                     },
-                    { type = "toggle",
+                    { type = "toggle", requires = "weeklyVault",
                       name = L["AUGMENT_ALERTS_VAULT"], desc = L["AUGMENT_ALERTS_VAULT_DESC"],
                       dbKey = "alertsVaultEnabled",
                       get = function() return getDB("alertsVaultEnabled", D.alertsVaultEnabled) end,
@@ -230,7 +230,7 @@ local category = {
                       disabled = function() return not getDB("alertsSoundEnabled", D.alertsSoundEnabled) end,
                       shiftClick = function() if addon.Augment and addon.Augment.Alerts and addon.Augment.Alerts.PlaySoundPreview then addon.Augment.Alerts.PlaySoundPreview("MAIL") end end,
                     },
-                    { type = "toggle",
+                    { type = "toggle", requires = "weeklyVault",
                       name = L["AUGMENT_ALERTS_SOUND_VAULT"], desc = L["AUGMENT_ALERTS_SOUND_VAULT_DESC"],
                       dbKey = "alertsSoundVault",
                       get = function() return getDB("alertsSoundVault", D.alertsSoundVault) end,
@@ -385,7 +385,7 @@ local category = {
             },
             right = {
                 options = {
-                    ColorOption("AUGMENT_ALERTS_VAULT_COLOUR",          "AUGMENT_ALERTS_VAULT_COLOUR_DESC",          "alertsVaultColor"),
+                    addon.RequireCapability("weeklyVault", ColorOption("AUGMENT_ALERTS_VAULT_COLOUR", "AUGMENT_ALERTS_VAULT_COLOUR_DESC", "alertsVaultColor")),
                     ColorOption("AUGMENT_ALERTS_FRIEND_ON_COLOUR",      "AUGMENT_ALERTS_FRIEND_ON_COLOUR_DESC",      "alertsFriendOnColor"),
                     ColorOption("AUGMENT_ALERTS_FRIEND_OFF_COLOUR",     "AUGMENT_ALERTS_FRIEND_OFF_COLOUR_DESC",     "alertsFriendOffColor"),
                 },

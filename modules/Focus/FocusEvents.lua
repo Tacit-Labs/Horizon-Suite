@@ -290,15 +290,44 @@ end
 -- EVENT HANDLERS (table dispatch)
 -- ============================================================================
 
+-- Enable every module the saved DB marks on. Runs at ADDON_LOADED when the
+-- character's profile key is already resolvable, otherwise at PLAYER_LOGIN: the
+-- module map lives on the active profile, and enabling against the early-load
+-- profile would read defaults and write module state nowhere persistent.
+local function EnableSavedModules()
+    addon._deferModuleEnable = nil
+    addon:EnsureModulesDB()
+    local db = _G[addon.DATABASE]
+    for key in pairs(addon.modules or {}) do
+        local modDb = db and db.modules and db.modules[key]
+        if modDb and modDb.enabled ~= false then
+            -- One module failing to start must not leave the rest off, and the
+            -- failure must be visible: the DB keeps saying enabled while the
+            -- runtime flag stays false, which reads as "settings did not save".
+            local ok, err = pcall(addon.EnableModule, addon, key)
+            if not ok then
+                addon.modules[key].enableError = tostring(err)
+                if addon.HSPrint then
+                    addon.HSPrint(("|cFFFF4444%s failed to start:|r %s"):format(key, tostring(err)))
+                end
+                if geterrorhandler then geterrorhandler()(err) end
+            end
+        end
+    end
+end
+
 local function OnAddonLoaded(addonName)
     if addonName == addon.ADDON_NAME then
-        addon:EnsureModulesDB()
+        -- Did the client hand our SavedVariables back? The file-load marker is
+        -- gone when it did; when it did not, every setting starts from defaults
+        -- and nothing the player changes survives a reload.
         local db = _G[addon.DATABASE]
-        for key in pairs(addon.modules or {}) do
-            local modDb = db and db.modules and db.modules[key]
-            if modDb and modDb.enabled ~= false then
-                addon:EnableModule(key)
-            end
+        addon._dbRestoredFromDisk = not (db and db._preRestoreMarker)
+        if db then db._preRestoreMarker = nil end
+        if addon.IsCharacterProfileKeyReady and not addon.IsCharacterProfileKeyReady() then
+            addon._deferModuleEnable = true
+        else
+            EnableSavedModules()
         end
     elseif addonName == "Blizzard_WorldMap" then
         if addon.FocusModuleHooks and addon.FocusModuleHooks.WorldMap then
@@ -554,7 +583,10 @@ local eventHandlers = {
     ADDON_LOADED             = function(_, addonName) OnAddonLoaded(addonName) end,
     PLAYER_REGEN_DISABLED    = function() OnPlayerRegenDisabled() end,
     PLAYER_REGEN_ENABLED     = function() OnPlayerRegenEnabled() end,
-    PLAYER_LOGIN             = function() OnPlayerLoginOrEnteringWorld() end,
+    PLAYER_LOGIN             = function()
+        if addon._deferModuleEnable then EnableSavedModules() end
+        OnPlayerLoginOrEnteringWorld()
+    end,
     PLAYER_ENTERING_WORLD    = function() OnPlayerLoginOrEnteringWorld() end,
     QUEST_TURNED_IN          = function(_, questID) OnQuestTurnedIn(questID) end,
     QUEST_ACCEPTED           = function(_, questID) OnQuestAccepted(questID) end,

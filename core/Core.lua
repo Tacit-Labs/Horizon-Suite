@@ -549,12 +549,23 @@ local function GetCurrentCharacterProfileKey()
     local realm = _G.GetNormalizedRealmName and _G.GetNormalizedRealmName() or (_G.GetRealmName and _G.GetRealmName())
     if type(name) ~= "string" or name == "" then return nil end
     realm = (type(realm) == "string" and realm ~= "") and realm or nil
-    local key = realm and (name .. "-" .. realm) or name
-    key = key:gsub("%s+", "")
-    if realm then _cachedCharKey = key end
+    -- No realm, no key. A bare "Name" key minted at ADDON_LOADED is a different
+    -- profile from the "Name-Realm" one the rest of the session writes to, and its
+    -- seeded all-off module map would overwrite the saved one on every load. Retail
+    -- has the realm at ADDON_LOADED; the Forever beta resolves it later, so callers
+    -- get nil and fall back to the early-load profile until PLAYER_LOGIN.
+    if not realm then return nil end
+    local key = (name .. "-" .. realm):gsub("%s+", "")
+    _cachedCharKey = key
     return key
 end
 addon._GetCurrentCharacterProfileKey = GetCurrentCharacterProfileKey  -- exposed for ProfileIO.lua
+
+-- True once the character's profile key can be resolved (name and realm known).
+-- @return boolean
+function addon.IsCharacterProfileKeyReady()
+    return GetCurrentCharacterProfileKey() ~= nil
+end
 
 local function GetSpecName(specIndex)
     if type(specIndex) ~= "number" then return nil end
