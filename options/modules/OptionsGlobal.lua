@@ -237,7 +237,7 @@ local categories = {
             opts[#opts + 1] = { type = "section", name = L["AXIS_CLASS_THEME_SECTION"] }
             local classColorKeys = {
                 "classColorDashboard", "classColorVista", "classColorInsight", "classColorEssence",
-                "classColorFocus", "classColorPresence", "classColorAugment",
+                "classColorFocus", "classColorPresence", "classColorAugment", "classColorFlow",
             }
             -- Include "_classColorAll" so the master row Refresh() runs after batch (Axis/Dashboard accordion does not use OptionsPanel allRefreshers).
             local classColorAllRefreshIds = { "_classColorAll" }
@@ -331,6 +331,7 @@ local categories = {
             opts[#opts + 1] = { type = "toggle", name = BM and BM("insight"), desc = L["INSIGHT_CLASS_COLOURS_DESC"], dbKey = "classColorInsight", get = function() return getDB("classColorInsight", false) end, set = function(v) setDB("classColorInsight", v) end, refreshIds = { "_classColorAll" } }
             opts[#opts + 1] = { type = "toggle", name = BM and BM("augment"), desc = L["AUGMENT_CLASS_COLOURS_DESC"], dbKey = "classColorAugment", get = function() return getDB("classColorAugment", false) end, set = function(v) setDB("classColorAugment", v) end, refreshIds = { "_classColorAll" } }
             opts[#opts + 1] = { type = "toggle", name = BM and BM("essence"), desc = L["ESSENCE_CLASS_COLOURS_DESC"], dbKey = "classColorEssence", get = function() return getDB("classColorEssence", false) end, set = function(v) setDB("classColorEssence", v) end, refreshIds = { "_classColorAll" } }
+            opts[#opts + 1] = { type = "toggle", name = BM and BM("flow"), desc = L["FLOW_CLASS_COLOURS_DESC"], dbKey = "classColorFlow", get = function() return getDB("classColorFlow", false) end, set = function(v) setDB("classColorFlow", v) end, refreshIds = { "_classColorAll" } }
             opts[#opts + 1] = { type = "section", name = L["AXIS_GLOBAL_FONT_SECTION"] }
             local isGlobalFontOn = function() return getDB("useGlobalFont", D and D.useGlobalFont or false) end
             opts[#opts + 1] = {
