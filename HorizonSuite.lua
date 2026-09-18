@@ -4,6 +4,11 @@ local addon = _G[GLOBAL_NS]
 addon.ADDON_NAME = "HorizonSuite"
 addon.DATABASE    = "HorizonDB"
 _G.HorizonSuite = addon
+-- Placeholder written while the addon's files run. The client restores
+-- SavedVariables after that and before ADDON_LOADED, replacing this table
+-- wholesale, so the marker survives only when nothing was restored. Read once
+-- at ADDON_LOADED into addon._dbRestoredFromDisk and then removed (/h platform).
+if not _G[addon.DATABASE] then _G[addon.DATABASE] = { _preRestoreMarker = true } end
 -- ============================================================================
 -- MODULE REGISTRY AND LIFECYCLE
 -- ============================================================================

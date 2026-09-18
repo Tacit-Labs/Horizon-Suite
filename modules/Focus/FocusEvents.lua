@@ -318,6 +318,12 @@ end
 
 local function OnAddonLoaded(addonName)
     if addonName == addon.ADDON_NAME then
+        -- Did the client hand our SavedVariables back? The file-load marker is
+        -- gone when it did; when it did not, every setting starts from defaults
+        -- and nothing the player changes survives a reload.
+        local db = _G[addon.DATABASE]
+        addon._dbRestoredFromDisk = not (db and db._preRestoreMarker)
+        if db then db._preRestoreMarker = nil end
         if addon.IsCharacterProfileKeyReady and not addon.IsCharacterProfileKeyReady() then
             addon._deferModuleEnable = true
         else

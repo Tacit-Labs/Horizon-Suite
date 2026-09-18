@@ -117,7 +117,11 @@ function Platform.Print()
     end
     out(("Profile: character=%s active=%s; saved profiles: %s"):format(
         tostring(charKey), tostring(activeKey), #profileKeys > 0 and table.concat(profileKeys, ", ") or "none"))
-    out(("Modules (saved / running), HorizonDB %s:"):format(db and "loaded" or "|cFFFF4444missing|r"))
+    local restored = addon._dbRestoredFromDisk
+    local dbState = restored == true and "restored from disk"
+        or restored == false and "|cFFFF4444NOT restored: the client handed back no SavedVariables|r"
+        or "unknown"
+    out(("Modules (saved / running), HorizonDB %s:"):format(dbState))
     for _, key in ipairs(moduleKeys) do
         local saved = db and db.modules and db.modules[key] and db.modules[key].enabled
         local m = addon.modules[key]
