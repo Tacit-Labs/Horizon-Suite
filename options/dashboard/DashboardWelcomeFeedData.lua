@@ -73,6 +73,7 @@ addon.DashboardWelcomeFeed = {
             { name = "Savs", classFile = "SHAMAN" },
             { name = "Vukolak", classFile = "WARLOCK" },
             { name = "Boofuls", classFile = "PALADIN" },
+            { name = "SubtleGrind" },
         },
     },
     {
