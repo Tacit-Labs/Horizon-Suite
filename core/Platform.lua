@@ -46,18 +46,18 @@ local ABSENT_ON_FOREVER = {
     delves      = true,
     housing     = true,
     weeklyVault = true,
+    adventureGuide = true,  -- Traveler's Log: probe returned 0 activities (Trading Post is Retail-only)
 }
 
 -- Systems Forever exposes through the API whose content has not been verified on
 -- the beta. They default to present; the in-game spike settles each one.
+-- Verified present on the Forever beta (2026-09-18 probe): achievements (111 in 29
+-- categories), transmog (237 head appearances), professions (20 tradeskill lines with
+-- recipe schematics), content tracking enums. Still open: nothing on the beta has yet
+-- shown a task quest or a scenario, so both stay flagged until one is seen.
 Platform.unverified = {
-    worldQuests     = true,
-    scenarios       = true,
-    achievements    = true,
-    transmog        = true,
-    professions     = true,
-    adventureGuide  = true,
-    contentTracking = true,
+    worldQuests = true,
+    scenarios   = true,
 }
 
 local detected = {
