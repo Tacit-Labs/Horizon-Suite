@@ -50,6 +50,10 @@ local categories = {
                 "flowShowTypePill", D.flowShowTypePill),
             Toggle(L["FLOW_ENTRANCE"], L["FLOW_ENTRANCE_DESC"],
                 "flowEntrance", D.flowEntrance),
+            Toggle(L["FLOW_AUTO_SIZE"], L["FLOW_AUTO_SIZE_DESC"],
+                "flowAutoSize", D.flowAutoSize),
+            Toggle(L["FLOW_HIDE_CLOSE"], L["FLOW_HIDE_CLOSE_DESC"],
+                "flowHideCloseButton", D.flowHideCloseButton),
         },
     },
 }

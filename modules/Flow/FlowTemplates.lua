@@ -31,18 +31,33 @@ local TEMPLATE_NAMES = {
     "QUEST_TEMPLATE_REWARD",
 }
 
--- [templateName] = Blizzard's original elements array, kept by reference so
--- restore is exact rather than a reconstruction.
+-- Content column Flow lays out in, and the frame width that hosts it. Blizzard's
+-- own contentWidth is around 285, which is what makes the stock window a tall
+-- letterbox; widening it is half of squaring the frame up.
+F.CONTENT_PAD   = 20
+F.CONTENT_WIDTH = 380
+F.FRAME_WIDTH   = F.CONTENT_WIDTH + (F.CONTENT_PAD * 2)
+
+-- [templateName] = { elements = <Blizzard's array>, contentWidth = <number|nil> }
+-- The elements array is kept by reference so restore is exact rather than a
+-- reconstruction.
 local originals = {}
 
 --- Blizzard's own element function for a slot Flow substitutes.
 --- Flow only ever replaces entries inside a template's array, never the global
 --- itself, so the original is always still reachable under its own name.
---- @param slot string "description"
+--- @param slot string "description" or "title"
 --- @return function|nil
 function F.GetOriginalElement(slot)
     if slot == "description" then return _G.QuestInfo_ShowDescriptionText end
+    if slot == "title" then return _G.QuestInfo_ShowTitle end
     return nil
+end
+
+--- Width of the column Flow's elements should fill.
+--- @return number
+function F.GetContentWidth()
+    return F.CONTENT_WIDTH
 end
 
 --- Distance in array slots between consecutive element entries.
@@ -96,7 +111,7 @@ local function Rewrite(elements)
 
     local groups = GroupsOf(elements, stride)
 
-    local descIndex, objTextIndex, objHeaderIndex
+    local descIndex, objTextIndex, objHeaderIndex, titleIndex
     for i = 1, #groups do
         local head = groups[i][1]
         if head ~= nil then
@@ -106,12 +121,14 @@ local function Rewrite(elements)
                 objTextIndex = objTextIndex or i
             elseif head == _G.QuestInfo_ShowObjectivesHeader then
                 objHeaderIndex = objHeaderIndex or i
+            elseif head == _G.QuestInfo_ShowTitle then
+                titleIndex = titleIndex or i
             end
         end
     end
 
     -- Nothing Flow understands in this template: leave Blizzard's array alone.
-    if not descIndex and not objTextIndex then return nil end
+    if not descIndex and not objTextIndex and not titleIndex then return nil end
 
     -- Flow's band draws its own heading, so Blizzard's is dropped rather than
     -- stubbed: QuestInfo_Display skips an element whose function returns nil,
@@ -121,6 +138,7 @@ local function Rewrite(elements)
 
     if objTextIndex then groups[objTextIndex][1] = F.ShowObjectivesBand end
     if descIndex then groups[descIndex][1] = F.ShowLore end
+    if titleIndex then groups[titleIndex][1] = F.ShowTitle end
 
     -- Move the objectives group above the description when it is not already.
     local moveGroup
@@ -153,20 +171,29 @@ function F.InstallTemplates()
         then
             local ok, rewritten = pcall(Rewrite, template.elements)
             if ok and rewritten then
-                originals[name] = template.elements
+                originals[name] = {
+                    elements     = template.elements,
+                    contentWidth = template.contentWidth,
+                }
                 template.elements = rewritten
+                if template.contentWidth then
+                    template.contentWidth = F.CONTENT_WIDTH
+                end
             end
         end
     end
 end
 
---- Put Blizzard's original element arrays back.
+--- Put Blizzard's original element arrays and content width back.
 --- @return nil
 function F.RestoreTemplates()
-    for name, elements in pairs(originals) do
+    for name, saved in pairs(originals) do
         local template = _G[name]
         if type(template) == "table" then
-            template.elements = elements
+            template.elements = saved.elements
+            if saved.contentWidth then
+                template.contentWidth = saved.contentWidth
+            end
         end
     end
     wipe(originals)

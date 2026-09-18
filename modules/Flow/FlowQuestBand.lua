@@ -19,13 +19,34 @@ addon.Flow = addon.Flow or {}
 local F = addon.Flow
 local L = addon.L
 
-local MAX_ROWS    = 8
-local ROW_GAP     = 5
-local BAND_PAD    = 8
-local BULLET      = "\226\128\162"  -- U+2022, escaped so the file stays ASCII
-local FALLBACK_W  = 300
+local MAX_ROWS   = 8
+local ROW_GAP    = 6
+local BAND_PAD   = 13
+local FALLBACK_W = 380
 
-local band, rows, lore
+-- Card surface shared by the objectives block, the lore line and the rewards
+-- block, so the three read as one system rather than three treatments.
+local CARD_BG     = { 0.11, 0.11, 0.14, 0.95 }
+local CARD_BORDER = { 0.15, 0.15, 0.18, 1 }
+
+local CARD_BACKDROP = {
+    bgFile   = "Interface\\ChatFrame\\ChatFrameBackground",
+    edgeFile = "Interface\\ChatFrame\\ChatFrameBackground",
+    edgeSize = 1,
+    insets   = { left = 1, right = 1, top = 1, bottom = 1 },
+}
+
+local band, rows, lore, title, titleRule
+
+--- Apply the shared card surface to a BackdropTemplate frame.
+--- @param frame Frame
+--- @return nil
+function F.StyleCard(frame)
+    if not frame or not frame.SetBackdrop then return end
+    frame:SetBackdrop(CARD_BACKDROP)
+    frame:SetBackdropColor(CARD_BG[1], CARD_BG[2], CARD_BG[3], CARD_BG[4])
+    frame:SetBackdropBorderColor(CARD_BORDER[1], CARD_BORDER[2], CARD_BORDER[3], CARD_BORDER[4])
+end
 
 -- ---------------------------------------------------------------------------
 -- Shared helpers
@@ -44,14 +65,30 @@ local function ApplyFont(fontString, size)
 end
 
 --- Width Blizzard expects a quest info element to occupy.
+---
+--- This is the template's content column, NOT QuestInfoFrame's width.
+--- QuestInfoFrame is SetAllPoints to the whole panel, so measuring it makes
+--- every element overhang the scroll area and clips whatever sits at the right
+--- edge.
 --- @return number width
 local function ContentWidth()
-    local parent = _G.QuestInfoFrame
-    if parent and parent.GetWidth then
-        local w = parent:GetWidth()
+    if F.GetContentWidth then
+        local w = F.GetContentWidth()
         if w and w > 50 then return w end
     end
     return FALLBACK_W
+end
+
+--- Split a leading "3/8 " progress prefix off an objective.
+---
+--- GetQuestObjectives returns text that already carries the count, so rendering
+--- a separate right-aligned column without stripping it shows the number twice.
+--- @param text string
+--- @return string body, string|nil count
+local function SplitCount(text)
+    local done, need, rest = text:match("^(%d+)%s*/%s*(%d+)%s+(.+)$")
+    if done and rest then return rest, done .. "/" .. need end
+    return text, nil
 end
 
 -- ---------------------------------------------------------------------------
@@ -98,12 +135,7 @@ local function EnsureBand()
     if not parent then return nil end
 
     band = CreateFrame("Frame", "HorizonFlowObjectivesBand", parent, "BackdropTemplate")
-    band:SetBackdrop({ bgFile = "Interface\\ChatFrame\\ChatFrameBackground" })
-
-    band.accent = band:CreateTexture(nil, "ARTWORK")
-    band.accent:SetWidth(2)
-    band.accent:SetPoint("TOPLEFT", band, "TOPLEFT", 0, 0)
-    band.accent:SetPoint("BOTTOMLEFT", band, "BOTTOMLEFT", 0, 0)
+    F.StyleCard(band)
 
     rows = {}
     for i = 1, MAX_ROWS do
@@ -136,10 +168,9 @@ function F.ShowObjectivesBand()
     local accentColor = F.GetAccentColor and { F.GetAccentColor() } or { 0.2, 0.6, 1.0 }
 
     b:SetWidth(width)
-    b:SetBackdropColor(0.11, 0.11, 0.14, 0.90)
-    b.accent:SetColorTexture(accentColor[1], accentColor[2], accentColor[3], 1)
+    F.StyleCard(b)
 
-    local countWidth = structured and 46 or 0
+    local countWidth = 50
     local shown = math.min(#objectives, MAX_ROWS)
     local y = -BAND_PAD
     local used = BAND_PAD
@@ -148,25 +179,27 @@ function F.ShowObjectivesBand()
         local row = rows[i]
         if i <= shown then
             local o = objectives[i]
+            local body, count = o.text, nil
+            if structured then
+                body, count = SplitCount(o.text)
+                if not count and o.need and o.need > 1 then
+                    count = tostring(o.done or 0) .. "/" .. tostring(o.need)
+                end
+            end
 
             row.text:ClearAllPoints()
-            row.text:SetPoint("TOPLEFT", b, "TOPLEFT", BAND_PAD + 6, y)
-            row.text:SetWidth(math.max(40, width - (BAND_PAD * 2) - 6 - countWidth))
-            if structured then
-                row.text:SetText(BULLET .. "  " .. o.text)
-            else
-                row.text:SetText(o.text)
-            end
+            row.text:SetPoint("TOPLEFT", b, "TOPLEFT", BAND_PAD, y)
+            row.text:SetWidth(math.max(40, width - (BAND_PAD * 2) - (count and countWidth or 0)))
+            row.text:SetText(body)
             row.text:SetTextColor(0.89, 0.89, 0.93, 1)
             ApplyFont(row.text, size)
             row.text:Show()
 
-            local hasCount = structured and o.need and o.need > 1
-            if hasCount then
+            if count then
                 row.count:ClearAllPoints()
                 row.count:SetPoint("TOPRIGHT", b, "TOPRIGHT", -BAND_PAD, y)
-                row.count:SetText(tostring(o.done or 0) .. "/" .. tostring(o.need))
-                row.count:SetTextColor(0.54, 0.54, 0.60, 1)
+                row.count:SetText(count)
+                row.count:SetTextColor(accentColor[1], accentColor[2], accentColor[3], 1)
                 ApplyFont(row.count, size)
                 row.count:Show()
             else
@@ -190,6 +223,52 @@ function F.ShowObjectivesBand()
 end
 
 -- ---------------------------------------------------------------------------
+-- Title
+-- ---------------------------------------------------------------------------
+
+--- QuestInfo template element: the quest title, centred, with an accent rule
+--- beneath it. Blizzard positions the title; the rule is anchored under it by
+--- hand and handed back as `bottomShownFrame` so the next element clears both.
+--- @return Frame|nil shownFrame
+--- @return Frame|nil bottomShownFrame
+function F.ShowTitle()
+    local original = F.GetOriginalElement and F.GetOriginalElement("title")
+    if type(original) ~= "function" then return nil end
+
+    local ok, shown = pcall(original)
+    if not ok or not shown then return nil end
+
+    title = _G.QuestInfoTitleHeader or shown
+    if title and title.SetWidth then
+        title:SetWidth(ContentWidth())
+        title:SetJustifyH("CENTER")
+        if title.SetTextColor then title:SetTextColor(0.94, 0.94, 0.96, 1) end
+        ApplyFont(title, FontSize() + 3)
+    end
+
+    local parent = _G.QuestInfoFrame
+    if not parent then return shown end
+
+    if not titleRule then
+        titleRule = CreateFrame("Frame", "HorizonFlowTitleRule", parent)
+        titleRule:SetHeight(8)
+        titleRule.line = titleRule:CreateTexture(nil, "OVERLAY")
+        titleRule.line:SetSize(28, 2)
+        titleRule.line:SetPoint("TOP", titleRule, "TOP", 0, 0)
+    end
+
+    local ar, ag, ab = 0.20, 0.60, 1.00
+    if F.GetAccentColor then ar, ag, ab = F.GetAccentColor() end
+    titleRule.line:SetColorTexture(ar, ag, ab, 1)
+    titleRule:SetWidth(ContentWidth())
+    titleRule:ClearAllPoints()
+    titleRule:SetPoint("TOPLEFT", shown, "BOTTOMLEFT", 0, -7)
+    titleRule:Show()
+
+    return shown, titleRule
+end
+
+-- ---------------------------------------------------------------------------
 -- Lore
 -- ---------------------------------------------------------------------------
 
@@ -198,11 +277,11 @@ local function EnsureLore()
     local parent = _G.QuestInfoFrame
     if not parent then return nil end
 
-    lore = CreateFrame("Button", "HorizonFlowLoreToggle", parent)
-    lore:SetHeight(18)
+    lore = CreateFrame("Button", "HorizonFlowLoreToggle", parent, "BackdropTemplate")
+    lore:SetHeight(28)
 
     lore.label = lore:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    lore.label:SetPoint("LEFT", lore, "LEFT", 0, 0)
+    lore.label:SetPoint("LEFT", lore, "LEFT", BAND_PAD, 0)
     lore.label:SetJustifyH("LEFT")
 
     lore:SetScript("OnClick", function()
@@ -221,11 +300,20 @@ local function EnsureLore()
     return lore
 end
 
-local function StyleToggle(toggle, labelKey)
+local CHEVRON = "\226\128\186"  -- U+203A, escaped so the file stays ASCII
+
+local function StyleToggle(toggle, labelKey, asCard)
     toggle:SetWidth(ContentWidth())
-    toggle.label:SetText(L[labelKey])
-    toggle.label:SetTextColor(0.54, 0.54, 0.60, 1)
+    toggle.label:SetText(CHEVRON .. "  " .. L[labelKey])
+    toggle.label:SetTextColor(0.43, 0.43, 0.48, 1)
     ApplyFont(toggle.label, FontSize())
+    if asCard then
+        F.StyleCard(toggle)
+        toggle:SetHeight(28)
+    else
+        toggle:SetBackdrop(nil)
+        toggle:SetHeight(20)
+    end
     toggle:Show()
 end
 
@@ -247,7 +335,7 @@ function F.ShowLore()
     if collapsed then
         if desc and desc.Hide then desc:Hide() end
         if not toggle then return nil end
-        StyleToggle(toggle, "FLOW_READ_FULL_TEXT")
+        StyleToggle(toggle, "FLOW_READ_FULL_TEXT", true)
         return toggle
     end
 
@@ -263,19 +351,31 @@ function F.ShowLore()
         return nil
     end
 
+    if shown.SetWidth then shown:SetWidth(ContentWidth()) end
+    if shown.SetTextColor then shown:SetTextColor(0.60, 0.60, 0.66, 1) end
+    ApplyFont(shown, FontSize())
+
     if not toggle then return shown end
 
-    StyleToggle(toggle, "FLOW_HIDE_FULL_TEXT")
+    StyleToggle(toggle, "FLOW_HIDE_FULL_TEXT", false)
     toggle:ClearAllPoints()
     toggle:SetPoint("TOPLEFT", shown, "BOTTOMLEFT", 0, -6)
     return shown, toggle
 end
 
---- Hide both surfaces. Called from Flow.Disable.
+--- Hide every surface Flow draws. Called from Flow.Disable.
 --- @return nil
 function F.HideBand()
     if band then band:Hide() end
     if lore then lore:Hide() end
+    if titleRule then titleRule:Hide() end
     local desc = _G.QuestInfoDescriptionText
     if desc and desc.Show then desc:Show() end
+    if title and title.SetJustifyH then title:SetJustifyH("LEFT") end
+end
+
+--- The frames Flow draws, for the layout pass to measure.
+--- @return table frames
+function F.GetDrawnFrames()
+    return { band, lore, titleRule }
 end

@@ -26,7 +26,7 @@ local BACKDROP = {
     insets   = { left = 1, right = 1, top = 1, bottom = 1 },
 }
 
-local HEADER_HEIGHT   = 30
+local FOOTER_HEIGHT   = 46
 local DEFAULT_ACCENT  = { 0.20, 0.60, 1.00 }  -- Flow #3399FF
 local DEFAULT_BG      = { 0.09, 0.09, 0.11 }
 local DEFAULT_FONT    = "Fonts\\FRIZQT__.TTF"
@@ -60,7 +60,7 @@ local active         = false
 local hooksInstalled = false
 local hiddenRegions  = {}
 local lastDisplayArgs
-local chrome, headerFill, accentBar, pill, pillText
+local chrome, footerFill, pill, pillText
 
 -- ---------------------------------------------------------------------------
 -- Settings
@@ -179,17 +179,14 @@ local function EnsureChrome()
     chrome:SetFrameLevel(math.max(0, (parent:GetFrameLevel() or 1) - 1))
     chrome:SetBackdrop(BACKDROP)
 
-    headerFill = chrome:CreateTexture(nil, "ARTWORK")
-    headerFill:SetPoint("TOPLEFT", chrome, "TOPLEFT", 1, -1)
-    headerFill:SetPoint("TOPRIGHT", chrome, "TOPRIGHT", -1, -1)
-    headerFill:SetHeight(HEADER_HEIGHT)
+    -- Footer well: a slightly lighter strip so the action buttons read as a
+    -- footer rather than as controls floating on the page.
+    footerFill = chrome:CreateTexture(nil, "ARTWORK")
+    footerFill:SetPoint("BOTTOMLEFT", chrome, "BOTTOMLEFT", 1, 1)
+    footerFill:SetPoint("BOTTOMRIGHT", chrome, "BOTTOMRIGHT", -1, 1)
+    footerFill:SetHeight(FOOTER_HEIGHT)
 
-    accentBar = chrome:CreateTexture(nil, "OVERLAY")
-    accentBar:SetWidth(3)
-    accentBar:SetPoint("TOPLEFT", chrome, "TOPLEFT", 1, -1)
-    accentBar:SetHeight(HEADER_HEIGHT)
-
-    pill = CreateFrame("Frame", nil, chrome, "BackdropTemplate")
+    pill = CreateFrame("Frame", nil, parent, "BackdropTemplate")
     pill:SetBackdrop(BACKDROP)
     pill:SetHeight(16)
     pillText = pill:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
@@ -240,8 +237,39 @@ local function UpdatePill(r, g, b)
     pill:SetBackdropColor(pr, pg, pb, 0.12)
     pill:SetBackdropBorderColor(pr, pg, pb, 0.55)
     pill:ClearAllPoints()
-    pill:SetPoint("LEFT", title, "RIGHT", 8, 0)
+    pill:SetPoint("BOTTOM", title, "TOP", 0, 6)
     pill:Show()
+end
+
+--- Blizzard colours the reward block through its "material" system, which hands
+--- every label a parchment tan. Those labels sit on Flow's dark card and are
+--- close to unreadable, and they carry the ornate quest font besides.
+---
+--- Only the reward frame's own regions are touched, not its children: the item
+--- buttons below carry quality colours on their names, which Blizzard sets per
+--- item and Flow has no business overriding.
+--- @param size number Base font size
+--- @return nil
+local function RestyleRewardText(size)
+    local rewards = _G.QuestInfoRewardsFrame
+    if not rewards or not rewards.GetRegions then return end
+
+    local regions = { rewards:GetRegions() }
+    for i = 1, #regions do
+        local r = regions[i]
+        if r and r.GetObjectType and r:GetObjectType() == "FontString" then
+            ApplyFont(r, size)
+            if r.SetTextColor then r:SetTextColor(0.54, 0.54, 0.60, 1) end
+        end
+    end
+
+    -- The "Rewards" heading is a named child rather than a plain region on
+    -- every client that has it, so it is handled separately and guarded.
+    local header = rewards.Header or _G.QuestInfoRewardsFrameHeader
+    if header and header.SetTextColor then
+        ApplyFont(header, size)
+        header:SetTextColor(0.78, 0.78, 0.84, 1)
+    end
 end
 
 --- Repaint whichever quest panel is currently showing.
@@ -272,24 +300,16 @@ function F.Restyle()
     else
         c:SetBackdropBorderColor(0, 0, 0, 0)
     end
-    headerFill:SetColorTexture(
-        math.min(1, br + 0.04), math.min(1, bg + 0.04), math.min(1, bb + 0.05), alpha)
-    accentBar:SetColorTexture(ar, ag, ab, 1)
+    footerFill:SetColorTexture(
+        math.min(1, br + 0.03), math.min(1, bg + 0.03), math.min(1, bb + 0.04), alpha)
     c:Show()
 
     local size = tonumber(GetDB("flowFontSize", 13)) or 13
-    local title = _G.QuestInfoTitleHeader
-    if title then
-        ApplyFont(title, size + 2)
-        if title.SetTextColor then title:SetTextColor(0.94, 0.94, 0.96, 1) end
-    end
-    local desc = _G.QuestInfoDescriptionText
-    if desc then
-        ApplyFont(desc, size)
-        if desc.SetTextColor then desc:SetTextColor(0.60, 0.60, 0.66, 1) end
-    end
-
+    RestyleRewardText(size)
     UpdatePill(ar, ag, ab)
+
+    if F.ApplyCloseButton then F.ApplyCloseButton() end
+    if F.ApplyShape then F.ApplyShape() end
 end
 
 -- ---------------------------------------------------------------------------
@@ -358,6 +378,7 @@ function F.Disable()
     active = false
     if F.RestoreTemplates then F.RestoreTemplates() end
     if F.HideBand then F.HideBand() end
+    if F.ResetShape then F.ResetShape() end
     if chrome then chrome:Hide() end
     if pill then pill:Hide() end
     F.RestoreFrameArt()

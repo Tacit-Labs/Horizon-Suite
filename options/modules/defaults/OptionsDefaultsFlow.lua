@@ -20,6 +20,8 @@ addon.FLOW_KEYS = {
     flowEntrance        = true,
     flowCollapseLore    = true,
     flowShowTypePill    = true,
+    flowAutoSize        = true,
+    flowHideCloseButton = true,
     classColorFlow      = true,
 }
 
@@ -31,6 +33,8 @@ addon.FLOW_DEFAULTS = {
     flowEntrance        = true,
     flowCollapseLore    = true,
     flowShowTypePill    = true,
+    flowAutoSize        = true,
+    flowHideCloseButton = true,
 }
 
 addon.FLOW_LIMITS = {
