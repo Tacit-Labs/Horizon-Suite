@@ -100,6 +100,20 @@ Tooltips that actually tell you who/what you're looking at.
 
 ---
 
+## 📜 <span style="color:#3399FF;">Flow</span> [Quest Box]
+
+The quest box should tell you what to do before it tells you why.
+
+- **Horizon chrome** — The parchment window picks up your backdrop colour, opacity, border and font, so the quest box and the tracker read as one addon rather than two.
+- **Objectives first** — What the quest actually asks moves above the flavour text, as a styled band with progress counts where the game provides them.
+- **Lore on demand** — Collapse the quest text behind a single line and expand it when you want it. Your choice is remembered, and you can collapse it again from the same line.
+- **Quest type at a glance** — A small tag beside the title marks campaign, world, daily, weekly and other quest types, coloured to match the tracker.
+- **Blizzard keeps the rewards** — Accepting, declining and choosing a reward are still Blizzard's own controls, untouched. Flow never handles a reward.
+- **A way back** — `/h flow restore` returns the default quest frame instantly, without a reload, if anything ever looks wrong mid-quest.
+- **Works everywhere** — Retail and World of Warcraft: Forever, with no feature gating.
+
+---
+
 ## 🎨 Visuals & UI Design
 
 - **High-fidelity icons** – Distinct icons for Campaign, Legendary, and World Quests.
