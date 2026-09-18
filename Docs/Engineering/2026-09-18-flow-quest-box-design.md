@@ -99,18 +99,26 @@ from `QUEST_TEMPLATE_MAP_DETAILS`, which Flow never touches, so the map and
 
 Flow hides Blizzard's objectives element and draws its own band above the body.
 
-What the band can show depends on what the API has:
+What the band can show depends on what the API returns:
 
-| Panel | Source | Renders as |
+| Condition | Source | Renders as |
 |---|---|---|
-| Detail, quest not yet accepted | `GetObjectiveText()` | one styled prose line |
-| Progress, Reward, anything in the log | quest log leaderboards | bullets with `x/y` counts |
+| Structured objectives available | `C_QuestLog.GetQuestObjectives(GetQuestID())` | bullets with `x/y` counts |
+| No structured objectives | `GetObjectiveText()` | one styled prose line |
 
-This is a game constraint, not a limitation of the approach: you cannot have
-progress on a quest you have not taken. Blizzard's own templates reflect it,
-which is why `QUEST_TEMPLATE_DETAIL` uses `QuestInfo_ShowObjectivesText` while
-`QUEST_TEMPLATE_LOG` uses `QuestInfo_ShowObjectives`. The band is present and
-styled in both cases; only its internal shape changes.
+Blizzard's own giver templates only ever use the prose blob, because
+`QUEST_TEMPLATE_DETAIL` calls `QuestInfo_ShowObjectivesText` while the bulleted
+`QuestInfo_ShowObjectives` belongs to `QUEST_TEMPLATE_LOG`, which the giver
+frames never use. The leaderboard functions behind it read the selected quest
+log entry, so they have nothing to say about a quest you have not accepted.
+
+The structured data is still reachable, just by a different route:
+`GetQuestID()` returns the offered quest and `C_QuestLog.GetQuestObjectives`
+takes a questID rather than a log index. Counts read `0/N` before acceptance,
+which is correct rather than a limitation. Flow therefore does better than the
+frame it replaces on its main panel. Task 1 confirms this returns data for an
+offered quest on both clients, and the prose path stays as the fallback either
+way.
 
 Everything the band reads is read-only API.
 
@@ -228,7 +236,7 @@ touching delves, housing or Mythic+.
 - [ ] Accept and decline both work
 - [ ] Completing a quest with a choice of rewards delivers the chosen item
 - [ ] Objectives render above flavour text on all three panels
-- [ ] Band shows bullets with counts where the API has them, a prose line where it does not
+- [ ] Band shows bullets with counts where `GetQuestObjectives` returns them, a prose line where it does not
 - [ ] Flavour text expander collapses, expands, and remembers the preference
 - [ ] Greeting panel with several quests still selects correctly
 - [ ] Required-item Progress panel renders and completes
@@ -247,6 +255,7 @@ Verification items, not design blockers:
 - Whether the Greeting panel routes through `QuestInfo_Display` at all
 - Current `QUEST_TEMPLATE_*` element tuple shape
 - Whether `QuestFrame` tolerates the resize Horizon proportions want, inside UIPanel layout
+- Whether `C_QuestLog.GetQuestObjectives` returns structured objectives for an offered quest
 
 All settle in one in-game spike on the Windows client, run against both Retail
 and the Forever install.
