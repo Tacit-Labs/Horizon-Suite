@@ -176,7 +176,7 @@ function Y.ParseItemLoot(msg)
     if not itemLink then return nil end
 
     local qty = ExtractQty(msg)
-    local itemName, _, itemQuality, _, _, _, _, _, _, itemTexture = GetItemInfo(itemLink)
+    local itemName, _, itemQuality, _, _, _, _, _, _, itemTexture = C_Item.GetItemInfo(itemLink)
 
     if not itemName then
         local ok, extracted = pcall(function() return itemLink:match("%[(.-)%]") end)

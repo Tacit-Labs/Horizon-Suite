@@ -91,7 +91,7 @@ local function ResolveItemInfo(itemID)
         return cached[1], cached[2], cached[3]
     end
 
-    local name, link, itemQuality = GetItemInfo(itemID)
+    local name, link, itemQuality = C_Item.GetItemInfo(itemID)
     if name then
         link = link or ("item:" .. tostring(itemID))
         itemInfoCache[itemID] = { name, link, itemQuality }
@@ -114,7 +114,7 @@ local function ResolveItemInfo(itemID)
                 pendingItemLoads = pendingItemLoads + 1
                 item:ContinueOnItemLoad(function()
                     -- Populate cache when the data arrives.
-                    local n, l, q = GetItemInfo(itemID)
+                    local n, l, q = C_Item.GetItemInfo(itemID)
                     if n then itemInfoCache[itemID] = { n, l or ("item:" .. tostring(itemID)), q } end
                     OnItemLoaded(gen)
                 end)
@@ -497,7 +497,7 @@ local function GetRecipeOutputQuality(recipeID, isRecraft)
                 return schematic.productQuality
             end
             if type(schematic.outputItemID) == "number" and schematic.outputItemID > 0 then
-                local _, _, q = GetItemInfo(schematic.outputItemID)
+                local _, _, q = C_Item.GetItemInfo(schematic.outputItemID)
                 if type(q) == "number" then return q end
             end
         end
@@ -509,7 +509,7 @@ local function GetRecipeOutputQuality(recipeID, isRecraft)
         if ok and ids and type(ids) == "table" then
             for _, itemID in pairs(ids) do
                 if type(itemID) == "number" and itemID > 0 then
-                    local _, _, q = GetItemInfo(itemID)
+                    local _, _, q = C_Item.GetItemInfo(itemID)
                     if type(q) == "number" then return q end
                 end
             end
@@ -522,7 +522,7 @@ local function GetRecipeOutputQuality(recipeID, isRecraft)
         if ok and outputInfo and type(outputInfo) == "table" then
             local itemID = outputInfo.itemID or outputInfo.outputItemID
             if type(itemID) == "number" and itemID > 0 then
-                local _, _, q = GetItemInfo(itemID)
+                local _, _, q = C_Item.GetItemInfo(itemID)
                 if type(q) == "number" then return q end
             end
         end

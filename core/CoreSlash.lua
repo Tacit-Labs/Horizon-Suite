@@ -51,6 +51,7 @@ local function ShowCoreHelp()
     HSPrint("  /hopt, /h options    - Open options")
     HSPrint("  /h notes             - Show latest patch notes")
     HSPrint("  /h devmode           - Toggle Dev Mode (show Blizzard tracker alongside Focus)")
+    HSPrint("  /h platform          - Show client (Retail / Forever) and capability table")
     HSPrint("  /hlocaledev          - Toggle locale dev mode (UI shows locale keys; reload required)")
     HSPrint("  /h focus [cmd]       - Tracker (toggle, collapse, test, ...)")
     HSPrint("  /hfs delvedebug      - Delve / Nemesis widget debug (alias: /h debug focus delvedebug)")
@@ -104,6 +105,15 @@ local function OnSlashCommand(msg)
             addon.ShowPatchNotes()
         else
             HSPrint("Patch notes not loaded.")
+        end
+        return
+    end
+
+    if lower == "platform" then
+        if addon.Platform and addon.Platform.Print then
+            addon.Platform.Print()
+        else
+            HSPrint("Platform table not loaded.")
         end
         return
     end

@@ -466,12 +466,17 @@ end
 local function TrySeedSelfInspectCache(unit)
     pcall(function()
         local g = UnitGUID(unit)
-        local specID = PlayerUtil and PlayerUtil.GetCurrentSpecID and PlayerUtil.GetCurrentSpecID()
-        if not specID or specID <= 0 then return end
-        local _, specName, _, specIcon, role = GetSpecializationInfoByID(specID)
+        -- Specs are absent on Forever: still seed item level, skip the spec fields.
+        local specName, specIcon, role, heroName, heroIcon
+        if addon.Platform and addon.Platform.Has("specs") and type(GetSpecializationInfoByID) == "function" then
+            local specID = PlayerUtil and PlayerUtil.GetCurrentSpecID and PlayerUtil.GetCurrentSpecID()
+            if specID and specID > 0 then
+                _, specName, _, specIcon, role = GetSpecializationInfoByID(specID)
+                heroName, heroIcon = GetHeroTalentInfo(true, specID)
+            end
+        end
         local _, equipped = GetAverageItemLevel()
-        if not specName then return end
-        local heroName, heroIcon = GetHeroTalentInfo(true, specID)
+        if not specName and not (equipped and equipped > 0) then return end
         inspectCache[g] = {
             specName = specName,
             specIcon = specIcon,
@@ -485,10 +490,15 @@ local function TrySeedSelfInspectCache(unit)
 end
 
 local function CacheInspect(guid, unit)
-    local specID = GetInspectSpecialization(unit)
-    if not specID or specID <= 0 then return end
-    local _, specName, _, specIcon, role = GetSpecializationInfoByID(specID)
-    if not specName then return end
+    -- Specs are absent on Forever: still cache item level, skip the spec fields.
+    local specID, specName, specIcon, role
+    if addon.Platform and addon.Platform.Has("specs")
+        and type(GetInspectSpecialization) == "function" and type(GetSpecializationInfoByID) == "function" then
+        specID = GetInspectSpecialization(unit)
+        if specID and specID > 0 then
+            _, specName, _, specIcon, role = GetSpecializationInfoByID(specID)
+        end
+    end
 
     local ilvl
     if C_PaperDollInfo and C_PaperDollInfo.GetInspectItemLevel then
@@ -498,7 +508,9 @@ local function CacheInspect(guid, unit)
         end
     end
 
-    local heroName, heroIcon = GetHeroTalentInfo(false, specID)
+    local heroName, heroIcon
+    if specName then heroName, heroIcon = GetHeroTalentInfo(false, specID) end
+    if not specName and not ilvl then return end
 
     inspectCache[guid] = {
         specName = specName,

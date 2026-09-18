@@ -465,8 +465,9 @@ function Essence.Refresh()
     identityText:SetText(level .. "  ·  " .. (raceName or "?") .. "  ·  " .. (className or "?"))
 
     -- ── Spec + Role ───────────────────────────────────────────────────────────
-    local specIdx = GetSpecialization and GetSpecialization()
-    if specIdx then
+    local hasSpecs = addon.Platform and addon.Platform.Has("specs")
+    local specIdx = hasSpecs and GetSpecialization and GetSpecialization()
+    if specIdx and GetSpecializationInfo then
         local _, specName, _, _, role = GetSpecializationInfo(specIdx)
         -- Role icons from the LFG portrait roles atlas (64×64 sheet)
         local roleIcon = ""

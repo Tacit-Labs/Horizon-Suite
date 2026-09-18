@@ -86,13 +86,16 @@ read_globals = {
     "C_AddOns",
     "C_AreaPoiInfo",
     "C_ChallengeMode",
+    "C_ClassTalents",
     "C_ClassColor",
     "C_ContentTracking",
     "C_CurrencyInfo",
     "C_DelvesUI",
+    "C_EditMode",
     "C_Endeavors",
     "C_FriendList",
     "C_GossipInfo",
+    "C_Housing",
     "C_HousingCatalog",
     "C_HousingDecor",
     "C_Item",
@@ -113,6 +116,8 @@ read_globals = {
     "C_QuestLine",
     "C_QuestLog",
     "C_Scenario",
+    "C_Secrets",
+    "C_SpecializationInfo",
     "C_ScenarioInfo",
     "C_Spell",
     "C_SuperTrack",
@@ -121,8 +126,10 @@ read_globals = {
     "C_TooltipInfo",
     "C_TradeSkillUI",
     "C_TransmogCollection",
+    "C_Traits",
     "C_UIWidgetManager",
     "C_UnitAuras",
+    "C_WeeklyRewards",
     "C_VignetteInfo",
 
     -- Frame / UI creation
@@ -241,6 +248,7 @@ read_globals = {
 
     -- Character / specialization
     "GetNumSpecializations",
+    "GetBuildInfo",
     "GetSpecialization",
     "GetSpecializationInfo",
     "GetSpecializationInfoByID",
@@ -394,6 +402,9 @@ read_globals = {
 
     -- WoW constants / enums
     "Enum",
+    "WOW_PROJECT_ID",
+    "WOW_PROJECT_MAINLINE",
+    "PlayerUtil",
     "SOUNDKIT",
     "RAID_CLASS_COLORS",
     "ITEM_QUALITY_COLORS",
