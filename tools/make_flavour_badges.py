@@ -6,10 +6,10 @@ carry a logo, which has to be a texture the WoW client will load: uncompressed
 32-bit TGA. Non power-of-two is fine — the addon already ships 776x150 and 128x19
 TGAs in media/dashboard/footer.
 
-Source logos arrive as PNGs on a flat white background with no alpha. Keying out
-white globally would eat the white in the artwork itself (the FOREVER wordmark is
-near-white), so the background is removed by flooding inwards from the corners
-instead: only white connected to an edge is dropped.
+A source that already carries alpha is used as it is. One that does not — a logo
+flattened onto white — has its background removed by flooding inwards from the
+corners, so that only white connected to an edge is dropped and the near-white
+lettering inside the mark survives. The choice is automatic; --force-key overrides.
 
 Usage:
     python3 tools/make_flavour_badges.py forever.png media/flavours/forever.tga
@@ -87,12 +87,25 @@ def main():
     ap.add_argument("--tolerance", type=int, default=244,
                     help="channel value at or above which an edge-connected pixel "
                          "counts as background (default 244)")
+    ap.add_argument("--force-key", action="store_true",
+                    help="key the background out even if the source already has alpha")
     ap.add_argument("--preview", action="store_true",
                     help=f"also write <out>.preview.png at {DRAW_HEIGHT}px, the drawn size")
     args = ap.parse_args()
 
-    im = Image.open(args.source)
-    im = strip_background(im, args.tolerance)
+    im = Image.open(args.source).convert("RGBA")
+
+    # Only key out a background when there is one. A source that already carries
+    # alpha is left alone: flooding it would march through the soft edge of the
+    # artwork and eat near-white lettering, which is exactly what the FOREVER and
+    # WORLD OF WARCRAFT wordmarks are made of.
+    px = im.load()
+    w0, h0 = im.size
+    corners = (px[0, 0], px[w0 - 1, 0], px[0, h0 - 1], px[w0 - 1, h0 - 1])
+    if args.force_key or any(c[3] != 0 for c in corners):
+        im = strip_background(im, args.tolerance)
+    else:
+        print("source already has a transparent background; leaving alpha alone")
 
     bbox = im.getbbox()
     if bbox:

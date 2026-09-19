@@ -51,14 +51,16 @@ local PN_FLAVOUR_COLORS = {
     ["Forever"] = "C8A055",
 }
 
--- Inline art rendered immediately before the flavour word inside the badge.
--- Still empty: a missing texture draws a blank square rather than failing, so a
--- path goes in here only in the same commit as the file it names. The art is
--- agreed (the two official game logos) and lands as:
---   ["Forever"] = "|TInterface\\AddOns\\HorizonSuite\\media\\flavours\\forever.tga:20:23|t "
---   ["Retail"]  = "|TInterface\\AddOns\\HorizonSuite\\media\\flavours\\retail.tga:20:23|t "
--- Build both with tools/make_flavour_badges.py, which keys the white background
--- out without eating the white inside the mark and prints the escape to paste.
+-- Inline art rendered immediately before the flavour word inside the badge: the
+-- game's own logo, bundled under media/flavours as an uncompressed 32-bit TGA.
+-- The trailing digits are height then width, and the width is the source aspect
+-- at that height — get them wrong and the logo is stretched. Rebuild either file
+-- with tools/make_flavour_badges.py, which prints the escape to paste here.
+--
+-- 20px is taller than the 12pt body line on purpose. Below about 16 the marks
+-- collapse into indistinguishable smudges; at 20 they read as a gold emblem
+-- against a purple one. The word stays beside the logo because the logo alone is
+-- not legible at any size that fits a line of text.
 --
 -- retail.tga holds the CURRENT EXPANSION's logo, Midnight at the time of writing.
 -- Swap the file when the expansion changes and leave everything else alone: the
@@ -66,8 +68,8 @@ local PN_FLAVOUR_COLORS = {
 -- historical patch note stay as they are. Nothing detects a stale badge, which is
 -- why the rule is written here rather than remembered.
 local PN_FLAVOUR_ICONS = {
-    ["Retail"]  = "",
-    ["Forever"] = "",
+    ["Retail"]  = "|TInterface\\AddOns\\HorizonSuite\\media\\flavours\\retail.tga:20:24|t ",
+    ["Forever"] = "|TInterface\\AddOns\\HorizonSuite\\media\\flavours\\forever.tga:20:25|t ",
 }
 
 -- Capitalize first letter after "…: " (module prefix) so bullets read consistently.
