@@ -167,8 +167,12 @@ local function BuildCombinedRaceClassLine(trp3d, classCol, unitToken, wowFallbac
         useCustomColor = trp3d.customColorR and ShowTRP3CustomColor()
     elseif wowFallback then
         usedWowIdentity = true
-        racePart = wowFallback.race  or ""
-        rawClass  = wowFallback.class or ""
+        -- Launder again here rather than trust the caller: a secret race or class
+        -- string errors on the very first compare below, and this runs inside
+        -- TagLines with no pcall around it.
+        local launder = Insight.SafePlainString
+        racePart = (launder and launder(wowFallback.race))  or ""
+        rawClass = (launder and launder(wowFallback.class)) or ""
         -- Only the WoW class carries a spec; a TRP3 custom class is roleplay
         -- fiction and must not be prefixed with one.
         if rawClass ~= "" and wowFallback.spec and wowFallback.spec ~= "" then
@@ -1343,9 +1347,11 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
     -- className from UnitClass is a tainted (secret) string in TWW Midnight — it cannot be
     -- passed to Lua string functions (find, gsub, etc.) without erroring.  Get an equivalent
     -- plain Lua string from the global lookup table instead, keyed by classFile which is the
-    -- non-tainted uppercase token (e.g. "DEATHKNIGHT").  Falls back to className if the lookup
-    -- fails so this is a no-op on older clients where taint is not an issue.
-    local classNameSafe = className  -- pre-TWW fallback
+    -- non-tainted uppercase token (e.g. "DEATHKNIGHT").  The fallback is laundered too:
+    -- on a world-cursor mouseover (map pins, delve entrances) classFile itself can be
+    -- secret, the lookup then fails, and a raw secret className would reach the
+    -- combined race/class line and error on its first compare.
+    local classNameSafe = SafePlainString(className)  -- nil when secret; plain on older clients
     pcall(function()
         if classFile and LOCALIZED_CLASS_NAMES_MALE then
             local safe = LOCALIZED_CLASS_NAMES_MALE[classFile]
