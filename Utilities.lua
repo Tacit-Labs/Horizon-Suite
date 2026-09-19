@@ -1062,7 +1062,14 @@ function addon.IsInPartyDungeon()
 end
 
 -- True when the player is in an active Delve (guarded API).
+-- Every delve decision in the addon (scenario provider, category, Presence toasts,
+-- zone filtering) funnels through here. Forever ships C_PartyInfo.IsDelveInProgress
+-- and answers true inside ordinary dungeons, so the capability table is the first
+-- gate: a client with no Delves can never be in one.
 function addon.IsDelveActive()
+    if addon.Platform and addon.Platform.Has and not addon.Platform.Has("delves") then
+        return false
+    end
     if C_PartyInfo and C_PartyInfo.IsDelveInProgress then
         local ok, inDelve = pcall(C_PartyInfo.IsDelveInProgress)
         if ok and inDelve then return true end

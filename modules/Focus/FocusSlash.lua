@@ -943,6 +943,9 @@ local function HandleFocusDebugSlash(msg)
         else
             HSPrint("IsDelveInProgress: not available")
         end
+        HSPrint(("IsDelveActive: %s (platform delves=%s)"):format(
+            tostring(addon.IsDelveActive and addon.IsDelveActive()),
+            tostring(addon.Platform and addon.Platform.Has and addon.Platform.Has("delves"))))
         if C_GossipInfo and C_GossipInfo.GetActiveDelveGossip then
             local ok, g = pcall(C_GossipInfo.GetActiveDelveGossip)
             HSPrint("GetActiveDelveGossip: " .. (ok and g and type(g.orderIndex) == "number" and ("tier=" .. tostring(g.orderIndex + 1)) or "nil/error"))
