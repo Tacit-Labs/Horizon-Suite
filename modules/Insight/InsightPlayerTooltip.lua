@@ -879,22 +879,42 @@ local function GetCharacterTitleParts(unit, nameLeft)
     end)
     if not pvpName or pvpName == "" then return nil, nil end
 
-    local candidates = { fullName, baseName, Insight.SafeGetFontText(nameLeft) }
+    -- Longest first: each candidate is matched against UnitPVPName and whatever is
+    -- left over becomes the title, so a short candidate that is only a prefix of the
+    -- real name would claim the rest of the name as a title. Realm-stripped full name
+    -- sits second because UnitPVPName never carries a realm.
+    local candidates = {}
+    local function AddCandidate(value)
+        if not value or value == "" then return end
+        for _, existing in ipairs(candidates) do
+            if existing == value then return end
+        end
+        candidates[#candidates + 1] = value
+    end
+    AddCandidate(fullName)
+    if fullName then AddCandidate((SplitRealmName(fullName))) end
+    AddCandidate(baseName)
+    AddCandidate(Insight.SafeGetFontText(nameLeft))
+
     for _, candidate in ipairs(candidates) do
-        if candidate and candidate ~= "" then
-            local plainCandidate = Insight.StripColourEscapes and Insight.StripColourEscapes(candidate) or candidate
-            local idx = pvpName:find(plainCandidate, 1, true)
-            if idx then
-                local titlePart = pvpName:sub(1, idx - 1):gsub("%s+$", "")
-                -- Preserve the native suffix separator (" the X" or ", the X") rather than
-                -- stripping it; FormatTitleNameSpan relies on it for correct spacing.
-                local suffixTitle = pvpName:sub(idx + #plainCandidate)
-                if titlePart ~= "" then
-                    return titlePart, fullName or candidate, "prefix"
-                elseif suffixTitle:find("%S") then
-                    return suffixTitle, fullName or candidate, "suffix"
-                end
+        local plainCandidate = Insight.StripColourEscapes and Insight.StripColourEscapes(candidate) or candidate
+        local idx = pvpName:find(plainCandidate, 1, true)
+        if idx then
+            local titlePart = pvpName:sub(1, idx - 1):gsub("%s+$", "")
+            -- Preserve the native suffix separator (" the X" or ", the X") rather than
+            -- stripping it; FormatTitleNameSpan relies on it for correct spacing.
+            local suffixTitle = pvpName:sub(idx + #plainCandidate)
+            if titlePart ~= "" then
+                return titlePart, fullName or candidate, "prefix"
+            elseif suffixTitle:find("%S") then
+                return suffixTitle, fullName or candidate, "suffix"
             end
+            -- This candidate accounts for all of UnitPVPName, so the unit has no title.
+            -- Stop rather than falling through: a shorter candidate matches a prefix of
+            -- the same string and reads the remainder as a suffix title. On Forever,
+            -- where UnitName is the given name and the full name carries a surname,
+            -- that turned "Aria Dawnblade" into "Aria Dawnblade Dawnblade".
+            return nil, nil
         end
     end
 
