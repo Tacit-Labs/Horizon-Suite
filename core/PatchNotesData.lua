@@ -17,6 +17,19 @@ local addon = _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["5.9.1"] = {
+        date = "2026-09-19",
+        {
+            section = "Fixes",
+            bullets = {
+                "Core (Forever): dungeons and cities are no longer treated as Delves, so the tracker heading, its colour and the zone banner say what you are actually in.",
+                "Insight (Forever): a character's surname appears once in the tooltip header instead of twice.",
+                "Essence: the character panel shows your full name, surname included, and a suffix title such as \"the Explorer\" no longer comes through cut short.",
+                "Focus: switching the tracker off and back on without reloading brings its entries back, instead of leaving section headings over blank space.",
+            },
+        },
+    },
+
     ["5.9.0"] = {
         date = "2026-09-18",
         {
