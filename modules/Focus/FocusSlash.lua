@@ -943,9 +943,18 @@ local function HandleFocusDebugSlash(msg)
         else
             HSPrint("IsDelveInProgress: not available")
         end
+        local hasDelves = addon.Platform and addon.Platform.Has and addon.Platform.Has("delves")
         HSPrint(("IsDelveActive: %s (platform delves=%s)"):format(
-            tostring(addon.IsDelveActive and addon.IsDelveActive()),
-            tostring(addon.Platform and addon.Platform.Has and addon.Platform.Has("delves"))))
+            tostring(addon.IsDelveActive and addon.IsDelveActive()), tostring(hasDelves)))
+        -- Self-test: what the gate answers if the client claims a delve. Runs anywhere,
+        -- so the fix can be checked without entering a dungeon.
+        if addon.DelveGateWithClientClaim then
+            local claimed = addon.DelveGateWithClientClaim()
+            local verdict = (claimed == (hasDelves == true)) and "|cFF00FF00PASS|r" or "|cFFFF4444FAIL|r"
+            HSPrint(("Gate self-test (client claims a delve): IsDelveActive would be %s — %s (expected %s on %s)"):format(
+                tostring(claimed), verdict, tostring(hasDelves == true),
+                (addon.Platform and addon.Platform.name) or "this client"))
+        end
         if C_GossipInfo and C_GossipInfo.GetActiveDelveGossip then
             local ok, g = pcall(C_GossipInfo.GetActiveDelveGossip)
             HSPrint("GetActiveDelveGossip: " .. (ok and g and type(g.orderIndex) == "number" and ("tier=" .. tostring(g.orderIndex + 1)) or "nil/error"))

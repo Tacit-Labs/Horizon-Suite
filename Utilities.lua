@@ -1066,15 +1066,30 @@ end
 -- zone filtering) funnels through here. Forever ships C_PartyInfo.IsDelveInProgress
 -- and answers true inside ordinary dungeons, so the capability table is the first
 -- gate: a client with no Delves can never be in one.
-function addon.IsDelveActive()
+-- The gate is split from the API read so /h delvedebug can feed it a client that
+-- claims a delve and show the answer, without entering a dungeon or touching
+-- Blizzard's tables.
+local function DelveGate(clientSaysDelve)
     if addon.Platform and addon.Platform.Has and not addon.Platform.Has("delves") then
         return false
     end
+    return clientSaysDelve == true
+end
+
+function addon.IsDelveActive()
+    local inDelve = false
     if C_PartyInfo and C_PartyInfo.IsDelveInProgress then
-        local ok, inDelve = pcall(C_PartyInfo.IsDelveInProgress)
-        if ok and inDelve then return true end
+        local ok, v = pcall(C_PartyInfo.IsDelveInProgress)
+        -- Truthiness, not ==: a secret return would throw on comparison.
+        if ok and v then inDelve = true end
     end
-    return false
+    return DelveGate(inDelve)
+end
+
+-- What IsDelveActive would answer if the client claimed a delve right now.
+-- True on Retail, false on Forever. Debug only.
+function addon.DelveGateWithClientClaim()
+    return DelveGate(true)
 end
 
 local TIER_MIN, TIER_MAX = 1, 12
