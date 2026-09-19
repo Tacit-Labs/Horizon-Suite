@@ -51,12 +51,20 @@ local PN_FLAVOUR_COLORS = {
     ["Forever"] = "C8A055",
 }
 
--- Optional inline art, rendered immediately before the flavour word inside the
--- badge. Empty on purpose: an escape naming a texture the running client does not
--- ship draws a blank or missing-texture square rather than failing, so nothing goes
--- in here until it has been seen on both clients. One line each when it has:
---   client atlas   -> "|A:<atlasname>:12:12|a "
---   bundled file   -> "|TInterface\\AddOns\\HorizonSuite\\media\\<name>.tga:12:12|t "
+-- Inline art rendered immediately before the flavour word inside the badge.
+-- Still empty: a missing texture draws a blank square rather than failing, so a
+-- path goes in here only in the same commit as the file it names. The art is
+-- agreed (the two official game logos) and lands as:
+--   ["Forever"] = "|TInterface\\AddOns\\HorizonSuite\\media\\flavours\\forever.tga:20:23|t "
+--   ["Retail"]  = "|TInterface\\AddOns\\HorizonSuite\\media\\flavours\\retail.tga:20:23|t "
+-- Build both with tools/make_flavour_badges.py, which keys the white background
+-- out without eating the white inside the mark and prints the escape to paste.
+--
+-- retail.tga holds the CURRENT EXPANSION's logo, Midnight at the time of writing.
+-- Swap the file when the expansion changes and leave everything else alone: the
+-- flavour is "Retail", not the expansion, so the key, the label and every
+-- historical patch note stay as they are. Nothing detects a stale badge, which is
+-- why the rule is written here rather than remembered.
 local PN_FLAVOUR_ICONS = {
     ["Retail"]  = "",
     ["Forever"] = "",

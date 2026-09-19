@@ -31,7 +31,21 @@ name. Warm for the vanilla-era client, cool for the modern one.
 |Retail|<span style="color:#5B9BD5;">#5B9BD5</span>|
 |Forever|<span style="color:#C8A055;">#C8A055</span>|
 
-Neither badge carries art yet. `PN_FLAVOUR_ICONS` in
-`options/dashboard/DashboardPatchNotesContent.lua` holds one string per flavour for
-an inline atlas or a bundled texture, and is empty until the art has been confirmed
-to render on both clients.
+Each badge also carries the game's own logo, bundled under `media/flavours/` as an
+uncompressed 32-bit TGA and drawn 20px tall beside the flavour word. Build one from
+a source logo with:
+
+```bash
+python3 tools/make_flavour_badges.py --preview wow-forever.png media/flavours/forever.tga
+```
+
+The converter drops the flat white background by flooding in from the edges, so the
+white inside the mark survives, and `--preview` writes the badge at the size it is
+actually drawn. It prints the escape to paste into `PN_FLAVOUR_ICONS` in
+`options/dashboard/DashboardPatchNotesContent.lua`.
+
+**`retail.tga` holds the current expansion's logo and is meant to be swapped.** The
+flavour is `Retail`, not the expansion, so when the expansion changes, replace that
+one file and change nothing else — not the key, not the label, not any historical
+patch note. Nothing in the addon detects a stale badge, so this is the only place
+the rule is recorded. `forever.tga` does not move.
