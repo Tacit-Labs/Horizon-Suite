@@ -131,6 +131,7 @@ local function ShowFocusDebugHelp()
     HSPrint(L["FOCUS_SLASH_DBG_HELP_OTHERS"])
     HSPrint(L["FOCUS_SLASH_DBG_HELP_OTHERS2"])
     HSPrint(L["FOCUS_SLASH_DBG_HELP_OTHERS3"])
+    HSPrint(L["FOCUS_SLASH_DBG_HELP_OTHERS4"])
 end
 
 -- ============================================================================
@@ -546,6 +547,20 @@ local function HandleFocusDebugSlash(msg)
         addon.mplusDebugPreview = not addon.mplusDebugPreview
         if addon.FullLayout then addon.FullLayout() end
         HSPrint(L["FOCUS_SLASH_DBG_MPLUS_PREVIEW_FMT"]:format(addon.mplusDebugPreview and L["FOCUS_SLASH_STATE_ON"] or L["FOCUS_SLASH_STATE_OFF"]))
+
+    elseif cmd == "rundebug" then
+        addon.runDebugPreview = not addon.runDebugPreview
+        if addon.FullLayout then addon.FullLayout() end
+        HSPrint(L["FOCUS_SLASH_DBG_RUN_PREVIEW_FMT"]:format(addon.runDebugPreview and L["FOCUS_SLASH_STATE_ON"] or L["FOCUS_SLASH_STATE_OFF"]))
+
+    elseif cmd == "runreset" then
+        if addon.IsDungeonRunActive and addon.IsDungeonRunActive() then
+            addon.ResetDungeonRun()
+            if addon.UpdateDungeonRunBlock then addon.UpdateDungeonRunBlock() end
+            HSPrint(L["FOCUS_RUN_RESET_DONE"])
+        else
+            HSPrint(L["FOCUS_RUN_RESET_NOT_IN_DUNGEON"])
+        end
 
     elseif cmd == "mplusaffixdebug" then
         local mapId = C_ChallengeMode and C_ChallengeMode.GetActiveChallengeMapID and C_ChallengeMode.GetActiveChallengeMapID()

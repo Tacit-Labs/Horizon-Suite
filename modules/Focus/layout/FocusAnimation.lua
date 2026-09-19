@@ -205,8 +205,8 @@ end
 
 function addon.IsFocusHoverActive()
     if IsMouseOverFrameOrDescendants(HS) then return true end
-    local mplus = addon.mplusBlock
-    if mplus and mplus:IsShown() and mplus:IsMouseOver() then return true end
+    local block = addon.GetActiveFocusBlock and addon.GetActiveFocusBlock()
+    if block and block:IsMouseOver() then return true end
     local floatingBtn = _G.HSFloatingQuestItem
     if floatingBtn and floatingBtn:IsShown() and floatingBtn:IsMouseOver() then return true end
     return false
@@ -394,7 +394,7 @@ local function UpdateCombatFade(dt, useAnim)
             HS:Hide()
             if floatingBtn then floatingBtn:Hide() end
             if addon.UpdateFloatingQuestItem then addon.UpdateFloatingQuestItem(nil) end
-            if addon.UpdateMplusBlock then addon.UpdateMplusBlock() end
+            if addon.UpdateFocusBlocks then addon.UpdateFocusBlocks() end
             addon.focus.combat.fadeState = nil
             addon.focus.combat.fadeTime = 0
             addon.focus.combat.fadeFromAlpha = nil
@@ -408,7 +408,7 @@ local function UpdateCombatFade(dt, useAnim)
                 HS:Hide()
                 if floatingBtn then floatingBtn:Hide() end
                 if addon.UpdateFloatingQuestItem then addon.UpdateFloatingQuestItem(nil) end
-                if addon.UpdateMplusBlock then addon.UpdateMplusBlock() end
+                if addon.UpdateFocusBlocks then addon.UpdateFocusBlocks() end
                 addon.focus.combat.fadeState = nil
                 addon.focus.combat.fadeTime = 0
                 addon.focus.combat.fadeFromAlpha = nil

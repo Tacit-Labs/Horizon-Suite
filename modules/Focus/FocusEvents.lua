@@ -389,7 +389,7 @@ local function OnPlayerRegenEnabled()
     end
     if addon.focus.mplusLayoutPendingAfterCombat then
         addon.focus.mplusLayoutPendingAfterCombat = nil
-        if addon.UpdateMplusBlock then addon.UpdateMplusBlock() end
+        if addon.UpdateFocusBlocks then addon.UpdateFocusBlocks() end
     end
     if not hadLayoutPending and (combatAffectsTracker or addon.focus.combat.faded) then
         addon.focus.combat.fadeState = "in"
@@ -735,7 +735,7 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
             local floatingBtn = _G.HSFloatingQuestItem
             if floatingBtn then floatingBtn:Hide() end
             if addon.UpdateFloatingQuestItem then addon.UpdateFloatingQuestItem(nil) end
-            if addon.UpdateMplusBlock then addon.UpdateMplusBlock() end
+            if addon.UpdateFocusBlocks then addon.UpdateFocusBlocks() end
         end
     end
     if event ~= "ADDON_LOADED" and not addon.focus.enabled then

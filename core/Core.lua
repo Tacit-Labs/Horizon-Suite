@@ -1305,17 +1305,24 @@ function addon.ApplyBackdropOpacity()
 end
 
 --- Apply the configured frame strata to the Focus panel and to the frames that
---- do not inherit it: the M+ block (parented to UIParent, not to the panel) and
---- pooled quest item buttons (pinned so they clear their own entry's textures).
+--- do not inherit it: the banner blocks (parented to UIParent, not to the panel)
+--- and pooled quest item buttons (pinned so they clear their own entry's textures).
 --- @return nil
 function addon.ApplyFocusFrameStrata()
     local strata = addon.GetFocusFrameStrata()
     if not addon.HS then return end
     addon.HS:SetFrameStrata(strata)
 
+    -- Listed explicitly rather than iterated: a nil block would leave a hole that
+    -- silently truncates ipairs and skip whichever one follows it.
+    local blockLevel = addon.HS:GetFrameLevel() + 5
     if addon.mplusBlock then
         addon.mplusBlock:SetFrameStrata(strata)
-        addon.mplusBlock:SetFrameLevel(addon.HS:GetFrameLevel() + 5)
+        addon.mplusBlock:SetFrameLevel(blockLevel)
+    end
+    if addon.runBlock then
+        addon.runBlock:SetFrameStrata(strata)
+        addon.runBlock:SetFrameLevel(blockLevel)
     end
 
     if addon.pool then
@@ -1891,9 +1898,11 @@ resizeHandle:SetScript("OnDragStop", function(self)
     addon.SetDB("panelWidth", finalW / scale)
     local headerArea = addon.GetScaledPadding() + addon.GetHeaderHeight() + addon.GetScaledDividerHeight() + addon.GetHeaderToContentGap()
     local contentH = finalH - headerArea - addon.GetScaledPadding()
-    local mplus = addon.mplusBlock
-    if mplus and mplus:IsShown() and addon.GetMplusBlockHeight then
-        contentH = contentH - (addon.GetMplusBlockHeight() + 8)
+    if addon.GetActiveFocusBlockHeight then
+        local blockH = addon.GetActiveFocusBlockHeight()
+        if blockH > 0 then
+            contentH = contentH - (blockH + 8)
+        end
     end
     local contentUnscaled = math.max(RESIZE_CONTENT_HEIGHT_MIN, math.min(RESIZE_CONTENT_HEIGHT_MAX, contentH / scale))
     addon.SetDB("maxContentHeight", contentUnscaled)

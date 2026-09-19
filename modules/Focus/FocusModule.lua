@@ -284,6 +284,6 @@ addon:RegisterModule("focus", {
         if addon.HideAllSectionHeaders then addon.HideAllSectionHeaders() end
         addon.focus.layout.sectionIdx = 0
         if addon.UpdateFloatingQuestItem then addon.UpdateFloatingQuestItem(nil) end
-        if addon.UpdateMplusBlock then addon.UpdateMplusBlock() end
+        if addon.UpdateFocusBlocks then addon.UpdateFocusBlocks() end
     end,
 })
