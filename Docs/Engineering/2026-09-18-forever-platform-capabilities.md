@@ -39,6 +39,29 @@ Capability keys and their state on the Forever beta (probe of 2026-09-18):
 In game: `/h platform` prints the table, `/h platform probe` queries each system
 live and prints what it returns.
 
+## APIs that answer for systems Forever does not have
+
+The capability table exists because a namespace being present proves nothing.
+The first play session on the beta (2026-09-19) found the same trap one level
+down, in the functions themselves: they answer, and the answer is wrong.
+
+- **`C_PartyInfo.IsDelveInProgress` returns true inside an ordinary dungeon.**
+  Forever has no Delves, so nothing downstream expected to have to doubt it.
+  Every dungeon came out classified, coloured and titled as a Delve — the
+  scenario provider, the category, the section header and the Presence toasts
+  all agree, because all four read `addon.IsDelveActive`. That helper now asks
+  `Platform.Has("delves")` before it asks the client. `/h delvedebug` prints the
+  raw API answer and the gated one side by side.
+- **`UnitName` returns the given name only.** Forever characters have a surname;
+  `UnitPVPName` and `GetUnitName` carry it, `UnitName` does not. Any code that
+  treats `UnitName` as the whole name, or subtracts its length from
+  `UnitPVPName` to isolate a title, is wrong on Forever and was wrong for Retail
+  suffix titles already.
+
+**The rule both cases point at:** gate on the capability table, not on whether
+the call returns something. A call that answers for a system the client does not
+have is the normal case here, not the surprise.
+
 ## How modules use it
 
 - **Options.** A row or `Section(...)` may carry `requires = "<key>"`.
@@ -79,6 +102,9 @@ staying off, and no bare-name profile is minted before the realm is known.
 ## Open items
 
 - Confirm task quests and scenarios once a higher-level character can look.
+- Sweep for other calls that answer wrongly rather than failing. Two are fixed
+  above; nothing proves they are the only two, and each one is only found by
+  playing.
 - Re-test persistence on each new beta build; drop this section when it holds.
 - Per-spec profiles: the toggle is hidden on Forever and resolution falls back
   to the character key; existing Retail spec profiles are untouched.

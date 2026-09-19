@@ -421,7 +421,14 @@ function Essence.Refresh()
     local fp = GetFontPath()
 
     -- ── Name ──────────────────────────────────────────────────────────────────
+    -- Full name, not UnitName: on a client with surnames (Forever) UnitName returns
+    -- only the given name. GetUnitName appends "-Realm" for another realm, which the
+    -- player unit never is, but strip it defensively so the header stays clean.
     local name = UnitName("player") or "Unknown"
+    local fullName = GetUnitName and GetUnitName("player", true)
+    if fullName and fullName ~= "" then
+        name = fullName:match("^(.-)%-.+$") or fullName
+    end
     local _, classFile = UnitClass("player")
     local classColor = classFile and C_ClassColor and C_ClassColor.GetClassColor(classFile)
     if classColor and addon.GetModuleClassColor and addon.GetModuleClassColor("essence") then
@@ -435,15 +442,22 @@ function Essence.Refresh()
     -- ── PvP Title ─────────────────────────────────────────────────────────────
     if GetDB("essenceShowTitle", true) then
         local pvpName = UnitPVPName and UnitPVPName("player")
-        if pvpName and pvpName ~= name then
-            -- pvpName is "Title CharacterName" — strip the trailing character name
-            local titlePrefix = pvpName:sub(1, #pvpName - #name):match("^%s*(.-)%s*$")
-            if titlePrefix and titlePrefix ~= "" then
-                titleText:SetText(titlePrefix)
-                titleText:Show()
-            else
-                titleText:Hide()
+        local titleString
+        if pvpName and pvpName ~= "" and pvpName ~= name then
+            -- UnitPVPName is the full name with the title wrapped around it, on either
+            -- side ("Grand Marshal Aria" / "Aria the Explorer"). Locate the name and
+            -- keep only what sits outside it; subtracting lengths assumed a prefix and
+            -- sliced suffix titles mid-word ("Aria the Expl").
+            local idx = pvpName:find(name, 1, true)
+            if idx then
+                local prefix = pvpName:sub(1, idx - 1):match("^%s*(.-)%s*$")
+                local suffix = pvpName:sub(idx + #name):match("^%s*(.-)%s*$")
+                titleString = (prefix ~= "" and prefix) or (suffix ~= "" and suffix) or nil
             end
+        end
+        if titleString then
+            titleText:SetText(titleString)
+            titleText:Show()
         else
             titleText:Hide()
         end
