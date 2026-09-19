@@ -379,7 +379,9 @@ end)
 -- Update
 -- ---------------------------------------------------------------------------
 
--- Drives `/h rundebug` and the "Always" preview toggle outside a dungeon.
+-- Drives `/h debug focus rundebug` and the "Always" preview toggle outside a
+-- dungeon. Debug subcommands route through the module debug handler, so the
+-- shorter `/h rundebug` reaches nothing.
 local RUN_DEMO_DATA = {
     instanceName   = "Scarlet Monastery",
     difficultyName = "Heroic",
