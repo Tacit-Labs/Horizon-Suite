@@ -8,6 +8,9 @@
       (e.g. 31 March 2026) in parentheses after the version.
     - Array entries { section = "...", bullets = { ... } } — bullets may use "Module: rest"; the UI capitalizes the
       first letter after ": " when it is lowercase (ASCII). Data can stay lowercase after the colon if you prefer.
+    - A bullet that only one client can notice carries the flavour inside the prefix: "Focus (Forever): rest" or
+      "Core (Retail): rest". No flavour means both. Every client renders every bullet — do not filter by flavour
+      here, or a release that only touches one client shows an empty popup on the other.
 ]]
 
 local addon = _G.HorizonSuite
