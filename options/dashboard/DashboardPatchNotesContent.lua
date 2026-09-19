@@ -37,6 +37,40 @@ local PN_MODULE_COLORS = {
     ["Vista"]    = "B366FF",
     ["Insight"]  = "FF66B3",
     ["Axis"]     = "E0E0E0",
+    -- Core is the addon itself rather than a module, but a bullet prefixed "Core:"
+    -- was the one prefix that rendered in body colour and read as ordinary copy.
+    ["Core"]     = "FF8C42",
+}
+
+-- Fallback colour for the "(Retail)" / "(Forever)" qualifier a bullet may carry in
+-- its module prefix. The badge normally renders as the game's logo and drops the
+-- word; this is what a flavour with no art in PN_FLAVOUR_ICONS falls back to.
+-- Deliberately outside the module palette: the flavour says who can observe the
+-- change, so it should not read as another module name.
+local PN_FLAVOUR_COLORS = {
+    ["Retail"]  = "5B9BD5",
+    ["Forever"] = "C8A055",
+}
+
+-- Inline art rendered immediately before the flavour word inside the badge: the
+-- game's own logo, bundled under media/flavours as an uncompressed 32-bit TGA.
+-- The trailing digits are height then width, and the width is the source aspect
+-- at that height — get them wrong and the logo is stretched. Rebuild either file
+-- with tools/make_flavour_badges.py, which prints the escape to paste here.
+--
+-- 24px is twice the 12pt body line on purpose. The logo replaces the flavour word
+-- outright, so it has to carry the meaning by itself; below about 20 the two marks
+-- collapse into indistinguishable smudges. A flavour with no art here still shows
+-- its coloured word, so the tag can never silently vanish.
+--
+-- retail.tga holds the CURRENT EXPANSION's logo, Midnight at the time of writing.
+-- Swap the file when the expansion changes and leave everything else alone: the
+-- flavour is "Retail", not the expansion, so the key, the label and every
+-- historical patch note stay as they are. Nothing detects a stale badge, which is
+-- why the rule is written here rather than remembered.
+local PN_FLAVOUR_ICONS = {
+    ["Retail"]  = "|TInterface\\AddOns\\HorizonSuite\\media\\flavours\\retail.tga:24:29|t",
+    ["Forever"] = "|TInterface\\AddOns\\HorizonSuite\\media\\flavours\\forever.tga:24:30|t",
 }
 
 -- Capitalize first letter after "…: " (module prefix) so bullets read consistently.
@@ -48,6 +82,29 @@ local function CapitalizeAfterModulePrefix(text)
     return pre .. string.upper(first) .. rest
 end
 
+-- Replace the "(Retail)" / "(Forever)" qualifier that sits between a bullet's
+-- module name and its colon with that game's logo. Anchored to that prefix on
+-- purpose: the same words in body prose are left alone, and a parenthesised aside
+-- later in the sentence cannot be mistaken for a flavour because the pattern cannot
+-- cross the colon.
+--
+-- A flavour with no art falls back to the coloured word rather than to nothing. The
+-- patch-notes data still spells out which client a bullet belongs to, so dropping
+-- the word on a texture that failed to load would lose that on screen and leave no
+-- sign it had happened.
+local function ColorFlavourTag(text)
+    if type(text) ~= "string" or text == "" then return text end
+    local head, flavour, rest = text:match("^([^:]-)%s*%((%a+)%)(:.*)$")
+    if not head or not flavour then return text end
+    local hex = PN_FLAVOUR_COLORS[flavour]
+    if not hex then return text end
+    local icon = PN_FLAVOUR_ICONS[flavour]
+    if icon and icon ~= "" then
+        return head .. " " .. icon .. rest
+    end
+    return head .. " |cFF" .. hex .. "(" .. flavour .. ")|r" .. rest
+end
+
 local function ColorModuleNames(text)
     for name, hex in pairs(PN_MODULE_COLORS) do
         text = text:gsub("%f[%a](" .. name .. ")%f[%A]", "|cFF" .. hex .. "%1|r")
@@ -56,6 +113,7 @@ local function ColorModuleNames(text)
 end
 
 addon.PatchNotes_ColorModuleNames           = ColorModuleNames
+addon.PatchNotes_ColorFlavourTag            = ColorFlavourTag
 addon.PatchNotes_CapitalizeAfterModulePrefix = CapitalizeAfterModulePrefix
 
 -- Build patch notes content under `opts.parent`. Pure builder; layout/sizing is
@@ -208,7 +266,7 @@ function addon.PatchNotes_BuildContent(opts)
                         txt:SetWidth(cW - PN_BULLET_X)
                         txt:SetJustifyH("LEFT")
                         txt:SetWordWrap(true)
-                        local coloredBullet = ColorModuleNames(CapitalizeAfterModulePrefix(bullet))
+                        local coloredBullet = ColorModuleNames(ColorFlavourTag(CapitalizeAfterModulePrefix(bullet)))
                         txt:SetText("|cFF" .. hex .. "\226\128\148|r  " .. coloredBullet)
                         txt:SetTextColor(unpack(PN_BODY_COL))
                         tinsert(accentRefs.bullets,

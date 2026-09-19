@@ -10,3 +10,50 @@
 |Insight|<span style="color:#FF66B3;">#FF66B3</span>|
 |Presence|<span style="color:#33FFDF;">#33FFDF</span>|
 |Vista|<span style="color:#B366FF;">#B366FF</span>|
+
+Core is not a module, but patch-note bullets use it for addon-wide changes and it
+needs a colour of its own — without one those bullets rendered in body copy colour
+and read as ordinary prose rather than as a labelled entry.
+
+|Name|Hex Code|
+|---------|------------|
+|Core|<span style="color:#FF8C42;">#FF8C42</span>|
+
+# Client flavours
+
+A patch-note bullet that only one client can observe carries the flavour in its
+prefix, as `Core (Forever):`. On screen that word is replaced by the game's own
+logo, bundled under `media/flavours/` as an uncompressed 32-bit TGA and drawn 24px
+tall. The written form stays in `core/PatchNotesData.lua`, so the entry still says
+which client it belongs to whether or not the art renders.
+
+24px is twice the body line on purpose. With no word beside it the logo has to
+carry the meaning alone, and below about 20 the two marks are indistinguishable
+smudges.
+
+These colours are the fallback for a flavour with no art in `PN_FLAVOUR_ICONS`,
+which then shows its word instead. They sit deliberately outside the module
+palette: the flavour says who can see the change, so it must not read as another
+module name. Warm for the vanilla-era client, cool for the modern one.
+
+|Flavour|Hex Code|
+|---------|------------|
+|Retail|<span style="color:#5B9BD5;">#5B9BD5</span>|
+|Forever|<span style="color:#C8A055;">#C8A055</span>|
+
+Build a badge from a source logo with:
+
+```bash
+python3 tools/make_flavour_badges.py --preview wow-forever.png media/flavours/forever.tga
+```
+
+The converter drops the flat white background by flooding in from the edges, so the
+white inside the mark survives, and `--preview` writes the badge at the size it is
+actually drawn. It prints the escape to paste into `PN_FLAVOUR_ICONS` in
+`options/dashboard/DashboardPatchNotesContent.lua`.
+
+**`retail.tga` holds the current expansion's logo and is meant to be swapped.** The
+flavour is `Retail`, not the expansion, so when the expansion changes, replace that
+one file and change nothing else — not the key, not the label, not any historical
+patch note. Nothing in the addon detects a stale badge, so this is the only place
+the rule is recorded. `forever.tga` does not move.
