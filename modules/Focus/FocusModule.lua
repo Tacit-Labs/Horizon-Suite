@@ -262,7 +262,11 @@ addon:RegisterModule("focus", {
         StopCurrentQuestExpiryTicker()
         StopScenarioBarTicker()
         StopMapChangedListener()
-        if addon.HS then addon.HS:SetScript("OnUpdate", nil) end
+        if addon.StopFocusUpdate then
+            addon.StopFocusUpdate()
+        elseif addon.HS then
+            addon.HS:SetScript("OnUpdate", nil)
+        end
         if addon.RestoreTracker then
             if InCombatLockdown() then
                 addon.focus.restoreTrackerPendingAfterCombat = true
