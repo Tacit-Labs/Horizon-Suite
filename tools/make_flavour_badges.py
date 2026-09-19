@@ -33,7 +33,7 @@ except ImportError:
 # than the draw size keeps the client's downscale from looking chewed.
 DEFAULT_HEIGHT = 64
 # Height the escape draws at, used only for the preview.
-DRAW_HEIGHT = 20
+DRAW_HEIGHT = 24
 
 
 def strip_background(im, tolerance):

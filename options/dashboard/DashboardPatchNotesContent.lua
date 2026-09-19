@@ -42,10 +42,11 @@ local PN_MODULE_COLORS = {
     ["Core"]     = "FF8C42",
 }
 
--- Flavour badge for the "(Retail)" / "(Forever)" qualifier a bullet may carry in
--- its module prefix. Deliberately outside the module palette: the flavour says who
--- can observe the change, so it should not read as another module name. Warm for
--- the vanilla-era client, cool for the modern one.
+-- Fallback colour for the "(Retail)" / "(Forever)" qualifier a bullet may carry in
+-- its module prefix. The badge normally renders as the game's logo and drops the
+-- word; this is what a flavour with no art in PN_FLAVOUR_ICONS falls back to.
+-- Deliberately outside the module palette: the flavour says who can observe the
+-- change, so it should not read as another module name.
 local PN_FLAVOUR_COLORS = {
     ["Retail"]  = "5B9BD5",
     ["Forever"] = "C8A055",
@@ -57,10 +58,10 @@ local PN_FLAVOUR_COLORS = {
 -- at that height — get them wrong and the logo is stretched. Rebuild either file
 -- with tools/make_flavour_badges.py, which prints the escape to paste here.
 --
--- 20px is taller than the 12pt body line on purpose. Below about 16 the marks
--- collapse into indistinguishable smudges; at 20 they read as a gold emblem
--- against a purple one. The word stays beside the logo because the logo alone is
--- not legible at any size that fits a line of text.
+-- 24px is twice the 12pt body line on purpose. The logo replaces the flavour word
+-- outright, so it has to carry the meaning by itself; below about 20 the two marks
+-- collapse into indistinguishable smudges. A flavour with no art here still shows
+-- its coloured word, so the tag can never silently vanish.
 --
 -- retail.tga holds the CURRENT EXPANSION's logo, Midnight at the time of writing.
 -- Swap the file when the expansion changes and leave everything else alone: the
@@ -68,8 +69,8 @@ local PN_FLAVOUR_COLORS = {
 -- historical patch note stay as they are. Nothing detects a stale badge, which is
 -- why the rule is written here rather than remembered.
 local PN_FLAVOUR_ICONS = {
-    ["Retail"]  = "|TInterface\\AddOns\\HorizonSuite\\media\\flavours\\retail.tga:20:24|t ",
-    ["Forever"] = "|TInterface\\AddOns\\HorizonSuite\\media\\flavours\\forever.tga:20:25|t ",
+    ["Retail"]  = "|TInterface\\AddOns\\HorizonSuite\\media\\flavours\\retail.tga:24:29|t",
+    ["Forever"] = "|TInterface\\AddOns\\HorizonSuite\\media\\flavours\\forever.tga:24:30|t",
 }
 
 -- Capitalize first letter after "…: " (module prefix) so bullets read consistently.
@@ -81,18 +82,27 @@ local function CapitalizeAfterModulePrefix(text)
     return pre .. string.upper(first) .. rest
 end
 
--- Colour the "(Retail)" / "(Forever)" qualifier that sits between a bullet's
--- module name and its colon. Anchored to that prefix on purpose: the same words in
--- body prose are left alone, and a parenthesised aside later in the sentence cannot
--- be mistaken for a flavour because the pattern cannot cross the colon.
+-- Replace the "(Retail)" / "(Forever)" qualifier that sits between a bullet's
+-- module name and its colon with that game's logo. Anchored to that prefix on
+-- purpose: the same words in body prose are left alone, and a parenthesised aside
+-- later in the sentence cannot be mistaken for a flavour because the pattern cannot
+-- cross the colon.
+--
+-- A flavour with no art falls back to the coloured word rather than to nothing. The
+-- patch-notes data still spells out which client a bullet belongs to, so dropping
+-- the word on a texture that failed to load would lose that on screen and leave no
+-- sign it had happened.
 local function ColorFlavourTag(text)
     if type(text) ~= "string" or text == "" then return text end
     local head, flavour, rest = text:match("^([^:]-)%s*%((%a+)%)(:.*)$")
     if not head or not flavour then return text end
     local hex = PN_FLAVOUR_COLORS[flavour]
     if not hex then return text end
-    local icon = PN_FLAVOUR_ICONS[flavour] or ""
-    return head .. " |cFF" .. hex .. icon .. "(" .. flavour .. ")|r" .. rest
+    local icon = PN_FLAVOUR_ICONS[flavour]
+    if icon and icon ~= "" then
+        return head .. " " .. icon .. rest
+    end
+    return head .. " |cFF" .. hex .. "(" .. flavour .. ")|r" .. rest
 end
 
 local function ColorModuleNames(text)

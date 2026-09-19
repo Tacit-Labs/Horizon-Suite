@@ -22,18 +22,26 @@ and read as ordinary prose rather than as a labelled entry.
 # Client flavours
 
 A patch-note bullet that only one client can observe carries the flavour in its
-prefix, as `Core (Forever):`. These sit deliberately outside the module palette:
-the flavour says who can see the change, so it must not read as another module
-name. Warm for the vanilla-era client, cool for the modern one.
+prefix, as `Core (Forever):`. On screen that word is replaced by the game's own
+logo, bundled under `media/flavours/` as an uncompressed 32-bit TGA and drawn 24px
+tall. The written form stays in `core/PatchNotesData.lua`, so the entry still says
+which client it belongs to whether or not the art renders.
+
+24px is twice the body line on purpose. With no word beside it the logo has to
+carry the meaning alone, and below about 20 the two marks are indistinguishable
+smudges.
+
+These colours are the fallback for a flavour with no art in `PN_FLAVOUR_ICONS`,
+which then shows its word instead. They sit deliberately outside the module
+palette: the flavour says who can see the change, so it must not read as another
+module name. Warm for the vanilla-era client, cool for the modern one.
 
 |Flavour|Hex Code|
 |---------|------------|
 |Retail|<span style="color:#5B9BD5;">#5B9BD5</span>|
 |Forever|<span style="color:#C8A055;">#C8A055</span>|
 
-Each badge also carries the game's own logo, bundled under `media/flavours/` as an
-uncompressed 32-bit TGA and drawn 20px tall beside the flavour word. Build one from
-a source logo with:
+Build a badge from a source logo with:
 
 ```bash
 python3 tools/make_flavour_badges.py --preview wow-forever.png media/flavours/forever.tga
