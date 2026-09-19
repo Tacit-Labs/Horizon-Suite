@@ -100,25 +100,47 @@ local function Grouped(n)
     return tostring(rounded)
 end
 
--- Coin string with an explicit sign, because a run can end down on money after
--- a repair and GetCoinTextureString has nothing to say about negatives.
-local function FormatMoney(copper)
-    copper = math.floor(tonumber(copper) or 0)
-    local sign = copper < 0 and "-" or ""
-    local magnitude = math.abs(copper)
-    local ok, text = pcall(function()
-        return GetCoinTextureString and GetCoinTextureString(magnitude)
-    end)
-    if ok and text then return sign .. text end
-    return sign .. Grouped(magnitude / 10000) .. "g"
+-- Coin string for an absolute amount.
+--
+-- The bare GetCoinTextureString global is gone on modern clients; the namespaced
+-- C_CurrencyInfo one is what the rest of the addon reaches for (AugmentVendor).
+-- Asking for the global alone silently produced nil, which fell through to a
+-- gold-only fallback and dropped every silver and copper the player earned.
+local function CoinString(copper)
+    local api = (C_CurrencyInfo and C_CurrencyInfo.GetCoinTextureString) or GetCoinTextureString
+    if api then
+        local ok, text = pcall(api, copper)
+        if ok and type(text) == "string" and text ~= "" then return text end
+    end
+    -- Hand-rolled fallback, in the client's own denomination symbols. Unlike the
+    -- one it replaces this keeps all three denominations.
+    local gold   = math.floor(copper / 10000)
+    local silver = math.floor((copper % 10000) / 100)
+    local rest   = copper % 100
+    local parts = {}
+    if gold > 0 then parts[#parts + 1] = Grouped(gold) .. (GOLD_AMOUNT_SYMBOL or "g") end
+    if silver > 0 then parts[#parts + 1] = silver .. (SILVER_AMOUNT_SYMBOL or "s") end
+    if rest > 0 or #parts == 0 then parts[#parts + 1] = rest .. (COPPER_AMOUNT_SYMBOL or "c") end
+    return table.concat(parts, " ")
 end
 
--- Rates are shown in whole gold: the silver and copper on a per-hour projection
--- are noise, and the coin icons make the row twice as wide for nothing.
-local function FormatGoldRate(copperPerHour)
-    local gold = (tonumber(copperPerHour) or 0) / 10000
-    local sign = gold < 0 and "-" or ""
-    return sign .. Grouped(math.abs(gold)) .. "g"
+-- Signed, because a run can end down on money after a repair and the coin APIs
+-- have nothing to say about negatives.
+local function FormatMoney(copper)
+    copper = math.floor(tonumber(copper) or 0)
+    return (copper < 0 and "-" or "") .. CoinString(math.abs(copper))
+end
+
+-- An hourly projection is rounded to the nearest silver once it clears a gold,
+-- which keeps the figure about two denominations wide without the earlier
+-- whole-gold rounding, under which a low-level run's rate read "0g".
+local function FormatMoneyRate(copperPerHour)
+    local value = math.floor(tonumber(copperPerHour) or 0)
+    local magnitude = math.abs(value)
+    if magnitude >= 10000 then
+        magnitude = math.floor(magnitude / 100 + 0.5) * 100
+    end
+    return (value < 0 and "-" or "") .. CoinString(magnitude)
 end
 
 local function ColorHex(r, g, b)
@@ -247,7 +269,7 @@ local function UpdateRunBlockDisplay(data)
         rows.money.label:SetText(L["FOCUS_RUN_MONEY"])
         rows.money.value:SetText(WithRate(
             FormatMoney(data.moneyGained),
-            data.moneyPerHour and FormatGoldRate(data.moneyPerHour) or nil))
+            data.moneyPerHour and FormatMoneyRate(data.moneyPerHour) or nil))
         shown[#shown + 1] = "money"
     end
 
@@ -391,7 +413,7 @@ local RUN_DEMO_DATA = {
     xpPerHour      = 111900,
     xpToNextLevel  = 18400,
     levelsGained   = 1,
-    moneyGained    = 274300,
+    moneyGained    = 274357,
     moneyPerHour   = 744000,
     bosses         = { "Interrogator Vishas", "Houndmaster Loksey", "Bloodmage Thalnos" },
     hasRates       = true,
