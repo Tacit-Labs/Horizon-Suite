@@ -37,6 +37,29 @@ local PN_MODULE_COLORS = {
     ["Vista"]    = "B366FF",
     ["Insight"]  = "FF66B3",
     ["Axis"]     = "E0E0E0",
+    -- Core is the addon itself rather than a module, but a bullet prefixed "Core:"
+    -- was the one prefix that rendered in body colour and read as ordinary copy.
+    ["Core"]     = "FF8C42",
+}
+
+-- Flavour badge for the "(Retail)" / "(Forever)" qualifier a bullet may carry in
+-- its module prefix. Deliberately outside the module palette: the flavour says who
+-- can observe the change, so it should not read as another module name. Warm for
+-- the vanilla-era client, cool for the modern one.
+local PN_FLAVOUR_COLORS = {
+    ["Retail"]  = "5B9BD5",
+    ["Forever"] = "C8A055",
+}
+
+-- Optional inline art, rendered immediately before the flavour word inside the
+-- badge. Empty on purpose: an escape naming a texture the running client does not
+-- ship draws a blank or missing-texture square rather than failing, so nothing goes
+-- in here until it has been seen on both clients. One line each when it has:
+--   client atlas   -> "|A:<atlasname>:12:12|a "
+--   bundled file   -> "|TInterface\\AddOns\\HorizonSuite\\media\\<name>.tga:12:12|t "
+local PN_FLAVOUR_ICONS = {
+    ["Retail"]  = "",
+    ["Forever"] = "",
 }
 
 -- Capitalize first letter after "…: " (module prefix) so bullets read consistently.
@@ -48,6 +71,20 @@ local function CapitalizeAfterModulePrefix(text)
     return pre .. string.upper(first) .. rest
 end
 
+-- Colour the "(Retail)" / "(Forever)" qualifier that sits between a bullet's
+-- module name and its colon. Anchored to that prefix on purpose: the same words in
+-- body prose are left alone, and a parenthesised aside later in the sentence cannot
+-- be mistaken for a flavour because the pattern cannot cross the colon.
+local function ColorFlavourTag(text)
+    if type(text) ~= "string" or text == "" then return text end
+    local head, flavour, rest = text:match("^([^:]-)%s*%((%a+)%)(:.*)$")
+    if not head or not flavour then return text end
+    local hex = PN_FLAVOUR_COLORS[flavour]
+    if not hex then return text end
+    local icon = PN_FLAVOUR_ICONS[flavour] or ""
+    return head .. " |cFF" .. hex .. icon .. "(" .. flavour .. ")|r" .. rest
+end
+
 local function ColorModuleNames(text)
     for name, hex in pairs(PN_MODULE_COLORS) do
         text = text:gsub("%f[%a](" .. name .. ")%f[%A]", "|cFF" .. hex .. "%1|r")
@@ -56,6 +93,7 @@ local function ColorModuleNames(text)
 end
 
 addon.PatchNotes_ColorModuleNames           = ColorModuleNames
+addon.PatchNotes_ColorFlavourTag            = ColorFlavourTag
 addon.PatchNotes_CapitalizeAfterModulePrefix = CapitalizeAfterModulePrefix
 
 -- Build patch notes content under `opts.parent`. Pure builder; layout/sizing is
@@ -208,7 +246,7 @@ function addon.PatchNotes_BuildContent(opts)
                         txt:SetWidth(cW - PN_BULLET_X)
                         txt:SetJustifyH("LEFT")
                         txt:SetWordWrap(true)
-                        local coloredBullet = ColorModuleNames(CapitalizeAfterModulePrefix(bullet))
+                        local coloredBullet = ColorModuleNames(ColorFlavourTag(CapitalizeAfterModulePrefix(bullet)))
                         txt:SetText("|cFF" .. hex .. "\226\128\148|r  " .. coloredBullet)
                         txt:SetTextColor(unpack(PN_BODY_COL))
                         tinsert(accentRefs.bullets,

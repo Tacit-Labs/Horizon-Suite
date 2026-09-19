@@ -10,7 +10,9 @@
       first letter after ": " when it is lowercase (ASCII). Data can stay lowercase after the colon if you prefer.
     - A bullet that only one client can notice carries the flavour inside the prefix: "Focus (Forever): rest" or
       "Core (Retail): rest". No flavour means both. Every client renders every bullet — do not filter by flavour
-      here, or a release that only touches one client shows an empty popup on the other.
+      here, or a release that only touches one client shows an empty popup on the other. The renderer colours the
+      flavour as its own badge, so write it plainly here and leave the styling to it; a flavour it does not know
+      is left as written rather than badged.
 ]]
 
 local addon = _G.HorizonSuite
