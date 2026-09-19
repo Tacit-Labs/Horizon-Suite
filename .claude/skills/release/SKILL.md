@@ -179,6 +179,14 @@ with no visible symptom, say — keep it and let the director strike it at the
 gate. Over-reporting is recoverable in one edit; a silently dropped fix is
 discovered by a player.
 
+**Note each PR's `[Platform] *` label while you are here.** A change that only
+one client can notice — a Mythic+ fix Forever has no system for, a workaround
+for a Forever beta bug — is tagged with that flavour in Phase 5. If the diff
+plainly only touches one flavour (a capability gated behind
+`addon.Platform.Has`, say) and the PR carries no `[Platform]` label, add the
+label to the PR now so the record is right, rather than tagging from the diff.
+No label, no tag: the entry applies to both clients.
+
 State the drops explicitly in Phase 6 rather than silently shrinking the list.
 
 ### Phase 5 — Write it in the file's voice
@@ -208,6 +216,13 @@ Rules, all of them load-bearing:
 - **Module tag** from the PR's `[Module] *` label or the commit scope, in
   parentheses and bold: `(Focus)`, `(Augment)`, `(Vista)`, `(Presence)`,
   `(Insight)`, `(Essence)`, `(Core)`.
+- **Flavour tag only for the exception.** An unmarked entry applies to Retail
+  and World of Warcraft: Forever alike, and most do. When a PR carries a
+  `[Platform] Retail` or `[Platform] Forever` label, append the flavour to the
+  module tag with a middle dot: `**(Focus · Forever)**`, `**(Core · Retail)**`.
+  The label is the only source — never infer a flavour from the diff, and never
+  write "both". A PR that is flavour-specific but unlabelled gets the label
+  added in Phase 4, not a guessed tag in Phase 5.
 - **No PR or issue numbers.** Not one appears in the file today.
 - **Outcome, not mechanism.** No file names, no function names, no API names.
   "Clicking a tracked achievement opens the achievement journal again", never
@@ -289,8 +304,13 @@ like anything else.
 
    Sections are `"New Features"`, `"Improvements"`, `"Fixes"` — plain strings, no
    emoji, unlike the changelog. Bullets take the `Module: rest` shape and the UI
-   capitalises after the colon, so lowercase there is fine. Newest key goes first.
-   The file is CRLF; preserve it.
+   capitalises after the colon, so lowercase there is fine. A flavour-tagged
+   changelog entry keeps its flavour here too, inside the prefix:
+   `"Focus (Forever): rest"`. The renderer colours the module name and
+   capitalises after the colon exactly as before, and every client shows every
+   bullet — nothing is filtered by flavour, so a Retail-only release cannot
+   render as an empty popup on Forever. Newest key goes first. The file is CRLF;
+   preserve it.
 
 5. Commit: `chore(release): 5.6.4`
 6. Push, then open the PR with the `/pr` skill — never a hand-written body
