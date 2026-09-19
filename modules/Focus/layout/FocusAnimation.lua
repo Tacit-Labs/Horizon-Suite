@@ -1146,8 +1146,19 @@ end
 -- EXPORTS (defined last so local Update* functions are in scope)
 -- ============================================================================
 
+-- Detach the OnUpdate driver and clear the running flag together. The two must
+-- move as one: a bare SetScript(nil) leaves the flag true, EnsureFocusUpdateRunning
+-- then returns early forever, and every entry placed at alpha 0 for a fade-in stays
+-- invisible. That is what a disable-then-enable showed: headers, blank rows.
+function addon.StopFocusUpdate()
+    addon._focusUpdateRunning = false
+    if addon.HS then addon.HS:SetScript("OnUpdate", nil) end
+end
+
 function addon.EnsureFocusUpdateRunning()
-    if not addon.HS or addon._focusUpdateRunning then return end
+    if not addon.HS then return end
+    -- Self-heal: the flag is only trustworthy while the script is actually attached.
+    if addon._focusUpdateRunning and addon.HS:GetScript("OnUpdate") then return end
     addon._focusUpdateRunning = true
     addon.HS:SetScript("OnUpdate", function(_, dt)
         if not addon.focus.enabled then
