@@ -323,6 +323,7 @@ read_globals = {
     "C_EncounterJournal",
     "EJ_GetCurrentInstance",
     "EJ_GetNumTiers",
+    "LoadAddOn",
     "EJ_GetCurrentTier",
     "EJ_SelectTier",
     "EJ_GetInstanceByIndex",

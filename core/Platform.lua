@@ -255,7 +255,25 @@ local PROBES = {
         -- directly, so it answers from anywhere in the world. Reading an instance
         -- list needs a tier selected, which is the player's own journal state, so
         -- whatever was selected is put back.
+        --
+        -- The journal's UI is a LoadOnDemand addon and its data can sit behind it,
+        -- so a bare zero tiers is not yet proof of an empty database. Force the
+        -- load and ask again before concluding anything.
+        local tiersBefore = EJ_GetNumTiers and EJ_GetNumTiers() or 0
+        local loadResult = "not attempted"
+        if tiersBefore == 0 then
+            local loader = (C_AddOns and C_AddOns.LoadAddOn) or LoadAddOn
+            if loader then
+                local ok, err = pcall(loader, "Blizzard_EncounterJournal")
+                loadResult = ok and "loaded" or ("failed: " .. tostring(err))
+            else
+                loadResult = "no loader"
+            end
+        end
         local tiers = EJ_GetNumTiers and EJ_GetNumTiers() or 0
+        parts[#parts + 1] = ("tiers %d before / %d after journal load (%s)"):format(
+            tiersBefore, tiers, loadResult)
+
         if tiers > 0 and EJ_GetInstanceByIndex and EJ_SelectTier then
             local restore = EJ_GetCurrentTier and EJ_GetCurrentTier()
             EJ_SelectTier(1)
