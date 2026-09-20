@@ -234,20 +234,47 @@ local PROBES = {
     -- GetEncountersOnMap is preferred over EJ_SelectInstance + friends because it
     -- reads without mutating the player's open Encounter Journal state.
     { "encounterJournal", function()
+        local parts = {}
+        parts[#parts + 1] = ("keys=%d, GetEncountersOnMap=%s"):format(
+            CountKeys(C_EncounterJournal),
+            type(C_EncounterJournal and C_EncounterJournal.GetEncountersOnMap))
+
+        -- Map route: what the run block would actually call, but it only answers
+        -- inside a dungeon. Standing in a zone, 0 encounters is the correct
+        -- answer rather than a missing API, so this line alone settles nothing.
         local mapID = C_Map and C_Map.GetBestMapForUnit and C_Map.GetBestMapForUnit("player")
         local onMap = mapID and C_EncounterJournal and C_EncounterJournal.GetEncountersOnMap
             and C_EncounterJournal.GetEncountersOnMap(mapID)
-        local first = ""
+        local mapText = type(onMap) == "table" and (#onMap .. " encounters") or "nil"
         if type(onMap) == "table" and onMap[1] then
-            first = (", first=%s/%s"):format(tostring(onMap[1].name), tostring(onMap[1].encounterID))
+            mapText = mapText .. (" (first=%s/%s)"):format(tostring(onMap[1].name), tostring(onMap[1].encounterID))
         end
-        return ("C_EncounterJournal keys=%d, GetEncountersOnMap=%s, on map %s: %s%s; EJ_GetCurrentInstance=%s, EJ_GetEncounterInfoByIndex=%s"):format(
-            CountKeys(C_EncounterJournal),
-            type(C_EncounterJournal and C_EncounterJournal.GetEncountersOnMap),
-            tostring(mapID),
-            type(onMap) == "table" and (#onMap .. " encounters") or "nil",
-            first,
+        parts[#parts + 1] = ("map %s: %s"):format(tostring(mapID), mapText)
+
+        -- Database route: asks the journal for a dungeon and its first boss
+        -- directly, so it answers from anywhere in the world. Reading an instance
+        -- list needs a tier selected, which is the player's own journal state, so
+        -- whatever was selected is put back.
+        local tiers = EJ_GetNumTiers and EJ_GetNumTiers() or 0
+        if tiers > 0 and EJ_GetInstanceByIndex and EJ_SelectTier then
+            local restore = EJ_GetCurrentTier and EJ_GetCurrentTier()
+            EJ_SelectTier(1)
+            local instanceID, instanceName = EJ_GetInstanceByIndex(1, false)
+            local bossName, bossID
+            if instanceID and EJ_GetEncounterInfoByIndex then
+                bossName, _, bossID = EJ_GetEncounterInfoByIndex(1, instanceID)
+            end
+            if restore then EJ_SelectTier(restore) end
+            parts[#parts + 1] = ("%d tiers, tier1 dungeon1=%s/%s, its boss1=%s/%s"):format(
+                tiers, tostring(instanceName), tostring(instanceID), tostring(bossName), tostring(bossID))
+        else
+            parts[#parts + 1] = ("EJ_GetNumTiers=%s (%d tiers), EJ_GetInstanceByIndex=%s"):format(
+                type(EJ_GetNumTiers), tiers, type(EJ_GetInstanceByIndex))
+        end
+
+        parts[#parts + 1] = ("EJ_GetCurrentInstance=%s, EJ_GetEncounterInfoByIndex=%s"):format(
             type(EJ_GetCurrentInstance), type(EJ_GetEncounterInfoByIndex))
+        return table.concat(parts, "; ")
     end },
     { "delves/housing", function()
         return ("C_DelvesUI keys=%d, C_HousingDecor keys=%d, C_Endeavors keys=%d"):format(
