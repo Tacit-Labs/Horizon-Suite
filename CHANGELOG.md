@@ -10,6 +10,16 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [5.10.0] – 2026-09-20
+
+### ✨ New Features
+- **(Focus) Dungeon run tracker** — In any party dungeon that is not a Mythic+ run, a banner above the tracker shows how long you have been inside, the experience and money you have earned, and the rate of each per hour. Hover it for the bosses you have defeated, how long the next level is at your current pace, and a button to start the run over. The run carries on through a reload, and picks up where it left off after a corpse run.
+
+### 🔧 Improvements
+- **(Core)** Patch notes give the core of the addon its own colour, and each entry that applies to only one client carries a coloured badge naming it.
+
+---
+
 ## [5.9.1] – 2026-09-19
 
 ### 🐛 Fixes

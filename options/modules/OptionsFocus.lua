@@ -700,7 +700,7 @@ local categories = {
                 setDB("mplusBossColorR", D.mplusBossColorR); setDB("mplusBossColorG", D.mplusBossColorG); setDB("mplusBossColorB", D.mplusBossColorB)
             end, { requires = "mythicPlus", refreshIds = { "mplusDungeonSize", "mplusDungeonColor", "mplusTimerSize", "mplusTimerColor", "mplusTimerOvertimeColor", "mplusSplitSize", "mplusSplitColor", "mplusSplitPastColor", "mplusProgressSize", "mplusProgressColor", "mplusBarColor", "mplusBarDoneColor", "mplusAffixSize", "mplusAffixColor", "mplusBossSize", "mplusBossColor" } }),
             Section(L["FOCUS_RUN_TRACKER"]),
-            Toggle(L["FOCUS_RUN_ENABLE"], L["FOCUS_RUN_ENABLE_DESC"], "showRunBlock", D.showRunBlock, { tooltip = L["FOCUS_RUN_ENABLE_TOOLTIP"], refreshIds = { "runAlwaysShow", "runShowXP", "runShowGold", "runShowBosses", "runBlockPosition" } }),
+            Toggle(L["FOCUS_RUN_ENABLE"], L["FOCUS_RUN_ENABLE_DESC"], "showRunBlock", D.showRunBlock, { tooltip = L["FOCUS_RUN_ENABLE_TOOLTIP"], isNew = "5.10.0", refreshIds = { "runAlwaysShow", "runShowXP", "runShowGold", "runShowBosses", "runBlockPosition" } }),
             Toggle(L["FOCUS_RUN_SHOW_XP"], L["FOCUS_RUN_SHOW_XP_DESC"], "runShowXP", D.runShowXP, { id = "runShowXP", visibleWhen = function() return getDB("showRunBlock", D.showRunBlock) end }),
             Toggle(L["FOCUS_RUN_SHOW_GOLD"], L["FOCUS_RUN_SHOW_GOLD_DESC"], "runShowGold", D.runShowGold, { id = "runShowGold", visibleWhen = function() return getDB("showRunBlock", D.showRunBlock) end }),
             Toggle(L["FOCUS_RUN_SHOW_BOSSES"], L["FOCUS_RUN_SHOW_BOSSES_DESC"], "runShowBosses", D.runShowBosses, { id = "runShowBosses", visibleWhen = function() return getDB("showRunBlock", D.showRunBlock) end }),
