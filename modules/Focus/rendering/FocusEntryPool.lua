@@ -919,7 +919,7 @@ local function ApplyDimensions(widthOverride)
     for i = 1, addon.SECTION_POOL_SIZE do
         sectionPool[i]:SetSize(w - S(addon.PADDING) - leftOffset - S(addon.CONTENT_RIGHT_PADDING or 0), addon.GetSectionHeaderHeight())
     end
-    if addon.UpdateMplusBlock then addon.UpdateMplusBlock() end
+    if addon.UpdateFocusBlocks then addon.UpdateFocusBlocks() end
     if addon.divider and addon.divider.SetColorTexture and addon.GetHeaderDividerColor then
         local dc = addon.GetHeaderDividerColor()
         addon.divider:SetColorTexture(dc[1], dc[2], dc[3], dc[4])

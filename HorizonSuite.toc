@@ -74,6 +74,9 @@ modules/Focus/scenarios/FocusScenarioAbundance.lua
 modules/Focus/scenarios/FocusScenarioWorld.lua
 modules/Focus/scenarios/FocusScenario.lua
 modules/Focus/scenarios/FocusMplusBlock.lua
+modules/Focus/scenarios/FocusRunTracker.lua
+modules/Focus/scenarios/FocusRunBlock.lua
+modules/Focus/scenarios/FocusBlocks.lua
 modules/Focus/providers/FocusAchievements.lua
 modules/Focus/providers/FocusEndeavors.lua
 modules/Focus/providers/FocusDecor.lua

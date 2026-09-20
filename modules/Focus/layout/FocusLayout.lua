@@ -391,7 +391,7 @@ local function FullLayout()
         addon.HS:Hide()
         HideAllItemButtons()
         addon.UpdateFloatingQuestItem(nil)
-        if addon.UpdateMplusBlock then addon.UpdateMplusBlock() end
+        if addon.UpdateFocusBlocks then addon.UpdateFocusBlocks() end
         syncScenarioBarTickerForLayout()
         return
     end
@@ -400,7 +400,7 @@ local function FullLayout()
         addon.HS:Hide()
         HideAllItemButtons()
         addon.UpdateFloatingQuestItem(nil)
-        if addon.UpdateMplusBlock then addon.UpdateMplusBlock() end
+        if addon.UpdateFocusBlocks then addon.UpdateFocusBlocks() end
         syncScenarioBarTickerForLayout()
         return
     end
@@ -488,19 +488,18 @@ local function FullLayout()
 
     local contentTop = addon.GetContentTop()
 
-    -- Update the Mythic+ block so we can anchor the scrollFrame around it.
-    if addon.UpdateMplusBlock then
-        addon.UpdateMplusBlock()
+    -- Update both banner blocks so we can anchor the scrollFrame around whichever
+    -- one is up (FocusBlocks owns the rule that only one ever is).
+    if addon.UpdateFocusBlocks then
+        addon.UpdateFocusBlocks()
     end
 
     -- Variables needed both for the initial anchoring block and the grow-up
     -- re-evaluation block further below; declare them unconditionally.
-    local mplus = addon.mplusBlock
-    local hasMplus = mplus and mplus:IsShown()
-    local mplusPos = addon.GetDB("mplusBlockPosition", "top") or "top"
     local gap = addon.Scaled(4)
-    local blockFrame = hasMplus and mplus or nil
-    local blockPos = hasMplus and mplusPos or "top"
+    local blockFrame = addon.GetActiveFocusBlock and addon.GetActiveFocusBlock() or nil
+    local hasBlock = blockFrame ~= nil
+    local blockPos = (hasBlock and addon.GetActiveFocusBlockPosition and addon.GetActiveFocusBlockPosition()) or "top"
     local growUp = addon.GetDB("growUp", false)
     local headerMode = addon.GetDB("growUpHeaderMode", "always")
     local collapsed = addon.focus and addon.focus.collapsed
@@ -681,7 +680,7 @@ local function FullLayout()
                     headerArea = (useGrowUpScrollLayout and (pad * 2) or pad) + addon.GetHeaderHeight() + addon.GetScaledDividerHeight() + addon.GetHeaderToContentGap()
                 end
                 local visibleH = math.min(totalContentH, addon.GetMaxContentHeight())
-                local blockHeight = (hasMplus and addon.GetMplusBlockHeight and (addon.GetMplusBlockHeight() + gap * 2)) or 0
+                local blockHeight = (hasBlock and addon.GetActiveFocusBlockHeight and (addon.GetActiveFocusBlockHeight() + gap * 2)) or 0
                 -- Grow-up already reserves the full footer/header stack in headerArea; adding
                 -- another trailing pad makes the panel nudge when toggling growUp off.
                 local trailingPad = useGrowUpScrollLayout and 0 or addon.GetScaledPadding()
@@ -1610,7 +1609,7 @@ local function FullLayout()
         headerArea = (useGrowUpScrollLayout and (pad * 2) or pad) + addon.GetHeaderHeight() + addon.GetScaledDividerHeight() + addon.GetHeaderToContentGap()
     end
     local visibleH      = math.min(totalContentH, addon.GetMaxContentHeight())
-    local blockHeight   = (hasMplus and addon.GetMplusBlockHeight and (addon.GetMplusBlockHeight() + gap * 2)) or 0
+    local blockHeight   = (hasBlock and addon.GetActiveFocusBlockHeight and (addon.GetActiveFocusBlockHeight() + gap * 2)) or 0
     -- Grow-up already reserves the full footer/header stack in headerArea; adding
     -- another trailing pad makes the panel nudge when toggling growUp off.
     local trailingPad   = useGrowUpScrollLayout and 0 or addon.GetScaledPadding()

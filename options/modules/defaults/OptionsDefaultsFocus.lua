@@ -67,6 +67,32 @@ addon.MPLUS_TYPOGRAPHY_KEYS = {
     mplusBarDoneColorR  = true, mplusBarDoneColorG  = true, mplusBarDoneColorB  = true, mplusBarDoneColorA  = true,
 }
 
+-- Same split for the dungeon run block: typography keys re-run the font/colour
+-- pass, markup keys are baked into |cff...|r inside the display and need the
+-- whole row rebuilt.
+addon.RUN_TYPOGRAPHY_KEYS = {
+    fontPath       = true,
+    fontOutline    = true,
+    shadowOffsetX  = true,
+    shadowOffsetY  = true,
+    showTextShadow = true,
+    shadowAlpha    = true,
+    runNameSize    = true,
+    runNameColorR  = true, runNameColorG  = true, runNameColorB  = true,
+    runTimerSize   = true,
+    runTimerColorR = true, runTimerColorG = true, runTimerColorB = true,
+    runStatSize    = true,
+    runLabelColorR = true, runLabelColorG = true, runLabelColorB = true,
+    runValueColorR = true, runValueColorG = true, runValueColorB = true,
+}
+
+addon.RUN_EMBEDDED_MARKUP_KEYS = {
+    runRateColorR = true, runRateColorG = true, runRateColorB = true,
+    runShowXP     = true,
+    runShowGold   = true,
+    runShowBosses = true,
+}
+
 addon.FOCUS_DEFAULTS = {
     -- Layout
     lockPosition              = false,
@@ -227,6 +253,21 @@ addon.FOCUS_DEFAULTS = {
     mplusBarDoneColorR        = 0.15,  mplusBarDoneColorG        = 0.65,  mplusBarDoneColorB        = 0.25,  mplusBarDoneColorA = 0.90,
     mplusAffixColorR          = 0.85,  mplusAffixColorG          = 0.85,  mplusAffixColorB          = 0.95,
     mplusBossColorR           = 0.78,  mplusBossColorG           = 0.82,  mplusBossColorB           = 0.92,
+    -- Dungeon run tracker
+    showRunBlock              = true,
+    runBlockPosition          = "top",
+    runAlwaysShow             = false,
+    runShowXP                 = true,
+    runShowGold               = true,
+    runShowBosses             = true,
+    runNameSize               = 14,
+    runTimerSize              = 13,
+    runStatSize               = 12,
+    runNameColorR             = 0.96,  runNameColorG             = 0.96,  runNameColorB             = 1.0,
+    runTimerColorR            = 0.60,  runTimerColorG            = 0.88,  runTimerColorB            = 1.0,
+    runLabelColorR            = 0.66,  runLabelColorG            = 0.70,  runLabelColorB            = 0.80,
+    runValueColorR            = 0.96,  runValueColorG            = 0.96,  runValueColorB            = 1.0,
+    runRateColorR             = 0.55,  runRateColorG             = 0.85,  runRateColorB             = 0.65,
     -- Delves/Scenarios
     showScenarioEvents        = true,
     hideOtherCategoriesInDelve = false,
@@ -316,4 +357,7 @@ addon.FOCUS_LIMITS = {
     mplusProgressSize        = { min = 8,    max = 32   },
     mplusAffixSize           = { min = 8,    max = 32   },
     mplusBossSize            = { min = 8,    max = 32   },
+    runNameSize              = { min = 8,    max = 32   },
+    runTimerSize             = { min = 8,    max = 32   },
+    runStatSize              = { min = 8,    max = 32   },
 }

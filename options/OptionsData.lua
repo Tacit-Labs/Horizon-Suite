@@ -102,6 +102,12 @@ function OptionsData_SetDB(key, value)
     if addon.MPLUS_EMBEDDED_MARKUP_KEYS and addon.MPLUS_EMBEDDED_MARKUP_KEYS[key] and addon.UpdateMplusBlock then
         addon.UpdateMplusBlock()
     end
+    if addon.RUN_TYPOGRAPHY_KEYS and addon.RUN_TYPOGRAPHY_KEYS[key] and addon.ApplyRunTypography then
+        addon.ApplyRunTypography()
+    end
+    if addon.RUN_EMBEDDED_MARKUP_KEYS and addon.RUN_EMBEDDED_MARKUP_KEYS[key] and addon.UpdateDungeonRunBlock then
+        addon.UpdateDungeonRunBlock()
+    end
     if addon.PRESENCE_KEYS and addon.PRESENCE_KEYS[key] and addon.Presence then
         if addon.Presence.ApplyPresenceOptions then addon.Presence.ApplyPresenceOptions() end
         if addon.Presence.ApplyBlizzardSuppression then addon.Presence.ApplyBlizzardSuppression() end

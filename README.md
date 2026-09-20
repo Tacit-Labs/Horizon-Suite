@@ -44,6 +44,7 @@ Your tracker shouldn't need babysitting. Focus keeps up with you — surfacing n
 - **Prey section** — Midnight hunting activities appear in a dedicated Prey section with distinct colours, separate from weeklies.
 - **Combat-aware** — Show, fade, or hide in combat. Show or hide in dungeons/raids/BGs. Compact or super-minimal layouts. Show only on mouseover. Your call.
 - **Mythic+ and Delves** — Keystone info, affixes, timer, and delve objectives all in the standard layout.
+- **Dungeon run tracker** — In any party dungeon that isn't a keystone, a banner tracks the run: elapsed time, experience and money earned, and the per-hour rate of each. Hover for the bosses you have downed and how long the next level is at your current pace, or for the reset button that starts the run over. The run in progress survives a reload, and a corpse run picks it back up where you left it.
 - **Countdown timers by section** — With **Show timer** on, toggle countdowns separately for **Scenarios**, **World Quests**, and **Dailies / Weeklies** (other timed quest log entries use the same switch as dailies and weeklies).
 - **Click your way** — Under Focus → Click Options, choose **Blizzard+** (default), **Horizon+** (super-track first; Custom for your own combos), or **Custom**. Optional classic mode still tweaks icon-style clicks where enabled.
 - **Profiles** — Per-character, per-spec, or global. Create, copy, export, and share as text strings.
