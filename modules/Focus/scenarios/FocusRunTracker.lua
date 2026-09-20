@@ -352,10 +352,6 @@ function addon.GetDungeonRunData()
     }
 end
 
--- ---------------------------------------------------------------------------
--- Events
--- ---------------------------------------------------------------------------
-
 -- "Scarlet Monastery has been reset." in whatever locale the client runs, turned
 -- into a match pattern. A wipe-release-reset-re-enter cycle otherwise satisfies
 -- every condition the corpse-run resume tests for, and the fresh run would
@@ -370,6 +366,76 @@ do
     end)
     instanceResetPattern = ok and pattern or nil
 end
+
+-- ---------------------------------------------------------------------------
+-- Diagnostics
+-- ---------------------------------------------------------------------------
+
+-- Everything the tracker is holding, including what is on disk, so a run can be
+-- checked without guessing from the banner. Drives `/h debug focus runstate`.
+--
+-- The three in-memory slots are what the resume rules act on, and telling them
+-- apart is the whole point: `run` is live, `lastRun` is a finished run still
+-- inside the resume window, and `pendingLive` is a run restored from disk that
+-- has not yet proved it is back in its own instance.
+-- @return table
+function addon.GetDungeonRunDebugSnapshot()
+    local name, instanceID, difficultyName, isParty = ReadInstance()
+    local store, charKey = RunStore()
+    local saved = (store and charKey) and store[charKey] or nil
+
+    local function describe(record, label)
+        if not record then return label .. ": none" end
+        return ("%s: %s (id=%s) started=%s xp=%s levels=%s moneyStart=%s bosses=%d%s%s"):format(
+            label,
+            tostring(record.instanceName),
+            tostring(record.instanceID),
+            tostring(record.startEpoch),
+            tostring(record.xpGained),
+            tostring(record.levelsGained),
+            tostring(record.moneyStart),
+            #(record.bosses or {}),
+            record.stoppedAt and (" stopped=" .. tostring(record.stoppedAt)) or "",
+            record.leftDead ~= nil and (" leftDead=" .. tostring(record.leftDead)) or "")
+    end
+
+    local lines = {
+        ("client: instance=%s (id=%s, %s) partyDungeon=%s"):format(
+            tostring(name), tostring(instanceID), tostring(difficultyName), tostring(isParty)),
+        ("persistence: charKey=%s hydrated=%s storeReachable=%s"):format(
+            tostring(charKey), tostring(hydrated), tostring(store ~= nil)),
+        ("rules: resumeWindow=%ds rateMinElapsed=%ds resetPattern=%s"):format(
+            RESUME_WINDOW, RATE_MIN_ELAPSED, instanceResetPattern and "built" or "unavailable"),
+        describe(run, "run (live)"),
+        describe(lastRun, "lastRun (resumable)"),
+        describe(pendingLive, "pendingLive (from disk)"),
+    }
+
+    if saved then
+        lines[#lines + 1] = ("saved: id=%s live=%s started=%s xp=%s moneyStart=%s bosses=%d age=%ds"):format(
+            tostring(saved.instanceID), tostring(saved.live), tostring(saved.startEpoch),
+            tostring(saved.xpGained), tostring(saved.moneyStart), #(saved.bosses or {}),
+            math.max(0, Now() - (tonumber(saved.startEpoch) or Now())))
+    else
+        lines[#lines + 1] = "saved: no record for this character"
+    end
+
+    local data = addon.GetDungeonRunData()
+    if data then
+        lines[#lines + 1] = ("derived: elapsed=%ds xp=%s money=%s rates=%s xpCapped=%s"):format(
+            math.floor(data.elapsed), tostring(data.xpGained), tostring(data.moneyGained),
+            data.hasRates and "live" or ("held until " .. RATE_MIN_ELAPSED .. "s"),
+            tostring(data.xpCapped))
+    else
+        lines[#lines + 1] = "derived: no live run"
+    end
+
+    return { lines = lines }
+end
+
+-- ---------------------------------------------------------------------------
+-- Events
+-- ---------------------------------------------------------------------------
 
 local eventFrame = CreateFrame("Frame")
 eventFrame:RegisterEvent("PLAYER_LOGIN")

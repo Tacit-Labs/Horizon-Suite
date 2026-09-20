@@ -553,6 +553,17 @@ local function HandleFocusDebugSlash(msg)
         if addon.FullLayout then addon.FullLayout() end
         HSPrint(L["FOCUS_SLASH_DBG_RUN_PREVIEW_FMT"]:format(addon.runDebugPreview and L["FOCUS_SLASH_STATE_ON"] or L["FOCUS_SLASH_STATE_OFF"]))
 
+    elseif cmd == "runstate" then
+        HSPrint("|cFF00CCFF--- Dungeon run state ---|r")
+        if not addon.GetDungeonRunDebugSnapshot then
+            HSPrint("Run tracker not loaded.")
+            return
+        end
+        local snap = addon.GetDungeonRunDebugSnapshot()
+        for _, line in ipairs(snap.lines or {}) do
+            HSPrint("  " .. line)
+        end
+
     elseif cmd == "runreset" then
         if addon.IsDungeonRunActive and addon.IsDungeonRunActive() then
             addon.ResetDungeonRun()
