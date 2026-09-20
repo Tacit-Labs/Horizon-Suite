@@ -19,6 +19,23 @@ local addon = _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["5.10.0"] = {
+        date = "2026-09-20",
+        {
+            section = "New Features",
+            bullets = {
+                "Focus: a dungeon run tracker. In any party dungeon that is not a Mythic+ run, a banner above the tracker shows how long you have been inside, the experience and money you have earned, and the rate of each per hour.",
+                "Focus: hover the run banner for the bosses you have defeated, how long the next level is at your current pace, and a button to start the run over. The run carries on through a reload, and picks up where it left off after a corpse run.",
+            },
+        },
+        {
+            section = "Improvements",
+            bullets = {
+                "Core: patch notes give the core of the addon its own colour, and each entry that applies to only one client carries a coloured badge naming it.",
+            },
+        },
+    },
+
     ["5.9.1"] = {
         date = "2026-09-19",
         {
