@@ -23,6 +23,7 @@ Now with loot that deserves to be seen in a style personal to you.
 - **Styled personal loot window** — When Auto Loot is off, Blizzard's loot window stays usable and picks up the same Compact / Framed / Accent look as your loot toasts.
 - **Epic and legendary treatment** — Extended display time, shine effects, and optional sounds when something worth celebrating drops.
 - **Status alerts** — Optional toasts for low durability, bags nearly full, new mail, Great Vault rewards ready, and friends coming online or offline. Each kind has its own toggle, threshold, and colour under Augment → Alerts.
+- **Loot rolls** — Horizon's own Need/Greed frames, in the same Compact / Framed / Accent chrome as your toasts. While the timer runs they show who has rolled and who is leading; the item carries a new-appearance marker, an item level comparison against what you have equipped, and a bind-on-pickup flag. Rolls below a quality you choose keep Blizzard's own frame, so nothing is ever lost. Off by default under Augment → Loot Rolls; turn it on with `/h roll toggle`, and try the layout on your own with `/h roll demo`.
 
 ---
 
