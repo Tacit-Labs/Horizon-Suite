@@ -3,7 +3,7 @@
 
     Cinematic banner for an ordinary party dungeon: elapsed time, experience and
     money earned, the per-hour rates, and bosses defeated. Hover shows the boss
-    list and the projection to the next level.
+    list, the projection to the next level, and a reset button.
 
     This is the counterpart to FocusMplusBlock, and the two are mutually
     exclusive: a keystone run shows the M+ banner, everything else shows this one.
@@ -66,6 +66,48 @@ for _, key in ipairs(ROW_KEYS) do
     value:SetJustifyH("RIGHT")
     rows[key] = { label = label, value = value }
 end
+
+-- Reset button, top-right, on the hero line. Only visible while the cursor is
+-- over the block: a banner that carries a button at all times reads as a widget
+-- rather than a readout, and this one is pressed once a run at most.
+--
+-- Visibility is polled from the block's OnUpdate rather than driven by
+-- OnEnter/OnLeave, because moving the cursor onto a child frame fires the
+-- parent's OnLeave — the button would vanish as you reached for it.
+local RESET_BUTTON_SIZE = 14
+local resetButton = CreateFrame("Button", nil, runBlock)
+resetButton:SetSize(RESET_BUTTON_SIZE, RESET_BUTTON_SIZE)
+resetButton:SetPoint("TOPRIGHT", runBlock, "TOPRIGHT", -4, -4)
+resetButton:Hide()
+
+local resetIcon = resetButton:CreateTexture(nil, "ARTWORK")
+resetIcon:SetAllPoints()
+resetIcon:SetTexture("Interface\\Buttons\\UI-RefreshButton")
+resetIcon:SetVertexColor(0.72, 0.76, 0.88, 0.9)
+
+resetButton:SetScript("OnEnter", function(self)
+    resetIcon:SetVertexColor(1, 1, 1, 1)
+    local tt = GameTooltip
+    addon.focus.AnchorTooltip(tt, self)
+    tt:ClearLines()
+    tt:AddLine(L["FOCUS_RUN_RESET"], 1, 1, 1)
+    tt:AddLine(L["FOCUS_RUN_RESET_TOOLTIP"], 0.8, 0.8, 0.8, true)
+    tt:Show()
+end)
+resetButton:SetScript("OnLeave", function()
+    resetIcon:SetVertexColor(0.72, 0.76, 0.88, 0.9)
+    if GameTooltip:IsOwned(resetButton) then GameTooltip:Hide() end
+end)
+resetButton:SetScript("OnClick", function()
+    if addon.ResetDungeonRun then addon.ResetDungeonRun() end
+    -- A reset drops the boss row, so the panel has to re-measure around a
+    -- shorter block, not just repaint it.
+    if addon.FullLayout then
+        addon.FullLayout()
+    elseif addon.UpdateDungeonRunBlock then
+        addon.UpdateDungeonRunBlock()
+    end
+end)
 
 addon.runBlock = runBlock
 
@@ -306,8 +348,9 @@ local function UpdateRunBlockDisplay(data)
 
     runHeroText:ClearAllPoints()
     runHeroText:SetPoint("TOPLEFT", runBlock, "TOPLEFT", heroLeft, y)
-    runHeroText:SetWidth(contentWidth)
-    runHeroShadow:SetWidth(contentWidth)
+    local heroWidth = math.max(1, contentWidth - RESET_BUTTON_SIZE - 4)
+    runHeroText:SetWidth(heroWidth)
+    runHeroShadow:SetWidth(heroWidth)
     runHeroShadow:SetWordWrap(true)
     y = y - (runHeroText:GetStringHeight() or nameSize) - ROW_GAP
 
@@ -426,6 +469,8 @@ end
 local timeSinceLastUpdate = 0
 runBlock:SetScript("OnUpdate", function(self, elapsed)
     if not self:IsShown() then return end
+    resetButton:SetShown(self:IsMouseOver() == true)
+
     if addon.runDebugPreview then return end
     if not addon.IsDungeonRunActive() then return end
 
@@ -448,6 +493,7 @@ local function UpdateDungeonRunBlock()
     end
 
     if not addon.GetDB("showRunBlock", true) then
+        resetButton:Hide()
         runBlock:Hide()
         return
     end

@@ -2745,6 +2745,8 @@ L["FOCUS_COMPLETED_CHECKMARK"]                                = "|TInterface\\\\
 -- L["FOCUS_RUN_RATE_COLOUR"]                                 = "Hourly Rate Colour"
 -- L["FOCUS_RUN_RATE_COLOUR_DESC"]                            = "Text colour of the bracketed per-hour figures"
 -- L["FOCUS_RUN_RESET_STYLING"]                               = "Reset Run Tracker Styling"
+-- L["FOCUS_RUN_RESET"]                                       = "Reset Run"
+-- L["FOCUS_RUN_RESET_TOOLTIP"]                               = "Start this run's time, experience and money over from zero."
 -- L["FOCUS_RUN_RESET_DONE"]                                  = "Dungeon run reset."
 -- L["FOCUS_RUN_RESET_NOT_IN_DUNGEON"]                        = "No dungeon run to reset."
 

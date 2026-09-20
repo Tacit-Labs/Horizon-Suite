@@ -359,6 +359,7 @@ read_globals = {
     "FormatLargeNumber",
     "BreakUpLargeNumbers",
     "GetCoinTextureString",
+    "time",
     "GOLD_AMOUNT_SYMBOL",
     "SILVER_AMOUNT_SYMBOL",
     "COPPER_AMOUNT_SYMBOL",
