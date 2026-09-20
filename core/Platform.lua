@@ -225,6 +225,30 @@ local PROBES = {
     { "weeklyVault", function()
         return ("CanClaimRewards=%s"):format(C_WeeklyRewards.CanClaimRewards and tostring(C_WeeklyRewards.CanClaimRewards()) or "n/a")
     end },
+    -- Can this client hand back the boss roster for a dungeon? The Focus run
+    -- block counts bosses from ENCOUNTER_END, which only ever counts up — it has
+    -- no roster to tick names off against the way the M+ block does from scenario
+    -- criteria. A plain dungeon runs no scenario, so the Encounter Journal is the
+    -- only other source, and nothing in the addon has ever called it.
+    --
+    -- GetEncountersOnMap is preferred over EJ_SelectInstance + friends because it
+    -- reads without mutating the player's open Encounter Journal state.
+    { "encounterJournal", function()
+        local mapID = C_Map and C_Map.GetBestMapForUnit and C_Map.GetBestMapForUnit("player")
+        local onMap = mapID and C_EncounterJournal and C_EncounterJournal.GetEncountersOnMap
+            and C_EncounterJournal.GetEncountersOnMap(mapID)
+        local first = ""
+        if type(onMap) == "table" and onMap[1] then
+            first = (", first=%s/%s"):format(tostring(onMap[1].name), tostring(onMap[1].encounterID))
+        end
+        return ("C_EncounterJournal keys=%d, GetEncountersOnMap=%s, on map %s: %s%s; EJ_GetCurrentInstance=%s, EJ_GetEncounterInfoByIndex=%s"):format(
+            CountKeys(C_EncounterJournal),
+            type(C_EncounterJournal and C_EncounterJournal.GetEncountersOnMap),
+            tostring(mapID),
+            type(onMap) == "table" and (#onMap .. " encounters") or "nil",
+            first,
+            type(EJ_GetCurrentInstance), type(EJ_GetEncounterInfoByIndex))
+    end },
     { "delves/housing", function()
         return ("C_DelvesUI keys=%d, C_HousingDecor keys=%d, C_Endeavors keys=%d"):format(
             CountKeys(C_DelvesUI), CountKeys(C_HousingDecor), CountKeys(C_Endeavors))
