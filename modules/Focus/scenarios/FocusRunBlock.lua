@@ -511,6 +511,15 @@ local function UpdateDungeonRunBlock()
         return
     end
 
+    -- Belt and braces on Retail. A Delve reports instanceType "scenario", so the
+    -- tracker's "party" gate should already exclude it and this has never been
+    -- seen to fire — but the delve UI owns the screen the same way a keystone
+    -- does, and this block draws on UIParent where a false positive is loud.
+    if addon.IsDelveActive and addon.IsDelveActive() then
+        runBlock:Hide()
+        return
+    end
+
     local data = addon.GetDungeonRunData()
     local alwaysShow = addon.GetDB("runAlwaysShow", false)
     if not data then
