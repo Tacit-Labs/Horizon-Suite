@@ -89,7 +89,9 @@ Source: [Gethe/wow-ui-source live branch](https://github.com/Gethe/wow-ui-source
 - `ScenarioAlertSystem`, `DungeonCompletionAlertSystem` – LFG_COMPLETION_REWARD
 - Many others (loot, garrison, etc.)
 
-Presence mutes `ACHIEVEMENT_EARNED` and `QUEST_TURNED_IN` on AlertFrame; other subsystems remain.
+Presence mutes `ACHIEVEMENT_EARNED`, `QUEST_TURNED_IN` and the criteria events on AlertFrame
+**per notification type** — an event is unregistered only while the type that replaces it is on,
+so switching a type off returns its alert to Blizzard. Other subsystems remain untouched.
 
 ### 2.4 Blizzard_ObjectiveTracker (Banners)
 

@@ -155,6 +155,10 @@ local function ApplyBlizzardSuppression()
         if wqFrame then RestoreBlizzardFrame(wqFrame) end
     end
 
+    -- AlertFrame events (achievement earned/progress, quest turned in) - muted per type,
+    -- so a type switched off returns its alert to Blizzard without disabling the module.
+    if addon.Presence.ApplyAlertMuting then addon.Presence.ApplyAlertMuting() end
+
     -- Always suppress when Presence is on (no per-type mapping)
     KillBlizzardFrame(BossBanner)
     KillBlizzardFrame(ObjectiveTrackerBonusBannerFrame)
@@ -239,6 +243,13 @@ local function DumpBlizzardSuppression(p)
     local wqFrame = WorldQuestCompleteBannerFrame or _G["WorldQuestCompleteBannerFrame"]
     p("World quest:   option=" .. tostring(wqOn) .. " | WorldQuestCompleteBannerFrame=" .. frameState(wqFrame))
 
+    local achOn = isTypeEnabled("presenceAchievement", nil, true)
+    local achProgOn = isTypeEnabled("presenceAchievementProgress", nil, false)
+    local allMuted = (addon.Presence.AreAllAlertsMuted and addon.Presence.AreAllAlertsMuted()) or false
+    p("Achievement:   option=" .. tostring(achOn) .. " | AlertFrame ACHIEVEMENT_EARNED=" .. (achOn and "muted" or "Blizzard"))
+    p("Ach. progress: option=" .. tostring(achProgOn) .. " | AlertFrame CRITERIA_*=" .. (achProgOn and "muted" or "Blizzard"))
+    p("Alert queue drain on login: " .. (allMuted and "active (all alerts muted)" or "skipped (an alert is Blizzard's)"))
+
     p("Expect: option=ON -> SUPPRESSED (Presence shows). option=OFF -> restored (WoW default shows)")
     p("|cFF00CCFF--- End suppression debug ---|r")
 end
@@ -316,7 +327,11 @@ HookEventToastManager = function()
     end
 end
 
+-- Clear AlertFrame's login backlog so queued toasts don't fire alongside Presence's own.
+-- Skipped entirely once any governed alert is handed back to Blizzard: the queue is shared
+-- with systems Presence never replaces, so wiping it would swallow the restored alert too.
 local function DrainAlertFrameQueue()
+    if addon.Presence.AreAllAlertsMuted and not addon.Presence.AreAllAlertsMuted() then return end
     pcall(function()
         if not AlertFrame then return end
         if AlertFrame.alertQueue and type(AlertFrame.alertQueue) == "table" then

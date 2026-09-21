@@ -24,7 +24,7 @@ addon:RegisterModule("presence", {
             end
             if addon.Presence.EnableEvents then addon.Presence.EnableEvents() end
             if addon.Presence.SuppressBlizzard then addon.Presence.SuppressBlizzard() end
-            if addon.Presence.MuteAlerts then addon.Presence.MuteAlerts() end
+            if addon.Presence.ApplyAlertMuting then addon.Presence.ApplyAlertMuting() end
             if addon.Presence.HookUIErrorsFrame then addon.Presence.HookUIErrorsFrame() end
         end
     end,
