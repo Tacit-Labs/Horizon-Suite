@@ -243,11 +243,13 @@ local function DumpBlizzardSuppression(p)
     local wqFrame = WorldQuestCompleteBannerFrame or _G["WorldQuestCompleteBannerFrame"]
     p("World quest:   option=" .. tostring(wqOn) .. " | WorldQuestCompleteBannerFrame=" .. frameState(wqFrame))
 
-    local achOn = isTypeEnabled("presenceAchievement", nil, true)
-    local achProgOn = isTypeEnabled("presenceAchievementProgress", nil, false)
+    -- AlertFrame events: state is what was actually (un)registered, not the option.
+    local alertState = (addon.Presence.GetAlertMuteState and addon.Presence.GetAlertMuteState()) or {}
+    for _, s in ipairs(alertState) do
+        local typeOn = addon.Presence.IsTypeEnabledForType and addon.Presence.IsTypeEnabledForType(s.type)
+        p(("AlertFrame %s (%s): option=%s | %s"):format(s.event, s.type, tostring(typeOn), s.muted and "muted" or "Blizzard"))
+    end
     local allMuted = (addon.Presence.AreAllAlertsMuted and addon.Presence.AreAllAlertsMuted()) or false
-    p("Achievement:   option=" .. tostring(achOn) .. " | AlertFrame ACHIEVEMENT_EARNED=" .. (achOn and "muted" or "Blizzard"))
-    p("Ach. progress: option=" .. tostring(achProgOn) .. " | AlertFrame CRITERIA_*=" .. (achProgOn and "muted" or "Blizzard"))
     p("Alert queue drain on login: " .. (allMuted and "active (all alerts muted)" or "skipped (an alert is Blizzard's)"))
 
     p("Expect: option=ON -> SUPPRESSED (Presence shows). option=OFF -> restored (WoW default shows)")

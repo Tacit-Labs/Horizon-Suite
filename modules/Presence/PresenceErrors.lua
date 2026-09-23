@@ -63,12 +63,14 @@ end
 -- whose option governs it. An event is unregistered only while its type is ON,
 -- so switching that type off hands the alert back to Blizzard without needing
 -- the whole module disabled. Ordered for deterministic application.
+-- Only events AlertFrame itself registers belong here (AlertFrames.lua OnLoad):
+-- restoring one it never listened to would hand it an event Blizzard didn't ask for.
+-- QUEST_TURNED_IN feeds only WorldQuestCompleteAlertSystem - a regular turn-in
+-- never toasts on AlertFrame - so the world quest option governs it.
 local ALERT_EVENT_TYPES = {
-    { event = "ACHIEVEMENT_EARNED",         type = "ACHIEVEMENT" },
-    { event = "CRITERIA_UPDATE",            type = "ACHIEVEMENT_PROGRESS" },
-    { event = "TRACKED_ACHIEVEMENT_UPDATE", type = "ACHIEVEMENT_PROGRESS" },
-    { event = "CRITERIA_EARNED",            type = "ACHIEVEMENT_PROGRESS" },
-    { event = "QUEST_TURNED_IN",            type = "QUEST_COMPLETE" },
+    { event = "ACHIEVEMENT_EARNED", type = "ACHIEVEMENT" },
+    { event = "CRITERIA_EARNED",    type = "ACHIEVEMENT_PROGRESS" },
+    { event = "QUEST_TURNED_IN",    type = "WORLD_QUEST" },
 }
 
 local alertEventsUnregistered = {}
@@ -84,13 +86,14 @@ local function IsAlertTypeEnabled(typeName)
 end
 
 -- Mute or restore each AlertFrame event according to its type's option.
+-- Callers gate on the module, not this function: OnEnable runs before EnableModule
+-- flags the module on, so an IsModuleEnabled check here would make it a no-op.
 -- Idempotent; safe to call on every option change.
 -- @return nil
 local function ApplyAlertMuting()
     if not AlertFrameSupportsRegistration() then return end
-    local moduleOn = addon:IsModuleEnabled("presence")
     for _, entry in ipairs(ALERT_EVENT_TYPES) do
-        local shouldMute = moduleOn and IsAlertTypeEnabled(entry.type)
+        local shouldMute = IsAlertTypeEnabled(entry.type)
         local isMuted = alertEventsUnregistered[entry.event] and true or false
         if shouldMute ~= isMuted then
             -- pcall: AlertFrame methods can throw on some flavours.
@@ -114,6 +117,17 @@ local function AreAllAlertsMuted()
         if not alertEventsUnregistered[entry.event] then return false end
     end
     return true
+end
+
+-- Per-event mute state, read from what was actually (un)registered rather than
+-- from the options, so a failed call shows up in the suppression debug dump.
+-- @return table Array of { event, type, muted } in application order
+local function GetAlertMuteState()
+    local out = {}
+    for i, entry in ipairs(ALERT_EVENT_TYPES) do
+        out[i] = { event = entry.event, type = entry.type, muted = alertEventsUnregistered[entry.event] and true or false }
+    end
+    return out
 end
 
 -- Re-register every muted AlertFrame event when Presence is disabled.
@@ -141,4 +155,5 @@ addon.Presence.HookUIErrorsFrame   = HookUIErrorsFrame
 addon.Presence.UnhookUIErrorsFrame = UnhookUIErrorsFrame
 addon.Presence.ApplyAlertMuting    = ApplyAlertMuting
 addon.Presence.AreAllAlertsMuted   = AreAllAlertsMuted
+addon.Presence.GetAlertMuteState   = GetAlertMuteState
 addon.Presence.RestoreAlerts       = RestoreAlerts
