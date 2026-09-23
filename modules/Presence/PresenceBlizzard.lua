@@ -203,7 +203,7 @@ local function RestoreBlizzard()
 end
 
 -- Dump notification type options and Blizzard frame suppression state for debugging.
--- Call with addon.HSPrint or similar. Use /horizon presence debugtypes for quick check.
+-- Call with addon.HSPrint or similar. Use /h debug presence debugtypes for quick check.
 -- @param p function Print function (msg) -> nil
 -- @return nil
 local function DumpBlizzardSuppression(p)
