@@ -60,8 +60,10 @@ local function ShouldSuppress()
     return addon.Presence and addon.Presence.ShouldSuppressType and addon.Presence.ShouldSuppressType()
 end
 
+-- Not `a and f() or default`: that returns the default whenever the option is off.
 local function IsPresenceTypeEnabled(key, fallbackKey, fallbackDefault)
-    return addon.Presence and addon.Presence.IsTypeEnabled and addon.Presence.IsTypeEnabled(key, fallbackKey, fallbackDefault) or fallbackDefault
+    if not (addon.Presence and addon.Presence.IsTypeEnabled) then return fallbackDefault end
+    return addon.Presence.IsTypeEnabled(key, fallbackKey, fallbackDefault)
 end
 
 local PRESENCE_EVENTS = {
@@ -254,7 +256,11 @@ local function ExecuteRareDefeatedCheck()
 end
 
 local function OnVignettesUpdated()
-    if not IsPresenceTypeEnabled("presenceRareDefeated", nil, true) then return end
+    if not IsPresenceTypeEnabled("presenceRareDefeated", nil, true) then
+        -- Re-seed on re-enable: a snapshot left stale while off would diff as defeated rares.
+        rareSnapshotInit = false
+        return
+    end
 
     if addon.Presence and addon.Presence.RequestDebounced then
         addon.Presence.RequestDebounced("rare", RARE_DEBOUNCE, ExecuteRareDefeatedCheck)

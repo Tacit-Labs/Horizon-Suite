@@ -29,8 +29,10 @@ local function Strip(s)
     return addon.Presence.StripMarkup and addon.Presence.StripMarkup(s) or (s or "")
 end
 
+-- Not `a and f() or default`: that returns the default whenever the option is off.
 local function IsTypeEnabled(key, fallbackKey, fallbackDefault)
-    return addon.Presence.IsTypeEnabled and addon.Presence.IsTypeEnabled(key, fallbackKey, fallbackDefault) or fallbackDefault
+    if not addon.Presence.IsTypeEnabled then return fallbackDefault end
+    return addon.Presence.IsTypeEnabled(key, fallbackKey, fallbackDefault)
 end
 
 local function GetTrackedAchievementIDs()

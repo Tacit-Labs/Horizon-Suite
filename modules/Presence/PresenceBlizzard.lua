@@ -21,8 +21,11 @@ local originalAlphas = {}
 local hookedShowFrames = {}  -- frames with persistent hooksecurefunc("Show") applied
 local ZONE_TEXT_EVENTS = { "ZONE_CHANGED", "ZONE_CHANGED_INDOORS", "ZONE_CHANGED_NEW_AREA" }
 
+-- Not `a and f() or default`: that returns the default whenever the option is off,
+-- which kept Blizzard's zone text and world quest banner hidden with their types off.
 local function isTypeEnabled(key, fallbackKey, fallbackDefault)
-    return addon.Presence and addon.Presence.IsTypeEnabled and addon.Presence.IsTypeEnabled(key, fallbackKey, fallbackDefault) or fallbackDefault
+    if not (addon.Presence and addon.Presence.IsTypeEnabled) then return fallbackDefault end
+    return addon.Presence.IsTypeEnabled(key, fallbackKey, fallbackDefault)
 end
 
 -- ============================================================================

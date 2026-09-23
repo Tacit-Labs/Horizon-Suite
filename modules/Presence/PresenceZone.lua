@@ -34,8 +34,10 @@ local function ShouldSuppress()
     return addon.Presence.ShouldSuppressType and addon.Presence.ShouldSuppressType()
 end
 
+-- Not `a and f() or default`: that returns the default whenever the option is off.
 local function IsTypeEnabled(key, fallbackKey, fallbackDefault)
-    return addon.Presence.IsTypeEnabled and addon.Presence.IsTypeEnabled(key, fallbackKey, fallbackDefault) or fallbackDefault
+    if not addon.Presence.IsTypeEnabled then return fallbackDefault end
+    return addon.Presence.IsTypeEnabled(key, fallbackKey, fallbackDefault)
 end
 
 local function CancelPendingDelveZone()
