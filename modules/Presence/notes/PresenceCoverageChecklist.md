@@ -30,7 +30,7 @@ Baseline coverage matrix, gap analysis, and implementation plan for release read
 | "Discovered" (UIErrorsFrame) | hooksecurefunc AddMessage | Clear() after detection | ShowDiscoveryLine on zone layer | covered |
 | Quest objective text (UIErrorsFrame) | hooksecurefunc AddMessage | Clear() after IsQuestText | QueueOrPlay QUEST_UPDATE | partial*** |
 | Achievement alerts | AlertFrame:UnregisterEvent | ACHIEVEMENT_EARNED | QueueOrPlay ACHIEVEMENT | covered |
-| Quest turn-in alerts | AlertFrame:UnregisterEvent | QUEST_TURNED_IN | QueueOrPlay QUEST_COMPLETE / WORLD_QUEST | covered |
+| World quest turn-in alerts | AlertFrame:UnregisterEvent | QUEST_TURNED_IN | QueueOrPlay WORLD_QUEST | covered |
 
 \*** Clear runs after AddMessage; message may flash briefly before clearing.
 
@@ -89,7 +89,12 @@ Source: [Gethe/wow-ui-source live branch](https://github.com/Gethe/wow-ui-source
 - `ScenarioAlertSystem`, `DungeonCompletionAlertSystem` – LFG_COMPLETION_REWARD
 - Many others (loot, garrison, etc.)
 
-Presence mutes `ACHIEVEMENT_EARNED` and `QUEST_TURNED_IN` on AlertFrame; other subsystems remain.
+Presence mutes `ACHIEVEMENT_EARNED` (Achievement earned), `CRITERIA_EARNED` (Achievement progress)
+and `QUEST_TURNED_IN` (World quest complete) on AlertFrame **per notification type**. An event is
+unregistered only while the type that replaces it is on, so switching a type off returns its alert
+to Blizzard. `QUEST_TURNED_IN` maps to the world quest type because AlertFrame only toasts quests
+that pass `GetQuestShouldToastCompletion`; a regular turn-in never reaches it. Other subsystems
+remain untouched.
 
 ### 2.4 Blizzard_ObjectiveTracker (Banners)
 
@@ -205,7 +210,10 @@ end
 | EventToastManagerFrame | Achievement / quest complete | Presence toasts only |
 | ObjectiveTrackerBonusBannerFrame | Bonus objective | No Blizzard banner |
 | AlertFrame (ACHIEVEMENT_EARNED) | Earn achievement | Presence ACHIEVEMENT only |
-| AlertFrame (QUEST_TURNED_IN) | Turn in quest | Presence QUEST_COMPLETE only |
+| AlertFrame (CRITERIA_EARNED) | Earn a tracked achievement's criterion, Achievement progress on | Presence ACHIEVEMENT_PROGRESS only |
+| AlertFrame (CRITERIA_EARNED) | Same, Achievement progress off | Blizzard criteria alert only |
+| AlertFrame (QUEST_TURNED_IN) | Complete world quest | Presence WORLD_QUEST only |
+| AlertFrame (QUEST_TURNED_IN) | Complete world quest, World quest complete off | Blizzard world quest alert only |
 | UIErrorsFrame (Discovered) | Enter new zone | Presence "Discovered" only |
 | UIErrorsFrame (quest text) | Quest objective progress | Presence QUEST_UPDATE; may flash Blizzard text |
 | WorldQuestCompleteBannerFrame | Complete world quest | Presence WORLD_QUEST only |
