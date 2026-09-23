@@ -86,8 +86,10 @@ local function ShouldSuppress()
     return addon.Presence.ShouldSuppressType and addon.Presence.ShouldSuppressType()
 end
 
+-- Not `a and f() or default`: that returns the default whenever the option is off.
 local function IsTypeEnabled(key, fallbackKey, fallbackDefault)
-    return addon.Presence.IsTypeEnabled and addon.Presence.IsTypeEnabled(key, fallbackKey, fallbackDefault) or fallbackDefault
+    if not addon.Presence.IsTypeEnabled then return fallbackDefault end
+    return addon.Presence.IsTypeEnabled(key, fallbackKey, fallbackDefault)
 end
 
 -- Resolve delve name: use cached value (primary) or resolve from APIs and cache on first success.
@@ -183,7 +185,6 @@ local function ExecuteScenarioCriteriaUpdate()
     if not addon.Presence.IsScenarioActive or not addon.Presence.IsScenarioActive() then return end
     if ShouldSuppress() then return end
     if addon.GetDB and not addon.GetDB("showScenarioEvents", true) then return end
-    if not IsTypeEnabled("presenceScenarioUpdate", "showScenarioEvents", true) then return end
     if not addon.Presence.GetScenarioDisplayInfo then return end
 
     local stateKey, objectives = GetMainStepCriteria()
@@ -194,6 +195,9 @@ local function ExecuteScenarioCriteriaUpdate()
     local oldObjectives = lastScenarioObjectives
     lastScenarioCriteriaCache = stateKey
     lastScenarioObjectives = objectives
+    -- Gate after the cache update, not before: the complete toast's subtitle reads
+    -- lastScenarioObjectives, so it must stay current with progress toasts off.
+    if not IsTypeEnabled("presenceScenarioUpdate", "showScenarioEvents", true) then return end
 
     local msg = nil
     if oldObjectives and #oldObjectives > 0 then
@@ -306,7 +310,6 @@ local function TryShowScenarioStart()
     if addon.IsDelveActive and addon.IsDelveActive() then return end
     if ShouldSuppress() then return end
     if addon.GetDB and not addon.GetDB("showScenarioEvents", true) then return end
-    if not IsTypeEnabled("presenceScenarioStart", "showScenarioEvents", true) then return end
     if not addon.Presence.GetScenarioDisplayInfo then return end
 
     scenarioCheckPending = true
@@ -316,7 +319,6 @@ local function TryShowScenarioStart()
         if not addon.Presence.IsScenarioActive or not addon.Presence.IsScenarioActive() then return end
         if wasInScenario then return end
         if addon.GetDB and not addon.GetDB("showScenarioEvents", true) then return end
-        if not IsTypeEnabled("presenceScenarioStart", "showScenarioEvents", true) then return end
 
         local title, subtitle, category = addon.Presence.GetScenarioDisplayInfo()
         if not title or title == "" then return end
@@ -330,6 +332,9 @@ local function TryShowScenarioStart()
             lastScenarioObjectives = seedObjs
         end
         if addon.Presence.ApplyBlizzardSuppression then addon.Presence.ApplyBlizzardSuppression() end
+        -- Gate only the toast: the state seeded above is what progress and complete
+        -- toasts run on, so it must be set with Scenario start switched off too.
+        if not IsTypeEnabled("presenceScenarioStart", "showScenarioEvents", true) then return end
         addon.Presence.QueueOrPlay("SCENARIO_START", Strip(title), Strip(subtitle or ""), { category = category, source = "SCENARIO_UPDATE" })
     end)
 end

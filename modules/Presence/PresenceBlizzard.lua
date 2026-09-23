@@ -21,8 +21,11 @@ local originalAlphas = {}
 local hookedShowFrames = {}  -- frames with persistent hooksecurefunc("Show") applied
 local ZONE_TEXT_EVENTS = { "ZONE_CHANGED", "ZONE_CHANGED_INDOORS", "ZONE_CHANGED_NEW_AREA" }
 
+-- Not `a and f() or default`: that returns the default whenever the option is off,
+-- which kept Blizzard's zone text and world quest banner hidden with their types off.
 local function isTypeEnabled(key, fallbackKey, fallbackDefault)
-    return addon.Presence and addon.Presence.IsTypeEnabled and addon.Presence.IsTypeEnabled(key, fallbackKey, fallbackDefault) or fallbackDefault
+    if not (addon.Presence and addon.Presence.IsTypeEnabled) then return fallbackDefault end
+    return addon.Presence.IsTypeEnabled(key, fallbackKey, fallbackDefault)
 end
 
 -- ============================================================================
@@ -200,7 +203,7 @@ local function RestoreBlizzard()
 end
 
 -- Dump notification type options and Blizzard frame suppression state for debugging.
--- Call with addon.HSPrint or similar. Use /horizon presence debugtypes for quick check.
+-- Call with addon.HSPrint or similar. Use /h debug presence debugtypes for quick check.
 -- @param p function Print function (msg) -> nil
 -- @return nil
 local function DumpBlizzardSuppression(p)

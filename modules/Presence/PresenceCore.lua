@@ -179,7 +179,10 @@ local function IsTypeEnabled(key, fallbackKey, fallbackDefault)
     if not addon.GetDB then return fallbackDefault end
     local v = addon.GetDB(key, nil)
     if v ~= nil then return v end
-    return (fallbackKey and addon.GetDB(fallbackKey, fallbackDefault)) or fallbackDefault
+    -- Not `(fallbackKey and GetDB(...)) or fallbackDefault`: that turns an inherited
+    -- false (e.g. subzone following Zone entry off) back into the default.
+    if fallbackKey then return addon.GetDB(fallbackKey, fallbackDefault) end
+    return fallbackDefault
 end
 
 -- Check if a Presence type (e.g. QUEST_ACCEPT, SCENARIO_UPDATE) is enabled via TYPE_OPTIONS.
