@@ -367,6 +367,21 @@ do
     instanceResetPattern = ok and pattern or nil
 end
 
+-- Any client with the secret-values system (Midnight, and Forever too: seen in
+-- Ruins of Lordaeron) can hand system chat to addons as a secret string inside an
+-- instance. type() still says "string", but indexing
+-- or matching it throws. A secret message cannot be read, so it is never the
+-- reset notice as far as we can tell; the pcall catches anything issecretvalue misses.
+local function IsInstanceResetMessage(msg)
+    if type(msg) ~= "string" or not instanceResetPattern then return false end
+    if issecretvalue then
+        local secretOk, isSecret = pcall(issecretvalue, msg)
+        if not secretOk or isSecret then return false end
+    end
+    local ok, matched = pcall(string.match, msg, instanceResetPattern)
+    return ok and matched ~= nil
+end
+
 -- ---------------------------------------------------------------------------
 -- Diagnostics
 -- ---------------------------------------------------------------------------
@@ -485,8 +500,7 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
             addon.UpdateDungeonRunBlock()
         end
     elseif event == "CHAT_MSG_SYSTEM" then
-        local msg = ...
-        if type(msg) == "string" and instanceResetPattern and msg:match(instanceResetPattern) then
+        if IsInstanceResetMessage(...) then
             -- The dungeon behind us no longer exists; nothing left to resume into.
             lastRun = nil
             pendingLive = nil
