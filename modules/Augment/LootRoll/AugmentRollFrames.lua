@@ -10,8 +10,15 @@
     Layout per row (icon side left; mirrored when the icon sits right):
 
         [icon] Item Name                      [Need][Greed][Pass]
-               new look  +13 ilvl   2 Need 1 Greed
+        [icon] New look  +13 ilvl  BoP
+               2 Need  1 Greed  1 Pass   Sarah leads with 91
         [================= timer bar =====================]
+
+    Badges and tally get a line each. They shared one until the first live
+    demo, where the leader's name — the most useful thing on the frame — was
+    what the ellipsis ate. Badges describe the item and never change; the tally
+    updates as people roll. When either is empty the other moves up, so a row
+    never shows a blank line.
 ]]
 
 local addon = _G.HorizonSuite
@@ -32,8 +39,16 @@ local function S(v)
     return v * (R.GetScale and R.GetScale() or 1)
 end
 
+-- Height of one text line at the current font, unscaled.
+local function TextLineHeight()
+    return R.GetFontSize() + R.TEXT_LINE_GAP
+end
+
+-- The taller of the icon and three text lines, plus the chrome's headroom and
+-- the timer bar. Always sized for three lines: see R.TEXT_LINE_GAP.
 local function RowHeight()
-    return math.max(R.GetIconSize() + M.CHROME_HEIGHT_PAD, R.GetIconSize()) + R.ROW_PAD
+    local content = math.max(R.GetIconSize(), 3 * TextLineHeight())
+    return content + M.CHROME_HEIGHT_PAD + R.TIMER_HEIGHT + M.EDGE
 end
 
 local function LineHeight()
@@ -150,10 +165,18 @@ local function CreateRow(parent)
     title:SetFontObject(RollFont)
     title:SetWordWrap(false)
 
+    -- Badges line. TS.ApplyChrome knows this one as `body`.
     local body = f:CreateFontString(nil, "OVERLAY")
     body:SetFontObject(RollFont)
     body:SetTextColor(0.85, 0.85, 0.85, 1)
     body:SetWordWrap(false)
+
+    -- Live tally line. ApplyChrome has no notion of a third line, so this one
+    -- is laid out entirely by ReanchorText.
+    local tally = f:CreateFontString(nil, "OVERLAY")
+    tally:SetFontObject(RollFont)
+    tally:SetTextColor(0.85, 0.85, 0.85, 1)
+    tally:SetWordWrap(false)
 
     -- Button bar, packed from the edge opposite the icon.
     local bar = CreateFrame("Frame", nil, f)
@@ -203,7 +226,7 @@ local function CreateRow(parent)
 
     return {
         frame = f, icon = icon, iconBg = iconBg, iconDark = iconDark,
-        count = count, title = title, body = body,
+        count = count, title = title, body = body, tally = tally,
         bar = bar, buttons = buttons, timer = timer, iconHit = iconHit,
         active = false,
     }
@@ -213,28 +236,90 @@ end
 -- LAYOUT
 -- ============================================================================
 
--- TS.ApplyChrome anchors dual text from the icon to the frame's far edge, which
--- would run the item name underneath the roll buttons. Re-anchor both lines to
--- stop at the button bar instead. Called after ApplyChrome, never before.
-local function ReanchorText(row, iconSide)
+-- Lay out the one, two or three text lines between the icon and the buttons,
+-- centred on the icon. Called after TS.ApplyChrome, never before: ApplyChrome
+-- anchors its dual text from the icon to the frame edge, which would run the
+-- name underneath the buttons.
+--
+-- Every point hangs off row.frame alone, with the horizontal insets computed
+-- from where the icon and the button bar actually landed. The earlier version
+-- pinned each line to the icon on one side and the button bar on the other —
+-- two anchors that disagree vertically, because the bar sits half a timer
+-- above the icon's centre — so every line's height was being set by a
+-- conflict. Two lines hid it; three would not have.
+--- @param row table
+--- @param iconSide string "left"|"right"
+--- @param lines number 1, 2 or 3
+--- @return nil
+local function ReanchorText(row, iconSide, lines)
     local anchor = row.iconBg and row.iconBg:IsShown() and row.iconBg or row.icon
     local gap = S(R.GetIconGap())
     local edge = M.EDGE
 
-    row.title:ClearAllPoints()
-    row.body:ClearAllPoints()
-
+    -- ApplyChrome placed the icon with a single edge point, so its x offset
+    -- and its size are both readable now, before anything has rendered.
+    local _, _, _, iconX = anchor:GetPoint(1)
+    local nearInset = math.abs(tonumber(iconX) or 0) + (anchor:GetWidth() or 0) + gap
+    local farInset  = M.EDGE + (row.bar:GetWidth() or 0) + edge
+    local leftInset, rightInset
+    local justify
     if iconSide == "right" then
-        row.title:SetPoint("TOPRIGHT", anchor, "TOPLEFT", -gap, -2)
-        row.title:SetPoint("LEFT", row.bar, "RIGHT", edge, 0)
-        row.body:SetPoint("BOTTOMRIGHT", anchor, "BOTTOMLEFT", -gap, 2)
-        row.body:SetPoint("LEFT", row.bar, "RIGHT", edge, 0)
+        leftInset, rightInset, justify = farInset, nearInset, "RIGHT"
     else
-        row.title:SetPoint("TOPLEFT", anchor, "TOPRIGHT", gap, -2)
-        row.title:SetPoint("RIGHT", row.bar, "LEFT", -edge, 0)
-        row.body:SetPoint("BOTTOMLEFT", anchor, "BOTTOMRIGHT", gap, 2)
-        row.body:SetPoint("RIGHT", row.bar, "LEFT", -edge, 0)
+        leftInset, rightInset, justify = nearInset, farInset, "LEFT"
     end
+
+    local lineH = S(TextLineHeight())
+    local offsets
+    if lines >= 3 then
+        offsets = { title = lineH, body = 0, tally = -lineH }
+    elseif lines == 2 then
+        offsets = { title = lineH / 2, body = -lineH / 2 }
+    else
+        offsets = { title = 0 }
+    end
+
+    for _, key in ipairs({ "title", "body", "tally" }) do
+        local fs = row[key]
+        fs:ClearAllPoints()
+        fs:SetJustifyH(justify)
+        local y = offsets[key]
+        if y then
+            -- Same frame, same y on both sides: nothing left to disagree.
+            fs:SetPoint("LEFT", row.frame, "LEFT", leftInset, y)
+            fs:SetPoint("RIGHT", row.frame, "RIGHT", -rightInset, y)
+        end
+    end
+end
+
+--- Put badges and tally text on the row, moving whichever is present up when
+--- the other is empty so a row never shows a blank line.
+--- @param row table
+--- @param badges string|nil
+--- @param tally string|nil
+--- @return nil
+function R.SetInfoLines(row, badges, tally)
+    if not row then return end
+    badges = badges or ""
+    tally = tally or ""
+    row.badgeText = badges
+
+    local lines
+    if badges ~= "" and tally ~= "" then
+        row.body:SetText(badges)
+        row.tally:SetText(tally)
+        lines = 3
+    elseif badges ~= "" or tally ~= "" then
+        row.body:SetText(badges ~= "" and badges or tally)
+        row.tally:SetText("")
+        lines = 2
+    else
+        row.body:SetText("")
+        row.tally:SetText("")
+        lines = 1
+    end
+    row.lineCount = lines
+    ReanchorText(row, R.GetIconSide(), lines)
 end
 
 -- Pack the visible buttons into the bar and anchor the bar to the far edge.
@@ -281,7 +366,7 @@ local function LayoutRow(row, quality)
     end
 
     LayoutButtons(row, iconSide)
-    ReanchorText(row, iconSide)
+    ReanchorText(row, iconSide, row.lineCount or 1)
 
     -- The icon hit area tracks whatever the chrome anchored the icon to.
     row.iconHit:ClearAllPoints()
@@ -316,6 +401,7 @@ function R.InitFrames()
         pool[i] = CreateRow(Frame)
         pool[i].title:SetFontObject(RollFont)
         pool[i].body:SetFontObject(RollFont)
+        pool[i].tally:SetFontObject(RollFont)
     end
 
     Frame:SetScript("OnUpdate", function(self)
@@ -471,7 +557,7 @@ function R.ShowRoll(roll)
     return true
 end
 
---- Rebuild the badges + tally line for a row.
+--- Rebuild the badges and tally lines for a row.
 --- @param row table
 --- @param roll table|nil  Descriptor; falls back to what the row already holds
 --- @return nil
@@ -479,20 +565,21 @@ function R.RefreshRowInfoLine(row, roll)
     if not row then return end
     roll = roll or row.roll
     if not roll then return end
-    local parts = {}
 
     local badges = R.Badges and R.Badges.Build and R.Badges.Build(roll) or ""
-    if badges ~= "" then parts[#parts + 1] = badges end
 
-    if R.IsTallyEnabled() and not row.demo then
-        local line = R.Tally and R.Tally.FormatLine(R.Tally.ForItemLink(row.itemLink)) or ""
-        if line ~= "" then parts[#parts + 1] = line end
-    elseif row.demo and row.demoTally then
-        local line = R.Tally and R.Tally.FormatLine(row.demoTally) or ""
-        if line ~= "" then parts[#parts + 1] = line end
+    -- The demo honours the tally toggle too, so it previews what a real roll
+    -- would look like with the player's own settings.
+    local tally = ""
+    if R.IsTallyEnabled() and R.Tally then
+        if row.demo then
+            if row.demoTally then tally = R.Tally.FormatLine(row.demoTally) end
+        else
+            tally = R.Tally.FormatLine(R.Tally.ForItemLink(row.itemLink))
+        end
     end
 
-    row.body:SetText(table.concat(parts, "   "))
+    R.SetInfoLines(row, badges, tally)
 end
 
 --- Refresh every open row's tally. Called from LOOT_HISTORY_UPDATE_DROP.

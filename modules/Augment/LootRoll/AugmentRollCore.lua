@@ -171,7 +171,10 @@ function R.ShowOwnRoll(rollID, roll, isWinning)
         and ((L and L["LOOT_ROLL_YOUR_ROLL_WINNING"]) or "You rolled %d — winning")
         or  ((L and L["LOOT_ROLL_YOUR_ROLL"]) or "You rolled %d")
     local color = isWinning and "|cFF40C040" or "|cFFAAAAAA"
-    row.body:SetText(color .. template:format(tonumber(roll) or 0) .. "|r")
+    -- Roll state, so it takes the tally line; the item's badges stay put. The
+    -- next loot-history update replaces it with the full tally, which carries
+    -- the same information and everyone else's rolls besides.
+    R.SetInfoLines(row, row.badgeText, color .. template:format(tonumber(roll) or 0) .. "|r")
 end
 
 -- ============================================================================

@@ -53,7 +53,8 @@ const read = f => fs.readFileSync(REPO + f, 'utf8').replace(/^﻿/, '');
 // --- Stub the slice of the WoW/addon environment these files touch ---------
 run(`
   _G.HorizonSuite = {
-    Augment = { QUALITY_COLORS = { [1]={1,1,1},[4]={0.64,0.21,0.93} }, DB_KEYS = {} },
+    Augment = { QUALITY_COLORS = { [1]={1,1,1},[4]={0.64,0.21,0.93} }, DB_KEYS = {},
+                ToastMotion = { EDGE = 8, CHROME_HEIGHT_PAD = 10 } },
     AUGMENT_DEFAULTS = {}, AUGMENT_LIMITS = {},
     L = setmetatable({}, { __index = function(_, k) return k end }),
     GetDB = function(k, d) return d end,
@@ -100,6 +101,87 @@ run(`
   check("Restack before InitFrames does not throw", noThrow(R.Restack), "threw")
   check("ClearAllRolls before InitFrames does not throw", noThrow(R.ClearAllRolls), "threw")
   check("RefreshAllTallies before InitFrames does not throw", noThrow(R.RefreshAllTallies), "threw")
+
+  -- Info-line layout. The first live demo put badges and tally on one line and
+  -- the ellipsis ate the leader's name. Each gets a line now, and whichever is
+  -- present moves up when the other is empty, so no row shows a blank line.
+  local function fakeFS()
+    return {
+      text = nil, points = {},
+      SetText = function(self, t) self.text = t end,
+      ClearAllPoints = function(self) self.points = {} end,
+      SetPoint = function(self, ...) self.points[#self.points + 1] = { ... } end,
+      SetJustifyH = function(self, j) self.justify = j end,
+    }
+  end
+  local function fakeRow()
+    return {
+      frame = {},
+      title = fakeFS(), body = fakeFS(), tally = fakeFS(),
+      -- Framed style: the icon itself is the anchor, inset 8 from the edge.
+      icon = { GetPoint = function() return "LEFT", nil, "LEFT", 8, 0 end,
+               GetWidth = function() return 40 end },
+      iconBg = { IsShown = function() return false end },
+      bar = { GetWidth = function() return 86 end },
+    }
+  end
+  local function y(fs) return fs.points[1] and fs.points[1][5] end
+
+  local row = fakeRow()
+  R.SetInfoLines(row, "BADGES", "TALLY")
+  check("both present: three lines", row.lineCount == 3, row.lineCount)
+  check("both present: badges on the middle line", row.body.text == "BADGES", row.body.text)
+  check("both present: tally on the bottom line", row.tally.text == "TALLY", row.tally.text)
+  check("both present: name above badges above tally",
+        y(row.title) > y(row.body) and y(row.body) > y(row.tally),
+        tostring(y(row.title)) .. "/" .. tostring(y(row.body)) .. "/" .. tostring(y(row.tally)))
+  check("both present: block centred on the icon", y(row.body) == 0, y(row.body))
+
+  -- Both horizontal points hang off the same frame at the same height, which
+  -- is the fix: no line is pinned between two anchors that disagree.
+  local p1, p2 = row.title.points[1], row.title.points[2]
+  check("each line anchored to the frame on both sides",
+        p1[2] == row.frame and p2[2] == row.frame, "mixed anchors")
+  check("left and right anchors agree vertically", p1[5] == p2[5], tostring(p1[5]) .. " vs " .. tostring(p2[5]))
+  check("text clears the icon: 8 inset + 40 icon + 10 gap", p1[4] == 58, p1[4])
+  check("text clears the buttons: 8 edge + 86 bar + 8 gap", p2[4] == -102, p2[4])
+
+  row = fakeRow()
+  R.SetInfoLines(row, "", "TALLY")
+  check("no badges: tally moves up", row.body.text == "TALLY" and row.tally.text == "", row.body.text)
+  check("no badges: two lines", row.lineCount == 2, row.lineCount)
+  check("no badges: bottom line unanchored", #row.tally.points == 0, #row.tally.points)
+
+  row = fakeRow()
+  R.SetInfoLines(row, "BADGES", "")
+  check("no tally: badges stay under the name", row.body.text == "BADGES" and row.tally.text == "", row.body.text)
+  check("no tally: two lines", row.lineCount == 2, row.lineCount)
+
+  row = fakeRow()
+  R.SetInfoLines(row, "", "")
+  check("nothing to say: name alone, centred", row.lineCount == 1 and y(row.title) == 0, row.lineCount)
+
+  -- Remembered so an own-roll result can replace the tally and leave badges.
+  row = fakeRow()
+  R.SetInfoLines(row, "BADGES", "TALLY")
+  R.SetInfoLines(row, row.badgeText, "You rolled 87")
+  check("own roll replaces the tally, keeps the badges",
+        row.body.text == "BADGES" and row.tally.text == "You rolled 87", row.tally.text)
+
+  -- Mirrored: icon on the right, buttons packed against the left edge.
+  local realGetDB = HorizonSuite.GetDB
+  HorizonSuite.GetDB = function(k, d)
+    if k == "lootRollIconSide" then return "right" end
+    return realGetDB(k, d)
+  end
+  row = fakeRow()
+  row.icon.GetPoint = function() return "RIGHT", nil, "RIGHT", -8, 0 end
+  R.SetInfoLines(row, "BADGES", "TALLY")
+  p1, p2 = row.title.points[1], row.title.points[2]
+  check("mirrored: text clears the buttons on the left", p1[4] == 102, p1[4])
+  check("mirrored: text clears the icon on the right", p2[4] == -58, p2[4])
+  check("mirrored: text right-justified", row.title.justify == "RIGHT", row.title.justify)
+  HorizonSuite.GetDB = realGetDB
 
   -- Bucketing, specs present
   check("NeedMainSpec -> need",  T.BucketForState(0) == "need",     T.BucketForState(0))

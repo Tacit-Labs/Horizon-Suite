@@ -63,10 +63,12 @@ R.ROLL_TRANSMOG   = 4
 -- four simultaneous rolls on screen is unreadable, not more useful.
 R.POOL_SIZE    = 4
 
--- Fallback only; R.GetWidth() is the live value. The row has to fit an
--- icon, an item name, a badge-and-tally line and up to three buttons, and
--- 330 truncated all of them on the first real look at it.
-R.WIDTH        = 420
+-- Fallback only; R.GetWidth() is the live value. Measured, not guessed: on the
+-- Forever demo at 420 the text column was ~257 units and held ~39 characters,
+-- about 6.6 units each at the default font. The longest tally line, "2 Need
+-- 1 Greed  1 Pass   Sarah leads with 91", is 46 characters, ~304 units — too
+-- wide for 420 even on a line of its own. 480 leaves ~320.
+R.WIDTH        = 480
 R.ICON_SIZE    = 40
 R.ICON_BG_PAD  = 1
 R.ICON_GAP     = 10
@@ -74,9 +76,11 @@ R.LINE_SPACING = 6
 R.TIMER_HEIGHT = 4
 R.BUTTON_SIZE  = 26
 R.BUTTON_GAP   = 4
--- Row height: icon + chrome headroom, plus a line for the tally/badge strip
--- and the timer bar beneath it.
-R.ROW_PAD      = 22
+-- Vertical gap between the three text lines (name, badges, tally), added to
+-- the font size to give a line height. Rows are sized for all three lines
+-- whether or not each has text, so a row does not grow mid-roll as the tally
+-- fills in, and a stack of rows stays even.
+R.TEXT_LINE_GAP = 3
 
 R.DEFAULT_ANCHOR = "CENTER"
 R.DEFAULT_X      = 0

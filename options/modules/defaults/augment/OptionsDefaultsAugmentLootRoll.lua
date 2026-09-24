@@ -36,9 +36,9 @@ D.lootRollIconGap              = 10
 D.lootRollIconSide             = "left"
 D.lootRollGrowDirection        = "down"
 D.lootRollMaxVisible           = 4
--- Wide enough for the badge strip and the tally side by side at the default
--- font; the first live look at 330 truncated both, and the item name too.
-D.lootRollWidth                = 420
+-- Wide enough for the longest tally line on a line of its own at the default
+-- font. See R.WIDTH in AugmentRollState.lua for the measurement behind it.
+D.lootRollWidth                = 480
 
 -- Content. The quality floor draws nothing AND suppresses nothing below it, so
 -- a filtered roll still gets Blizzard's frame rather than vanishing. Default 0
