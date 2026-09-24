@@ -144,7 +144,10 @@ function Demo.Run(count)
     local Item = _G.Item
     if Item and Item.CreateFromItemID then
         for i = 1, wanted do
-            local ok, item = pcall(Item.CreateFromItemID, SAMPLES[i].itemID)
+            -- CreateFromItemID is a colon method: Item has to be passed as self.
+            -- Called with a dot, the itemID lands in self, the real argument is
+            -- nil, every item comes back empty and nothing ever redraws.
+            local ok, item = pcall(Item.CreateFromItemID, Item, SAMPLES[i].itemID)
             if ok and item and not item:IsItemEmpty() then
                 pcall(function() item:ContinueOnItemLoad(show) end)
             end

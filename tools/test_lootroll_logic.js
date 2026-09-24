@@ -73,6 +73,7 @@ run(read('modules/Augment/LootRoll/AugmentRollState.lua'),  'RollState');
 run(read('modules/Augment/LootRoll/AugmentRollTally.lua'),  'RollTally');
 run(read('modules/Augment/LootRoll/AugmentRollBadges.lua'), 'RollBadges');
 run(read('modules/Augment/LootRoll/AugmentRollFrames.lua'), 'RollFrames');
+run(read('modules/Augment/LootRoll/AugmentRollDemo.lua'), 'RollDemo');
 
 // --- Assertions -----------------------------------------------------------
 run(`
@@ -258,6 +259,37 @@ run(`
         B.Appearance("RING_ITEM") == nil, B.Appearance("RING_ITEM"))
   check("fallback: no badge on a trade good",
         B.Appearance("TRADE_GOOD") == nil, B.Appearance("TRADE_GOOD"))
+
+  -- Demo item loading. Item:CreateFromItemID is a COLON method. Called with a
+  -- dot, the itemID lands in self and the real argument is nil, so every item
+  -- comes back empty and nothing redraws — the Forever demo showed four
+  -- "Demo Item" placeholders where the previous build had resolved three.
+  -- Runs last: it replaces frame functions the earlier checks relied on.
+  local received = {}
+  Item = {
+    CreateFromItemID = function(self, itemID)
+      received[#received + 1] = { selfIsItem = (self == Item), itemID = itemID }
+      return { IsItemEmpty = function() return itemID == nil end,
+               ContinueOnItemLoad = function() end }
+    end,
+  }
+  HorizonSuite.IsModuleEnabled = function() return true end
+  R.InitFrames = function() end
+  R.RestoreSavedPosition = function() end
+  R.ShowRoll = function() return true end
+  R.GetMaxVisible = function() return 4 end
+  C_Item.GetItemInfo = function() return nil end
+  C_Timer = { After = function() end }
+
+  R.Demo.Run()
+  check("demo asks for all four items", #received == 4, #received)
+  local allGood = #received > 0
+  for _, r in ipairs(received) do
+    if not (r.selfIsItem and type(r.itemID) == "number") then allGood = false end
+  end
+  check("CreateFromItemID called as a method with a real itemID", allGood,
+        received[1] and ("self=Item? " .. tostring(received[1].selfIsItem) ..
+                         " itemID=" .. tostring(received[1].itemID)) or "no calls")
 
   print(("\\n%d passed, %d failed"):format(pass, fail))
   if fail > 0 then error("assertions failed") end
