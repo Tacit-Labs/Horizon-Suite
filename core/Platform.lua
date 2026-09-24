@@ -59,9 +59,9 @@ Platform.unverified = {
     worldQuests    = true,
     scenarios      = true,
     -- Group loot: every call is tagged for both Midnight 12.1.5 and Forever
-    -- 1.60.1. The 2026-09-24 probe found the beta reporting method=Group (3)
-    -- with an Uncommon threshold and the full LootMethod enum. The matching
-    -- Retail reading is still owed (see the loot-roll design doc). Still flagged,
+    -- 1.60.1. The 2026-09-24 probes found Forever defaulting to method=Group (3)
+    -- where Retail defaults to Personal (5) — the one value that differs by
+    -- client; threshold and enum are identical on both. Still flagged,
     -- because nobody has watched a roll actually open: configuration being
     -- right is not the same as the system firing, and a present namespace has
     -- proven nothing here before (see the delve note above).

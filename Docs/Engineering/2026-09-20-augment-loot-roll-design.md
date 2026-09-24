@@ -113,27 +113,33 @@ specs           GetSpecialization=nil
 transmog        head appearances 1/237, PlayerHasTransmogByItemInfo=function
 ```
 
-Three coherent, *specific* values rather than one boolean:
+The matching Retail probe (2026-09-24, level 90, solo, Zul'Aman) is the
+control:
 
-- **`method=Group (3)`** — the client's active loot method is Group. Not nil,
-  not Freeforall, not Personal.
-- **`threshold=2`** — Uncommon, the quality at which group rolls trigger.
-- **The full `LootMethod` enum**, including `Group` and `Needbeforegreed`.
+| | `method=` | `threshold` | `LootMethod` enum |
+|---|---|---|---|
+| Retail | **Personal (5)** | 2 | Freeforall, Group, Masterlooter, Needbeforegreed, Personal, Roundrobin |
+| Forever | **Group (3)** | 2 | identical |
 
-This is a different quality of evidence from the delve trap. There, a single
-boolean returned a stale `true`. Here three independent values cohere, and a
-client with no group loot has no obvious reason to name Group as its active
-method.
+Read honestly, only one column is evidence about Forever. The threshold and the
+enum are identical on both clients: they are shared Mainline API and say nothing
+about whether Forever runs the system.
 
-**The Retail comparison has not been measured.** An earlier revision of this
-section stated that the same call reads Personal or Freeforall solo on Retail,
-and leaned on that disagreement as the strongest part of the argument. It was
-reasoning, never a reading: the first Retail probe (2026-09-24, level 90, solo)
-crashed on exactly the `groupLootRolls` line, because the frame pool it read had
-never been built with the module switched off. The crash is fixed; the value is
-still owed. If Retail also reports `Group`, the method line stops distinguishing
-the clients and the case for Forever rests on the threshold and enum alone —
-weaker, and worth knowing.
+**The case rests on the loot method, and that value has a control.** The two
+clients disagree, and each gives the answer its own world would: Retail
+defaults to Personal, Forever to Group. That is a different quality of evidence
+from the delve trap. There, one call returned `true` and nothing showed whether
+it would have answered differently on a client that has delves. Here the same
+call returns different values on the two clients, and Forever's is the vanilla
+one. A client with no group loot has no reason to default to it.
+
+Two corrections to earlier revisions of this section, kept because the mistakes
+are the instructive part. One counted the threshold and enum as two of "three
+coherent values"; the control shows they carry no Forever-specific weight. The
+other stated the Retail reading before anyone had taken it — the first Retail
+probe crashed on exactly that line — and leaned on it as the strongest part of
+the argument. The guess happened to be right. It should not have been written
+down as a finding until it was one.
 
 Also confirmed by the same probe: `specs` is genuinely absent, so the off-spec
 collapse in `AugmentRollTally.lua` is the path that runs on Forever; and transmog
