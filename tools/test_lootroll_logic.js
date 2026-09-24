@@ -349,14 +349,23 @@ run(`
   -- button. Live rolls in a Forever dungeon did. This builds the real pool from
   -- recording stubs and fires the real handlers.
   local function stubObject(parent)
-    local o = { scripts = {}, parent = parent }
+    local o = { scripts = {}, parent = parent, calls = {} }
     return setmetatable(o, { __index = function(_, k)
       if k == "SetScript" then return function(self, name, fn) self.scripts[name] = fn end end
       if k == "GetParent" then return function(self) return self.parent end end
       if k == "CreateTexture" or k == "CreateFontString" then
         return function(self) return stubObject(self) end
       end
-      return function() end
+      -- Widget methods are CamelCase from a capital; the addon's own data
+      -- fields (reason, row, demo, rollID) are not. Only fake the methods: a
+      -- stub that answers every missing key with a function makes nil fields
+      -- truthy, and code under test then takes branches it never would in game.
+      if type(k) == "string" and k:match("^%u") then
+        return function(self, ...)
+          if type(self) == "table" and self.calls then self.calls[k] = { ... } end
+        end
+      end
+      return nil
     end })
   end
   CreateFrame = function(_, _, parent) return stubObject(parent) end
@@ -414,6 +423,34 @@ run(`
   ChatEdit_InsertLink = function(link) linked = link end
   live.iconHit.scripts.OnClick(live.iconHit)
   check("shift-clicking the icon links the item", linked == "SWORD_LINK", linked)
+
+  -- Hover. A disabled Button fires no OnEnter unless motion scripts are
+  -- enabled while disabled, so a greyed Need button showed no tooltip — and
+  -- its tooltip is the one that says WHY you cannot Need. Blizzard's template
+  -- sets motionScriptsWhileDisabled; the first version here did not.
+  local allFlagged = true
+  for _, b in pairs(live.buttons) do
+    local c = b.calls.SetMotionScriptsWhileDisabled
+    if not (c and c[1] == true) then allFlagged = false end
+  end
+  check("every roll button keeps hover while disabled", allFlagged, "flag missing")
+
+  local lines = {}
+  GameTooltip.AddLine = function(_, text) lines[#lines + 1] = text end
+  GameTooltip.SetText = function(_, text) lines[#lines + 1] = text end
+
+  R.ShowRoll({ rollID = 43, rollTime = 10000, name = "Plate", quality = 3,
+               canNeed = false, reasonNeed = "Your class cannot use this.", canGreed = true })
+  local greyed = R.FindRow(43).buttons[R.ROLL_NEED]
+  greyed.scripts.OnEnter(greyed)
+  check("hovering a greyed Need explains why",
+        lines[#lines] == "Your class cannot use this.", lines[#lines])
+
+  lines = {}
+  local demoNeed = demoRow.buttons[R.ROLL_NEED]
+  demoNeed.scripts.OnEnter(demoNeed)
+  check("hovering a demo button says it does nothing",
+        lines[#lines] and lines[#lines]:find("does nothing") ~= nil, lines[#lines])
 
   -- Demo item loading. Item:CreateFromItemID is a COLON method. Called with a
   -- dot, the itemID lands in self and the real argument is nil, so every item

@@ -112,6 +112,12 @@ local function CreateRollButton(parent, rollType)
     local b = CreateFrame("Button", nil, parent)
     b:SetSize(S(R.BUTTON_SIZE), S(R.BUTTON_SIZE))
     b.rollType = rollType
+    -- A disabled Button fires no OnEnter/OnLeave unless told to, so a greyed
+    -- Need button showed no tooltip at all — and the reason you cannot Need is
+    -- the only tooltip on the frame that says anything the icon does not.
+    -- Blizzard's LootRollButtonTemplate sets motionScriptsWhileDisabled="true"
+    -- for exactly this; the first version of this file missed it.
+    if b.SetMotionScriptsWhileDisabled then b:SetMotionScriptsWhileDisabled(true) end
 
     local icon = b:CreateTexture(nil, "ARTWORK")
     icon:SetAllPoints(b)

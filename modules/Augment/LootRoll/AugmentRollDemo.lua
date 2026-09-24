@@ -89,7 +89,10 @@ local function BuildDemoRoll(index)
 
     return {
         rollID        = DEMO_ROLL_BASE + index,
-        rollTime      = 12000,
+        -- A real roll's length: Blizzard's own timer bar is sized for 60s
+        -- (GroupLootFrame.xml, Timer maxValue). At 12s the demo vanished
+        -- before there was time to hover everything on it.
+        rollTime      = 60000,
         texture       = texture or FALLBACK_ICON,
         name          = name,
         itemLink      = link,
