@@ -152,6 +152,7 @@ modules/Insight/InsightModule.lua
 modules/Essence/EssenceCore.lua
 modules/Essence/EssenceSlash.lua
 modules/Essence/EssenceModule.lua
+modules/Echo/EchoStore.lua
 options/OptionsWidgets.lua
 options/HorizonColorPicker.lua
 options/OptionsDefaults.lua
