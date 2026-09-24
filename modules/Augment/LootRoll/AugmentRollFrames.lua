@@ -91,6 +91,23 @@ local function SetButtonEnabled(button, enabled, reason)
     end
 end
 
+-- A button's parent is the row's FRAME. The roll itself — rollID, itemLink,
+-- demo — lives on the Lua TABLE that wraps that frame, which is what the pool
+-- holds and what ShowRoll writes to. The frame carries a back-pointer, set in
+-- CreateRow; every handler goes through it.
+--
+-- The first version asked the frame directly. The frame has no rollID, so
+-- every click returned before RollOnLoot, and the icon tooltip and shift-click
+-- link found nothing either. The demo hid it: its buttons are meant to do
+-- nothing, so a button doing nothing looked correct. Live rolls in a Forever
+-- dungeon were the first time anything expected a click to land.
+--- @param widget Frame  A button or hit area parented to a row frame
+--- @return table|nil row
+local function RowOf(widget)
+    local frame = widget and widget:GetParent()
+    return frame and frame.row
+end
+
 local function CreateRollButton(parent, rollType)
     local b = CreateFrame("Button", nil, parent)
     b:SetSize(S(R.BUTTON_SIZE), S(R.BUTTON_SIZE))
@@ -110,7 +127,7 @@ local function CreateRollButton(parent, rollType)
     end
 
     b:SetScript("OnEnter", function(self)
-        local row = self:GetParent()
+        local row = RowOf(self)
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
         local label = BUTTON_LABEL[self.rollType] and BUTTON_LABEL[self.rollType]() or ""
         GameTooltip:SetText(label, 1, 1, 1)
@@ -125,12 +142,24 @@ local function CreateRollButton(parent, rollType)
     b:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
     b:SetScript("OnClick", function(self)
-        local row = self:GetParent()
+        local row = RowOf(self)
         if not row or not row.rollID then return end
         -- A demo row must never touch the real roll API: its rollID is
         -- fabricated and would address somebody else's live roll.
         if row.demo then return end
-        if RollOnLoot then pcall(RollOnLoot, row.rollID, self.rollType) end
+        if not RollOnLoot then return end
+
+        -- Only collapse the buttons to the choice made if the roll actually
+        -- went through. A swallowed error that still greys out the other
+        -- buttons would look exactly like a successful roll.
+        local ok, err = pcall(RollOnLoot, row.rollID, self.rollType)
+        if not ok then
+            if addon.Log and addon.Log.debug then
+                addon.Log.debug("augmentLootRoll",
+                    ("RollOnLoot(%s, %s) failed: %s"):format(tostring(row.rollID), tostring(self.rollType), tostring(err)))
+            end
+            return
+        end
         if R.Core and R.Core.OnRolled then R.Core.OnRolled(row.rollID, self.rollType) end
     end)
 
@@ -200,7 +229,8 @@ local function CreateRow(parent)
     -- Hovering the icon shows the item, exactly as Blizzard's roll frame does.
     local iconHit = CreateFrame("Button", nil, f)
     iconHit:SetScript("OnEnter", function(self)
-        local row = self:GetParent()
+        local row = RowOf(self)
+        if not row then return end
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
         local shown = false
         if row.demo then
@@ -218,18 +248,20 @@ local function CreateRow(parent)
     iconHit:SetScript("OnLeave", function() GameTooltip:Hide() end)
     iconHit:RegisterForClicks("LeftButtonUp")
     iconHit:SetScript("OnClick", function(self)
-        local row = self:GetParent()
-        if IsModifiedClick and IsModifiedClick("CHATLINK") and row.itemLink then
+        local row = RowOf(self)
+        if row and IsModifiedClick and IsModifiedClick("CHATLINK") and row.itemLink then
             if ChatEdit_InsertLink then ChatEdit_InsertLink(row.itemLink) end
         end
     end)
 
-    return {
+    local row = {
         frame = f, icon = icon, iconBg = iconBg, iconDark = iconDark,
         count = count, title = title, body = body, tally = tally,
         bar = bar, buttons = buttons, timer = timer, iconHit = iconHit,
         active = false,
     }
+    f.row = row   -- see RowOf
+    return row
 end
 
 -- ============================================================================

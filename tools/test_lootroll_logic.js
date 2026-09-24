@@ -342,6 +342,79 @@ run(`
   check("fallback: no badge on a trade good",
         B.Appearance("TRADE_GOOD") == nil, B.Appearance("TRADE_GOOD"))
 
+  -- Clicks. Buttons are parented to the row's FRAME, but the roll lives on the
+  -- Lua TABLE wrapping it. The first version asked the frame for rollID, got
+  -- nil, and returned before RollOnLoot on every click. Nothing caught it: the
+  -- demo's buttons are meant to do nothing, and no test had ever created a
+  -- button. Live rolls in a Forever dungeon did. This builds the real pool from
+  -- recording stubs and fires the real handlers.
+  local function stubObject(parent)
+    local o = { scripts = {}, parent = parent }
+    return setmetatable(o, { __index = function(_, k)
+      if k == "SetScript" then return function(self, name, fn) self.scripts[name] = fn end end
+      if k == "GetParent" then return function(self) return self.parent end end
+      if k == "CreateTexture" or k == "CreateFontString" then
+        return function(self) return stubObject(self) end
+      end
+      return function() end
+    end })
+  end
+  CreateFrame = function(_, _, parent) return stubObject(parent) end
+  CreateFont = function() return stubObject() end
+  UIParent = stubObject()
+  C_Timer = { After = function() end }
+  R.ApplyStoredAnchor = function() end
+  local rolledVia = nil
+  R.Core = { OnRolled = function(id, t) rolledVia = { id, t } end }
+  R.InitFrames()
+
+  local rollCalls = {}
+  RollOnLoot = function(id, t) rollCalls[#rollCalls + 1] = { id, t } end
+  R.ShowRoll({ rollID = 42, rollTime = 10000, name = "Sword", quality = 3,
+               canNeed = true, canGreed = true, itemLink = "SWORD_LINK" })
+  local live = R.FindRow(42)
+  check("live roll gets a row", live ~= nil, "no row")
+
+  local need = live.buttons[R.ROLL_NEED]
+  need.scripts.OnClick(need)
+  check("clicking Need calls RollOnLoot(rollID, 1)",
+        rollCalls[1] and rollCalls[1][1] == 42 and rollCalls[1][2] == 1,
+        rollCalls[1] and (tostring(rollCalls[1][1]) .. "," .. tostring(rollCalls[1][2])) or "never called")
+  check("a successful roll collapses the buttons", rolledVia and rolledVia[1] == 42, "OnRolled not called")
+
+  local passButton = live.buttons[R.ROLL_PASS]
+  passButton.scripts.OnClick(passButton)
+  check("clicking Pass calls RollOnLoot(rollID, 0)",
+        rollCalls[2] and rollCalls[2][1] == 42 and rollCalls[2][2] == 0, "wrong or missing call")
+
+  -- A roll that throws must not grey out the buttons as if it had gone through.
+  rolledVia = nil
+  RollOnLoot = function() error("server said no") end
+  need.scripts.OnClick(need)
+  check("a failed roll does not look like a successful one", rolledVia == nil, "buttons collapsed anyway")
+
+  -- Demo rows must never reach the real API.
+  rollCalls = {}
+  RollOnLoot = function(id, t) rollCalls[#rollCalls + 1] = { id, t } end
+  R.ShowRoll({ rollID = 900001, rollTime = 10000, name = "Demo", quality = 4,
+               canNeed = true, canGreed = true, demo = true })
+  local demoRow = R.FindRow(900001)
+  demoRow.buttons[R.ROLL_NEED].scripts.OnClick(demoRow.buttons[R.ROLL_NEED])
+  check("demo buttons never call RollOnLoot", #rollCalls == 0, #rollCalls)
+
+  -- The icon had the same mistake: no tooltip, no shift-click link.
+  local tipRoll
+  GameTooltip = stubObject()
+  GameTooltip.SetLootRollItem = function(_, id) tipRoll = id end
+  live.iconHit.scripts.OnEnter(live.iconHit)
+  check("hovering the icon shows that roll's item", tipRoll == 42, tipRoll)
+
+  local linked
+  IsModifiedClick = function() return true end
+  ChatEdit_InsertLink = function(link) linked = link end
+  live.iconHit.scripts.OnClick(live.iconHit)
+  check("shift-clicking the icon links the item", linked == "SWORD_LINK", linked)
+
   -- Demo item loading. Item:CreateFromItemID is a COLON method. Called with a
   -- dot, the itemID lands in self and the real argument is nil, so every item
   -- comes back empty and nothing redraws — the Forever demo showed four
