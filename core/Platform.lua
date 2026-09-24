@@ -252,13 +252,39 @@ local PROBES = {
             if value == nil then return "nil" end
             return tostring(value)
         end
-        -- Loot method is meaningless solo, so report group state beside it:
-        -- "nil" while ungrouped says nothing either way.
+
+        -- The loot method, via C_PartyInfo. The bare GetLootMethod global was
+        -- removed in 11.2.0, so asking for it reports ABSENT on Retail and
+        -- Forever alike and says nothing about either — a probe that answers
+        -- the same on a client with the system and one without is not a probe.
+        local method = "ABSENT"
+        if C_PartyInfo and type(C_PartyInfo.GetLootMethod) == "function" then
+            local ok, value = pcall(C_PartyInfo.GetLootMethod)
+            if not ok then
+                method = "threw"
+            elseif value == nil then
+                method = "nil"
+            else
+                method = tostring(value)
+                for name, enumValue in pairs((Enum and Enum.LootMethod) or {}) do
+                    if enumValue == value then method = ("%s (%s)"):format(name, value) end
+                end
+            end
+        end
+
+        -- Which loot methods this client's enum even knows about. Group and
+        -- Needbeforegreed are the two that produce Need/Greed rolls; a client
+        -- with neither cannot roll, whatever the roll functions claim.
+        local methods = {}
+        for name in pairs((Enum and Enum.LootMethod) or {}) do methods[#methods + 1] = name end
+        table.sort(methods)
+
         local grouped = (IsInGroup and IsInGroup()) and "yes" or "no"
-        return ("RollOnLoot=%s GetLootRollItemInfo=%s, method=%s, threshold=%s, grouped=%s, Blizzard frames open=%d, Horizon drawing=%s"):format(
+        return ("RollOnLoot=%s GetLootRollItemInfo=%s, method=%s, threshold=%s, grouped=%s, frames open=%d, Horizon drawing=%s\n                   LootMethod enum: %s"):format(
             type(RollOnLoot), type(GetLootRollItemInfo),
-            Ask(GetLootMethod), Ask(GetLootThreshold), grouped,
-            open, horizon == 1 and "yes" or "no")
+            method, Ask(GetLootThreshold), grouped,
+            open, horizon == 1 and "yes" or "no",
+            #methods > 0 and table.concat(methods, ", ") or "|cFFFF4444MISSING|r")
     end },
     { "lootHistory", function()
         local infos = C_LootHistory.GetAllEncounterInfos and C_LootHistory.GetAllEncounterInfos() or {}
