@@ -343,6 +343,7 @@ function R.IsReady() return framesCreated end
 function R.GetAnchorFrame() return Frame end
 
 local function Restack()
+    if not framesCreated then return end   -- exported as R.Restack; see R.FindRow
     local visible = 0
     local attach = R.GetEntryAttachPoint()
     local growUp = (attach == "BOTTOM")
@@ -362,6 +363,11 @@ R.Restack = Restack
 --- @param rollID number
 --- @return table|nil
 function R.FindRow(rollID)
+    -- The pool is only built by InitFrames, which only runs once the module is
+    -- enabled — and it ships disabled. Every public reader of the pool has to
+    -- survive being called first: the platform probe, /h roll status and
+    -- /h roll clear all reach here with the module off.
+    if not framesCreated then return nil end
     for i = 1, R.POOL_SIZE do
         if pool[i].active and pool[i].rollID == rollID then return pool[i] end
     end
@@ -571,6 +577,7 @@ end
 
 --- @return boolean
 function R.HasActiveRows()
+    if not framesCreated then return false end   -- see R.FindRow
     for i = 1, R.POOL_SIZE do
         if pool[i].active then return true end
     end

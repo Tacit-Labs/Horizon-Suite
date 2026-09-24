@@ -72,6 +72,7 @@ run(read('locales/horizon/enUS.lua'), 'enUS');
 run(read('modules/Augment/LootRoll/AugmentRollState.lua'),  'RollState');
 run(read('modules/Augment/LootRoll/AugmentRollTally.lua'),  'RollTally');
 run(read('modules/Augment/LootRoll/AugmentRollBadges.lua'), 'RollBadges');
+run(read('modules/Augment/LootRoll/AugmentRollFrames.lua'), 'RollFrames');
 
 // --- Assertions -----------------------------------------------------------
 run(`
@@ -82,6 +83,22 @@ run(`
     if ok then pass = pass + 1
     else fail = fail + 1; print("  FAIL: " .. name .. "  got: " .. tostring(got)) end
   end
+
+  -- The module ships DISABLED, so the frame pool is never built until someone
+  -- turns it on — yet the platform probe, /h roll status and /h roll clear all
+  -- read the pool regardless. On the Retail client, with the module still off,
+  -- /h platform probe died with "attempt to index field '?' (a nil value)".
+  -- Forever never showed it only because the module had been switched on there
+  -- first. These run BEFORE InitFrames, which is the default state for everyone.
+  local function noThrow(fn, ...) return (pcall(fn, ...)) end
+  check("HasActiveRows before InitFrames does not throw", noThrow(R.HasActiveRows), "threw")
+  check("HasActiveRows before InitFrames is false", R.HasActiveRows() == false, R.HasActiveRows())
+  check("FindRow before InitFrames does not throw", noThrow(R.FindRow, 1), "threw")
+  check("FindRow before InitFrames is nil", R.FindRow(1) == nil, R.FindRow(1))
+  check("ReleaseRoll before InitFrames does not throw (/h roll clear)", noThrow(R.ReleaseRoll, 900001), "threw")
+  check("Restack before InitFrames does not throw", noThrow(R.Restack), "threw")
+  check("ClearAllRolls before InitFrames does not throw", noThrow(R.ClearAllRolls), "threw")
+  check("RefreshAllTallies before InitFrames does not throw", noThrow(R.RefreshAllTallies), "threw")
 
   -- Bucketing, specs present
   check("NeedMainSpec -> need",  T.BucketForState(0) == "need",     T.BucketForState(0))

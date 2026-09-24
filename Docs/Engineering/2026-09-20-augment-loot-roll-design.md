@@ -116,16 +116,24 @@ transmog        head appearances 1/237, PlayerHasTransmogByItemInfo=function
 Three coherent, *specific* values rather than one boolean:
 
 - **`method=Group (3)`** — the client's active loot method is Group. Not nil,
-  not Freeforall, not Personal. Solo on Retail this reads Personal or Freeforall,
-  so the two clients genuinely disagree here, which is what a real capability
-  difference looks like.
+  not Freeforall, not Personal.
 - **`threshold=2`** — Uncommon, the quality at which group rolls trigger.
 - **The full `LootMethod` enum**, including `Group` and `Needbeforegreed`.
 
 This is a different quality of evidence from the delve trap. There, a single
-boolean returned a stale `true`. Here three independent values cohere, and one of
-them differs from what Retail reports — a client with no group loot has no reason
-to name Group as its active method.
+boolean returned a stale `true`. Here three independent values cohere, and a
+client with no group loot has no obvious reason to name Group as its active
+method.
+
+**The Retail comparison has not been measured.** An earlier revision of this
+section stated that the same call reads Personal or Freeforall solo on Retail,
+and leaned on that disagreement as the strongest part of the argument. It was
+reasoning, never a reading: the first Retail probe (2026-09-24, level 90, solo)
+crashed on exactly the `groupLootRolls` line, because the frame pool it read had
+never been built with the module switched off. The crash is fixed; the value is
+still owed. If Retail also reports `Group`, the method line stops distinguishing
+the clients and the case for Forever rests on the threshold and enum alone —
+weaker, and worth knowing.
 
 Also confirmed by the same probe: `specs` is genuinely absent, so the off-spec
 collapse in `AugmentRollTally.lua` is the path that runs on Forever; and transmog
