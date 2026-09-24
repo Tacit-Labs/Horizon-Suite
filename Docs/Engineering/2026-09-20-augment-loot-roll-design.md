@@ -94,17 +94,55 @@ This is the only real fork, and it is expressed as a capability read, not an
 than an isForever branch. A future client that gains the system should light up
 without a code change."*
 
-### The one thing that cannot be proven from here
+### What the Forever probe actually says
 
 `core/Platform.lua` earns its existence from a specific trap: on Forever,
 `C_PartyInfo.IsDelveInProgress` returns **true** inside an ordinary dungeon, for
 a system the client does not have. The lesson recorded there is that *a call
 answering is not evidence the system exists*.
 
-So: every API above being tagged for Forever proves the **namespace** is present.
-It does not prove group loot rolls actually fire on a vanilla-world client, nor
-that `C_LootHistory` is populated there. That is what the probe and the live test
-pass settle. Until they do, the module ships **off by default**.
+Probe of the Forever beta, 2026-09-24, level 1 Undead in Tirisfal Glades, solo:
+
+```
+groupLootRolls  RollOnLoot=function GetLootRollItemInfo=function,
+                method=Group (3), threshold=2, grouped=no
+                LootMethod enum: Freeforall, Group, Masterlooter,
+                                 Needbeforegreed, Personal, Roundrobin
+lootHistory     0 encounters, 0 drops (0 still rolling), RollState enum=present
+specs           GetSpecialization=nil
+transmog        head appearances 1/237, PlayerHasTransmogByItemInfo=function
+```
+
+Three coherent, *specific* values rather than one boolean:
+
+- **`method=Group (3)`** — the client's active loot method is Group. Not nil,
+  not Freeforall, not Personal. Solo on Retail this reads Personal or Freeforall,
+  so the two clients genuinely disagree here, which is what a real capability
+  difference looks like.
+- **`threshold=2`** — Uncommon, the quality at which group rolls trigger.
+- **The full `LootMethod` enum**, including `Group` and `Needbeforegreed`.
+
+This is a different quality of evidence from the delve trap. There, a single
+boolean returned a stale `true`. Here three independent values cohere, and one of
+them differs from what Retail reports — a client with no group loot has no reason
+to name Group as its active method.
+
+Also confirmed by the same probe: `specs` is genuinely absent, so the off-spec
+collapse in `AugmentRollTally.lua` is the path that runs on Forever; and transmog
+answers, so the appearance badge works there.
+
+### What still is not proven
+
+Nobody has watched a roll open. Zero encounters and zero drops is a solo
+character, not a verdict. Configuration being right is not the same as the system
+firing, and only a live roll in a party settles:
+
+- that `START_LOOT_ROLL` fires at all on a vanilla-world client,
+- that `C_LootHistory` populates, which the tally depends on,
+- that the suppression hook and the frames behave against a real roll.
+
+Until then `groupLootRolls` and `lootHistory` stay on `Platform.unverified`, and
+the module ships **off by default**.
 
 ## Architecture
 

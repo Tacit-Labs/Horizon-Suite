@@ -59,9 +59,12 @@ Platform.unverified = {
     worldQuests    = true,
     scenarios      = true,
     -- Group loot: every call is tagged for both Midnight 12.1.5 and Forever
-    -- 1.60.1, and a vanilla world is where Need/Greed is the *norm* — but a
-    -- present namespace has proven nothing here before (see the delve note
-    -- above), and nobody has yet watched a roll open on the beta.
+    -- 1.60.1. The 2026-09-24 probe found the beta reporting method=Group (3)
+    -- with an Uncommon threshold and the full LootMethod enum — configuration
+    -- that a client without group loot has no reason to carry. Still flagged,
+    -- because nobody has watched a roll actually open: configuration being
+    -- right is not the same as the system firing, and a present namespace has
+    -- proven nothing here before (see the delve note above).
     groupLootRolls = true,
     lootHistory    = true,
 }
