@@ -241,6 +241,7 @@ read_globals = {
     "UnitFactionGroup",
     "UnitAffectingCombat",
     "IsInGroup",
+    "C_Texture",
     "GetNumGroupMembers",
     "GetUnitName",
     "GetGuildInfo",

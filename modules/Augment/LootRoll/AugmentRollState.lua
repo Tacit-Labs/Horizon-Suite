@@ -34,6 +34,7 @@ Y.DB_KEYS.lootRollIconGap        = true
 Y.DB_KEYS.lootRollIconSide       = true
 Y.DB_KEYS.lootRollGrowDirection  = true
 Y.DB_KEYS.lootRollMaxVisible     = true
+Y.DB_KEYS.lootRollWidth          = true
 Y.DB_KEYS.lootRollShowTally      = true
 Y.DB_KEYS.lootRollShowBadgeAppearance = true
 Y.DB_KEYS.lootRollShowBadgeItemLevel  = true
@@ -62,7 +63,10 @@ R.ROLL_TRANSMOG   = 4
 -- four simultaneous rolls on screen is unreadable, not more useful.
 R.POOL_SIZE    = 4
 
-R.WIDTH        = 330
+-- Fallback only; R.GetWidth() is the live value. The row has to fit an
+-- icon, an item name, a badge-and-tally line and up to three buttons, and
+-- 330 truncated all of them on the first real look at it.
+R.WIDTH        = 420
 R.ICON_SIZE    = 40
 R.ICON_BG_PAD  = 1
 R.ICON_GAP     = 10
@@ -78,15 +82,58 @@ R.DEFAULT_ANCHOR = "CENTER"
 R.DEFAULT_X      = 0
 R.DEFAULT_Y      = 180
 
--- Button art. Blizzard's own textures so the icons read as the same action
--- even though the chrome around them is ours.
+-- Button art. Blizzard's own, so the icons read as the same action even though
+-- the chrome around them is ours.
+--
+-- The modern UI draws these from ATLASES (GroupLootFrame.xml), not texture
+-- paths. The legacy Interface\Buttons\UI-GroupLoot-* paths still resolve for
+-- dice, coin, DE and pass — but there has never been a legacy transmog one,
+-- because transmog rolls postdate that art. Using the paths alone therefore
+-- produced a button that laid out, took a click, and drew nothing at all.
+-- Atlas first, legacy path only as a fallback.
+R.BUTTON_ATLASES = {
+    [R.ROLL_NEED]       = "lootroll-toast-icon-need-up",
+    [R.ROLL_GREED]      = "lootroll-toast-icon-greed-up",
+    [R.ROLL_DISENCHANT] = "lootroll-toast-icon-de-up",
+    [R.ROLL_TRANSMOG]   = "lootroll-toast-icon-transmog-up",
+    [R.ROLL_PASS]       = "lootroll-toast-icon-pass-up",
+}
+
+R.BUTTON_HIGHLIGHT_ATLASES = {
+    [R.ROLL_NEED]       = "lootroll-toast-icon-need-highlight",
+    [R.ROLL_GREED]      = "lootroll-toast-icon-greed-highlight",
+    [R.ROLL_DISENCHANT] = "lootroll-toast-icon-de-highlight",
+    [R.ROLL_TRANSMOG]   = "lootroll-toast-icon-transmog-highlight",
+    [R.ROLL_PASS]       = "lootroll-toast-icon-pass-highlight",
+}
+
 R.BUTTON_TEXTURES = {
     [R.ROLL_NEED]       = "Interface\\Buttons\\UI-GroupLoot-Dice-Up",
     [R.ROLL_GREED]      = "Interface\\Buttons\\UI-GroupLoot-Coin-Up",
     [R.ROLL_DISENCHANT] = "Interface\\Buttons\\UI-GroupLoot-DE-Up",
-    [R.ROLL_TRANSMOG]   = "Interface\\Buttons\\UI-GroupLoot-Transmog-Up",
+    -- No legacy transmog art exists; the atlas is the only source.
+    [R.ROLL_TRANSMOG]   = nil,
     [R.ROLL_PASS]       = "Interface\\Buttons\\UI-GroupLoot-Pass-Up",
 }
+
+--- Apply a roll button's art, preferring the atlas the modern UI uses.
+--- @param texture Texture
+--- @param rollType number
+--- @param atlasTable table  R.BUTTON_ATLASES or R.BUTTON_HIGHLIGHT_ATLASES
+--- @return boolean applied
+function R.ApplyButtonArt(texture, rollType, atlasTable)
+    local atlas = atlasTable and atlasTable[rollType]
+    if atlas and C_Texture and C_Texture.GetAtlasInfo and C_Texture.GetAtlasInfo(atlas) then
+        texture:SetAtlas(atlas)
+        return true
+    end
+    local path = R.BUTTON_TEXTURES[rollType]
+    if path then
+        texture:SetTexture(path)
+        return true
+    end
+    return false
+end
 
 R.QUALITY_COLORS = Y.QUALITY_COLORS
 
@@ -118,6 +165,9 @@ function R.GetToastStyle()
     local TS = Y.ToastStyles
     return (TS and TS.Normalize and TS.Normalize(raw)) or "framed"
 end
+
+--- @return number
+function R.GetWidth() return clamped("lootRollWidth", R.WIDTH) end
 
 --- @return number
 function R.GetIconSize() return clamped("lootRollIconSize", 40) end

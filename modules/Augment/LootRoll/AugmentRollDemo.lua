@@ -126,24 +126,40 @@ function Demo.Run(count)
 
     local wanted = math.min(tonumber(count) or R.GetMaxVisible(), #SAMPLES)
 
-    -- Ask for each item once up front. C_Item.GetItemInfo returns nils until the
-    -- client has the item cached, which on a fresh login is the normal case.
-    for i = 1, wanted do
-        if C_Item and C_Item.RequestLoadItemDataByID then
-            pcall(C_Item.RequestLoadItemDataByID, SAMPLES[i].itemID)
-        end
-    end
-
     local function show()
         for i = 1, wanted do
             R.ShowRoll(BuildDemoRoll(i))
         end
     end
 
+    -- Draw immediately so the frames appear the instant the command is run,
+    -- then redraw as each item finishes loading.
     show()
-    -- Re-render once the cache has had a moment, so the first demo after login
-    -- shows real names and icons rather than the placeholder.
+
+    -- C_Item.GetItemInfo returns nils until the client has the item cached, and
+    -- on a fresh login that is the normal case — the first run of this demo
+    -- rendered a placeholder question mark reading "Demo Item". A fixed delay
+    -- is a guess at how long the server takes; ContinueOnItemLoad fires when
+    -- the item is actually there, so the row fills in whenever that happens.
+    local Item = _G.Item
+    if Item and Item.CreateFromItemID then
+        for i = 1, wanted do
+            local ok, item = pcall(Item.CreateFromItemID, SAMPLES[i].itemID)
+            if ok and item and not item:IsItemEmpty() then
+                pcall(function() item:ContinueOnItemLoad(show) end)
+            end
+        end
+        return
+    end
+
+    -- No ItemMixin on this client: fall back to asking, then redrawing twice.
+    for i = 1, wanted do
+        if C_Item and C_Item.RequestLoadItemDataByID then
+            pcall(C_Item.RequestLoadItemDataByID, SAMPLES[i].itemID)
+        end
+    end
     C_Timer.After(0.5, show)
+    C_Timer.After(2.0, show)
 end
 
 --- Clear every demo row.

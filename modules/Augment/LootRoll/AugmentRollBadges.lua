@@ -33,9 +33,43 @@ local COLOR_MOG     = "|cFFFF80FF"
 -- APPEARANCE
 -- ============================================================================
 
+-- Equip slots that actually carry a transmog appearance. Neck, finger, trinket
+-- and bags are equippable but have no appearance, and trade goods have no slot
+-- at all. Used only as the fallback gate when C_TransmogCollection.GetItemInfo
+-- is unavailable.
+local TRANSMOG_SLOTS = {
+    INVTYPE_HEAD = true, INVTYPE_SHOULDER = true, INVTYPE_BODY = true,
+    INVTYPE_CHEST = true, INVTYPE_ROBE = true, INVTYPE_WAIST = true,
+    INVTYPE_LEGS = true, INVTYPE_FEET = true, INVTYPE_WRIST = true,
+    INVTYPE_HAND = true, INVTYPE_CLOAK = true, INVTYPE_TABARD = true,
+    INVTYPE_WEAPON = true, INVTYPE_2HWEAPON = true,
+    INVTYPE_WEAPONMAINHAND = true, INVTYPE_WEAPONOFFHAND = true,
+    INVTYPE_HOLDABLE = true, INVTYPE_SHIELD = true,
+    INVTYPE_RANGED = true, INVTYPE_RANGEDRIGHT = true,
+}
+
+--- Does this item have a transmog appearance at all?
+--- PlayerHasTransmogByItemInfo answers **false**, not nil, for things that were
+--- never collectable — a Gold Bar came back false on the Forever beta and earned
+--- itself a "New look" badge. "You have not collected this" and "there is
+--- nothing here to collect" are different answers and must not share a branch.
+--- @param itemLink string
+--- @return boolean
+local function HasAppearance(itemLink)
+    if C_TransmogCollection and C_TransmogCollection.GetItemInfo then
+        local ok, appearanceID = pcall(C_TransmogCollection.GetItemInfo, itemLink)
+        if ok then return appearanceID ~= nil end
+    end
+    -- Fallback: judge by equip slot.
+    if not (C_Item and C_Item.GetItemInfo) then return false end
+    local ok, _, _, _, _, _, _, _, _, equipSlot = pcall(C_Item.GetItemInfo, itemLink)
+    if not ok then return false end
+    return equipSlot ~= nil and TRANSMOG_SLOTS[equipSlot] == true
+end
+
 --- "New look" when this item's appearance is not yet collected.
---- Transmog is present on both clients (237 head appearances confirmed on the
---- Forever beta), so this is capability-gated rather than client-branched.
+--- Transmog is present on both clients (confirmed on the Forever beta by the
+--- 2026-09-24 probe), so this is capability-gated rather than client-branched.
 --- @param itemLink string|nil
 --- @return string|nil
 function B.Appearance(itemLink)
@@ -44,9 +78,12 @@ function B.Appearance(itemLink)
     if not R.IsBadgeEnabled("Appearance") then return nil end
     if not (C_TransmogCollection and C_TransmogCollection.PlayerHasTransmogByItemInfo) then return nil end
 
+    -- There must be an appearance before "you do not have it" means anything.
+    if not HasAppearance(itemLink) then return nil end
+
     local ok, known = pcall(C_TransmogCollection.PlayerHasTransmogByItemInfo, itemLink)
-    -- A nil answer means "cannot tell" (not a transmoggable item, or the client
-    -- declined). Only the definite "you do not have this" earns a badge.
+    -- A nil answer means "cannot tell". Only the definite "you do not have
+    -- this" earns a badge.
     if not ok or known ~= false then return nil end
 
     return COLOR_MOG .. ((L and L["LOOT_ROLL_BADGE_NEW_APPEARANCE"]) or "New look") .. "|r"

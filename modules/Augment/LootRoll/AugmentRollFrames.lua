@@ -83,12 +83,16 @@ local function CreateRollButton(parent, rollType)
 
     local icon = b:CreateTexture(nil, "ARTWORK")
     icon:SetAllPoints(b)
-    icon:SetTexture(R.BUTTON_TEXTURES[rollType])
+    R.ApplyButtonArt(icon, rollType, R.BUTTON_ATLASES)
     b.icon = icon
 
     local highlight = b:CreateTexture(nil, "HIGHLIGHT")
     highlight:SetAllPoints(b)
-    highlight:SetColorTexture(1, 1, 1, 0.18)
+    if not R.ApplyButtonArt(highlight, rollType, R.BUTTON_HIGHLIGHT_ATLASES) then
+        highlight:SetColorTexture(1, 1, 1, 0.18)
+    else
+        highlight:SetBlendMode("ADD")
+    end
 
     b:SetScript("OnEnter", function(self)
         local row = self:GetParent()
@@ -124,7 +128,7 @@ end
 
 local function CreateRow(parent)
     local f = CreateFrame("Frame", nil, parent, "BackdropTemplate")
-    f:SetSize(S(R.WIDTH), S(RowHeight()))
+    f:SetSize(S(R.GetWidth()), S(RowHeight()))
     f:Hide()
 
     -- Icon plate. iconBg/iconDark are the regions TS.ApplyChrome expects for
@@ -302,7 +306,7 @@ function R.InitFrames()
     UpdateFontObject()
 
     Frame = CreateFrame("Frame", "HorizonSuiteLootRollAnchor", UIParent)
-    Frame:SetSize(S(R.WIDTH), S(LineHeight()))
+    Frame:SetSize(S(R.GetWidth()), S(LineHeight()))
     Frame:SetFrameStrata("HIGH")
     Frame:Hide()
     Frame:SetClampedToScreen(true)
@@ -597,10 +601,10 @@ end
 function R.ApplyScale()
     if not framesCreated then return end
     UpdateFontObject()
-    Frame:SetSize(S(R.WIDTH), S(LineHeight()))
+    Frame:SetSize(S(R.GetWidth()), S(LineHeight()))
     for i = 1, R.POOL_SIZE do
         local row = pool[i]
-        row.frame:SetSize(S(R.WIDTH), S(RowHeight()))
+        row.frame:SetSize(S(R.GetWidth()), S(RowHeight()))
         row.frame:SetAlpha(R.GetOpacity())
         if row.active then
             LayoutRow(row, row.quality)

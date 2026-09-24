@@ -203,6 +203,45 @@ run(`
   GetInventoryItemLink = function() return nil end
   check("ilvl nil with empty slots", B.ItemLevel("RING_NEW") == nil, B.ItemLevel("RING_NEW"))
 
+  -- Appearance badge. PlayerHasTransmogByItemInfo answers FALSE, not nil, for
+  -- things that were never collectable: a Gold Bar came back false on the
+  -- Forever beta and earned itself a "New look" badge. "Not collected" and
+  -- "nothing here to collect" must not share a branch.
+  C_TransmogCollection = {
+    PlayerHasTransmogByItemInfo = function() return false end,
+    GetItemInfo = function(link)
+      if link == "HOOD" then return 12345, 67890 end   -- has an appearance
+      return nil                                        -- trade good: none
+    end,
+  }
+  check("no badge on an item with no appearance (the Gold Bar bug)",
+        B.Appearance("GOLD_BAR") == nil, B.Appearance("GOLD_BAR"))
+  check("badge on an uncollected appearance",
+        B.Appearance("HOOD") ~= nil, B.Appearance("HOOD"))
+
+  -- Already collected: no badge.
+  C_TransmogCollection.PlayerHasTransmogByItemInfo = function() return true end
+  check("no badge when already collected", B.Appearance("HOOD") == nil, B.Appearance("HOOD"))
+
+  -- "Cannot tell" is not "you do not have it".
+  C_TransmogCollection.PlayerHasTransmogByItemInfo = function() return nil end
+  check("no badge when the client cannot tell", B.Appearance("HOOD") == nil, B.Appearance("HOOD"))
+
+  -- Fallback path: no GetItemInfo on this client, judge by equip slot.
+  C_TransmogCollection.GetItemInfo = nil
+  C_TransmogCollection.PlayerHasTransmogByItemInfo = function() return false end
+  C_Item.GetItemInfo = function(link)
+    if link == "HEAD_ITEM" then return "H", link, 3, 80, 60, "", "", 1, "INVTYPE_HEAD" end
+    if link == "RING_ITEM" then return "R", link, 3, 80, 60, "", "", 1, "INVTYPE_FINGER" end
+    if link == "TRADE_GOOD" then return "G", link, 1, 0, 1, "", "", 20, "" end
+    return nil
+  end
+  check("fallback: badge on a head slot", B.Appearance("HEAD_ITEM") ~= nil, B.Appearance("HEAD_ITEM"))
+  check("fallback: no badge on a ring (equippable, no appearance)",
+        B.Appearance("RING_ITEM") == nil, B.Appearance("RING_ITEM"))
+  check("fallback: no badge on a trade good",
+        B.Appearance("TRADE_GOOD") == nil, B.Appearance("TRADE_GOOD"))
+
   print(("\\n%d passed, %d failed"):format(pass, fail))
   if fail > 0 then error("assertions failed") end
 `, 'assertions');
