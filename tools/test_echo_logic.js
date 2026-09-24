@@ -117,6 +117,90 @@ run(`
   check("IsSecret passes nil", HorizonSuite.Echo.IsSecret(nil) == false, "true")
 `, 'store-keys');
 
+// --- Store: conversations, ordering, unread -------------------------------------
+run(`
+  local S = HorizonSuite.Echo.Store
+  S.Reset()
+  local seen = {}
+  S.Subscribe(function(key, change) seen[#seen + 1] = tostring(key) .. "=" .. change end)
+  local clock = 1000
+  S.Now = function() clock = clock + 1; return clock end
+
+  local function msg(key, text, extra)
+    local r = { convKey = key, text = text, sender = "X-Horizon" }
+    for k, v in pairs(extra or {}) do r[k] = v end
+    return r
+  end
+  local function order()
+    local keys = {}
+    for i, c in ipairs(S.List()) do keys[i] = c.key end
+    return table.concat(keys, ",")
+  end
+
+  check("whisper toasts", S.Add(msg("w:Brisa-Horizon", "hi")) == "toast", "?")
+  check("party counts", S.Add(msg("party", "pull")) == "count", "?")
+  check("guild is quiet", S.Add(msg("guild", "gz")) == "quiet", "?")
+  check("urgent party message toasts", S.Add(msg("party", "kaelis look", { urgent = true })) == "toast", "?")
+  check("urgent guild message stays quiet", S.Add(msg("guild", "x", { urgent = true })) == "quiet", "?")
+  check("unknown key rejected", S.Add(msg("say", "x")) == nil, "?")
+  check("non-table rejected", S.Add(nil) == nil, "?")
+  check("listener told the change", seen[1] == "w:Brisa-Horizon=toast", seen[1])
+
+  local brisa = S.Get("w:Brisa-Horizon")
+  check("record stamped with time", brisa.messages[1].time == 1001, brisa.messages[1].time)
+  check("unread counts incoming", brisa.unread == 1, brisa.unread)
+  check("party unread 2", S.Get("party").unread == 2, S.Get("party").unread)
+  check("quiet conversations still track unread", S.Get("guild").unread == 2, S.Get("guild").unread)
+
+  S.SetTier("guild", "muted")
+  check("muted is silent", S.Add(msg("guild", "x")) == "silent", "?")
+  check("muted adds no unread", S.Get("guild").unread == 2, S.Get("guild").unread)
+  S.SetTier("guild", nil)
+
+  check("loud message orders first", order() == "party,w:Brisa-Horizon,guild", order())
+  S.Add(msg("guild", "more"))
+  check("quiet message does not reorder", order() == "party,w:Brisa-Horizon,guild", order())
+  S.Add(msg("w:Vexa-Horizon", "yo"))
+  check("new whisper jumps to the top", order() == "w:Vexa-Horizon,party,w:Brisa-Horizon,guild", order())
+  S.Add(msg("party", "one more"))
+  check("count message does not reorder", order() == "w:Vexa-Horizon,party,w:Brisa-Horizon,guild", order())
+  S.Add(msg("ch:Trade", "wts"))
+  check("never-loud conversations sit below loud ones, newest first",
+        order() == "w:Vexa-Horizon,party,w:Brisa-Horizon,ch:Trade,guild", order())
+  S.SetPinned("guild", true)
+  check("pinned first", order() == "guild,w:Vexa-Horizon,party,w:Brisa-Horizon,ch:Trade", order())
+  S.SetPinned("guild", false)
+
+  S.MarkRead("party")
+  check("mark read clears unread", S.Get("party").unread == 0, S.Get("party").unread)
+
+  S.Close("w:Vexa-Horizon")
+  check("closed conversation leaves the list", order() == "party,w:Brisa-Horizon,ch:Trade,guild", order())
+  S.Add(msg("w:Vexa-Horizon", "you there?"))
+  check("a new message reopens it with context",
+        #S.Get("w:Vexa-Horizon").messages == 2 and order():sub(1, 14) == "w:Vexa-Horizon", order())
+
+  S.Add(msg("w:Brisa-Horizon", "sure", { outgoing = true }))
+  check("outgoing clears unread", S.Get("w:Brisa-Horizon").unread == 0, S.Get("w:Brisa-Horizon").unread)
+  check("replying moves a loud conversation up", order():sub(1, 15) == "w:Brisa-Horizon", order())
+
+  for i = 1, 105 do S.Add(msg("ch:Spam", "line " .. i)) end
+  local spam = S.Get("ch:Spam").messages
+  check("messages capped at 100", #spam == 100, #spam)
+  check("oldest messages dropped first", spam[1].text == "line 6", spam[1].text)
+
+  S.CountUnrouted(); S.CountUnrouted()
+  check("unrouted counted", S.GetUnroutedCount() == 2, S.GetUnroutedCount())
+  S.ClearUnrouted()
+  check("unrouted cleared", S.GetUnroutedCount() == 0, S.GetUnroutedCount())
+
+  S.Subscribe(function() error("view broke") end)
+  check("a throwing listener does not block intake", S.Add(msg("w:Brisa-Horizon", "still here")) == "toast", "blocked")
+
+  S.Reset()
+  check("reset empties the list", #S.List() == 0, #S.List())
+`, 'store-conversations');
+
 // --- Summary -------------------------------------------------------------------
 run(`
   print(PASS .. " passed, " .. FAIL .. " failed")

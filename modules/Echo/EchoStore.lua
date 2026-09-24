@@ -133,6 +133,138 @@ function Store.SetTier(convKey, tier)
     return true
 end
 
+local function GetOrCreate(convKey)
+    local conv = conversations[convKey]
+    if conv then return conv end
+    seq = seq + 1
+    conv = {
+        key        = convKey,
+        kind       = Store.KindOf(convKey),
+        messages   = {},
+        unread     = 0,
+        createdSeq = seq,
+        lastLoud   = 0,
+        pinned     = false,
+        open       = true,
+    }
+    if Store.PERSISTED_KINDS[conv.kind] and Echo.History then
+        conv.messages = Echo.History.Load(convKey)
+    end
+    conversations[convKey] = conv
+    return conv
+end
+
+local function Append(conv, record)
+    local messages = conv.messages
+    messages[#messages + 1] = record
+    while #messages > Store.MAX_MESSAGES do table.remove(messages, 1) end
+end
+
+local function Persist(record)
+    if Echo.History and Store.PERSISTED_KINDS[Store.KindOf(record.convKey)] then
+        Echo.History.Append(record.convKey, record)
+    end
+end
+
+--- File a message record (spec: Message record).
+-- Incoming: unread +1 unless muted; loud, or urgent on a count conversation, moves it up.
+-- Outgoing: clears unread; on a loud conversation it moves it up.
+-- @param record table
+-- @return string|nil change  "toast" | "count" | "quiet" | "silent"; nil when rejected
+function Store.Add(record)
+    if type(record) ~= "table" or not Store.KindOf(record.convKey) then return nil end
+    local conv = GetOrCreate(record.convKey)
+    seq = seq + 1
+    record.seq = seq
+    record.time = record.time or Store.Now()
+    Append(conv, record)
+    conv.open = true
+    Persist(record)
+
+    local tier = Store.TierOf(record.convKey)
+    local change
+    if record.outgoing then
+        change = "silent"
+        conv.unread = 0
+        if tier == "loud" then conv.lastLoud = seq end
+    elseif tier == "muted" then
+        change = "silent"
+    else
+        conv.unread = conv.unread + 1
+        if tier == "loud" or (tier == "count" and record.urgent) then
+            change = "toast"
+            conv.lastLoud = seq
+        elseif tier == "count" then
+            change = "count"
+        else
+            change = "quiet"
+        end
+    end
+    Notify(record.convKey, change)
+    return change
+end
+
+--- @param convKey string
+-- @return table|nil conversation
+function Store.Get(convKey)
+    return conversations[convKey]
+end
+
+--- Open conversations: pinned first, then most recent loud message, then newest created.
+-- Count and quiet messages never change the order.
+-- @return table conversations
+function Store.List()
+    local out = {}
+    for _, conv in pairs(conversations) do
+        if conv.open then out[#out + 1] = conv end
+    end
+    table.sort(out, function(a, b)
+        if a.pinned ~= b.pinned then return a.pinned end
+        if a.lastLoud ~= b.lastLoud then return a.lastLoud > b.lastLoud end
+        return a.createdSeq > b.createdSeq
+    end)
+    return out
+end
+
+function Store.MarkRead(convKey)
+    local conv = conversations[convKey]
+    if not conv or conv.unread == 0 then return end
+    conv.unread = 0
+    Notify(convKey, "update")
+end
+
+function Store.SetPinned(convKey, pinned)
+    local conv = conversations[convKey]
+    if not conv then return end
+    conv.pinned = pinned and true or false
+    Notify(convKey, "update")
+end
+
+--- Remove a conversation's tile. Messages are kept, so a new message reopens it with context.
+function Store.Close(convKey)
+    local conv = conversations[convKey]
+    if not conv then return end
+    conv.open = false
+    conv.unread = 0
+    conv.pinned = false
+    Notify(convKey, "closed")
+end
+
+--- A message Echo could not file (secret sender). Blizzard's chat frame still shows it.
+function Store.CountUnrouted()
+    unrouted = unrouted + 1
+    Notify(nil, "unrouted")
+end
+
+function Store.GetUnroutedCount()
+    return unrouted
+end
+
+function Store.ClearUnrouted()
+    unrouted = 0
+    Notify(nil, "unrouted")
+end
+
 --- Forget every conversation (module disable, tests). Listeners and history are kept.
 function Store.Reset()
     conversations = {}
