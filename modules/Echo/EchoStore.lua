@@ -265,6 +265,60 @@ function Store.ClearUnrouted()
     Notify(nil, "unrouted")
 end
 
+--- File an outgoing message before the server confirms it.
+-- @param convKey string
+-- @param text string
+-- @return table|nil record  status "pending"
+function Store.AddPending(convKey, text)
+    local record = { convKey = convKey, text = text, outgoing = true, status = "pending" }
+    if not Store.Add(record) then return nil end
+    return record
+end
+
+local function OldestPending(conv, text, anyText)
+    for _, m in ipairs(conv.messages) do
+        if m.status == "pending" and (anyText or m.text == text) then return m end
+    end
+    return nil
+end
+
+--- Confirm an outgoing message from its echo (an _INFORM event, or your own line in a
+-- group channel). Matches the oldest pending message with the same text. A secret echo
+-- cannot be compared, so it confirms the oldest pending one. With nothing pending, the
+-- message was typed into Blizzard's chat box, so it is filed as a new outgoing message.
+-- @param record table  Outgoing record built by EchoEvents
+-- @return boolean matched
+function Store.ConfirmSent(record)
+    local conv = conversations[record.convKey]
+    local pending = conv and OldestPending(conv, record.text, record.secret)
+    if not pending then
+        record.status = "sent"
+        Store.Add(record)
+        return false
+    end
+    pending.status = "sent"
+    Persist(pending)
+    Notify(record.convKey, "update")
+    return true
+end
+
+--- Mark the newest pending message in a conversation as failed.
+-- @param convKey string
+-- @return table|nil record
+function Store.MarkFailed(convKey)
+    local conv = conversations[convKey]
+    if not conv then return nil end
+    for i = #conv.messages, 1, -1 do
+        local m = conv.messages[i]
+        if m.status == "pending" then
+            m.status = "failed"
+            Notify(convKey, "update")
+            return m
+        end
+    end
+    return nil
+end
+
 --- Forget every conversation (module disable, tests). Listeners and history are kept.
 function Store.Reset()
     conversations = {}
