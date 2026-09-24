@@ -73,6 +73,7 @@ run(`
 // Load order matches HorizonSuite.toc.
 const FILES = [
   'modules/Echo/EchoStore.lua',
+  'modules/Echo/EchoHistory.lua',
 ];
 for (const f of FILES) run(read(f), f);
 
@@ -235,6 +236,75 @@ run(`
   check("failure with nothing to fail is nil", S.MarkFailed("w:Nobody-Horizon") == nil, "not nil")
   S.Reset()
 `, 'store-outgoing');
+
+// --- History ---------------------------------------------------------------------------
+run(`
+  local S, H = HorizonSuite.Echo.Store, HorizonSuite.Echo.History
+  S.Reset()
+  local db = {}
+  local charKey = "Kaelis-Horizon"
+  H.Bind(db, function() return charKey end)
+  check("bind creates the root",
+        type(db.echoHistory) == "table" and type(db.echoHistory.chars) == "table" and type(db.echoHistory.bnet) == "table",
+        "missing")
+
+  S.Add({ convKey = "w:Brisa-Horizon", text = "got the leather" })
+  S.Add({ convKey = "w:Brisa-Horizon", text = SECRET("mid-pull"), secret = true })
+  S.Add({ convKey = "bn:77", text = "bnet hi" })
+  S.Add({ convKey = "guild", text = "guild line" })
+  S.Add({ convKey = "w:Demo-Horizon", text = "demo", demo = true })
+  S.AddPending("w:Brisa-Horizon", "on my way")
+
+  local mine = db.echoHistory.chars["Kaelis-Horizon"]
+  local brisa = mine and mine["w:Brisa-Horizon"]
+  check("whisper persisted per character", brisa and brisa[1].text == "got the leather", brisa and #brisa)
+  check("secret and pending messages not persisted", brisa and #brisa == 1, brisa and #brisa)
+  check("bnet persisted account-wide",
+        db.echoHistory.bnet["bn:77"] and db.echoHistory.bnet["bn:77"][1].text == "bnet hi", "missing")
+  check("channels not persisted", mine["guild"] == nil, "persisted")
+  check("demo messages not persisted", mine["w:Demo-Horizon"] == nil, "persisted")
+
+  S.ConfirmSent({ convKey = "w:Brisa-Horizon", text = "on my way", outgoing = true })
+  check("a confirmed message is persisted as outgoing",
+        #brisa == 2 and brisa[2].out == true and brisa[2].text == "on my way", #brisa)
+
+  S.AddPending("w:Brisa-Horizon", "lost")
+  S.MarkFailed("w:Brisa-Horizon")
+  check("a failed message is not persisted", #brisa == 2, #brisa)
+
+  for i = 1, 120 do H.Append("w:Cap-Horizon", { text = "m" .. i, time = i }) end
+  local capped = mine["w:Cap-Horizon"]
+  check("history capped at 100, oldest dropped", #capped == 100 and capped[1].text == "m21", #capped)
+
+  -- Next session: a fresh store seeds a whisper conversation from history.
+  S.Reset()
+  S.Add({ convKey = "w:Brisa-Horizon", text = "you there?" })
+  local msgs = S.Get("w:Brisa-Horizon").messages
+  check("history seeds a reopened whisper",
+        #msgs == 3 and msgs[1].fromHistory and msgs[3].text == "you there?", #msgs)
+  check("seeded outgoing keeps its direction", msgs[2].outgoing == true and msgs[2].status == "sent", tostring(msgs[2].outgoing))
+
+  charKey = "Alt-Horizon"
+  S.Reset()
+  S.Add({ convKey = "w:Brisa-Horizon", text = "hello alt" })
+  check("whisper history is per character", #S.Get("w:Brisa-Horizon").messages == 1, #S.Get("w:Brisa-Horizon").messages)
+  S.Add({ convKey = "bn:77", text = "again" })
+  check("bnet history follows the account", #S.Get("bn:77").messages == 2, #S.Get("bn:77").messages)
+
+  charKey = nil
+  check("no character key yet, no whisper written", H.Append("w:Early-Horizon", { text = "x", time = 1 }) == false, "written")
+  charKey = "Kaelis-Horizon"
+
+  H.SetEnabledCheck(function() return false end)
+  check("history off writes nothing", H.Append("w:Brisa-Horizon", { text = "x", time = 1 }) == false, "written")
+  H.SetEnabledCheck(function() return true end)
+
+  H.Clear()
+  check("clear wipes everything", next(db.echoHistory.chars) == nil and next(db.echoHistory.bnet) == nil, "not wiped")
+  H.Unbind()
+  check("unbound history writes nothing", H.Append("w:Brisa-Horizon", { text = "x", time = 1 }) == false, "written")
+  S.Reset()
+`, 'history');
 
 // --- Summary -------------------------------------------------------------------
 run(`
