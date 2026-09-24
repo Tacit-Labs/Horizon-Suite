@@ -201,6 +201,41 @@ run(`
   check("reset empties the list", #S.List() == 0, #S.List())
 `, 'store-conversations');
 
+// --- Store: outgoing status --------------------------------------------------------
+run(`
+  local S = HorizonSuite.Echo.Store
+  S.Reset()
+  local p1 = S.AddPending("w:Brisa-Horizon", "first")
+  local p2 = S.AddPending("w:Brisa-Horizon", "second")
+  check("pending record returned", p1 and p1.status == "pending" and p1.outgoing, p1 and p1.status)
+  check("pending adds no unread", S.Get("w:Brisa-Horizon").unread == 0, S.Get("w:Brisa-Horizon").unread)
+
+  check("echo matches by text",
+        S.ConfirmSent({ convKey = "w:Brisa-Horizon", text = "second", outgoing = true }) == true, "no match")
+  check("only the matched message is sent", p2.status == "sent" and p1.status == "pending", p2.status .. "/" .. p1.status)
+  check("echo does not add a second bubble", #S.Get("w:Brisa-Horizon").messages == 2, #S.Get("w:Brisa-Horizon").messages)
+
+  check("a secret echo confirms the oldest pending",
+        S.ConfirmSent({ convKey = "w:Brisa-Horizon", text = SECRET("first"), secret = true, outgoing = true }) == true, "no match")
+  check("oldest pending now sent", p1.status == "sent", p1.status)
+
+  check("echo with nothing pending is filed as new",
+        S.ConfirmSent({ convKey = "w:Brisa-Horizon", text = "from the blizzard box", outgoing = true }) == false, "matched")
+  local filed = S.Get("w:Brisa-Horizon").messages[3]
+  check("filed echo is outgoing and sent",
+        filed.text == "from the blizzard box" and filed.status == "sent" and filed.outgoing, filed.status)
+  check("echo into an unknown conversation opens it",
+        S.ConfirmSent({ convKey = "w:New-Horizon", text = "hello", outgoing = true }) == false and S.Get("w:New-Horizon") ~= nil,
+        "not opened")
+
+  local p3 = S.AddPending("w:Brisa-Horizon", "third")
+  local p4 = S.AddPending("w:Brisa-Horizon", "fourth")
+  check("failure marks the newest pending",
+        S.MarkFailed("w:Brisa-Horizon") == p4 and p4.status == "failed" and p3.status == "pending", p4.status)
+  check("failure with nothing to fail is nil", S.MarkFailed("w:Nobody-Horizon") == nil, "not nil")
+  S.Reset()
+`, 'store-outgoing');
+
 // --- Summary -------------------------------------------------------------------
 run(`
   print(PASS .. " passed, " .. FAIL .. " failed")
