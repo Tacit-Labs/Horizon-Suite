@@ -242,11 +242,23 @@ local PROBES = {
         local horizon = 0
         local R = addon.Augment and addon.Augment.Roll
         if R and R.HasActiveRows and R.HasActiveRows() then horizon = 1 end
-        local method = GetLootMethod and GetLootMethod() or "?"
-        local threshold = GetLootThreshold and GetLootThreshold() or "?"
-        return ("RollOnLoot=%s GetLootRollItemInfo=%s, loot method=%s, threshold=%s, Blizzard frames open=%d, Horizon drawing=%s"):format(
+        -- Distinguish "no such function" from "the function answered nil". On a
+        -- client being probed for a system it may not have, those mean opposite
+        -- things, and collapsing both into "?" throws the answer away.
+        local function Ask(fn)
+            if type(fn) ~= "function" then return "ABSENT" end
+            local ok, value = pcall(fn)
+            if not ok then return "threw" end
+            if value == nil then return "nil" end
+            return tostring(value)
+        end
+        -- Loot method is meaningless solo, so report group state beside it:
+        -- "nil" while ungrouped says nothing either way.
+        local grouped = (IsInGroup and IsInGroup()) and "yes" or "no"
+        return ("RollOnLoot=%s GetLootRollItemInfo=%s, method=%s, threshold=%s, grouped=%s, Blizzard frames open=%d, Horizon drawing=%s"):format(
             type(RollOnLoot), type(GetLootRollItemInfo),
-            tostring(method), tostring(threshold), open, horizon == 1 and "yes" or "no")
+            Ask(GetLootMethod), Ask(GetLootThreshold), grouped,
+            open, horizon == 1 and "yes" or "no")
     end },
     { "lootHistory", function()
         local infos = C_LootHistory.GetAllEncounterInfos and C_LootHistory.GetAllEncounterInfos() or {}
