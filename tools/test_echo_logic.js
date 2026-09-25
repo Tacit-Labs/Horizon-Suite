@@ -1634,6 +1634,9 @@ run(`
   label = V.Relationship({ kind = "whisper", key = "w:Stranger-Horizon" })
   check("a stranger has no relationship", label == nil, tostring(label))
   check("channels have no relationship", V.Relationship({ kind = "party", key = "party" }) == nil, "?")
+  C_GuildInfo = { MemberExistsByName = function(name) if name == "Secret-Horizon" then return SECRET(true) end end }
+  label = V.Relationship({ kind = "whisper", key = "w:Secret-Horizon" })
+  check("a secret guild member has no relationship", label == nil, tostring(label))
   C_FriendList = { GetFriendInfo = function() error("boom") end }
   check("a throwing API is survived", pcall(V.Relationship, { kind = "whisper", key = "w:Brisa-Horizon" }), "threw")
   C_FriendList, C_GuildInfo, C_BattleNet = savedFriends, savedGuild, savedBattleNet

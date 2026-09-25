@@ -358,7 +358,7 @@ function View.Relationship(conv)
         local guild = C_GuildInfo and C_GuildInfo.MemberExistsByName
         if type(guild) == "function" then
             local ok, member = pcall(guild, name)
-            if ok and member == true then return L["ECHO_GUILDMATE"], nil end
+            if ok and not Echo.IsSecret(member) and member == true then return L["ECHO_GUILDMATE"], nil end
         end
     end
     return nil, nil
