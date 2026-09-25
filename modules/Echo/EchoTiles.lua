@@ -262,7 +262,7 @@ function Tiles.ApplyPosition()
     local x, y = tonumber(Echo.Setting("echoX")), tonumber(Echo.Setting("echoY"))
     if x and y then
         column:SetPoint("BOTTOM", UIParent, "BOTTOMLEFT", x / scale, y / scale)
-    elseif Echo.Setting("echoColumnEdge") == "left" then
+    elseif Echo.View.Edge() == "left" then
         column:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", 24 / scale, 240 / scale)
     else
         column:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", -24 / scale, 240 / scale)
@@ -309,7 +309,10 @@ local function CreateColumn()
         column.moving = false
         column:StopMovingOrSizing()
         SavePosition()
-        Tiles.ApplyPosition()
+        -- An Auto edge may have flipped sides; Echo.ApplyOptions re-anchors the column
+        -- and re-anchors any open stack or card to match (Tiles.ApplyPosition alone
+        -- would leave them on the old side).
+        Echo.ApplyOptions()
     end)
     stackButton:SetScript("OnEnter", HoverEnter)
     stackButton:SetScript("OnLeave", HoverLeave)
@@ -417,7 +420,7 @@ local function ToastUpdate(self, elapsed)
     -- it; follow the conversation, not the frame.
     self.anchor = Tiles.TileFor(self.convKey) or stackButton
     self:ClearAllPoints()
-    local side = Echo.View.PanelSides(Echo.Setting("echoColumnEdge"))
+    local side = Echo.View.PanelSides(Echo.View.Edge())
     self:SetPoint(side.toast, self.anchor, side.toastRel, side.toastDir * (8 + offset), 0)
 end
 
@@ -494,7 +497,7 @@ function Tiles.ShowToast(convKey)
     toast.t = 0
     toast:SetAlpha(0)
     toast:ClearAllPoints()
-    local side = View.PanelSides(Echo.Setting("echoColumnEdge"))
+    local side = View.PanelSides(Echo.View.Edge())
     toast:SetPoint(side.toast, toast.anchor, side.toastRel, side.toastDir * 8, 0)
     toast:Show()
     return true

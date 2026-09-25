@@ -52,12 +52,17 @@ end
 local options = {
     Section(L["ECHO_SECTION_GENERAL"]),
     { type = "dropdown", name = L["ECHO_COLUMN_EDGE"], desc = L["ECHO_COLUMN_EDGE_DESC"], dbKey = "echoColumnEdge",
-      options = { { L["ECHO_EDGE_RIGHT"], "right" }, { L["ECHO_EDGE_LEFT"], "left" } }, preserveOrder = true,
+      options = { { L["ECHO_EDGE_AUTO"], "auto" }, { L["ECHO_EDGE_RIGHT"], "right" }, { L["ECHO_EDGE_LEFT"], "left" } },
+      preserveOrder = true,
       get = function() return getDB("echoColumnEdge", D.echoColumnEdge) end,
       set = function(v)
-          setDB("echoX", nil)
-          setDB("echoY", nil)
-          setDB("echoColumnEdge", v == "left" and "left" or "right")
+          if v == "left" or v == "right" then
+              setDB("echoX", nil)
+              setDB("echoY", nil)
+              setDB("echoColumnEdge", v)
+          else
+              setDB("echoColumnEdge", "auto")
+          end
       end },
     Toggle(L["ECHO_LOCK"], L["ECHO_LOCK_DESC"], "echoLockPosition", D.echoLockPosition),
     Button(L["AXIS_RESET_POSITION"], L["ECHO_RESET_POSITION_DESC"], function()

@@ -8,7 +8,7 @@ local addon = _G.HorizonSuite
 if not addon then return end
 
 addon.ECHO_DEFAULTS = {
-    echoColumnEdge         = "right",
+    echoColumnEdge         = "auto",
     echoLockPosition       = true,
     echoScale              = 1,
     echoFrameStrata        = "MEDIUM",

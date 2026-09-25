@@ -554,7 +554,7 @@ local function Anchor()
         root:SetScale(column:GetScale())
         root:SetFrameStrata(column:GetFrameStrata())
         root:SetFrameLevel(column:GetFrameLevel() + 10)
-        local side = Echo.View.PanelSides(Echo.Setting("echoColumnEdge"))
+        local side = Echo.View.PanelSides(Echo.View.Edge())
         root:SetPoint(side.panel, column, side.rel, side.dx, 0)
     else
         root:SetPoint("CENTER", UIParent, "CENTER", 0, 0)

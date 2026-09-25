@@ -35,6 +35,23 @@ function View.PanelSides(edge)
     return { panel = "BOTTOMRIGHT", rel = "BOTTOMLEFT", dx = -8, toast = "RIGHT", toastRel = "LEFT", toastDir = -1 }
 end
 
+--- The screen edge Echo's column sits on. An explicit "left" or "right" `echoColumnEdge`
+-- is returned as-is; "auto" (or anything unrecognised) follows the column's actual screen
+-- half, so a column dragged left opens its panels to the right and vice versa. No column,
+-- or a column without a centre yet, reads as "right" (the undragged default corner).
+-- @return string  "left" | "right"
+function View.Edge()
+    local edge = Echo.Setting("echoColumnEdge")
+    if edge == "left" or edge == "right" then return edge end
+    local column = _G.HorizonSuiteEchoColumn
+    local centerX = column and column:GetCenter()
+    if column and centerX then
+        local scale = column:GetScale() or 1
+        if centerX * scale < UIParent:GetWidth() / 2 then return "left" end
+    end
+    return "right"
+end
+
 -- Echo's module colour, #8FA3E8 (Docs/Branding/ColourSchema.md).
 View.ACCENT = { r = 0x8F / 255, g = 0xA3 / 255, b = 0xE8 / 255 }
 View.PANEL_BG = { 0.06, 0.06, 0.09, 0.94 }

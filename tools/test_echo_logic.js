@@ -3249,6 +3249,25 @@ run(`
   local strata = "MEDIUM"
   column.SetFrameStrata = function(self, s) strata = s end
 
+  -- Auto follows the column's actual half of the screen; explicit left/right override it.
+  UIParent.GetWidth = function() return 1000 end
+  local savedColumn = _G.HorizonSuiteEchoColumn
+  _G.HorizonSuiteEchoColumn = nil
+  db.echoColumnEdge = "auto"
+  check("auto with no column is right", V.Edge() == "right", V.Edge())
+  _G.HorizonSuiteEchoColumn = savedColumn
+
+  column.GetCenter = function() return 200 end
+  check("auto on the left half opens panels right", V.PanelSides(V.Edge()).panel == "BOTTOMLEFT", V.Edge())
+  column.GetCenter = function() return 800 end
+  check("auto on the right half opens panels left", V.PanelSides(V.Edge()).panel == "BOTTOMRIGHT", V.Edge())
+
+  db.echoColumnEdge = "left"
+  check("explicit left wins over the column's position", V.Edge() == "left", V.Edge())
+  db.echoColumnEdge = "right"
+  check("explicit right wins over the column's position", V.Edge() == "right", V.Edge())
+  column.GetCenter, UIParent.GetWidth = nil, nil
+
   -- Default corner follows the edge.
   db.echoColumnEdge = "left"
   Echo.ApplyOptions()
@@ -3298,6 +3317,26 @@ run(`
   p = stack.points[#stack.points]
   check("stack opens right of a left column", p[1] == "BOTTOMLEFT" and p[3] == "BOTTOMRIGHT", p[1])
   Echo.Stack.Hide()
+
+  -- OnDragStop calls Echo.ApplyOptions, so an Auto column re-anchors an open stack to its
+  -- new side once the drag ends, not just the column itself.
+  db.echoColumnEdge = "auto"
+  UIParent.GetWidth = function() return 1000 end
+  column.GetCenter = function() return 200 end
+  column.GetBottom = function() return 50 end
+  Echo.Stack.Open("w:Brisa-Horizon")
+  stack = Echo.Stack._frames().root
+  p = stack.points[#stack.points]
+  check("auto stack opens right before the drag", p[1] == "BOTTOMLEFT" and p[3] == "BOTTOMRIGHT", p[1])
+  local stackButton = Echo.Tiles._stackButton()
+  column.moving = true
+  column.GetCenter = function() return 800 end
+  stackButton.scripts.OnDragStop(stackButton)
+  p = stack.points[#stack.points]
+  check("drag stop re-anchors the stack to the new auto side", p[1] == "BOTTOMRIGHT" and p[3] == "BOTTOMLEFT", p[1])
+  Echo.Stack.Hide()
+  column.GetCenter, column.GetBottom, UIParent.GetWidth = nil, nil, nil
+  db.echoColumnEdge = "left"
 
   -- Card size. ECHO_LIMITS was cleared after the defaults section; the clamp needs it.
   HorizonSuite.ECHO_LIMITS = { echoCardWidth = { min = 320, max = 520 }, echoCardHeight = { min = 320, max = 640 } }
@@ -3536,10 +3575,21 @@ run(`
   check("loot tier hidden with its feed off", keys.echoTierLoot.visibleWhen() == false, "shown")
   check("keyword box tooltip, not desc", keys.echoKeywords.tooltip == A.L["ECHO_KEYWORDS_DESC"], keys.echoKeywords.tooltip)
 
+  local edgeValues = {}
+  for _, o in ipairs(keys.echoColumnEdge.options) do edgeValues[#edgeValues + 1] = o[2] end
+  check("edge dropdown lists auto, right and left", edgeValues[1] == "auto" and edgeValues[2] == "right"
+      and edgeValues[3] == "left", table.concat(edgeValues, ","))
+
   A.OptionsData_SetDB("echoX", 800)
   A.OptionsData_SetDB("echoY", 300)
   keys.echoColumnEdge.set("left")
   check("the edge setter clears the dragged position", A.OptionsData_GetDB("echoX") == nil and A.OptionsData_GetDB("echoY") == nil, tostring(A.OptionsData_GetDB("echoX")))
+
+  A.OptionsData_SetDB("echoX", 800)
+  A.OptionsData_SetDB("echoY", 300)
+  keys.echoColumnEdge.set("auto")
+  check("switching to auto keeps the dragged position", A.OptionsData_GetDB("echoX") == 800 and A.OptionsData_GetDB("echoY") == 300, tostring(A.OptionsData_GetDB("echoX")))
+  check("switching to auto stores auto", A.OptionsData_GetDB("echoColumnEdge") == "auto", A.OptionsData_GetDB("echoColumnEdge"))
 
   A.OptionCategories, A.OptionsData_GetDB, A.OptionsData_SetDB = nil, nil, nil
   A.Section, A.Button, A.Toggle, A.GetPerElementFontDropdownOptions = nil, nil, nil, nil
