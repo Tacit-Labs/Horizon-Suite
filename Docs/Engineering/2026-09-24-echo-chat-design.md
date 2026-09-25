@@ -261,3 +261,7 @@ Each step can ship on its own:
 - Channel glyphs collide (General and Guild are both "G"); give them distinct glyphs.
 - Coalesce redraws on busy channels instead of redrawing on every line.
 - Clamp `echoMaxTiles` to at least 2 in the options.
+- Coalesce the card's re-renders on busy channels further; another conversation's news already repaints only its tile row.
+- Anchor the scroll position while scrolled up, so new messages don't shift what you're reading.
+- Keep drafts of closed conversations, or decide they're dropped on purpose.
+- `upper()` on localized meta text only changes ASCII letters; use a locale-aware upper case or leave the text as it is.

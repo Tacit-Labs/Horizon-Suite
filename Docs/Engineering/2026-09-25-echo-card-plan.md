@@ -1731,4 +1731,12 @@ git commit -m "feat(echo): open the card from tiles and toasts, one view at a ti
 11. Escape once: the reply box loses focus. Escape again: the card closes. The chevron also closes it.
 12. Start a fight with the card open: it closes. Click a tile mid-fight: the card opens.
 13. A whisper during an encounter where chat is hidden: it shows as a full-width bubble about three lines tall, with no error.
-14. Repeat this list on Forever.
+14. In a long party chat, scroll until a speaker's name sits near the top of the message area: the label stays inside the card and never draws over the header.
+15. At UI scale 0.9, an item-link bubble doesn't wrap early: the link sits on one line when it fits.
+16. The chevron's two bars meet as a "v", and the `⋯` shows three dots.
+17. With Chat Style set to "Classic", shift-click a link with Echo's box focused: it goes only into Echo's box, not Blizzard's too.
+18. `/dump ChatEdit_InsertLink == ChatFrameUtil.InsertLink`. `true` means the legacy global is the same function, so a caller of the legacy global may bypass the hook; note the result either way.
+19. With Echo's box focused, shift-click links from bags, the spellbook, achievements, a loot roll and the quest log. Then open the Auction House and shift-click an item: it goes into Echo's box, and the Auction House search box stays untouched.
+20. With the card open, get a loud whisper from someone else: no toast appears, and their tile in the card's row shows a dot.
+21. With the card open, press the reply keybind: the card switches to the newest loud conversation and its reply box takes focus, without the key's own character typed into it.
+22. Repeat this list on Forever.
