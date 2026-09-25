@@ -962,10 +962,16 @@ run(`
   local S, T = HorizonSuite.Echo.Store, HorizonSuite.Echo.Tiles
   S.Reset()
   -- The events section installs a minimal CreateFrame of its own; use the stand-ins here.
-  CreateFrame = STUB_CREATE_FRAME
+  CreateFrame = function(...)
+    local f = STUB_CREATE_FRAME(...)
+    f.SetDontSavePosition = function(self, v) self.dontSave = v end
+    return f
+  end
   T.Enable()
+  CreateFrame = STUB_CREATE_FRAME
   local column = _G.HorizonSuiteEchoColumn
   check("the column exists and is shown", column and column:IsShown(), "missing")
+  check("WoW's layout cache never saves the column's position", column.dontSave == true, tostring(column.dontSave))
   check("the default anchor is bottom right", column.points[1] and column.points[1][1] == "BOTTOMRIGHT", column.points[1] and column.points[1][1])
 
   S.Add({ convKey = "w:Brisa-Horizon", text = "got the leather", class = "DRUID", sender = "Brisa-Horizon" })

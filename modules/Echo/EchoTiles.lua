@@ -138,6 +138,8 @@ local function CreateColumn()
     column:SetSize(Tiles.TILE_SIZE, Tiles.TILE_SIZE)
     column:SetMovable(true)
     column:SetClampedToScreen(true)
+    -- ApplyPosition owns the anchor; WoW's layout cache restoring a stale one would fight it.
+    if column.SetDontSavePosition then column:SetDontSavePosition(true) end
 
     stackButton = CreateFrame("Button", nil, column, "BackdropTemplate")
     stackButton:SetSize(Tiles.TILE_SIZE, Tiles.TILE_SIZE)
