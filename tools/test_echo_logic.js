@@ -114,6 +114,7 @@ const FILES = [
   'modules/Echo/EchoSend.lua',
   'modules/Echo/EchoView.lua',
   'modules/Echo/EchoTiles.lua',
+  'modules/Echo/EchoStack.lua',
   'modules/Echo/EchoSlash.lua',
 ];
 for (const f of FILES) run(read(f), f);
@@ -970,6 +971,72 @@ run(`
   check("a disabled column ignores new messages", ok, "threw")
   S.Reset()
 `, 'tiles');
+
+// --- Stack: smoke test with stand-in frames ---------------------------------------------
+run(`
+  local S, T, K = HorizonSuite.Echo.Store, HorizonSuite.Echo.Tiles, HorizonSuite.Echo.Stack
+  S.Reset()
+  CreateFrame = STUB_CREATE_FRAME
+  local sent = {}
+  C_ChatInfo = { SendChatMessage = function(msg, chatType, _, target) sent[#sent + 1] = chatType .. ":" .. tostring(target) .. ":" .. msg end }
+  T.Enable()
+  K.Enable()
+  local f = K._frames()
+  check("the stack starts hidden", not f.root:IsShown(), "shown")
+  K.Open(nil)
+  check("with no conversations the stack stays shut", not f.root:IsShown(), "shown")
+  check("escape can close the stack", UISpecialFrames[#UISpecialFrames] == "HorizonSuiteEchoStack", UISpecialFrames[#UISpecialFrames])
+
+  S.Add({ convKey = "w:Brisa-Horizon", text = "got the leather", class = "DRUID", sender = "Brisa-Horizon" })
+  S.Add({ convKey = "w:Brisa-Horizon", text = "can you craft it?", class = "DRUID", sender = "Brisa-Horizon" })
+  S.Add({ convKey = "w:Vexa-Horizon", text = "gz", sender = "Vexa-Horizon" })
+  K.Open("w:Brisa-Horizon")
+  check("open shows the stack", f.root:IsShown(), "hidden")
+  check("the chosen conversation is on top", f.card.name.text == "Brisa", f.card.name.text)
+  check("the top card shows the newest message last", f.card.lines[2].text == "can you craft it?", f.card.lines[2].text)
+  check("showing a card marks it read", S.Get("w:Brisa-Horizon").unread == 0, S.Get("w:Brisa-Horizon").unread)
+  check("nothing peeks out behind the last card", f.behind[1].shown == false, tostring(f.behind[1].shown))
+
+  f.edit:SetText("sure, mail them")
+  f.edit.scripts.OnEnterPressed(f.edit)
+  check("enter sends to the top conversation", sent[1] == "WHISPER:Brisa-Horizon:sure, mail them", sent[1])
+  check("the reply box empties after sending", f.edit.text == "", f.edit.text)
+  check("the stack stays open after sending", f.root:IsShown(), "closed")
+  check("sending keeps the same card on top", f.card.name.text == "Brisa", f.card.name.text)
+  check("the reply shows on the card", f.card.lines[3].text == "sure, mail them", f.card.lines[3].text)
+  f.edit.scripts.OnEnterPressed(f.edit)
+  check("enter on an empty box only leaves it", f.edit.focused == false and #sent == 1, #sent)
+
+  check("the other card peeks out behind", f.behind[1].shown and f.behind[1].name.text == "Vexa", f.behind[1].name.text)
+  K.Flip(1)
+  check("the wheel flips to the next card", f.card.name.text == "Vexa", f.card.name.text)
+  K.Flip(5)
+  check("flipping stops at the last card", f.card.name.text == "Vexa", f.card.name.text)
+  K.Flip(-5)
+  check("flipping stops at the first card", f.card.name.text == "Brisa", f.card.name.text)
+
+  K.ReplyToNewest()
+  check("reply-to-newest opens with the box focused", f.root:IsShown() and f.edit.focused == true, tostring(f.edit.focused))
+  check("reply-to-newest picks the newest loud conversation", f.card.name.text == "Brisa", f.card.name.text)
+  f.edit.scripts.OnEscapePressed(f.edit)
+  check("escape leaves the box first", f.edit.focused == false and f.root:IsShown(), tostring(f.edit.focused))
+
+  K.CloseCurrent()
+  check("closing the top card shows the next conversation", f.card.name.text == "Vexa" and not S.Get("w:Brisa-Horizon").open, f.card.name.text)
+
+  K.Hide()
+  check("hide closes the stack", not f.root:IsShown(), "shown")
+  K.Toggle()
+  check("toggle opens it", f.root:IsShown(), "hidden")
+  K.Toggle()
+  check("toggle closes it", not f.root:IsShown(), "shown")
+
+  K.Disable()
+  T.Disable()
+  check("a disabled stack ignores new messages", pcall(S.Add, { convKey = "w:Late-Horizon", text = "x" }), "threw")
+  C_ChatInfo = nil
+  S.Reset()
+`, 'stack');
 
 // --- Summary -------------------------------------------------------------------
 run(`

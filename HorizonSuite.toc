@@ -158,6 +158,7 @@ modules/Echo/EchoEvents.lua
 modules/Echo/EchoSend.lua
 modules/Echo/EchoView.lua
 modules/Echo/EchoTiles.lua
+modules/Echo/EchoStack.lua
 modules/Echo/EchoSlash.lua
 modules/Echo/EchoModule.lua
 options/OptionsWidgets.lua
