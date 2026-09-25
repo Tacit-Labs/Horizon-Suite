@@ -1,0 +1,171 @@
+--[[
+    Horizon Suite - Echo - Events
+    Turns CHAT_MSG_* payloads into message records and hands them to the Store.
+    All of Echo's secret-value handling lives here (spec: Intake and secret values):
+      - sender readable, text secret: routed, flagged secret, never persisted
+      - sender secret on a whisper: no conversation; counted as unrouted
+    Blizzard: CHAT_MSG_* events, GetPlayerInfoByGUID, GetNormalizedRealmName,
+    ERR_CHAT_PLAYER_NOT_FOUND_S.
+]]
+
+local addon = _G.HorizonSuite
+if not addon then return end
+
+addon.Echo = addon.Echo or {}
+local Echo = addon.Echo
+local Store = Echo.Store
+local IsSecret = Echo.IsSecret
+
+local Events = {}
+Echo.Events = Events
+
+-- Extra mention words (case-insensitive). Options fill this in plan 3.
+Events.keywords = {}
+
+local OUTGOING_EVENTS = {
+    CHAT_MSG_WHISPER_INFORM    = true,
+    CHAT_MSG_BN_WHISPER_INFORM = true,
+}
+local MENTION_KINDS = { party = true, raid = true, instance = true }
+
+--- "Name" -> "Name-Realm"; a name that already carries a realm is unchanged.
+-- @param name string
+-- @return string|nil  nil for secret, empty or non-string names
+function Events.NormaliseName(name)
+    if IsSecret(name) or type(name) ~= "string" or name == "" then return nil end
+    if name:find("-", 1, true) then return name end
+    local realm = GetNormalizedRealmName and GetNormalizedRealmName()
+    if type(realm) == "string" and realm ~= "" then return name .. "-" .. realm end
+    return name
+end
+
+--- @return string|nil  The player's "Name-Realm"
+function Events.PlayerKey()
+    return Events.NormaliseName(UnitName and UnitName("player"))
+end
+
+local function ClassFromGUID(guid)
+    if IsSecret(guid) or type(guid) ~= "string" or not GetPlayerInfoByGUID then return nil end
+    local ok, _, englishClass = pcall(GetPlayerInfoByGUID, guid)
+    if ok and type(englishClass) == "string" then return englishClass end
+    return nil
+end
+
+--- True when readable text names the player or a configured keyword. Case-insensitive.
+-- @param text string
+-- @return boolean
+function Events.IsMention(text)
+    if IsSecret(text) or type(text) ~= "string" then return false end
+    local lower = text:lower()
+    local me = UnitName and UnitName("player")
+    if type(me) == "string" and me ~= "" and lower:find(me:lower(), 1, true) then return true end
+    for _, word in ipairs(Events.keywords) do
+        if type(word) == "string" and word ~= "" and lower:find(word:lower(), 1, true) then return true end
+    end
+    return false
+end
+
+--- Build a message record from a CHAT_MSG_* payload.
+-- @return table|nil record
+-- @return string|nil reason  "ignored" (not an Echo event) | "unrouted" (no conversation can be chosen)
+function Events.BuildRecord(event, text, sender, _, _, _, _, _, _, channelBaseName, _, _, guid, bnSenderID)
+    local kind = Store.EVENT_KIND[event]
+    if not kind then return nil, "ignored" end
+
+    local id
+    if kind == "whisper" then
+        id = Events.NormaliseName(sender)
+    elseif kind == "bnet" then
+        if not IsSecret(bnSenderID) then id = bnSenderID end
+    elseif kind == "channel" then
+        if not IsSecret(channelBaseName) then id = channelBaseName end
+    end
+    local convKey = Store.KeyFor(kind, id)
+    if not convKey then return nil, "unrouted" end
+
+    local senderKey = (kind ~= "bnet") and Events.NormaliseName(sender) or nil
+    local outgoing = OUTGOING_EVENTS[event] == true
+        or (kind ~= "whisper" and kind ~= "bnet" and senderKey ~= nil and senderKey == Events.PlayerKey())
+
+    local textSecret = IsSecret(text)
+    local record = {
+        convKey  = convKey,
+        text     = text,
+        secret   = textSecret,
+        outgoing = outgoing,
+        class    = (not outgoing) and ClassFromGUID(guid) or nil,
+        time     = Store.Now(),
+    }
+    if not outgoing then
+        if kind == "bnet" then
+            -- Protected |K display string: safe to SetText, never stored.
+            if not IsSecret(sender) then record.sender = sender end
+        else
+            record.sender = senderKey
+        end
+    end
+    record.urgent = (event == "CHAT_MSG_RAID_WARNING")
+        or (MENTION_KINDS[kind] == true and not outgoing and not textSecret and Events.IsMention(text))
+    return record
+end
+
+local notFoundPattern
+local function NotFoundPattern()
+    if notFoundPattern == nil then
+        local fmt = ERR_CHAT_PLAYER_NOT_FOUND_S
+        if type(fmt) == "string" and fmt:find("%s", 1, true) then
+            local escaped = fmt:gsub("[%^%$%(%)%%%.%[%]%*%+%-%?]", "%%%0")
+            notFoundPattern = "^" .. escaped:gsub("%%%%s", "(.+)", 1) .. "$"
+        else
+            notFoundPattern = false
+        end
+    end
+    return notFoundPattern
+end
+
+--- Mark the pending whisper to a player who is not online as failed.
+-- @param text string  CHAT_MSG_SYSTEM message
+function Events.OnSystemMessage(text)
+    if IsSecret(text) or type(text) ~= "string" then return end
+    local pattern = NotFoundPattern()
+    if not pattern then return end
+    local name = text:match(pattern)
+    local convKey = name and Store.KeyFor("whisper", Events.NormaliseName(name))
+    if convKey then Store.MarkFailed(convKey) end
+end
+
+--- Route one chat event. Exposed for tests and the probe.
+function Events.Dispatch(event, ...)
+    if event == "CHAT_MSG_SYSTEM" then
+        Events.OnSystemMessage((...))
+        return
+    end
+    local record, reason = Events.BuildRecord(event, ...)
+    if not record then
+        if reason == "unrouted" then Store.CountUnrouted() end
+        return
+    end
+    if record.outgoing then
+        Store.ConfirmSent(record)
+    else
+        Store.Add(record)
+    end
+end
+
+local frame
+
+function Events.Enable()
+    if not frame then
+        frame = CreateFrame("Frame")
+        frame:SetScript("OnEvent", function(_, event, ...) Events.Dispatch(event, ...) end)
+    end
+    local hasBnet = addon.Platform and addon.Platform.Has("bnetWhispers")
+    for event, kind in pairs(Store.EVENT_KIND) do
+        if kind ~= "bnet" or hasBnet then frame:RegisterEvent(event) end
+    end
+    frame:RegisterEvent("CHAT_MSG_SYSTEM")
+end
+
+function Events.Disable()
+    if frame then frame:UnregisterAllEvents() end
+end

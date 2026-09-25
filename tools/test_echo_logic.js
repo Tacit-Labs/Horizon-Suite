@@ -74,6 +74,7 @@ run(`
 const FILES = [
   'modules/Echo/EchoStore.lua',
   'modules/Echo/EchoHistory.lua',
+  'modules/Echo/EchoEvents.lua',
 ];
 for (const f of FILES) run(read(f), f);
 
@@ -305,6 +306,114 @@ run(`
   check("unbound history writes nothing", H.Append("w:Brisa-Horizon", { text = "x", time = 1 }) == false, "written")
   S.Reset()
 `, 'history');
+
+// --- Events: records, secrets, mentions, dispatch ---------------------------------------
+run(`
+  local S, E = HorizonSuite.Echo.Store, HorizonSuite.Echo.Events
+  S.Reset()
+
+  check("bare name gets the player's realm", E.NormaliseName("Brisa") == "Brisa-Horizon", E.NormaliseName("Brisa"))
+  check("name with a realm is unchanged", E.NormaliseName("Brisa-Argent") == "Brisa-Argent", E.NormaliseName("Brisa-Argent"))
+  check("secret name has no key", E.NormaliseName(SECRET("Brisa")) == nil, "keyed")
+  check("player key", E.PlayerKey() == "Kaelis-Horizon", E.PlayerKey())
+
+  -- CHAT_MSG_* payload: text, sender, 3-8, channelBaseName (9), 10-11, guid (12), bnSenderID (13).
+  local function payload(text, sender, channel, guid, bnID)
+    return text, sender, nil, nil, nil, nil, nil, nil, channel, nil, nil, guid, bnID
+  end
+
+  local r = E.BuildRecord("CHAT_MSG_WHISPER", payload("hi", "Brisa-Horizon", nil, "Player-1-DRUID"))
+  check("whisper record key", r and r.convKey == "w:Brisa-Horizon", r and r.convKey)
+  check("whisper sender", r.sender == "Brisa-Horizon", r.sender)
+  check("class from GUID", r.class == "DRUID", r.class)
+  check("incoming is not outgoing", r.outgoing == false, r.outgoing)
+  check("readable text is not secret", r.secret == false, r.secret)
+
+  r = E.BuildRecord("CHAT_MSG_WHISPER_INFORM", payload("sure", "Brisa-Horizon"))
+  check("inform is outgoing, keyed by the recipient",
+        r.outgoing == true and r.convKey == "w:Brisa-Horizon" and r.sender == nil, r.convKey)
+
+  r = E.BuildRecord("CHAT_MSG_BN_WHISPER", payload("yo", "|Kq1|k", nil, nil, 77))
+  check("bnet keyed by account id", r.convKey == "bn:77", r.convKey)
+  check("bnet keeps the protected name for display", r.sender == "|Kq1|k", r.sender)
+
+  r = E.BuildRecord("CHAT_MSG_CHANNEL", payload("wts", "Seller-Horizon", "Trade"))
+  check("channel keyed by base name", r.convKey == "ch:Trade", r.convKey)
+
+  r = E.BuildRecord("CHAT_MSG_RAID_LEADER", payload("pull", "Lead-Horizon"))
+  check("leader folds into raid", r.convKey == "raid", r.convKey)
+  r = E.BuildRecord("CHAT_MSG_RAID_WARNING", payload("MOVE", "Lead-Horizon"))
+  check("raid warning is urgent", r.urgent == true, r.urgent)
+  r = E.BuildRecord("CHAT_MSG_PARTY", payload("KAELIS heal pls", "Tank-Horizon"))
+  check("mention of the player is urgent, any case", r.urgent == true, r.urgent)
+  r = E.BuildRecord("CHAT_MSG_PARTY", payload("pull in 3", "Tank-Horizon"))
+  check("ordinary party line is not urgent", r.urgent == false, r.urgent)
+  r = E.BuildRecord("CHAT_MSG_GUILD", payload("kaelis gz", "Friend-Horizon"))
+  check("mentions only upgrade party, raid and instance", r.urgent == false, r.urgent)
+  E.keywords = { "healer" }
+  r = E.BuildRecord("CHAT_MSG_INSTANCE_CHAT", payload("need a HEALER", "Tank-Horizon"))
+  check("keyword mention is urgent", r.urgent == true, r.urgent)
+  E.keywords = {}
+
+  r = E.BuildRecord("CHAT_MSG_PARTY", payload("on my way", "Kaelis-Horizon"))
+  check("own line in a group channel is outgoing", r.outgoing == true, r.outgoing)
+  r = E.BuildRecord("CHAT_MSG_PARTY", payload("on my way", "Kaelis"))
+  check("own line without a realm is outgoing", r.outgoing == true, r.outgoing)
+
+  -- Secret values: spec "Secret-value rules".
+  r = E.BuildRecord("CHAT_MSG_WHISPER", payload(SECRET("boss plan"), "Brisa-Horizon"))
+  check("secret text is still routed", r and r.convKey == "w:Brisa-Horizon", r and r.convKey)
+  check("secret text is flagged", r.secret == true, r.secret)
+  r = E.BuildRecord("CHAT_MSG_PARTY", payload(SECRET("kaelis"), "Tank-Horizon"))
+  check("secret text is never a mention", r.urgent == false, r.urgent)
+  local none, reason = E.BuildRecord("CHAT_MSG_WHISPER", payload("hi", SECRET("Brisa-Horizon")))
+  check("secret whisper sender is unrouted", none == nil and reason == "unrouted", reason)
+  none, reason = E.BuildRecord("CHAT_MSG_BN_WHISPER", payload("hi", "|Kq1|k", nil, nil, SECRET(77)))
+  check("secret bnet id is unrouted", none == nil and reason == "unrouted", reason)
+  r = E.BuildRecord("CHAT_MSG_RAID", payload("go", SECRET("Lead-Horizon")))
+  check("secret sender in a group channel still routes", r and r.convKey == "raid" and r.sender == nil, r and r.convKey)
+  r = E.BuildRecord("CHAT_MSG_WHISPER", payload("hi", "Brisa-Horizon", nil, SECRET("Player-1-DRUID")))
+  check("secret GUID gives no class", r.class == nil, r.class)
+  none, reason = E.BuildRecord("CHAT_MSG_SAY", payload("hi", "A-B"))
+  check("non-Echo event is ignored", none == nil and reason == "ignored", reason)
+
+  S.Reset()
+  E.Dispatch("CHAT_MSG_WHISPER", payload("hi", "Brisa-Horizon"))
+  check("dispatch files incoming", S.Get("w:Brisa-Horizon") and S.Get("w:Brisa-Horizon").unread == 1, "not filed")
+  E.Dispatch("CHAT_MSG_WHISPER", payload("hi", SECRET("Who")))
+  check("dispatch counts unrouted", S.GetUnroutedCount() == 1, S.GetUnroutedCount())
+  local p = S.AddPending("w:Brisa-Horizon", "sure")
+  E.Dispatch("CHAT_MSG_WHISPER_INFORM", payload("sure", "Brisa-Horizon"))
+  check("the inform echo confirms a pending reply", p.status == "sent", p.status)
+  local q = S.AddPending("w:Ghost-Horizon", "hello?")
+  E.Dispatch("CHAT_MSG_SYSTEM", "No player named 'Ghost' is currently playing.")
+  check("player-not-found fails the pending whisper", q.status == "failed", q.status)
+  local q2 = S.AddPending("w:Ghost-Horizon", "again?")
+  E.Dispatch("CHAT_MSG_SYSTEM", "You feel rested.")
+  check("other system messages are ignored", q2.status == "pending", q2.status)
+  E.Dispatch("CHAT_MSG_SYSTEM", SECRET("No player named 'Ghost' is currently playing."))
+  check("a secret system message is ignored", q2.status == "pending", q2.status)
+
+  local registered = {}
+  CreateFrame = function()
+    return { SetScript = function() end,
+             RegisterEvent = function(_, e) registered[e] = true end,
+             UnregisterAllEvents = function() registered = {} end }
+  end
+  E.Enable()
+  check("enable registers chat and system events",
+        registered.CHAT_MSG_WHISPER and registered.CHAT_MSG_CHANNEL and registered.CHAT_MSG_SYSTEM, "missing")
+  check("enable registers bnet when the platform has it", registered.CHAT_MSG_BN_WHISPER == true, "missing")
+  E.Disable()
+  check("disable unregisters", next(registered) == nil, "still registered")
+  HorizonSuite.Platform.caps.bnetWhispers = false
+  E.Enable()
+  check("no bnet events without the capability",
+        registered.CHAT_MSG_BN_WHISPER == nil and registered.CHAT_MSG_WHISPER == true, "registered")
+  E.Disable()
+  HorizonSuite.Platform.caps.bnetWhispers = true
+  S.Reset()
+`, 'events');
 
 // --- Summary -------------------------------------------------------------------
 run(`
