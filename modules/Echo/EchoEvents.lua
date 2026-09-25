@@ -114,9 +114,17 @@ local function BuildFeedRecord(event, kind, text, sender)
         if template:find("%%%a") then return nil, "ignored" end
         text, textSecret = template, false
     elseif ACHIEVEMENT_EVENTS[event] and not textSecret and type(text) == "string"
-        and text:find("%s", 1, true) and not IsSecret(sender) and type(sender) == "string" and sender ~= "" then
-        local short = sender:match("^([^-]+)") or sender
-        local ok, formatted = pcall(string.format, text, "|Hplayer:" .. sender .. "|h[" .. short .. "]|h")
+        and text:find("%s", 1, true) then
+        -- A readable achiever becomes a player link; a secret, empty or missing one is
+        -- "Someone", so the line never shows a raw "%s".
+        local who
+        if not IsSecret(sender) and type(sender) == "string" and sender ~= "" then
+            local short = sender:match("^([^-]+)") or sender
+            who = "|Hplayer:" .. sender .. "|h[" .. short .. "]|h"
+        else
+            who = addon.L["ECHO_SOMEONE"]
+        end
+        local ok, formatted = pcall(string.format, text, who)
         if ok then text = formatted end
     end
     return {

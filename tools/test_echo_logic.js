@@ -2310,7 +2310,13 @@ run(`
   check("an achievement names the player as a link", r.convKey == "progress"
         and r.text == "|Hplayer:Brisa-Horizon|h[Brisa]|h has earned the achievement [Cloak Collector]!", r.text)
   r = E.BuildRecord("CHAT_MSG_GUILD_ACHIEVEMENT", p("%s has earned the achievement [Raider]!", SECRET("Brisa-Horizon")))
-  check("a secret achiever leaves the text as it came", r.text == "%s has earned the achievement [Raider]!", r.text)
+  check("a secret achiever is named as someone", r.text == "ECHO_SOMEONE has earned the achievement [Raider]!", r.text)
+  r = E.BuildRecord("CHAT_MSG_ACHIEVEMENT", p("%s has earned the achievement [Explorer]!", ""))
+  check("an empty achiever is named as someone", r.text == "ECHO_SOMEONE has earned the achievement [Explorer]!", r.text)
+  r = E.BuildRecord("CHAT_MSG_ACHIEVEMENT", p("%s has earned the achievement [Explorer]!", nil))
+  check("a missing achiever is named as someone", r.text == "ECHO_SOMEONE has earned the achievement [Explorer]!", r.text)
+  r = E.BuildRecord("CHAT_MSG_ACHIEVEMENT", p("%s has %d", nil))
+  check("an achievement text that won't format is left as it came", r.text == "%s has %d", r.text)
 
   local savedOnline = BN_INLINE_TOAST_FRIEND_ONLINE
   BN_INLINE_TOAST_FRIEND_ONLINE = "%s has come online."
