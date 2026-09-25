@@ -117,6 +117,7 @@ const FILES = [
   'modules/Echo/EchoTiles.lua',
   'modules/Echo/EchoStack.lua',
   'modules/Echo/EchoMenu.lua',
+  'modules/Echo/EchoCard.lua',
   'modules/Echo/EchoSlash.lua',
 ];
 for (const f of FILES) run(read(f), f);
@@ -1783,6 +1784,97 @@ run(`
   MenuUtil = savedMenuUtil
   S.Reset()
 `, 'menu');
+
+// --- Card: smoke test with stand-in frames ---------------------------------------------
+run(`
+  local S, T, K, C = HorizonSuite.Echo.Store, HorizonSuite.Echo.Tiles, HorizonSuite.Echo.Stack, HorizonSuite.Echo.Card
+  S.Reset()
+  CreateFrame = STUB_CREATE_FRAME
+  local sent = {}
+  C_ChatInfo = { SendChatMessage = function(msg, chatType, _, target) sent[#sent + 1] = chatType .. ":" .. tostring(target) .. ":" .. msg end }
+  T.Enable()
+  K.Enable()
+  C.Enable()
+  local f = C._frames()
+  check("the card starts hidden", not f.root:IsShown(), "shown")
+  check("escape can close the card", (function()
+    for _, n in ipairs(UISpecialFrames) do if n == "HorizonSuiteEchoCard" then return true end end
+    return false end)(), "not registered")
+  C.Open(nil)
+  check("with no conversations the card stays shut", not f.root:IsShown(), "shown")
+
+  S.Add({ convKey = "w:Brisa-Horizon", text = "got the leather", class = "DRUID", sender = "Brisa-Horizon" })
+  S.Add({ convKey = "w:Brisa-Horizon", text = "can you craft the cloak?", class = "DRUID", sender = "Brisa-Horizon" })
+  S.Add({ convKey = "w:Vexa-Horizon", text = "gz", sender = "Vexa-Horizon" })
+  C.Open("w:Brisa-Horizon")
+  check("open shows the card", f.root:IsShown(), "hidden")
+  check("the card shows the chosen conversation", f.name.text == "Brisa", f.name.text)
+  check("the meta line names the class", f.meta.text:find("DRUID", 1, true) ~= nil, f.meta.text)
+  check("opening marks it read", S.Get("w:Brisa-Horizon").unread == 0, S.Get("w:Brisa-Horizon").unread)
+  check("the newest message is the bottom bubble", f.bubbles[1].text.text == "can you craft the cloak?" and f.bubbles[1].shown, f.bubbles[1].text.text)
+  check("their bubble sits on the left", f.bubbles[1].points[1][1] == "BOTTOMLEFT", f.bubbles[1].points[1][1])
+  check("the older message sits above it", f.bubbles[2].text.text == "got the leather" and f.bubbles[2].points[1][5] > f.bubbles[1].points[1][5], "?")
+  check("the tile row shows both conversations", f.rowTiles[1].shown and f.rowTiles[2].shown and not f.rowTiles[3].shown, "?")
+
+  f.edit:SetText("sure, mail them")
+  f.edit.scripts.OnEnterPressed(f.edit)
+  check("enter sends to the card's conversation", sent[1] == "WHISPER:Brisa-Horizon:sure, mail them", sent[1])
+  check("the box empties after sending", f.edit.text == "", f.edit.text)
+  check("your bubble sits on the right", f.bubbles[1].text.text == "sure, mail them" and f.bubbles[1].points[1][1] == "BOTTOMRIGHT", f.bubbles[1].points[1][1])
+  check("the status line shows under your newest message", f.status.shown and f.status.text.text == "ECHO_STATUS_PENDING", f.status.text.text)
+  check("the card stays on the conversation after it moves up the list", f.name.text == "Brisa", f.name.text)
+
+  S.MarkFailed("w:Brisa-Horizon")
+  check("a failed message offers retry", f.status.retry ~= nil and f.status.text.text:find("ECHO_RETRY", 1, true) ~= nil, f.status.text.text)
+  f.status.scripts.OnClick(f.status)
+  check("retry sends again", sent[2] == "WHISPER:Brisa-Horizon:sure, mail them", sent[2])
+
+  f.edit:SetText("")
+  f.edit.scripts.OnEnterPressed(f.edit)
+  check("enter on an empty box only leaves it", f.edit.focused == false and #sent == 2, #sent)
+
+  f.edit:SetText("draft for brisa")
+  local vexaTile
+  for _, b in ipairs(f.rowTiles) do if b.convKey == "w:Vexa-Horizon" then vexaTile = b end end
+  vexaTile.scripts.OnClick(vexaTile)
+  check("a row tile switches the card", f.name.text == "Vexa", f.name.text)
+  check("the other conversation starts with an empty box", f.edit.text == "", f.edit.text)
+  C.Show("w:Brisa-Horizon")
+  check("the draft comes back with its conversation", f.edit.text == "draft for brisa", f.edit.text)
+
+  for i = 1, 20 do S.Add({ convKey = "w:Brisa-Horizon", text = "line " .. i, sender = "Brisa-Horizon" }) end
+  check("new messages show at the bottom", f.bubbles[1].text.text == "line 20", f.bubbles[1].text.text)
+  C.Scroll(5)
+  check("the wheel scrolls back by message", f.bubbles[1].text.text == "line 15", f.bubbles[1].text.text)
+  C.Scroll(-100)
+  check("scrolling stops at the newest", f.bubbles[1].text.text == "line 20", f.bubbles[1].text.text)
+
+  S.Add({ convKey = "w:Brisa-Horizon", text = SECRET("mid-pull"), secret = true, sender = "Brisa-Horizon" })
+  check("a secret message gets a bubble with the secret as its only text", f.bubbles[1].shown and rawequal(f.bubbles[1].text.text, S.Get("w:Brisa-Horizon").messages[#S.Get("w:Brisa-Horizon").messages].text), "joined")
+
+  S.Add({ convKey = "party", text = "pull", sender = "Tank-Horizon", class = "WARRIOR" })
+  S.Add({ convKey = "party", text = "now", sender = "Tank-Horizon", class = "WARRIOR" })
+  S.Add({ convKey = "party", text = "heal pls", sender = "Priest-Horizon" })
+  C.Show("party")
+  check("a group card names each speaker once per group", f.labels[1].shown and f.labels[1].text == "Priest" and f.labels[2].shown and f.labels[2].text == "Tank" and not (rawget(f.labels, 3) and f.labels[3].shown), f.labels[1].text)
+
+  f.chevron.scripts.OnClick(f.chevron)
+  check("the chevron collapses the card", not f.root:IsShown(), "shown")
+
+  K.Open("w:Brisa-Horizon")
+  C.Open("w:Vexa-Horizon")
+  check("opening the card closes the stack", f.root:IsShown() and not K._frames().root:IsShown(), "both")
+
+  S.Close("w:Vexa-Horizon")
+  check("closing the card's conversation moves to another", f.root:IsShown() and f.name.text ~= "Vexa", f.name.text)
+
+  C.Disable()
+  K.Disable()
+  T.Disable()
+  check("a disabled card ignores new messages", pcall(S.Add, { convKey = "w:Late-Horizon", text = "x" }), "threw")
+  C_ChatInfo = nil
+  S.Reset()
+`, 'card');
 
 // --- Summary -------------------------------------------------------------------
 run(`

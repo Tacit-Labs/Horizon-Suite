@@ -169,6 +169,7 @@ modules/Echo/EchoLinks.lua
 modules/Echo/EchoTiles.lua
 modules/Echo/EchoStack.lua
 modules/Echo/EchoMenu.lua
+modules/Echo/EchoCard.lua
 modules/Echo/EchoSlash.lua
 modules/Echo/EchoModule.lua
 options/OptionsWidgets.lua
