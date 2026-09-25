@@ -477,9 +477,11 @@ end
 function Card.Submit()
     local text = edit and edit:GetText()
     if not currentKey or not text or text == "" then return end
-    Echo.Send.Send(currentKey, text)
-    edit:SetText("")
+    -- Back to the newest before sending: Send.Send's Store.AddPending triggers the render
+    -- that draws the new bubble, and it must draw it at the bottom, not scrolled past.
     offset = 0
+    -- A send that can't route keeps its text in the box, so nothing typed is lost.
+    if Echo.Send.Send(currentKey, text) then edit:SetText("") end
 end
 
 --- Send a failed message again.

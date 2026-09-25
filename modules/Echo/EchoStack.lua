@@ -86,8 +86,8 @@ local function CreateEdit()
             self:ClearFocus()
             return
         end
-        Echo.Send.Send(conv.key, text)
-        self:SetText("")
+        -- A send that can't route keeps its text in the box, so nothing typed is lost.
+        if Echo.Send.Send(conv.key, text) then self:SetText("") end
     end)
     edit:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
     edit:SetScript("OnEditFocusGained", function(self)

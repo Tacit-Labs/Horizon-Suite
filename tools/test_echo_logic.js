@@ -2047,6 +2047,50 @@ run(`
   S.Reset()
 `, 'wiring');
 
+// --- Final fix G1: a reply sent while scrolled up is shown; a refused send keeps its text --
+run(`
+  local Echo = HorizonSuite.Echo
+  local S, T, K, C = Echo.Store, Echo.Tiles, Echo.Stack, Echo.Card
+  S.Reset()
+  CreateFrame = STUB_CREATE_FRAME
+  C_ChatInfo = { SendChatMessage = function() end }
+  T.Enable()
+  K.Enable()
+  C.Enable()
+  local f = C._frames()
+
+  for i = 1, 20 do S.Add({ convKey = "w:Brisa-Horizon", text = "line " .. i, sender = "Brisa-Horizon" }) end
+  C.Open("w:Brisa-Horizon")
+  C.Scroll(5)
+  check("G1: the card is scrolled up", f.bubbles[1].text.text == "line 15", f.bubbles[1].text.text)
+  f.edit:SetText("sent while scrolled up")
+  C.Submit()
+  check("G1: a reply sent while scrolled up is the bottom bubble", f.bubbles[1].text.text == "sent while scrolled up", f.bubbles[1].text.text)
+
+  local realSend = Echo.Send.Send
+  Echo.Send.Send = function() return false end
+  f.edit:SetText("cannot route")
+  C.Submit()
+  check("G1: a refused send keeps its text in the card box", f.edit.text == "cannot route", f.edit.text)
+  C.Hide()
+  Echo.TakeDraft("w:Brisa-Horizon")
+
+  local sf = K._frames()
+  K.Open("w:Brisa-Horizon")
+  sf.edit:SetText("stack cannot route")
+  sf.edit.scripts.OnEnterPressed(sf.edit)
+  check("G1: a refused send keeps its text in the stack box", sf.edit.text == "stack cannot route", sf.edit.text)
+  Echo.Send.Send = realSend
+  K.Hide()
+  Echo.TakeDraft("w:Brisa-Horizon")
+
+  C.Disable()
+  K.Disable()
+  T.Disable()
+  C_ChatInfo = nil
+  S.Reset()
+`, 'final-g1');
+
 // --- Summary -------------------------------------------------------------------
 run(`
   print(PASS .. " passed, " .. FAIL .. " failed")
