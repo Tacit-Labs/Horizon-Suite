@@ -96,7 +96,9 @@ function Store.KindOf(convKey)
 end
 
 local function Notify(convKey, change)
-    for _, fn in ipairs(listeners) do
+    local snapshot = {}
+    for i = 1, #listeners do snapshot[i] = listeners[i] end
+    for _, fn in ipairs(snapshot) do
         local ok, err = pcall(fn, convKey, change)
         if not ok then
             local handler = geterrorhandler and geterrorhandler()
