@@ -191,7 +191,7 @@ local function Create()
         b.dot:SetColorTexture(a.r, a.g, a.b, 1)
         b:RegisterForClicks("LeftButtonUp")
         b:SetScript("OnClick", function(self)
-            if self.convKey then Card.Show(self.convKey) end
+            if self.convKey then Card.Toggle(self.convKey) end
         end)
         b:Hide()
         rowTiles[i] = b
@@ -579,6 +579,16 @@ function Card.Show(convKey)
     end
     currentKey = convKey
     Card.Render()
+end
+
+--- A tile click: close the card if it already shows this conversation, else show it.
+-- @param convKey string
+function Card.Toggle(convKey)
+    if root and root:IsShown() and convKey == renderedKey then
+        Card.Hide()
+    else
+        Card.Show(convKey)
+    end
 end
 
 function Card.Hide()

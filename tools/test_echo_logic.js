@@ -2070,6 +2070,16 @@ run(`
   local tile = T.TileFor("w:Brisa-Horizon")
   tile.scripts.OnClick(tile)
   check("clicking a tile opens the card on it", card.root:IsShown() and card.name.text == "Brisa", card.name.text)
+  local vexa = T.TileFor("w:Vexa-Horizon")
+  vexa.scripts.OnClick(vexa)
+  check("clicking another tile switches the card", card.root:IsShown() and card.name.text == "Vexa", card.name.text)
+  vexa.scripts.OnClick(vexa)
+  check("clicking the shown conversation's tile closes the card", not card.root:IsShown(), "still open")
+  tile.scripts.OnClick(tile)
+  local rowBrisa
+  for _, b in ipairs(card.rowTiles) do if b.convKey == "w:Brisa-Horizon" and b:IsShown() then rowBrisa = b end end
+  rowBrisa.scripts.OnClick(rowBrisa)
+  check("clicking the card's own row tile for it closes the card", not card.root:IsShown(), "still open")
   C.Hide()
 
   local toast = T._toast()

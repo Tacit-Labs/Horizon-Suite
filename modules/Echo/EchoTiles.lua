@@ -96,8 +96,12 @@ local function CreateTile()
     b.count:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", -2, 2)
     b:RegisterForClicks("LeftButtonUp")
     b:SetScript("OnClick", function(self)
-        local view = Echo.Card or Echo.Stack
-        if self.convKey and view then view.Open(self.convKey) end
+        if not self.convKey then return end
+        if Echo.Card then
+            Echo.Card.Toggle(self.convKey)
+        elseif Echo.Stack then
+            Echo.Stack.Open(self.convKey)
+        end
     end)
     b:SetScript("OnEnter", HoverEnter)
     b:SetScript("OnLeave", HoverLeave)
