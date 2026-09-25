@@ -245,7 +245,7 @@ local function ToastUpdate(self, elapsed)
         self:Hide()
         return
     end
-    local hold = tonumber(Echo.Setting("echoToastSeconds")) or 4
+    local hold = self.hold or 4
     if self:IsMouseOver() and self.t >= M.ENTRANCE_DUR then
         self.t = M.ENTRANCE_DUR  -- hovering keeps it up; the hold restarts on leave
     else
@@ -265,6 +265,9 @@ local function ToastUpdate(self, elapsed)
         alpha = 1 - M.Ease(p, "in")
     end
     self:SetAlpha(alpha)
+    -- A Refresh can hand the tile this toast pointed at to another conversation, or hide
+    -- it; follow the conversation, not the frame.
+    self.anchor = Tiles.TileFor(self.convKey) or stackButton
     self:ClearAllPoints()
     self:SetPoint("RIGHT", self.anchor, "LEFT", -8 - offset, 0)
 end
@@ -293,6 +296,8 @@ local function CreateToast()
     f:RegisterForClicks("LeftButtonUp")
     f:SetScript("OnClick", function(self)
         self:Hide()
+        -- The player has engaged; toasts still held from combat are stale now.
+        pending = {}
         if self.convKey and Echo.Stack then Echo.Stack.Open(self.convKey) end
     end)
     f:SetScript("OnUpdate", ToastUpdate)
@@ -338,6 +343,7 @@ function Tiles.ShowToast(convKey)
     toast:SetFrameStrata(column:GetFrameStrata())
     toast.anchor = Tiles.TileFor(convKey) or stackButton
     toast.convKey = convKey
+    toast.hold = tonumber(Echo.Setting("echoToastSeconds")) or 4
     toast.t = 0
     toast:SetAlpha(0)
     toast:ClearAllPoints()
@@ -346,8 +352,16 @@ function Tiles.ShowToast(convKey)
     return true
 end
 
+-- Queue a conversation's toast under its newest message's seq, so release plays newest first.
+local function HoldKey(convKey)
+    local conv = Echo.Store.Get(convKey)
+    local last = conv and conv.messages[#conv.messages]
+    queue:Hold(convKey, last and last.seq or 0)
+end
+
 --- Play the next toast held over from combat.
 function Tiles.NextToast()
+    if Tiles.holding then return end
     while #pending > 0 do
         local key = table.remove(pending, 1)
         if Tiles.ShowToast(key) then return end
@@ -359,7 +373,12 @@ end
 function Tiles.Hold(on)
     Tiles.holding = on and true or false
     if not queue then queue = Echo.View.NewToastQueue() end
-    if not Tiles.holding then
+    if Tiles.holding then
+        -- Combat started again before the last release finished playing: hold the rest
+        -- so they replay after this fight instead of popping up during it.
+        for _, key in ipairs(pending) do HoldKey(key) end
+        pending = {}
+    else
         pending = queue:Release()
         Tiles.NextToast()
     end
@@ -374,9 +393,7 @@ function Tiles.OnStoreChange(convKey, change)
     local stack = _G.HorizonSuiteEchoStack
     if stack and stack:IsShown() then return end
     if Tiles.holding then
-        local conv = Echo.Store.Get(convKey)
-        local last = conv and conv.messages[#conv.messages]
-        queue:Hold(convKey, last and last.seq or 0)
+        HoldKey(convKey)
     else
         Tiles.ShowToast(convKey)
     end

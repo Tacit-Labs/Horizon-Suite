@@ -1229,6 +1229,64 @@ run(`
   S.Reset()
 `, 'tiles-stack-open');
 
+// --- Tiles: the toast queue across combat, clicks and moving tiles (final review F5) ---------
+run(`
+  local S, T, K = HorizonSuite.Echo.Store, HorizonSuite.Echo.Tiles, HorizonSuite.Echo.Stack
+  S.Reset()
+  CreateFrame = STUB_CREATE_FRAME
+  T.Enable()
+  K.Enable()
+  local toast
+  local function add(key) S.Add({ convKey = key, text = "hi", sender = key:sub(3) }) end
+
+  -- (a) combat starts again while released toasts are still playing
+  T.Hold(true)
+  add("w:A-Horizon"); add("w:B-Horizon"); add("w:C-Horizon")
+  T.Hold(false)
+  toast = T._toast()
+  check("release plays the newest held toast", toast.shown and toast.convKey == "w:C-Horizon", toast.convKey)
+  T.Hold(true)
+  toast:Hide()
+  T.NextToast()
+  check("no held toast plays while holding again", not toast.shown, toast.convKey)
+  T.Hold(false)
+  check("the unplayed toasts replay after the next release", toast.shown and toast.convKey == "w:B-Horizon", toast.convKey)
+  toast:Hide()
+  T.NextToast()
+  check("and the rest follow", toast.shown and toast.convKey == "w:A-Horizon", toast.convKey)
+  toast:Hide()
+  T.NextToast()
+
+  -- (b) clicking a toast drops the rest of the held ones
+  T.Hold(true)
+  add("w:D-Horizon"); add("w:E-Horizon")
+  T.Hold(false)
+  check("the newest held toast shows", toast.shown and toast.convKey == "w:E-Horizon", toast.convKey)
+  toast.scripts.OnClick(toast)
+  K.Hide()
+  T.NextToast()
+  check("after a toast is clicked the stale held toasts do not play", not toast.shown, toast.convKey)
+
+  -- (c) the toast follows its conversation's tile when a refresh moves it
+  local savedAugment = HorizonSuite.Augment
+  HorizonSuite.Augment = { ToastMotion = { ENTRANCE_DUR = 0.2, EXIT_DUR = 0.2, SLIDE_DIST = 10,
+                                           Ease = function(p) return p end } }
+  add("w:F-Horizon")
+  check("a loud message toasts", toast.shown and toast.convKey == "w:F-Horizon", toast.convKey)
+  add("w:G-Horizon")
+  toast.convKey = "w:F-Horizon"   -- as if F's toast were still up when G's tile pushed F down
+  toast.scripts.OnUpdate(toast, 0.05)
+  local anchor = toast.points[1] and toast.points[1][2]
+  check("the toast re-anchors to its conversation's tile each frame",
+        anchor ~= nil and anchor == T.TileFor("w:F-Horizon"), tostring(anchor and anchor.convKey))
+  HorizonSuite.Augment = savedAugment
+
+  toast:Hide()
+  K.Disable()
+  T.Disable()
+  S.Reset()
+`, 'tiles-toast-queue');
+
 // --- Module wiring: login restore, Battle.net retry, combat, logout (final review F4) ------
 // EchoModule.lua is not in FILES: it registers with the addon, so it loads here against a
 // stubbed RegisterModule and everything it touches is put back afterwards.
