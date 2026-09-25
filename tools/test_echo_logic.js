@@ -116,6 +116,7 @@ const FILES = [
   'modules/Echo/EchoLinks.lua',
   'modules/Echo/EchoTiles.lua',
   'modules/Echo/EchoStack.lua',
+  'modules/Echo/EchoMenu.lua',
   'modules/Echo/EchoSlash.lua',
 ];
 for (const f of FILES) run(read(f), f);
@@ -1738,6 +1739,50 @@ run(`
   T.Disable()
   S.Reset()
 `, 'links');
+
+// --- Menu: the ⋯ menu's contents and actions ---------------------------------------------
+run(`
+  local S, M = HorizonSuite.Echo.Store, HorizonSuite.Echo.Menu
+  S.Reset()
+  S.Add({ convKey = "w:Brisa-Horizon", text = "hi" })
+
+  local calls = {}
+  local rootDescription = {}
+  function rootDescription:CreateButton(label, fn) calls[#calls + 1] = { "button", label, fn } end
+  function rootDescription:CreateTitle(label) calls[#calls + 1] = { "title", label } end
+  function rootDescription:CreateDivider() calls[#calls + 1] = { "divider" } end
+  function rootDescription:CreateRadio(label, isSelected, setSelected) calls[#calls + 1] = { "radio", label, isSelected, setSelected } end
+  M.Build(rootDescription, "w:Brisa-Horizon")
+  check("the menu has pin, a title, five choices and close", #calls == 10 and calls[1][1] == "button" and calls[4][1] == "radio" and calls[10][1] == "button", #calls)
+
+  calls[1][3]()
+  check("pin pins", S.Get("w:Brisa-Horizon").pinned == true, "?")
+  M.Run("w:Brisa-Horizon", "pin")
+  check("pin again unpins", S.Get("w:Brisa-Horizon").pinned == false, "?")
+
+  local muted = calls[8]
+  check("the muted choice is not selected yet", muted[3]() == false, "?")
+  muted[4]()
+  check("choosing muted mutes", S.TierOf("w:Brisa-Horizon") == "muted" and muted[3]() == true, S.TierOf("w:Brisa-Horizon"))
+  calls[4][4]()
+  check("choosing default clears the override", S.OverrideOf("w:Brisa-Horizon") == nil and calls[4][3]() == true, S.OverrideOf("w:Brisa-Horizon"))
+
+  calls[10][3]()
+  check("close closes the conversation", not S.Get("w:Brisa-Horizon").open, "still open")
+
+  calls = {}
+  M.Build(rootDescription, "w:Nobody-Horizon")
+  check("no menu for an unknown conversation", #calls == 0, #calls)
+
+  local savedMenuUtil = MenuUtil
+  MenuUtil = nil
+  check("without MenuUtil the menu does not open", M.Open({}, "w:Brisa-Horizon") == false, "?")
+  local opened
+  MenuUtil = { CreateContextMenu = function(owner, generator) opened = { owner, generator } end }
+  check("with MenuUtil it opens", M.Open("owner", "w:Brisa-Horizon") == true and opened[1] == "owner" and type(opened[2]) == "function", "?")
+  MenuUtil = savedMenuUtil
+  S.Reset()
+`, 'menu');
 
 // --- Summary -------------------------------------------------------------------
 run(`
