@@ -20,6 +20,13 @@ end
 
 local function Echo() return addon.Echo end
 
+local WHISPER_SOUND_OPTIONS = {
+    { L["ECHO_SOUND_BLIZZARD"], "blizzard" },
+    { L["ECHO_SOUND_TOAST"],    "toast"    },
+    { L["ECHO_SOUND_PING"],     "ping"     },
+    { L["ECHO_SOUND_OFF"],      "off"      },
+}
+
 local TIER_OPTIONS = {
     { L["ECHO_TIER_LOUD"],  "loud"  },
     { L["ECHO_TIER_COUNT"], "count" },
@@ -82,6 +89,16 @@ local options = {
       set = function(v) setDB("echoToastStyle", v) end },
     IntSlider("echoToastSeconds", L["ECHO_TOAST_SECONDS"], L["ECHO_TOAST_SECONDS_DESC"], 1),
     Toggle(L["ECHO_HOLD_IN_COMBAT"], L["ECHO_HOLD_IN_COMBAT_DESC"], "echoHoldToastsInCombat", D.echoHoldToastsInCombat),
+    { type = "dropdown", name = L["ECHO_WHISPER_SOUND"], desc = L["ECHO_WHISPER_SOUND_DESC"], dbKey = "echoWhisperSound",
+      options = WHISPER_SOUND_OPTIONS, preserveOrder = true,
+      get = function() return getDB("echoWhisperSound", D.echoWhisperSound) end,
+      set = function(v) setDB("echoWhisperSound", v) end },
+    Button(L["ECHO_SOUND_PREVIEW"], L["ECHO_SOUND_PREVIEW_DESC"], function()
+        local E = Echo()
+        if E and E.Sound then E.Sound.Whisper(false, true) end
+    end),
+    Toggle(L["ECHO_SOUND_IN_COMBAT"], L["ECHO_SOUND_IN_COMBAT_DESC"], "echoSoundInCombat", D.echoSoundInCombat),
+    Toggle(L["ECHO_SOUND_BNET"], L["ECHO_SOUND_BNET_DESC"], "echoSoundBnet", D.echoSoundBnet),
     { type = "editbox", name = L["ECHO_KEYWORDS"], labelText = L["ECHO_KEYWORDS"], tooltip = L["ECHO_KEYWORDS_DESC"],
       dbKey = "echoKeywords", height = 24,
       get = function() return getDB("echoKeywords", D.echoKeywords) or "" end,

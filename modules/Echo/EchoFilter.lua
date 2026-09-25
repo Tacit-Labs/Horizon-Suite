@@ -5,12 +5,13 @@
     secret sender) is never hidden, so nothing is lost. Blizzard sets the reply target
     after the filters run, so a hidden incoming whisper sets it here instead. Blizzard
     also plays the whisper sound and flashes the taskbar icon after the filters run; a
-    hidden incoming whisper does both here instead, once per chat frame.
+    hidden incoming whisper does both here instead, once per chat frame, via
+    Echo.Sound.Whisper (EchoSound.lua) and FlashClientIcon.
     While C_ChatInfo.InChatMessagingLockdown() is true, nothing is hidden: Blizzard's own
     secure code owns the line, the sound and the reply target during that window.
     Blizzard: ChatFrameUtil.AddMessageEventFilter / RemoveMessageEventFilter (legacy
     ChatFrame_* globals), ChatFrameUtil.SetLastTellTarget / ChatEdit_SetLastTellTarget,
-    PlaySound, SOUNDKIT.TELL_MESSAGE, FlashClientIcon, C_ChatInfo.InChatMessagingLockdown.
+    FlashClientIcon, C_ChatInfo.InChatMessagingLockdown.
 ]]
 
 local addon = _G.HorizonSuite
@@ -49,13 +50,11 @@ local lastAlertAt
 
 --- Play the whisper sound and flash the taskbar icon, once per chat frame: the filter
 -- runs once per registered event for the same line within one frame.
-local function Alert()
+local function Alert(event)
     local now = GetTime and GetTime() or 0
     if now == lastAlertAt then return end
     lastAlertAt = now
-    if SOUNDKIT and SOUNDKIT.TELL_MESSAGE then
-        pcall(PlaySound, SOUNDKIT.TELL_MESSAGE)
-    end
+    Echo.Sound.Whisper(event == "CHAT_MSG_BN_WHISPER")
     if FlashClientIcon then
         pcall(FlashClientIcon)
     end
@@ -89,7 +88,7 @@ function Filter.Handler(_, event, ...)
         local chatType = INCOMING[event]
         if chatType then
             SetLastTell((select(2, ...)), chatType)
-            Alert()
+            Alert(event)
         end
         return true
     end

@@ -120,6 +120,7 @@ const FILES = [
   'modules/Echo/EchoHistory.lua',
   'modules/Echo/EchoEvents.lua',
   'modules/Echo/EchoFilter.lua',
+  'modules/Echo/EchoSound.lua',
   'modules/Echo/EchoSend.lua',
   'modules/Echo/EchoView.lua',
   'modules/Echo/EchoClass.lua',
@@ -3364,7 +3365,7 @@ run(`
   check("two hides at the same time play one sound", soundCalls == 1, soundCalls)
   check("two hides at the same time flash once", flashCalls == 1, flashCalls)
 
-  now = 101
+  now = 102
   F.Handler(nil, "CHAT_MSG_WHISPER", "later", "Brisa-Horizon", "", "", "", "", 0, 0, "", 0, 1, "Player-1-DRUID")
   check("a later time plays the sound again", soundCalls == 2, soundCalls)
   check("a later time flashes again", flashCalls == 2, flashCalls)
@@ -3793,6 +3794,107 @@ run(`
   LOCALIZED_CLASS_NAMES_MALE, LOCALIZED_CLASS_NAMES_FEMALE = saved.LOCALIZED_CLASS_NAMES_MALE, saved.LOCALIZED_CLASS_NAMES_FEMALE
   S.Reset()
 `, 'class-lookup');
+
+// --- Whisper sound choices ----------------------------------------------------
+run(`
+  local Echo = HorizonSuite.Echo
+  local db = { echoWhisperSound = "blizzard", echoSoundInCombat = true, echoSoundBnet = true }
+  HorizonSuite.ECHO_DEFAULTS = { echoWhisperSound = "blizzard", echoSoundInCombat = true, echoSoundBnet = true }
+  HorizonSuite.GetDB = function(k, d) if db[k] ~= nil then return db[k] end return d end
+  local played
+  PlaySound = function(id) played = id end
+  local now = 1000
+  GetTime = function() return now end
+  InCombatLockdown = function() return false end
+  SOUNDKIT = { TELL_MESSAGE = 3081, UI_BNET_TOAST = 5274, MAP_PING = 6262 }
+
+  Echo.Sound.Whisper(false)
+  check("blizzard choice plays TELL_MESSAGE", played == 3081, played)
+
+  now = now + 2; played = nil
+  db.echoWhisperSound = "toast"
+  Echo.Sound.Whisper(false)
+  check("toast choice plays UI_BNET_TOAST", played == 5274, played)
+
+  now = now + 2; played = nil
+  db.echoWhisperSound = "ping"
+  Echo.Sound.Whisper(false)
+  check("ping choice plays MAP_PING", played == 6262, played)
+
+  now = now + 2; played = nil
+  SOUNDKIT = { TELL_MESSAGE = 3081 }
+  db.echoWhisperSound = "toast"
+  Echo.Sound.Whisper(false)
+  check("a missing sound id falls back to TELL_MESSAGE", played == 3081, played)
+  SOUNDKIT = { TELL_MESSAGE = 3081, UI_BNET_TOAST = 5274, MAP_PING = 6262 }
+
+  now = now + 2; played = nil
+  db.echoWhisperSound = "off"
+  Echo.Sound.Whisper(false)
+  check("off plays nothing", played == nil, played)
+
+  db.echoWhisperSound = "blizzard"
+  now = now + 2; played = nil
+  InCombatLockdown = function() return true end
+  db.echoSoundInCombat = false
+  Echo.Sound.Whisper(false)
+  check("combat with the toggle off plays nothing", played == nil, played)
+
+  db.echoSoundInCombat = true
+  now = now + 2
+  Echo.Sound.Whisper(false)
+  check("combat with the toggle on still plays", played == 3081, played)
+  InCombatLockdown = function() return false end
+
+  now = now + 2; played = nil
+  db.echoSoundBnet = false
+  Echo.Sound.Whisper(true)
+  check("a Battle.net whisper with the toggle off plays nothing", played == nil, played)
+
+  now = now + 2
+  db.echoSoundBnet = true
+  Echo.Sound.Whisper(true)
+  check("a Battle.net whisper with the toggle on plays", played == 3081, played)
+
+  now = now + 2
+  Echo.Sound.Whisper(false)
+  check("a fresh play after the gap plays", played == 3081, played)
+
+  played = nil
+  now = now + 1
+  Echo.Sound.Whisper(false)
+  check("a play under 1.5s later is throttled", played == nil, played)
+
+  now = now + 1.5
+  Echo.Sound.Whisper(false)
+  check("a play 1.5s or more later plays again", played == 3081, played)
+
+  played = nil
+  Echo.Sound.Whisper(false, true)
+  check("preview plays immediately inside the throttle window", played == 3081, played)
+
+  InCombatLockdown = function() return true end
+  db.echoSoundInCombat = false
+  played = nil
+  Echo.Sound.Whisper(false, true)
+  check("preview bypasses the combat toggle", played == 3081, played)
+  InCombatLockdown = function() return false end
+  db.echoSoundInCombat = true
+
+  db.echoSoundBnet = false
+  played = nil
+  Echo.Sound.Whisper(true, true)
+  check("preview bypasses the Battle.net toggle", played == 3081, played)
+  db.echoSoundBnet = true
+
+  db.echoWhisperSound = "off"
+  played = nil
+  Echo.Sound.Whisper(false, true)
+  check("preview still plays nothing when off", played == nil, played)
+
+  PlaySound, SOUNDKIT, GetTime, InCombatLockdown = nil, nil, nil, nil
+  HorizonSuite.GetDB, HorizonSuite.ECHO_DEFAULTS = nil, nil
+`, 'echo-sound');
 
 // --- Redraw: one repaint per frame -------------------------------------------
 run(`

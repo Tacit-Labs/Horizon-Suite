@@ -17,6 +17,9 @@ addon.ECHO_DEFAULTS = {
     echoToastSeconds       = 4,
     echoHoverDelay         = 0.35,
     echoHoldToastsInCombat = true,
+    echoWhisperSound       = "blizzard",
+    echoSoundInCombat      = true,
+    echoSoundBnet          = true,
     -- Tier per conversation type; mirrors Store.DEFAULT_TIERS.
     echoTierWhisper        = "loud",
     echoTierBnet           = "loud",
