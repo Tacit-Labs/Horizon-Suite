@@ -204,6 +204,9 @@ These are assumptions, not facts. Settle them in the first implementation step, 
 - Whisper and whisper-inform route to `w:Name-Realm`; the reply route is `WHISPER:Name-Realm`. Your own General line is detected as outgoing.
 - No argument was secret outside an instance. Item 1 still needs an in-instance run; #444 saw secret `CHAT_MSG_SYSTEM` anywhere inside an instance on both clients, so a delve or dungeon is enough.
 - **CHAT_MSG_CHANNEL arg 9 carries the zone** (`General - Zul'Aman`), so keying by it made one conversation per zone. Fixed: zone channels (arg 7 `zoneChannelID` > 0) are keyed by the name before ` - `, and replies go to the joined index from arg 8, checked against `GetChannelName(index)` before use. `GetChannelName` accepted the full name (`route=CHANNEL:1`).
+- Inside a delve, before any fight, nothing was secret either: whisper and whisper-inform arrived fully readable. Chat is not hidden merely for being in an instance, so any restriction comes from combat or the encounter. **Still open:** the encounter run (a dungeon boss or M+, ideally with a groupmate whispering mid-pull). Deferred on 2026-09-25; Echo's secret paths are covered by the logic tests until then.
+- Zone channels confirmed as one conversation after the fix (`ch:General`).
+- Whisper history survived `/reload`: the conversation reopened with its two saved messages plus the new ones.
 - Item 4 is settled from the code: `AugmentToastStyles.lua` is a plain table of functions loaded by the TOC before `AugmentModule.lua`, so it works with Augment disabled.
 
 ## Testing
