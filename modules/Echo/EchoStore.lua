@@ -107,7 +107,7 @@ end
 
 --- Register a view.
 -- @param fn function(convKey, change)  change: "toast" | "count" | "quiet" | "silent" |
---   "update" | "closed" | "unrouted" | "reset"; convKey is nil for "unrouted" and "reset"
+--   "update" | "closed" | "unrouted" | "reset" | "restored"; convKey is nil for "unrouted", "reset" and "restored"
 function Store.Subscribe(fn)
     if type(fn) == "function" then listeners[#listeners + 1] = fn end
 end
@@ -327,6 +327,45 @@ function Store.MarkFailed(convKey)
         end
     end
     return nil
+end
+
+--- Stop a view's notifications.
+-- @param fn function  The function passed to Store.Subscribe
+function Store.Unsubscribe(fn)
+    for i = #listeners, 1, -1 do
+        if listeners[i] == fn then table.remove(listeners, i) end
+    end
+end
+
+--- Open whisper and Battle.net conversations, in List order. Saved at logout so a
+-- reload can bring their tiles back; channels are session-only and never saved.
+-- @return table keys
+function Store.OpenKeys()
+    local keys = {}
+    for _, conv in ipairs(Store.List()) do
+        if Store.PERSISTED_KINDS[conv.kind] then keys[#keys + 1] = conv.key end
+    end
+    return keys
+end
+
+--- Reopen conversations saved at the end of the last session, seeded from history.
+-- Keys are restored last-first so the saved first key ends up on top, and every
+-- restored conversation sits below anything with a loud message this session.
+-- A conversation that already exists, including one closed this session, is left alone.
+-- @param keys table|nil  convKeys, top first
+-- @return number restored
+function Store.Restore(keys)
+    local restored = 0
+    keys = keys or {}
+    for i = #keys, 1, -1 do
+        local key = keys[i]
+        if Store.PERSISTED_KINDS[Store.KindOf(key)] and not conversations[key] then
+            GetOrCreate(key)
+            restored = restored + 1
+        end
+    end
+    if restored > 0 then Notify(nil, "restored") end
+    return restored
 end
 
 --- Forget every conversation (module disable, tests). Listeners and history are kept.

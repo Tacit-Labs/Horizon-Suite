@@ -684,6 +684,49 @@ run(`
   S.Reset()
 `, 'channels');
 
+// --- Store: unsubscribe, open keys, restore --------------------------------------
+run(`
+  local S = HorizonSuite.Echo.Store
+  S.Reset()
+  local calls = 0
+  local function listener() calls = calls + 1 end
+  S.Subscribe(listener)
+  S.Add({ convKey = "guild", text = "x" })
+  local before = calls
+  S.Unsubscribe(listener)
+  S.Add({ convKey = "guild", text = "y" })
+  check("an unsubscribed view hears nothing more", before > 0 and calls == before, calls)
+
+  S.Add({ convKey = "w:A-Horizon", text = "1" })
+  S.Add({ convKey = "w:B-Horizon", text = "2" })
+  S.Add({ convKey = "bn:5", text = "3" })
+  S.Add({ convKey = "party", text = "4" })
+  S.Close("w:B-Horizon")
+  local open = S.OpenKeys()
+  check("open keys are open whisper conversations in list order",
+        table.concat(open, ",") == "bn:5,w:A-Horizon", table.concat(open, ","))
+
+  S.Reset()
+  local restoredSeen = false
+  local function watch(key, change) if change == "restored" and key == nil then restoredSeen = true end end
+  S.Subscribe(watch)
+  local n = S.Restore({ "w:Top-Horizon", "w:Second-Horizon", "party" })
+  S.Unsubscribe(watch)
+  check("restore reopens whisper conversations only", n == 2, n)
+  check("views are told about a restore", restoredSeen, "not told")
+  local keys = {}
+  for i, c in ipairs(S.List()) do keys[i] = c.key end
+  check("restored conversations keep their saved order", table.concat(keys, ",") == "w:Top-Horizon,w:Second-Horizon", table.concat(keys, ","))
+  check("restored conversations have nothing unread", S.Get("w:Top-Horizon").unread == 0, S.Get("w:Top-Horizon").unread)
+  S.Add({ convKey = "w:New-Horizon", text = "hey" })
+  check("a new loud message sits above restored conversations", S.List()[1].key == "w:New-Horizon", S.List()[1].key)
+  check("restore leaves existing conversations alone", S.Restore({ "w:New-Horizon" }) == 0, "restored twice")
+  S.Close("w:Top-Horizon")
+  check("restore does not reopen a conversation closed this session", S.Restore({ "w:Top-Horizon" }) == 0, "reopened")
+  check("restore with nothing is harmless", S.Restore(nil) == 0, "?")
+  S.Reset()
+`, 'store-restore');
+
 // --- Summary -------------------------------------------------------------------
 run(`
   print(PASS .. " passed, " .. FAIL .. " failed")
