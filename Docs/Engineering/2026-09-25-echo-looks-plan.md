@@ -266,6 +266,10 @@ Then finalisation: one PR from `feature/echo`.
 - [ ] A Battle.net friend in the app, not in WoW, shows the Battle.net logo on blue. The same friend on a WoW character shows their class icon.
 - [ ] General and Trade tiles read "Gen" and "Trade". Guild still reads "G".
 - [ ] The toast, the stack card and the card's tile row show the same faces as the column.
-- [ ] Open a busy channel, scroll up, and wait. What you're reading doesn't move, and "N new ↓" appears. Click it to jump to the newest messages.
+- [ ] Open a busy channel, scroll up, and wait. What you're reading doesn't move, and "N new below" appears. Click it to jump to the newest messages.
 - [ ] Type a draft to someone, close the conversation with ×, and have them message again. The reply box is empty.
 - [ ] The Forever beta: class icons resolve, or fall back to the letter without errors.
+- [ ] With a wide bottom bubble and a status line under it (a pending or failed send), the hint is still visible above them and clickable, not covered.
+- [ ] The Battle.net logo reads clearly against the blue tile background, at both the column size and the larger card/stack sizes.
+- [ ] On a whisper tile set to the count tier, the label shade and the unread count are both readable at once: the count sits clear of the name instead of overlapping it.
+- [ ] Join the Services channel and use `/h echo probe` to confirm it; its tile reads "Serv", not the raw channel name or "Serv"'s first-4-character fallback.

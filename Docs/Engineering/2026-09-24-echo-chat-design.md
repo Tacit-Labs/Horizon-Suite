@@ -112,8 +112,8 @@ When `Platform.Has("secretChat")` is false, only the first case applies.
 ### Collapsed: tiles
 
 - The column anchors to a screen edge (right by default) and grows upward from its anchor. It can be unlocked and dragged from options, like Focus.
-- Whisper tiles show the sender's class emblem on their class colour, with a short name (realm dropped, at most 5 characters, UTF-8 aware) across the bottom. A class with no resolvable icon falls back to the initial on class colour. BNet friends not on a character get the Battle.net logo on a blue tile, with no name label: a `|K` name can't be cut. A Battle.net friend on a WoW character shows their class icon instead. Channel tiles show a short name: **Gen**, **Trade**, **Def**, **LFG**, **Serv**, **WDef**, **New**, or the first 4 characters for anything else. Group kinds keep their glyphs: **P**, **R**, **I**, **G**, **O**.
-- One painter, `Echo.PaintTileFace`, draws every tile face (column, card row, stack card, toast), and one rule, `View.Badge`, decides every badge.
+- Whisper tiles show the sender's class emblem on their class colour, with a short name (realm dropped, at most 5 characters, UTF-8 aware) across the bottom. A class with no resolvable icon falls back to the initial on class colour. BNet friends not on a character get the Battle.net logo on a blue tile, with no name label: a `|K` name can't be cut. A Battle.net friend on a WoW character shows their class icon instead. Channel tiles show a short name: **Gen**, **Trade**, **Def**, **LFG**, **Serv**, **WDef**, **New**, or the first 4 characters for anything else. These short names are English strings, so a non-English client falls back to the first 4 characters of the channel's own name for all of them. Group kinds keep their glyphs: **P**, **R**, **I**, **G**, **O**.
+- One painter, `Echo.PaintTileFace`, draws every tile face (column, card row, stack card, toast). `View.Badge` drives the unread dot or count on the column tile and the card's row tile; the stack shows unread through its own meta line's "N new" text instead, not through `View.Badge`.
 - Unread: a dot on loud conversations, a number on count-tier ones, and nothing on quiet ones until opened.
 - At most 8 tiles, configurable. Beyond that, a **+N** tile opens the stack.
 - Order: pinned first, then by last loud message. A mention or raid warning counts as a loud message: it toasts and moves its tile up. Ordinary count and quiet messages do not reorder.
@@ -133,7 +133,7 @@ When `Platform.Has("secretChat")` is false, only the first case applies.
 - The header shows name, class and relationship (friend, guildmate, Battle.net), plus online status where the game provides it. This meta line is upper-cased only on English clients, because `upper()` only touches ASCII letters and would otherwise mangle accented text.
 - Bubbles: incoming on the left, outgoing on the right in the accent tint. The newest outgoing bubble shows pending, sent or failed. Consecutive messages from the same sender within 2 minutes are grouped. Channel cards show the sender name in class colour above each group.
 - Renders the last 100 messages in pooled bubble frames inside a scroll frame.
-- While scrolled up, an incoming message doesn't move what you're reading. It keeps counting behind a clickable "N new ↓" hint instead of shifting the view. Scrolling back to the bottom, switching conversations, sending a reply or closing the card all clear the hint.
+- While scrolled up, an incoming message doesn't move what you're reading. It keeps counting behind a clickable "N new below" hint instead of shifting the view; the text is plain, with no glyph, since Friz Quadrata has no down arrow to draw. Scrolling back to the bottom, switching conversations, sending a reply or closing the card all clear the hint.
 - × closes the conversation and removes its tile. Whisper history returns if that person messages again. Clicking the tile of the conversation the card already shows, in the column or in the card's own tile row, closes the card instead of doing nothing; any other tile still switches to it.
 - Width, height, scale, strata and font follow the suite's usual options.
 
@@ -289,8 +289,8 @@ Each step can ship on its own:
 - A Battle.net logo on blue for friends not on a character, and their class icon (no name label) when they are; a `|K` name can't be cut.
 - Distinct channel short names, so General and Guild no longer share "G".
 - One painter, `Echo.PaintTileFace`, for the column tile, the toast, the stack card and the card's row, replacing each surface's own icon / glyph / letter branch.
-- One badge rule, `View.Badge`, shared by the tile, the card's row and the stack.
-- The card keeps its place while scrolled up, with a clickable "N new ↓" hint, instead of re-rendering under the reader.
+- One badge rule, `View.Badge`, shared by the column tile and the card's row (the stack shows its own "N new" text on its meta line instead).
+- The card keeps its place while scrolled up, with a clickable "N new below" hint (plain text, no glyph), instead of re-rendering under the reader.
 - Closing a conversation drops its unsent draft on purpose, for both the stack and the card.
 - Clicking the tile of the conversation the card already shows now closes the card.
 - `View.Upper` upper-cases header meta text only on English clients, instead of mangling accented text on every locale.
