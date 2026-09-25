@@ -282,15 +282,24 @@ local function OldestPending(conv, text, anyText)
     return nil
 end
 
+-- The server echoes whispers in send order but may re-encode their text (item links gain
+-- fields), so an unmatched whisper echo confirms the oldest pending message.
+local FIFO_KINDS = { whisper = true, bnet = true }
+
 --- Confirm an outgoing message from its echo (an _INFORM event, or your own line in a
 -- group channel). Matches the oldest pending message with the same text. A secret echo
--- cannot be compared, so it confirms the oldest pending one. With nothing pending, the
--- message was typed into Blizzard's chat box, so it is filed as a new outgoing message.
+-- cannot be compared, so it confirms the oldest pending one; so does a whisper or bnet
+-- echo whose text matches nothing. Group channels keep exact matching, because your own
+-- lines typed in Blizzard's box echo there too. With nothing matched, the message was
+-- typed into Blizzard's chat box, so it is filed as a new outgoing message.
 -- @param record table  Outgoing record built by EchoEvents
 -- @return boolean matched
 function Store.ConfirmSent(record)
     local conv = conversations[record.convKey]
     local pending = conv and OldestPending(conv, record.text, record.secret)
+    if conv and not pending and FIFO_KINDS[conv.kind] then
+        pending = OldestPending(conv, nil, true)
+    end
     if not pending then
         record.status = "sent"
         Store.Add(record)

@@ -3,7 +3,8 @@
     The one place Echo sends chat. Maps a conversation key to a chat type and target,
     splits long text at spaces outside links, and files each part as pending until
     EchoEvents sees the echo. Blizzard: C_ChatInfo.SendChatMessage (or SendChatMessage),
-    BNSendWhisper (or C_BattleNet.SendWhisper), GetChannelName.
+    BNSendWhisper (or C_BattleNet.SendWhisper), GetChannelName,
+    C_ChatInfo.InChatMessagingLockdown.
 ]]
 
 local addon = _G.HorizonSuite
@@ -108,7 +109,18 @@ function Send.Resolve()
     return sendChat, sendBN
 end
 
---- Send a reply. Each part is filed as pending; the echo marks it sent.
+--- True while the client blocks addon chat sends (Midnight encounter lockdown).
+-- A missing or throwing check counts as unlocked.
+-- @return boolean
+function Send.InLockdown()
+    local check = C_ChatInfo and C_ChatInfo.InChatMessagingLockdown
+    if type(check) ~= "function" then return false end
+    local ok, locked = pcall(check)
+    return ok and locked == true
+end
+
+--- Send a reply. Each part is filed as pending; the echo marks it sent. During chat
+-- lockdown each part is filed and failed at once, and nothing is sent.
 -- @param convKey string
 -- @param text string
 -- @return boolean sent  false when there was nothing to send or nowhere to send it
@@ -119,10 +131,13 @@ function Send.Send(convKey, text)
     local parts = Send.Split(text)
     if #parts == 0 then return false end
     local sendChat, sendBN = Send.Resolve()
+    local locked = Send.InLockdown()
     for _, part in ipairs(parts) do
         Store.AddPending(convKey, part)
         local ok
-        if route.chatType == "BN_WHISPER" then
+        if locked then
+            ok = false
+        elseif route.chatType == "BN_WHISPER" then
             ok = sendBN and pcall(sendBN, route.target, part)
         else
             ok = sendChat and pcall(sendChat, part, route.chatType, nil, route.target)
