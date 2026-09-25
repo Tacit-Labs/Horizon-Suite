@@ -80,7 +80,8 @@ local function CreateTile()
     b.count:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", -2, 2)
     b:RegisterForClicks("LeftButtonUp")
     b:SetScript("OnClick", function(self)
-        if self.convKey and Echo.Stack then Echo.Stack.Open(self.convKey) end
+        local view = Echo.Card or Echo.Stack
+        if self.convKey and view then view.Open(self.convKey) end
     end)
     b:SetScript("OnEnter", HoverEnter)
     b:SetScript("OnLeave", HoverLeave)
@@ -301,7 +302,8 @@ local function CreateToast()
         self:Hide()
         -- The player has engaged; toasts still held from combat are stale now.
         pending = {}
-        if self.convKey and Echo.Stack then Echo.Stack.Open(self.convKey) end
+        local view = Echo.Card or Echo.Stack
+        if self.convKey and view then view.Open(self.convKey) end
     end)
     f:SetScript("OnUpdate", ToastUpdate)
     toast = f

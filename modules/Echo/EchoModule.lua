@@ -51,6 +51,7 @@ end
 local function OnLifecycleEvent(_, event)
     if event == "PLAYER_REGEN_DISABLED" then
         Echo.Stack.Hide()
+        Echo.Card.Hide()
         if Echo.Setting("echoHoldToastsInCombat") then Echo.Tiles.Hold(true) end
     elseif event == "PLAYER_REGEN_ENABLED" then
         Echo.Tiles.Hold(false)
@@ -79,6 +80,8 @@ function Echo.Init()
     Echo.Events.Enable()
     Echo.Tiles.Enable()
     Echo.Stack.Enable()
+    Echo.Card.Enable()
+    Echo.Links.Hook()
     if not lifecycle then
         lifecycle = CreateFrame("Frame")
         lifecycle:SetScript("OnEvent", OnLifecycleEvent)
@@ -98,6 +101,7 @@ end
 function Echo.Disable()
     if lifecycle then lifecycle:UnregisterAllEvents() end
     restoredAt = nil
+    Echo.Card.Disable()
     Echo.Stack.Disable()
     Echo.Tiles.Disable()
     Echo.Events.Disable()

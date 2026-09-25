@@ -372,6 +372,7 @@ end
 -- @param focus boolean|nil  Focus the quick-reply box
 function Stack.Open(convKey, focus)
     if not root then Create() end
+    if Echo.Card then Echo.Card.Hide() end
     -- A click or keybind during the hover delay wins: the pending hover open must not
     -- fire afterwards and replace the card that was asked for.
     CancelTimer(openTimer)
@@ -461,6 +462,7 @@ end
 -- stack, hovering a tile brings its conversation to the front at once. Not in combat.
 -- @param convKey string|nil  The hovered tile's conversation
 function Stack.HoverEnter(convKey)
+    if Echo.Card and Echo.Card.IsShown() then return end
     if root and root:IsShown() then
         Stack.Select(convKey)
         return

@@ -116,6 +116,7 @@ read_globals = {
     "C_Endeavors",
     "C_FriendList",
     "C_GossipInfo",
+    "C_GuildInfo",
     "C_Housing",
     "C_HousingCatalog",
     "C_HousingDecor",
@@ -369,6 +370,7 @@ read_globals = {
     "LFGListUtil_FindQuestGroup",
     "HousingFramesUtil",
     "ChatFrameUtil",
+    "ChatEdit_InsertLink",
     "ChatTypeInfo",
     "LOCALIZED_CLASS_NAMES_MALE",
     "FCF_SelectDockFrame",
@@ -386,6 +388,7 @@ read_globals = {
     "UIDropDownMenu_CreateInfo",
     "UIDropDownMenu_AddButton",
     "EasyMenu",
+    "MenuUtil",
 
     -- Formatting
     "FormatLargeNumber",

@@ -1468,7 +1468,7 @@ run(`
 run(read('modules/Echo/EchoModule.lua'), 'modules/Echo/EchoModule.lua');
 run(`
   local A = HorizonSuite
-  local Echo, S, H, T, K = A.Echo, A.Echo.Store, A.Echo.History, A.Echo.Tiles, A.Echo.Stack
+  local Echo, S, H, T, K, C = A.Echo, A.Echo.Store, A.Echo.History, A.Echo.Tiles, A.Echo.Stack, A.Echo.Card
   local M = MODULE_TEST
   check("the module registers as echo", M.name == "echo" and type(M.def) == "table", M.name)
   local clock = 10000
@@ -1496,9 +1496,12 @@ run(`
 
   S.Add({ convKey = "w:Brisa-Horizon", text = "hi", sender = "Brisa-Horizon" })
   K.Open("w:Brisa-Horizon")
+  C.Open("w:Brisa-Horizon")
   local f = K._frames()
+  local cf = C._frames()
   fire("PLAYER_REGEN_DISABLED")
   check("combat closes the stack", not f.root:IsShown(), "shown")
+  check("combat closes the card", not cf.root:IsShown(), "shown")
   check("combat holds toasts", T.holding == true, tostring(T.holding))
   fire("PLAYER_REGEN_ENABLED")
   check("leaving combat releases toasts", T.holding == false, tostring(T.holding))
@@ -2000,6 +2003,49 @@ run(`
   T.Disable()
   S.Reset()
 `, 'stack-onhide-park');
+
+// --- Wiring: clicks open the card; one view at a time --------------------------------------
+run(`
+  local S, T, K, C = HorizonSuite.Echo.Store, HorizonSuite.Echo.Tiles, HorizonSuite.Echo.Stack, HorizonSuite.Echo.Card
+  S.Reset()
+  CreateFrame = STUB_CREATE_FRAME
+  T.Enable()
+  K.Enable()
+  C.Enable()
+  local card, stack = C._frames(), K._frames()
+  S.Add({ convKey = "w:Brisa-Horizon", text = "hi", class = "DRUID", sender = "Brisa-Horizon" })
+  S.Add({ convKey = "w:Vexa-Horizon", text = "gz", sender = "Vexa-Horizon" })
+
+  local tile = T.TileFor("w:Brisa-Horizon")
+  tile.scripts.OnClick(tile)
+  check("clicking a tile opens the card on it", card.root:IsShown() and card.name.text == "Brisa", card.name.text)
+  C.Hide()
+
+  local toast = T._toast()
+  toast.convKey = "w:Vexa-Horizon"
+  toast.scripts.OnClick(toast)
+  check("clicking a toast opens the card on it", card.root:IsShown() and card.name.text == "Vexa", card.name.text)
+
+  local savedNewTimer = C_Timer.NewTimer
+  local fired
+  C_Timer.NewTimer = function(_, fn) fired = fn; return { Cancel = function() end } end
+  K.HoverEnter("w:Brisa-Horizon")
+  check("hovering the column does nothing while the card is open", fired == nil and not stack.root:IsShown(), tostring(fired))
+  C_Timer.NewTimer = savedNewTimer
+
+  C.Open("w:Vexa-Horizon")
+  K.Open("w:Brisa-Horizon")
+  check("opening the stack closes the card", not card.root:IsShown() and stack.root:IsShown(), "both")
+  stack.edit:SetText("from the stack")
+  stack.card.open.scripts.OnClick(stack.card.open)
+  check("the stack's Open button opens the card", card.root:IsShown() and not stack.root:IsShown(), "?")
+  check("the draft moves from the stack to the card", card.edit.text == "from the stack", card.edit.text)
+
+  C.Disable()
+  K.Disable()
+  T.Disable()
+  S.Reset()
+`, 'wiring');
 
 // --- Summary -------------------------------------------------------------------
 run(`
