@@ -47,7 +47,7 @@ end
 local function ClassFromGUID(guid)
     if IsSecret(guid) or type(guid) ~= "string" or not GetPlayerInfoByGUID then return nil end
     local ok, _, englishClass = pcall(GetPlayerInfoByGUID, guid)
-    if ok and type(englishClass) == "string" then return englishClass end
+    if ok and not IsSecret(englishClass) and type(englishClass) == "string" then return englishClass end
     return nil
 end
 
