@@ -3884,7 +3884,7 @@ run(`
   S.Reset()
 
   local saved = {
-    IsInRaid = IsInRaid, UnitName = UnitName, UnitClass = UnitClass,
+    IsInRaid = IsInRaid, UnitName = UnitName, UnitFullName = UnitFullName, UnitClass = UnitClass,
     IsInGuild = IsInGuild, GetNumGuildMembers = GetNumGuildMembers, GetGuildRosterInfo = GetGuildRosterInfo,
     C_FriendList = C_FriendList, C_BattleNet = C_BattleNet, BNET_CLIENT_WOW = BNET_CLIENT_WOW,
     LOCALIZED_CLASS_NAMES_MALE = LOCALIZED_CLASS_NAMES_MALE, LOCALIZED_CLASS_NAMES_FEMALE = LOCALIZED_CLASS_NAMES_FEMALE,
@@ -3911,6 +3911,34 @@ run(`
   local class, source = Echo.Class.Resolve(brisa)
   check("a group member resolves", class == "DRUID" and source == "group", tostring(class) .. "/" .. tostring(source))
   check("the class is cached on the conversation", brisa.resolvedClass == "DRUID" and brisa.classSource == "group", brisa.resolvedClass)
+
+  -- A cross-realm group member matches with the realm's spaces stripped, preferring
+  -- UnitFullName when the client offers it.
+  UnitFullName = function(unit)
+    if unit == "party2" then return "Kaelis", "Aerie Peak" end
+    return nil
+  end
+  UnitName = function(unit)
+    if unit == "party2" then return "Kaelis-Aerie Peak", nil end
+    return nil
+  end
+  UnitClass = function(unit)
+    if unit == "party2" then return "Rogue", "ROGUE" end
+    return nil
+  end
+  S.Add({ convKey = "w:Kaelis-AeriePeak", text = "hi" })
+  local kaelis = S.Get("w:Kaelis-AeriePeak")
+  class, source = Echo.Class.Resolve(kaelis)
+  check("a cross-realm group member resolves", class == "ROGUE" and source == "group", tostring(class) .. "/" .. tostring(source))
+  UnitFullName = nil
+  UnitName = function(unit)
+    if unit == "party1" then return "Brisa", "" end
+    return nil
+  end
+  UnitClass = function(unit)
+    if unit == "party1" then return "Druid", "DRUID" end
+    return nil
+  end
 
   -- A guild member resolves when nobody in the group matches.
   UnitName = function() return "Someoneelse", "" end
@@ -4028,25 +4056,89 @@ run(`
   check("a restored whisper with a guild-found class gets a class face", spec.face == "class", spec.face)
   HorizonSuite.ResolveClassIconDisplay = nil
 
-  -- A roster event clears a miss and marks tiles, stack and card for repaint.
+  -- Roster/friends events: do nothing unless something they might resolve is open, keep
+  -- the miss throttle, and only fully repaint the card when it's showing an affected
+  -- conversation (final review, ruling 5).
   CreateFrame = STUB_CREATE_FRAME
   IsInGuild = function() return false end
   local marks = {}
+  local function ResetMarks() marks = {} end
   Echo.Redraw.Register("tiles", function() marks.tiles = true end)
   Echo.Redraw.Register("stack", function() marks.stack = true end)
   Echo.Redraw.Register("card", function() marks.card = true end)
+  Echo.Redraw.Register("cardRow", function() marks.cardRow = true end)
   Echo.Class.Enable()
   local frame = Echo.Class._frame()
+
+  -- With no classless open whisper conversation, a guild event marks nothing.
+  S.Reset()
+  ResetMarks()
+  frame.scripts.OnEvent(frame, "GUILD_ROSTER_UPDATE")
+  check("no classless whisper: a guild event marks nothing", next(marks) == nil, "marked something")
+
+  -- With one classless whisper conversation, a guild event marks tiles and stack; a
+  -- different shown conversation gets only its row marked, not the full card.
   S.Add({ convKey = "w:Retry-Horizon", text = "hi" })
   local retry = S.Get("w:Retry-Horizon")
   Echo.Class.Resolve(retry)
   check("a fresh miss sets classMissAt", retry.classMissAt ~= nil, tostring(retry.classMissAt))
+  local savedShownKey = Echo.Card.ShownKey
+  Echo.Card.ShownKey = function() return "w:SomeoneElse-Horizon" end
+  ResetMarks()
+  frame.scripts.OnEvent(frame, "GUILD_ROSTER_UPDATE")
+  check("a qualifying event marks tiles", marks.tiles == true, "?")
+  check("a qualifying event marks stack", marks.stack == true, "?")
+  check("a different shown conversation marks only the card row", marks.cardRow == true and marks.card == nil, "?")
+
+  -- A recent miss (inside the 5s throttle) isn't cleared by the event.
+  check("a recent miss isn't cleared by an event", retry.classMissAt ~= nil, tostring(retry.classMissAt))
+
+  -- When the card is showing the affected conversation, the full card is marked instead.
+  Echo.Card.ShownKey = function() return "w:Retry-Horizon" end
+  ResetMarks()
+  frame.scripts.OnEvent(frame, "GUILD_ROSTER_UPDATE")
+  check("the shown conversation marks the full card", marks.card == true and marks.cardRow == nil, "?")
+  Echo.Card.ShownKey = savedShownKey
+
+  -- Past the throttle, the event clears the miss.
+  local savedNow2 = S.Now
+  local clock2 = 5000
+  S.Now = function() return clock2 end
+  retry.classMissAt = clock2 - Echo.Class.MISS_SECONDS - 1
   frame.scripts.OnEvent(frame, "GROUP_ROSTER_UPDATE")
-  check("a roster event clears a miss", retry.classMissAt == nil, tostring(retry.classMissAt))
-  check("a roster event marks tiles, stack and card", marks.tiles == true and marks.stack == true and marks.card == true, "?")
+  check("a stale miss is cleared by an event", retry.classMissAt == nil, tostring(retry.classMissAt))
+  S.Now = savedNow2
+
   Echo.Class.Disable()
 
-  IsInRaid, UnitName, UnitClass = saved.IsInRaid, saved.UnitName, saved.UnitClass
+  -- Enable requests the guild roster once, when in a guild, preferring C_GuildInfo over
+  -- the older global, and never when not in a guild.
+  local savedGuildInfo = C_GuildInfo
+  local rosterRequests = 0
+  C_GuildInfo = { GuildRoster = function() rosterRequests = rosterRequests + 1 end }
+  IsInGuild = function() return true end
+  Echo.Class.Enable()
+  check("Enable requests the guild roster via C_GuildInfo when in a guild", rosterRequests == 1, rosterRequests)
+  Echo.Class.Disable()
+
+  C_GuildInfo = nil
+  local oldGuildRoster = GuildRoster
+  local oldRosterCalls = 0
+  GuildRoster = function() oldRosterCalls = oldRosterCalls + 1 end
+  Echo.Class.Enable()
+  check("Enable falls back to the global GuildRoster", oldRosterCalls == 1, oldRosterCalls)
+  Echo.Class.Disable()
+  GuildRoster = oldGuildRoster
+
+  IsInGuild = function() return false end
+  rosterRequests = 0
+  C_GuildInfo = { GuildRoster = function() rosterRequests = rosterRequests + 1 end }
+  Echo.Class.Enable()
+  check("Enable never requests the guild roster when not in a guild", rosterRequests == 0, rosterRequests)
+  Echo.Class.Disable()
+  C_GuildInfo = savedGuildInfo
+
+  IsInRaid, UnitName, UnitFullName, UnitClass = saved.IsInRaid, saved.UnitName, saved.UnitFullName, saved.UnitClass
   IsInGuild, GetNumGuildMembers, GetGuildRosterInfo = saved.IsInGuild, saved.GetNumGuildMembers, saved.GetGuildRosterInfo
   C_FriendList, C_BattleNet, BNET_CLIENT_WOW = saved.C_FriendList, saved.C_BattleNet, saved.BNET_CLIENT_WOW
   LOCALIZED_CLASS_NAMES_MALE, LOCALIZED_CLASS_NAMES_FEMALE = saved.LOCALIZED_CLASS_NAMES_MALE, saved.LOCALIZED_CLASS_NAMES_FEMALE

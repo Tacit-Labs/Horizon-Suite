@@ -60,10 +60,28 @@ local function ClassFileFromLocalized(localized)
     return nil
 end
 
+--- A unit's name and realm, preferring `UnitFullName` (splits the two cleanly on every
+-- client that has it) and falling back to `UnitName` (whose realm return is nil or empty
+-- for your own realm) when it doesn't.
+-- @param unit string
+-- @return string|nil name, string|nil realm
+local function UnitNameAndRealm(unit)
+    if type(UnitFullName) == "function" then
+        local ok, name, realm = pcall(UnitFullName, unit)
+        if ok and Readable(name) then return name, realm end
+    end
+    if type(UnitName) == "function" then
+        local ok, name, realm = pcall(UnitName, unit)
+        if ok and Readable(name) then return name, realm end
+    end
+    return nil, nil
+end
+
 --- @param targetName string  "Name-Realm"
 -- @return string|nil class, string|nil source
 local function GroupClass(targetName)
-    if type(UnitName) ~= "function" or type(UnitClass) ~= "function" then return nil, nil end
+    if type(UnitClass) ~= "function" then return nil, nil end
+    if type(UnitFullName) ~= "function" and type(UnitName) ~= "function" then return nil, nil end
     local inRaid = false
     if type(IsInRaid) == "function" then
         local ok, result = pcall(IsInRaid)
@@ -73,8 +91,11 @@ local function GroupClass(targetName)
     if inRaid then prefix, count = "raid", 40 end
     for i = 1, count do
         local unit = prefix .. i
-        local ok, name, realm = pcall(UnitName, unit)
-        if ok and Readable(name) then
+        local name, realm = UnitNameAndRealm(unit)
+        if Readable(name) then
+            -- A readable realm ("Aerie Peak") loses its spaces before joining, matching
+            -- the conversation key ("Kaelis-AeriePeak").
+            if Readable(realm) then realm = realm:gsub(" ", "") end
             local full = FullName(name, realm)
             if full and full == targetName then
                 local okClass, classFile = pcall(function() return select(2, UnitClass(unit)) end)
@@ -194,17 +215,86 @@ local BNET_EVENT = "BN_FRIEND_INFO_CHANGED"
 
 local frame
 
---- A roster changed: give every classless open conversation another chance next time
--- it's asked, and repaint the views that might show a class icon.
-local function OnRosterEvent()
+--- Open whisper conversations with no class yet: the ones a group/guild/friends roster
+-- event could resolve.
+-- @return table conv[]
+local function ClasslessWhispers()
+    local list = {}
     for _, conv in ipairs(Echo.Store.List()) do
         if conv.kind == "whisper" and not conv.resolvedClass then
+            list[#list + 1] = conv
+        end
+    end
+    return list
+end
+
+--- Every open Battle.net conversation: a bnet class is never cached, so any of them could
+-- read differently once a friend's info changes.
+-- @return table conv[]
+local function BnetConversations()
+    local list = {}
+    for _, conv in ipairs(Echo.Store.List()) do
+        if conv.kind == "bnet" then list[#list + 1] = conv end
+    end
+    return list
+end
+
+--- A roster or friends event that might resolve one of `qualifying`'s conversations: does
+-- nothing when none qualify (there's nothing it could change). Otherwise clears only misses
+-- older than the throttle (a fresh miss stays throttled), then marks the views. The shown
+-- card is only fully repainted when it's showing one of the affected conversations;
+-- otherwise just its row.
+-- @param qualifying table conv[]
+local function HandleRosterEvent(qualifying)
+    if #qualifying == 0 then return end
+    local now = Echo.Store.Now()
+    for _, conv in ipairs(qualifying) do
+        local missAt = conv.classMissAt
+        if missAt and (now - missAt) >= Class.MISS_SECONDS then
             conv.classMissAt = nil
         end
     end
     Echo.Redraw.Mark("tiles")
     Echo.Redraw.Mark("stack")
-    Echo.Redraw.Mark("card")
+    local shown = Echo.Card and Echo.Card.ShownKey and Echo.Card.ShownKey()
+    local affected = false
+    if shown then
+        for _, conv in ipairs(qualifying) do
+            if conv.key == shown then
+                affected = true
+                break
+            end
+        end
+    end
+    if affected then
+        Echo.Redraw.Mark("card")
+    else
+        Echo.Redraw.Mark("cardRow")
+    end
+end
+
+--- @param _ Frame  the event frame (unused)
+-- @param event string
+local function OnRosterEvent(_, event)
+    if event == BNET_EVENT then
+        HandleRosterEvent(BnetConversations())
+    else
+        HandleRosterEvent(ClasslessWhispers())
+    end
+end
+
+--- Ask Blizzard to refresh the guild roster once, so `GuildClass`'s lookup has current data
+-- to work from instead of whatever it last cached. Guarded: an older client, or one out of
+-- a guild, just skips it.
+local function RequestGuildRoster()
+    if type(IsInGuild) ~= "function" then return end
+    local ok, inGuild = pcall(IsInGuild)
+    if not ok or IsSecret(inGuild) or inGuild ~= true then return end
+    if type(C_GuildInfo) == "table" and type(C_GuildInfo.GuildRoster) == "function" then
+        pcall(C_GuildInfo.GuildRoster)
+    elseif type(GuildRoster) == "function" then
+        pcall(GuildRoster)
+    end
 end
 
 function Class.Enable()
@@ -216,6 +306,7 @@ function Class.Enable()
     if addon.Platform and addon.Platform.Has("bnetWhispers") then
         pcall(frame.RegisterEvent, frame, BNET_EVENT)
     end
+    RequestGuildRoster()
 end
 
 function Class.Disable()
