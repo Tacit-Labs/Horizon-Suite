@@ -566,6 +566,8 @@ function Card.Open(convKey, focus)
     if Echo.Stack then Echo.Stack.Hide() end
     currentKey = convKey
     offset = 0
+    newBelow = 0
+    hint:Hide()
     Anchor()
     root:Show()
     Card.Render()
@@ -620,15 +622,27 @@ function Card.IsShown()
     return root ~= nil and root:IsShown()
 end
 
---- The mouse wheel over the messages: up (+1) shows older ones.
+-- Show the hint raised above the message area, so it never sits under a bubble, with its
+-- text set to the given count.
+local function ShowHint(n)
+    hint.text:SetText(L["ECHO_NEW_BELOW"]:format(n))
+    hint:SetFrameLevel(area:GetFrameLevel() + 5)
+    hint:Show()
+end
+
+--- The mouse wheel over the messages: up (+1) shows older ones. Scrolling back down past
+-- where the new messages arrived shrinks the count on the hint to match, since some of them
+-- are now within reach; it never grows here, only OnStoreChange adds to it.
 -- @param delta number
 function Card.Scroll(delta)
     if not root or not root:IsShown() then return end
     offset = offset + delta
     Card.Render()
-    if offset == 0 then
-        newBelow = 0
+    newBelow = math.min(newBelow, offset)
+    if newBelow == 0 then
         hint:Hide()
+    else
+        ShowHint(newBelow)
     end
 end
 
@@ -642,8 +656,14 @@ function Card.Submit()
     offset = 0
     newBelow = 0
     hint:Hide()
-    -- A send that can't route keeps its text in the box, so nothing typed is lost.
-    if Echo.Send.Send(currentKey, text) then edit:SetText("") end
+    -- A send that can't route keeps its text in the box, so nothing typed is lost. Nothing
+    -- was filed either, so no Store change follows to repaint the view around offset 0:
+    -- render explicitly so the card doesn't stay showing the scrolled-up messages.
+    if Echo.Send.Send(currentKey, text) then
+        edit:SetText("")
+    else
+        Card.Render()
+    end
 end
 
 --- Send a failed message again.
@@ -682,9 +702,18 @@ function Card.OnStoreChange(convKey, change)
     local added = change == "toast" or change == "count" or change == "quiet" or change == "silent"
     if added and convKey == renderedKey and offset > 0 then
         offset = offset + 1
-        newBelow = newBelow + 1
-        hint.text:SetText(L["ECHO_NEW_BELOW"]:format(newBelow))
-        hint:Show()
+        -- Your own line (an outgoing message, e.g. a retried send) still anchors the view so
+        -- it doesn't move, but it isn't news: only an incoming arrival counts on the hint.
+        local conv = Echo.Store.Get(convKey)
+        local newest = conv and conv.messages[#conv.messages]
+        if not (newest and newest.outgoing) then
+            newBelow = newBelow + 1
+        end
+        if newBelow > 0 then
+            ShowHint(newBelow)
+        else
+            hint:Hide()
+        end
         Echo.Redraw.Mark("cardRow")
         return
     end

@@ -2945,4 +2945,4 @@ L["ECHO_SLASH_HELP_TEST"]                                     = "  /h echo test 
 L["ECHO_SLASH_HELP_CLEAR"]                                    = "  /h echo clearhistory - Delete saved whisper history"
 L["ECHO_SLASH_HELP_OPTIONS"]                                  = "  More settings: Horizon dashboard, Echo."
 L["ECHO_SLASH_UNKNOWN"]                                       = "Unknown command. Use /h echo for help."
-L["ECHO_NEW_BELOW"]                                           = "%d new ↓"
+L["ECHO_NEW_BELOW"]                                           = "%d new below"

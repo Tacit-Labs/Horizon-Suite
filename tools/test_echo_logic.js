@@ -94,6 +94,8 @@ run(`
       if k == "SetColorTexture" then return function(self, r, g, b, a) self.colorTexture = { r, g, b, a } end end
       if k == "SetTexCoord" then return function(self, ...) self.texCoord = { ... } end end
       if k == "SetSize" then return function(self, w, h) self.width = w; self.height = h end end
+      if k == "SetFrameLevel" then return function(self, lvl) self.frameLevel = lvl end end
+      if k == "SetDrawLayer" then return function(self, layer, sublevel) self.drawLayer = layer; self.drawSublevel = sublevel end end
       if k == "CreateTexture" or k == "CreateFontString" then return function(self) return STUB_FRAME(self) end end
       if fixed[k] ~= nil then local v = fixed[k]; return function() return v end end
       return function() end
@@ -2094,13 +2096,14 @@ run(`
   C.Scroll(5)
   local pinned = f.bubbles[1].text.text
 
-  rawset(Lt, "ECHO_NEW_BELOW", "%d new ↓")
+  rawset(Lt, "ECHO_NEW_BELOW", "%d new below")
   S.Add({ convKey = "w:Brisa-Horizon", text = "n1", sender = "Brisa-Horizon" })
   S.Add({ convKey = "w:Brisa-Horizon", text = "n2", sender = "Brisa-Horizon" })
   S.Add({ convKey = "w:Brisa-Horizon", text = "n3", sender = "Brisa-Horizon" })
   check("the bubble stays put while scrolled up", f.bubbles[1].text.text == pinned, f.bubbles[1].text.text)
-  check("the hint counts the new messages", f.hint.text.text == "3 new ↓", f.hint.text.text)
+  check("the hint counts the new messages", f.hint.text.text == "3 new below", f.hint.text.text)
   check("the hint is shown", f.hint.shown, "hidden")
+  check("the hint is raised above the message area", f.hint.frameLevel == f.area:GetFrameLevel() + 5, tostring(f.hint.frameLevel))
 
   f.hint.scripts.OnClick(f.hint)
   check("clicking the hint jumps to the newest message", f.bubbles[1].text.text == "n3", f.bubbles[1].text.text)
@@ -2451,6 +2454,114 @@ run(`
   T.Disable()
   S.Reset()
 `, 'final-g6');
+
+// --- Final fix H1: the hint clamps as you scroll back down, and clears on reopen ------------
+run(`
+  local Echo = HorizonSuite.Echo
+  local S, T, K, C = Echo.Store, Echo.Tiles, Echo.Stack, Echo.Card
+  S.Reset()
+  CreateFrame = STUB_CREATE_FRAME
+  T.Enable()
+  K.Enable()
+  C.Enable()
+  local f = C._frames()
+  rawset(HorizonSuite.L, "ECHO_NEW_BELOW", "%d new below")
+
+  for i = 1, 30 do S.Add({ convKey = "w:Brisa-Horizon", text = "m" .. i, sender = "Brisa-Horizon" }) end
+  C.Open("w:Brisa-Horizon")
+  C.Scroll(5)
+  S.Add({ convKey = "w:Brisa-Horizon", text = "n1", sender = "Brisa-Horizon" })
+  S.Add({ convKey = "w:Brisa-Horizon", text = "n2", sender = "Brisa-Horizon" })
+  S.Add({ convKey = "w:Brisa-Horizon", text = "n3", sender = "Brisa-Horizon" })
+  check("H1: three incoming while scrolled up show the hint at 3", f.hint.text.text == "3 new below", f.hint.text.text)
+
+  C.Scroll(-2)
+  check("H1: scrolling down but staying past the new arrivals leaves the count alone", f.hint.text.text == "3 new below" and f.hint.shown, f.hint.text.text)
+
+  C.Scroll(-5)
+  check("H1: scrolling down into the new arrivals shrinks the count to match", f.hint.text.text == "1 new below" and f.hint.shown, f.hint.text.text)
+
+  C.Scroll(-1)
+  check("H1: scrolling the rest of the way to the bottom hides the hint", not f.hint.shown, "shown")
+
+  -- Reopening the same conversation always clears a stale hint, even though its rendered
+  -- key doesn't change.
+  C.Scroll(5)
+  S.Add({ convKey = "w:Brisa-Horizon", text = "n4", sender = "Brisa-Horizon" })
+  check("H1: setup: the hint is showing again before the reopen", f.hint.shown, "hidden")
+  C.Open("w:Brisa-Horizon")
+  check("H1: Card.Open resets the hint even on the same conversation", not f.hint.shown, "shown")
+
+  rawset(HorizonSuite.L, "ECHO_NEW_BELOW", nil)
+  C.Disable()
+  K.Disable()
+  T.Disable()
+  S.Reset()
+`, 'final-h1');
+
+// --- Final fix H2: a refused send while scrolled up still renders at offset 0 --------------
+run(`
+  local Echo = HorizonSuite.Echo
+  local S, T, K, C = Echo.Store, Echo.Tiles, Echo.Stack, Echo.Card
+  S.Reset()
+  CreateFrame = STUB_CREATE_FRAME
+  T.Enable()
+  K.Enable()
+  C.Enable()
+  local f = C._frames()
+
+  for i = 1, 20 do S.Add({ convKey = "w:Brisa-Horizon", text = "line " .. i, sender = "Brisa-Horizon" }) end
+  C.Open("w:Brisa-Horizon")
+  C.Scroll(5)
+  check("H2: setup: the card is scrolled up", f.bubbles[1].text.text == "line 15", f.bubbles[1].text.text)
+
+  local realSend = Echo.Send.Send
+  Echo.Send.Send = function() return false end
+  f.edit:SetText("nowhere to send this")
+  C.Submit()
+  check("H2: a refused send while scrolled up still shows the newest message", f.bubbles[1].text.text == "line 20", f.bubbles[1].text.text)
+  check("H2: the refused text is kept in the box", f.edit.text == "nowhere to send this", f.edit.text)
+  Echo.Send.Send = realSend
+
+  C.Disable()
+  K.Disable()
+  T.Disable()
+  S.Reset()
+`, 'final-h2');
+
+// --- Final fix H3: an outgoing line anchors the view but is not counted as news ------------
+run(`
+  local Echo = HorizonSuite.Echo
+  local S, T, K, C = Echo.Store, Echo.Tiles, Echo.Stack, Echo.Card
+  S.Reset()
+  CreateFrame = STUB_CREATE_FRAME
+  T.Enable()
+  K.Enable()
+  C.Enable()
+  local f = C._frames()
+  rawset(HorizonSuite.L, "ECHO_NEW_BELOW", "%d new below")
+
+  for i = 1, 20 do S.Add({ convKey = "w:Brisa-Horizon", text = "line " .. i, sender = "Brisa-Horizon" }) end
+  C.Open("w:Brisa-Horizon")
+  C.Scroll(5)
+  local pinned = f.bubbles[1].text.text
+
+  -- An outgoing line lands while scrolled up (e.g. a retried send elsewhere): the view
+  -- still doesn't move, but it isn't news, so the hint stays hidden.
+  S.Add({ convKey = "w:Brisa-Horizon", text = "my reply", outgoing = true })
+  check("H3: the bubble stays put for an outgoing line too", f.bubbles[1].text.text == pinned, f.bubbles[1].text.text)
+  check("H3: an outgoing line alone shows no hint", not f.hint.shown, "shown")
+
+  -- An incoming line afterwards still counts, on top of the anchor the outgoing line added.
+  S.Add({ convKey = "w:Brisa-Horizon", text = "reply to that", sender = "Brisa-Horizon" })
+  check("H3: an incoming line after it is still counted", f.hint.text.text == "1 new below" and f.hint.shown, f.hint.text.text)
+
+  rawset(HorizonSuite.L, "ECHO_NEW_BELOW", nil)
+  C.Disable()
+  K.Disable()
+  T.Disable()
+  S.Reset()
+`, 'final-h3');
 
 // --- Feeds: loot, progress and system lines --------------------------------------------
 run(`
