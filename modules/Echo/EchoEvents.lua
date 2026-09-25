@@ -88,12 +88,55 @@ function Events.ChannelKeyName(name, zoneChannelID)
     return name
 end
 
+-- Achievement lines arrive as "%s has earned…" and are filled with the achiever's link.
+local ACHIEVEMENT_EVENTS = { CHAT_MSG_ACHIEVEMENT = true, CHAT_MSG_GUILD_ACHIEVEMENT = true }
+
+-- Only the Battle.net friend alert needs the capability to be registered.
+local BNET_EVENTS = {
+    CHAT_MSG_BN_WHISPER = true, CHAT_MSG_BN_WHISPER_INFORM = true, BN_INLINE_TOAST_ALERT = true,
+}
+
+-- A feed line: routed by event type, never outgoing, never urgent, no class.
+local function BuildFeedRecord(event, kind, text, sender)
+    local textSecret = IsSecret(text)
+    if event == "BN_INLINE_TOAST_ALERT" then
+        -- arg1 names the alert ("FRIEND_ONLINE"), arg2 is the friend's |K name. Build the
+        -- line from Blizzard's own string, as Blizzard's chat does; feeds are never saved.
+        if textSecret or type(text) ~= "string" or IsSecret(sender) then return nil, "ignored" end
+        local template = _G["BN_INLINE_TOAST_" .. text]
+        if type(template) ~= "string" then return nil, "ignored" end
+        if template:find("%s", 1, true) then
+            if type(sender) ~= "string" then return nil, "ignored" end
+            local ok, formatted = pcall(string.format, template, sender)
+            if not ok then return nil, "ignored" end
+            template = formatted
+        end
+        text, textSecret = template, false
+    elseif ACHIEVEMENT_EVENTS[event] and not textSecret and type(text) == "string"
+        and text:find("%s", 1, true) and not IsSecret(sender) and type(sender) == "string" and sender ~= "" then
+        local short = sender:match("^([^-]+)") or sender
+        local ok, formatted = pcall(string.format, text, "|Hplayer:" .. sender .. "|h[" .. short .. "]|h")
+        if ok then text = formatted end
+    end
+    return {
+        convKey  = kind,
+        text     = text,
+        secret   = textSecret,
+        outgoing = false,
+        urgent   = false,
+        feed     = true,
+        chatType = (event:gsub("^CHAT_MSG_", "")),
+        time     = Store.Now(),
+    }
+end
+
 --- Build a message record from a CHAT_MSG_* payload.
 -- @return table|nil record
 -- @return string|nil reason  "ignored" (not an Echo event) | "unrouted" (no conversation can be chosen)
 function Events.BuildRecord(event, text, sender, _, _, _, _, zoneChannelID, channelIndex, channelName, _, _, guid, bnSenderID)
     local kind = Store.EVENT_KIND[event]
     if not kind then return nil, "ignored" end
+    if Store.FEED_KINDS[kind] then return BuildFeedRecord(event, kind, text, sender) end
 
     local id
     if kind == "whisper" then
@@ -216,10 +259,8 @@ function Events.Dispatch(event, ...)
         Events.probeRemaining = Events.probeRemaining - 1
         Events.probeOut(Events.DescribeArgs(event, ...))
     end
-    if event == "CHAT_MSG_SYSTEM" then
-        Events.OnSystemMessage((...))
-        return
-    end
+    -- A system line may fail a pending whisper; it is then filed in the System feed too.
+    if event == "CHAT_MSG_SYSTEM" then Events.OnSystemMessage((...)) end
     local record, reason = Events.BuildRecord(event, ...)
     if not record then
         if reason == "unrouted" then Store.CountUnrouted() end
@@ -251,12 +292,16 @@ function Events.Enable()
         frame:SetScript("OnEvent", function(_, event, ...) Events.Dispatch(event, ...) end)
     end
     local hasBnet = addon.Platform and addon.Platform.Has("bnetWhispers")
-    for event, kind in pairs(Store.EVENT_KIND) do
-        if kind ~= "bnet" or hasBnet then frame:RegisterEvent(event) end
+    for event in pairs(Store.EVENT_KIND) do
+        if not BNET_EVENTS[event] or hasBnet then frame:RegisterEvent(event) end
     end
-    frame:RegisterEvent("CHAT_MSG_SYSTEM")
 end
 
 function Events.Disable()
     if frame then frame:UnregisterAllEvents() end
+end
+
+-- Test and debug handle.
+function Events._frame()
+    return frame
 end

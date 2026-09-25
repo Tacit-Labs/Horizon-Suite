@@ -31,6 +31,7 @@ Store.DEFAULT_TIERS = {
     whisper = "loud",  bnet = "loud",
     party   = "count", raid = "count", instance = "count",
     guild   = "quiet", officer = "quiet", channel = "quiet",
+    loot = "quiet", progress = "quiet", system = "quiet",
 }
 Store.VALID_TIERS = { loud = true, count = true, quiet = true, muted = true }
 
@@ -50,10 +51,24 @@ Store.EVENT_KIND = {
     CHAT_MSG_GUILD                = "guild",
     CHAT_MSG_OFFICER              = "officer",
     CHAT_MSG_CHANNEL              = "channel",
+    CHAT_MSG_LOOT                  = "loot",
+    CHAT_MSG_MONEY                 = "loot",
+    CHAT_MSG_CURRENCY              = "loot",
+    CHAT_MSG_COMBAT_FACTION_CHANGE = "progress",
+    CHAT_MSG_COMBAT_XP_GAIN        = "progress",
+    CHAT_MSG_SKILL                 = "progress",
+    CHAT_MSG_ACHIEVEMENT           = "progress",
+    CHAT_MSG_GUILD_ACHIEVEMENT     = "progress",
+    CHAT_MSG_SYSTEM                = "system",
+    BN_INLINE_TOAST_ALERT          = "system",
 }
 
 -- Only whisper kinds are written to history.
 Store.PERSISTED_KINDS = { whisper = true, bnet = true }
+
+-- Read-only feeds of non-conversation lines (plan 4). Routed by event type, quiet by
+-- default, never persisted or restored.
+Store.FEED_KINDS = { loot = true, progress = true, system = true }
 
 local conversations = {}
 local overrides = {}

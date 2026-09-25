@@ -2276,6 +2276,76 @@ run(`
   S.Reset()
 `, 'final-g6');
 
+// --- Feeds: loot, progress and system lines --------------------------------------------
+run(`
+  local S, E = HorizonSuite.Echo.Store, HorizonSuite.Echo.Events
+  S.Reset()
+  local function p(text, sender) return text, sender, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil end
+
+  check("feeds are known kinds", S.KindOf("loot") == "loot" and S.KindOf("progress") == "progress" and S.KindOf("system") == "system", "?")
+  check("feeds are quiet by default", S.TierOf("loot") == "quiet" and S.TierOf("progress") == "quiet" and S.TierOf("system") == "quiet", "?")
+  check("feeds are flagged", S.FEED_KINDS.loot and S.FEED_KINDS.progress and S.FEED_KINDS.system and not S.FEED_KINDS.party, "?")
+
+  local r = E.BuildRecord("CHAT_MSG_LOOT", p("You receive loot: [Cloak].", "Kaelis-Horizon"))
+  check("loot goes to the loot feed", r and r.convKey == "loot" and r.feed == true, r and r.convKey)
+  check("your own loot is not an outgoing message", r.outgoing == false, r.outgoing)
+  check("a feed line remembers its line type", r.chatType == "LOOT", r.chatType)
+  check("a feed line has no class and is never urgent", r.class == nil and r.urgent == false, "?")
+  check("money and currency go to loot", E.BuildRecord("CHAT_MSG_MONEY", p("You loot 3 Gold")).convKey == "loot"
+        and E.BuildRecord("CHAT_MSG_CURRENCY", p("You receive currency")).convKey == "loot", "?")
+  for _, ev in ipairs({ "CHAT_MSG_COMBAT_FACTION_CHANGE", "CHAT_MSG_COMBAT_XP_GAIN", "CHAT_MSG_SKILL" }) do
+    check(ev .. " goes to progress", E.BuildRecord(ev, p("progress")).convKey == "progress", ev)
+  end
+  r = E.BuildRecord("CHAT_MSG_SYSTEM", p("You feel rested."))
+  check("system lines go to the system feed", r.convKey == "system" and r.chatType == "SYSTEM", r.convKey)
+
+  r = E.BuildRecord("CHAT_MSG_ACHIEVEMENT", p("%s has earned the achievement [Cloak Collector]!", "Brisa-Horizon"))
+  check("an achievement names the player as a link", r.convKey == "progress"
+        and r.text == "|Hplayer:Brisa-Horizon|h[Brisa]|h has earned the achievement [Cloak Collector]!", r.text)
+  r = E.BuildRecord("CHAT_MSG_GUILD_ACHIEVEMENT", p("%s has earned the achievement [Raider]!", SECRET("Brisa-Horizon")))
+  check("a secret achiever leaves the text as it came", r.text == "%s has earned the achievement [Raider]!", r.text)
+
+  local savedOnline = BN_INLINE_TOAST_FRIEND_ONLINE
+  BN_INLINE_TOAST_FRIEND_ONLINE = "%s has come online."
+  r = E.BuildRecord("BN_INLINE_TOAST_ALERT", p("FRIEND_ONLINE", "|Kq1|k"))
+  check("a battle.net alert uses Blizzard's own text", r and r.convKey == "system" and r.text == "|Kq1|k has come online." and r.chatType == "BN_INLINE_TOAST_ALERT", r and r.text)
+  local none, reason = E.BuildRecord("BN_INLINE_TOAST_ALERT", p("NOT_A_REAL_TOAST", "|Kq1|k"))
+  check("an alert with no Blizzard text is ignored", none == nil and reason == "ignored", reason)
+  none, reason = E.BuildRecord("BN_INLINE_TOAST_ALERT", p("FRIEND_ONLINE", SECRET("|Kq1|k")))
+  check("an alert with a secret name is ignored", none == nil and reason == "ignored", reason)
+  BN_INLINE_TOAST_FRIEND_ONLINE = savedOnline
+
+  r = E.BuildRecord("CHAT_MSG_LOOT", p(SECRET("You receive loot: [Hidden]."), "Kaelis-Horizon"))
+  check("a secret loot line still lands in its feed", r and r.convKey == "loot" and r.secret == true, r and r.convKey)
+
+  S.Reset()
+  local q = S.AddPending("w:Ghost-Horizon", "hello?")
+  E.Dispatch("CHAT_MSG_SYSTEM", "No player named 'Ghost' is currently playing.")
+  check("a system line still fails the pending whisper", q.status == "failed", q.status)
+  check("and it is filed in the system feed", S.Get("system") and #S.Get("system").messages == 1, "not filed")
+  E.Dispatch("CHAT_MSG_LOOT", p("You receive loot: [Cloak].", "Kaelis-Horizon"))
+  check("a feed line counts as unread but stays quiet", S.Get("loot").unread == 1 and S.TierOf("loot") == "quiet", S.Get("loot").unread)
+
+  local registered = {}
+  E.Enable()  -- makes sure the event frame exists (an earlier section may have made it)
+  local fr = E._frame()
+  local savedRegister, savedUnregister = fr.RegisterEvent, fr.UnregisterAllEvents
+  fr.RegisterEvent = function(_, e) registered[e] = true end
+  fr.UnregisterAllEvents = function() registered = {} end
+  E.Disable()
+  E.Enable()
+  check("feed events are registered", registered.CHAT_MSG_LOOT and registered.CHAT_MSG_ACHIEVEMENT and registered.CHAT_MSG_SYSTEM, "missing")
+  check("battle.net alerts register with the capability", registered.BN_INLINE_TOAST_ALERT == true, "missing")
+  E.Disable()
+  HorizonSuite.Platform.caps.bnetWhispers = false
+  E.Enable()
+  check("no battle.net alerts without the capability", registered.BN_INLINE_TOAST_ALERT == nil and registered.CHAT_MSG_LOOT == true, "registered")
+  E.Disable()
+  HorizonSuite.Platform.caps.bnetWhispers = true
+  fr.RegisterEvent, fr.UnregisterAllEvents = savedRegister, savedUnregister
+  S.Reset()
+`, 'feeds-events');
+
 // --- Summary -------------------------------------------------------------------
 run(`
   print(PASS .. " passed, " .. FAIL .. " failed")
