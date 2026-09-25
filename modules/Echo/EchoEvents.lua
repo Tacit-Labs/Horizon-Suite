@@ -75,10 +75,23 @@ function Events.IsMention(text)
     return false
 end
 
+--- Conversation name for a channel. Zone channels arrive as "General - Zul'Aman"; the zone
+-- is dropped so General stays one conversation as you travel. Custom channels keep their name.
+-- @param name string  CHAT_MSG_CHANNEL arg 9
+-- @param zoneChannelID number  arg 7; 0 for custom channels
+-- @return string|nil
+function Events.ChannelKeyName(name, zoneChannelID)
+    if IsSecret(name) or type(name) ~= "string" or name == "" then return nil end
+    if not IsSecret(zoneChannelID) and type(zoneChannelID) == "number" and zoneChannelID > 0 then
+        return name:match("^(.-) %- ") or name
+    end
+    return name
+end
+
 --- Build a message record from a CHAT_MSG_* payload.
 -- @return table|nil record
 -- @return string|nil reason  "ignored" (not an Echo event) | "unrouted" (no conversation can be chosen)
-function Events.BuildRecord(event, text, sender, _, _, _, _, _, _, channelBaseName, _, _, guid, bnSenderID)
+function Events.BuildRecord(event, text, sender, _, _, _, _, zoneChannelID, channelIndex, channelName, _, _, guid, bnSenderID)
     local kind = Store.EVENT_KIND[event]
     if not kind then return nil, "ignored" end
 
@@ -88,7 +101,7 @@ function Events.BuildRecord(event, text, sender, _, _, _, _, _, _, channelBaseNa
     elseif kind == "bnet" then
         if not IsSecret(bnSenderID) then id = bnSenderID end
     elseif kind == "channel" then
-        if not IsSecret(channelBaseName) then id = channelBaseName end
+        id = Events.ChannelKeyName(channelName, zoneChannelID)
     end
     local convKey = Store.KeyFor(kind, id)
     if not convKey then return nil, "unrouted" end
@@ -113,6 +126,10 @@ function Events.BuildRecord(event, text, sender, _, _, _, _, _, _, channelBaseNa
         class    = (not outgoing) and ClassFromGUID(guid) or nil,
         time     = Store.Now(),
     }
+    -- The joined slot this line arrived on; Send replies there (it follows you between zones).
+    if kind == "channel" and not IsSecret(channelIndex) and type(channelIndex) == "number" and channelIndex > 0 then
+        record.channelIndex = channelIndex
+    end
     if not outgoing then
         if kind == "bnet" then
             -- Protected |K display string: safe to SetText, never stored.
@@ -151,7 +168,7 @@ function Events.OnSystemMessage(text)
     if convKey then Store.MarkFailed(convKey) end
 end
 
-local PROBE_ARGS = { { 1, "text" }, { 2, "sender" }, { 9, "channelBaseName" }, { 12, "guid" }, { 13, "bnSenderID" } }
+local PROBE_ARGS = { { 1, "text" }, { 2, "sender" }, { 7, "zoneChannelID" }, { 8, "channelIndex" }, { 9, "channelName" }, { 12, "guid" }, { 13, "bnSenderID" } }
 
 --- One-line description of a chat payload for the verification probe.
 -- Reports only type and secrecy, never values, so it is safe to print mid-encounter.

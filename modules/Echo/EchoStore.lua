@@ -179,6 +179,7 @@ function Store.Add(record)
     record.time = record.time or Store.Now()
     Append(conv, record)
     conv.open = true
+    if record.channelIndex then conv.channelIndex = record.channelIndex end
     Persist(record)
 
     local tier = Store.TierOf(record.convKey)

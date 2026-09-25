@@ -638,6 +638,52 @@ run(`
   S.Reset()
 `, 'probe');
 
+// --- Channels: zone channels keep one conversation; replies use the live index ----
+run(`
+  local S, E, Send = HorizonSuite.Echo.Store, HorizonSuite.Echo.Events, HorizonSuite.Echo.Send
+  S.Reset()
+  -- In game, arg 9 carries the zone for zone channels ("General - Zul'Aman"),
+  -- arg 7 is the zone channel ID (0 for custom channels) and arg 8 the joined index.
+  local function chan(text, sender, name, zoneID, index)
+    return text, sender, nil, nil, nil, nil, zoneID, index, name, nil, nil, nil, nil
+  end
+
+  local r = E.BuildRecord("CHAT_MSG_CHANNEL", chan("wts", "Seller-Horizon", "General - Zul'Aman", 1, 1))
+  check("zone channel keyed without the zone", r.convKey == "ch:General", r.convKey)
+  check("record carries the joined index", r.channelIndex == 1, r.channelIndex)
+  r = E.BuildRecord("CHAT_MSG_CHANNEL", chan("lfg", "Other-Horizon", "General - Stormwind City", 1, 1))
+  check("the same zone channel elsewhere is the same conversation", r.convKey == "ch:General", r.convKey)
+  r = E.BuildRecord("CHAT_MSG_CHANNEL", chan("hi", "A-Horizon", "Crafters - Guild", 0, 5))
+  check("custom channel keeps its full name", r.convKey == "ch:Crafters - Guild", r.convKey)
+  r = E.BuildRecord("CHAT_MSG_CHANNEL", chan("hi", "A-Horizon", "General - Zul'Aman", SECRET(1), SECRET(1)))
+  check("secret zone ID falls back to the full name", r.convKey == "ch:General - Zul'Aman", r.convKey)
+  check("secret index is not stored", r.channelIndex == nil, tostring(r.channelIndex))
+
+  local joined = { [1] = "General - Stormwind City", [2] = "Trade - City", [5] = "Crafters - Guild" }
+  GetChannelName = function(q)
+    if type(q) == "number" then return joined[q] and q or 0, joined[q] end
+    for i, name in pairs(joined) do if name == q then return i, name end end
+    return 0
+  end
+  local function route(key)
+    local rt = Send.RouteFor(key)
+    return rt and (rt.chatType .. ":" .. tostring(rt.target)) or "none"
+  end
+
+  E.Dispatch("CHAT_MSG_CHANNEL", chan("wts", "Seller-Horizon", "General - Zul'Aman", 1, 1))
+  check("store remembers the index", S.Get("ch:General").channelIndex == 1, S.Get("ch:General").channelIndex)
+  check("reply uses the remembered index after changing zone", route("ch:General") == "CHANNEL:1", route("ch:General"))
+  E.Dispatch("CHAT_MSG_CHANNEL", chan("hi", "A-Horizon", "Crafters - Guild", 0, 5))
+  check("custom channel routes by its index", route("ch:Crafters - Guild") == "CHANNEL:5", route("ch:Crafters - Guild"))
+
+  joined[1] = "LookingForGroup"
+  check("a stale index pointing at another channel is not used", route("ch:General") == "none", route("ch:General"))
+  joined[1] = nil
+  check("a left channel cannot be sent to", route("ch:General") == "none", route("ch:General"))
+  check("a channel never seen still resolves by full name", route("ch:Trade - City") == "CHANNEL:2", route("ch:Trade - City"))
+  S.Reset()
+`, 'channels');
+
 // --- Summary -------------------------------------------------------------------
 run(`
   print(PASS .. " passed, " .. FAIL .. " failed")
