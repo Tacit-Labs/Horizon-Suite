@@ -135,6 +135,16 @@ When `Platform.Has("secretChat")` is false, only the first case applies.
 - × closes the conversation and removes its tile. Whisper history returns if that person messages again.
 - Width, height, scale, strata and font follow the suite's usual options.
 
+**Decided for plan 3 (2026-09-25):**
+
+- Clicking a tile, a toast or the stack's **Open** button opens the card; hovering still peeks with the stack. Card and stack never show together, and hovering the column does nothing while the card is open.
+- Conversation settings live under a **⋯** button in the card header: Pin/Unpin, Notifications (Default, Loud, Count, Quiet, Muted) and Close conversation, built with Blizzard's `MenuUtil` context menu.
+- Pins and tiers are remembered **per character**, next to whisper history (Battle.net by BattleTag), independent of the history switch.
+- Bubbles are laid out newest-first from the bottom of a clipped area and the wheel scrolls by message, so nothing reads a text height beyond each bubble's own. Readable text is measured; a secret gets the full width and a fixed three lines.
+- Drafts are shared between the stack and the card, per conversation.
+- Shift-clicking a link while an Echo reply box has focus inserts it there, through a post-hook on the game's own link insertion.
+- The rest of the old plan 3 (options page, dashboard, whisper filter, keywords, polish) is plan 4.
+
 ### Keybinds
 
 Added to `Bindings.xml` under "Horizon Suite":
@@ -244,7 +254,7 @@ Each step can ship on its own:
 - Add `Store.Unsubscribe` if views are rebuilt at runtime.
 - Slash command strings move to `addon.L` in plan 3.
 
-**Carried into plan 3.** Found while building the tiles and stack, left for options and polish:
+**Carried into plan 4.** Found while building the tiles and stack, left for options and polish:
 
 - The column-edge option also flips which side the toast and stack open on.
 - A scale change re-derives the saved position, so the column doesn't jump.
