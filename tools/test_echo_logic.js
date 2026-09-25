@@ -1171,6 +1171,34 @@ run(`
   S.Reset()
 `, 'stack-hover-click');
 
+// --- Tiles: no toast over an open stack (final review F2) --------------------------------
+run(`
+  local S, T, K = HorizonSuite.Echo.Store, HorizonSuite.Echo.Tiles, HorizonSuite.Echo.Stack
+  S.Reset()
+  CreateFrame = STUB_CREATE_FRAME
+  T.Enable()
+  K.Enable()
+  local f = K._frames()
+  S.Add({ convKey = "w:Brisa-Horizon", text = "hi", class = "DRUID", sender = "Brisa-Horizon" })
+  local toast = T._toast()
+  toast:Hide()
+  K.Open("w:Brisa-Horizon")
+  S.Add({ convKey = "w:Vexa-Horizon", text = "gz", sender = "Vexa-Horizon" })
+  check("a loud message while the stack is open shows no toast", not toast.shown, toast.convKey)
+  check("the new conversation still gets its tile", T.TileFor("w:Vexa-Horizon") ~= nil, "no tile")
+  K.Hide()
+  T.Hold(true)
+  K.Open("w:Brisa-Horizon")
+  S.Add({ convKey = "w:Orin-Horizon", text = "yo", sender = "Orin-Horizon" })
+  K.Hide()
+  T.Hold(false)
+  check("a loud message while the stack is open is not queued for after combat", not toast.shown, toast.convKey)
+
+  K.Disable()
+  T.Disable()
+  S.Reset()
+`, 'tiles-stack-open');
+
 // --- Summary -------------------------------------------------------------------
 run(`
   print(PASS .. " passed, " .. FAIL .. " failed")
