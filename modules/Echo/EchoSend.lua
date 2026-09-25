@@ -27,6 +27,26 @@ local GROUP_CHAT_TYPE = {
     officer  = "OFFICER",
 }
 
+-- The joined index for a channel conversation: the slot its last message arrived on, while
+-- that slot still holds the same channel, else a lookup by name. Zone channels carry the
+-- zone in their joined name ("General - Stormwind City"), so they are compared without it.
+local function ChannelIndexFor(convKey)
+    if not GetChannelName then return nil end
+    local keyName = convKey:sub(4)
+    local conv = Store.Get(convKey)
+    local remembered = conv and conv.channelIndex
+    if remembered then
+        local id, joinedName = GetChannelName(remembered)
+        if id == remembered and not Echo.IsSecret(joinedName) and type(joinedName) == "string"
+            and (joinedName == keyName or joinedName:match("^(.-) %- ") == keyName) then
+            return remembered
+        end
+    end
+    local index = GetChannelName(keyName)
+    if type(index) == "number" and index > 0 then return index end
+    return nil
+end
+
 --- Where a reply to this conversation goes.
 -- @param convKey string
 -- @return table|nil route  { chatType = string, target = string|number|nil }
@@ -38,9 +58,8 @@ function Send.RouteFor(convKey)
         local id = tonumber(convKey:sub(4))
         return id and { chatType = "BN_WHISPER", target = id } or nil
     elseif kind == "channel" then
-        local index = GetChannelName and GetChannelName(convKey:sub(4))
-        if type(index) ~= "number" or index == 0 then return nil end
-        return { chatType = "CHANNEL", target = index }
+        local index = ChannelIndexFor(convKey)
+        return index and { chatType = "CHANNEL", target = index } or nil
     elseif GROUP_CHAT_TYPE[kind] then
         return { chatType = GROUP_CHAT_TYPE[kind] }
     end
