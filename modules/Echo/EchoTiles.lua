@@ -78,9 +78,11 @@ function Echo.PaintTileFace(face, spec)
     end
     if face.letter then
         local size = spec.small and face.smallSize or face.size
-        if face.letter._echoSize ~= size then
-            Echo.TrackFont(face.letter, size, "OUTLINE")
+        local flags = face.flags or ""
+        if face.letter._echoSize ~= size or face.letter._echoFlags ~= flags then
+            Echo.TrackFont(face.letter, size, flags)
             face.letter._echoSize = size
+            face.letter._echoFlags = flags
         end
         if spec.face == "letter" or spec.face == "glyph" then
             face.letter:SetText(spec.letter)
@@ -160,7 +162,7 @@ local function PaintTile(b, conv)
     local View = Echo.View
     local spec = View.TileSpec(conv)
     b.convKey = conv.key
-    local face = { icon = b.icon, letter = b.letter, label = b.label, size = 16, smallSize = 10 }
+    local face = { icon = b.icon, letter = b.letter, label = b.label, size = 16, smallSize = 10, flags = "" }
     Echo.PaintTileFace(face, spec)
     b:SetBackdropColor(View.FaceBackground(spec))
     if spec.face == "glyph" or spec.face == "icon" then
@@ -415,7 +417,7 @@ function Tiles.ShowToast(convKey)
     if not toast then CreateToast() end
     local entry = toast.entry
     local spec = View.TileSpec(conv)
-    local face = { bg = entry.icon, icon = entry.face, letter = entry.letter, size = 14, smallSize = 9 }
+    local face = { bg = entry.icon, icon = entry.face, letter = entry.letter, size = 14, smallSize = 9, flags = "" }
     Echo.PaintTileFace(face, spec)
     entry.title:SetText(View.DisplayName(conv))
     if msg.secret or Echo.IsSecret(msg.text) then

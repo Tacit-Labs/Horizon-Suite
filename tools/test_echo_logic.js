@@ -3672,6 +3672,7 @@ run(`
   local colTile = T.TileFor("w:Brisa-Horizon")
   check("column tile: class icon shown", colTile.icon.shown == true, tostring(colTile.icon.shown))
   check("column tile: class icon textured", colTile.icon.texture == "Interface\\\\ClassIcon\\\\Druid", tostring(colTile.icon.texture))
+  check("column tile: keeps its own outline flags", colTile.letter._echoFlags == "", tostring(colTile.letter._echoFlags))
   check("column tile: whisper label shown", colTile.label.text == "Brisa", colTile.label.text)
   check("column tile: label shade shown", colTile.labelShade.shown == true, tostring(colTile.labelShade.shown))
 
@@ -3681,17 +3682,20 @@ run(`
   for _, b in ipairs(cf.rowTiles) do if b.convKey == "w:Brisa-Horizon" then brisaRow = b end end
   check("card row tile: class icon shown", brisaRow and brisaRow.icon.shown == true, "?")
   check("card row tile: class icon textured", brisaRow and brisaRow.icon.texture == "Interface\\\\ClassIcon\\\\Druid", "?")
+  check("card row tile: keeps its own outline flags", brisaRow and brisaRow.letter._echoFlags == "", "?")
   C.Hide()
 
   K.Open("w:Brisa-Horizon")
   local kf = K._frames()
   check("stack card tile: class icon shown", kf.card.tileIcon.shown == true, tostring(kf.card.tileIcon.shown))
   check("stack card tile: class icon textured", kf.card.tileIcon.texture == "Interface\\\\ClassIcon\\\\Druid", "?")
+  check("stack card tile: keeps its own outline flags", kf.card.letter._echoFlags == "", tostring(kf.card.letter._echoFlags))
   K.Hide()
 
   local toast = T._toast()
   check("toast: class icon shown", toast and toast.entry.face.shown == true, "?")
   check("toast: class icon textured", toast and toast.entry.face.texture == "Interface\\\\ClassIcon\\\\Druid", "?")
+  check("toast: keeps its own outline flags", toast and toast.entry.letter._echoFlags == "", "?")
 
   -- An atlas class icon paints through SetAtlas instead of SetTexture.
   HorizonSuite.ResolveClassIconDisplay = function() return { kind = "atlas", atlas = "classicon-druid" } end
@@ -3784,6 +3788,34 @@ run(`
   T.Disable()
   S.Reset()
 `, 'one-painter');
+
+// --- Final fix H4: the painter tracks size and flags together, never forcing OUTLINE ------
+run(`
+  local Echo = HorizonSuite.Echo
+  local spec = { face = "letter", letter = "B", r = 1, g = 1, b = 1 }
+
+  -- A host with no flags field defaults to no flags, not a hard-coded OUTLINE.
+  local plainLetter = STUB_FRAME()
+  Echo.PaintTileFace({ letter = plainLetter, size = 12, smallSize = 8 }, spec)
+  check("H4: a host with no flags field paints with none", plainLetter._echoFlags == "", tostring(plainLetter._echoFlags))
+
+  -- Re-fonting tracks size and flags together: either one changing re-fonts; both the same
+  -- skips it.
+  local letter = STUB_FRAME()
+  letter._echoSize = 12
+  letter._echoFlags = "OUTLINE"
+  local calls, realTrackFont = 0, Echo.TrackFont
+  Echo.TrackFont = function(...) calls = calls + 1; return realTrackFont(...) end
+  local host = { letter = letter, size = 12, smallSize = 8, flags = "" }
+  Echo.PaintTileFace(host, spec)
+  check("H4: a flags change alone re-fonts", calls == 1 and letter._echoFlags == "", tostring(letter._echoFlags))
+  Echo.PaintTileFace(host, spec)
+  check("H4: the same size and flags skip a re-font", calls == 1, calls)
+  host.flags = "OUTLINE"
+  Echo.PaintTileFace(host, spec)
+  check("H4: a later flags change re-fonts again", calls == 2 and letter._echoFlags == "OUTLINE", tostring(letter._echoFlags))
+  Echo.TrackFont = realTrackFont
+`, 'final-h4');
 
 // --- Summary -------------------------------------------------------------------
 run(`

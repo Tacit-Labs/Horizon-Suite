@@ -104,7 +104,7 @@ end
 
 local function PaintTile(b, spec)
     local View = Echo.View
-    local face = { icon = b.icon, letter = b.letter, size = 12, smallSize = 8 }
+    local face = { icon = b.icon, letter = b.letter, size = 12, smallSize = 8, flags = "" }
     Echo.PaintTileFace(face, spec)
     b:SetBackdropColor(View.FaceBackground(spec))
 end

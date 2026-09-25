@@ -288,7 +288,7 @@ function Stack.Render()
     currentKey = conv.key
     local spec = View.TileSpec(conv)
 
-    local face = { bg = card.tile, icon = card.tileIcon, letter = card.letter, size = 14, smallSize = 9 }
+    local face = { bg = card.tile, icon = card.tileIcon, letter = card.letter, size = 14, smallSize = 9, flags = "" }
     Echo.PaintTileFace(face, spec)
     card.name:SetText(View.DisplayName(conv))
     card.name:SetTextColor(spec.r, spec.g, spec.b, 1)
