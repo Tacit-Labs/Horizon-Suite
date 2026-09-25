@@ -1190,6 +1190,47 @@ run(`
   S.Reset()
 `, 'stack-draft');
 
+// --- Stack: keep your place (closed drafts, upper-case only in English) ------------------
+run(`
+  local Echo = HorizonSuite.Echo
+  local S, T, K = Echo.Store, Echo.Tiles, Echo.Stack
+  S.Reset()
+  CreateFrame = STUB_CREATE_FRAME
+  T.Enable()
+  K.Enable()
+  local f = K._frames()
+
+  S.Add({ convKey = "w:Brisa-Horizon", text = "hi", class = "DRUID", sender = "Brisa-Horizon" })
+  S.Add({ convKey = "w:Vexa-Horizon", text = "hey", sender = "Vexa-Horizon" })
+  K.Open("w:Brisa-Horizon")
+  f.edit:SetText("draft for brisa")
+  S.Close("w:Brisa-Horizon")
+  local taken = Echo.TakeDraft("w:Brisa-Horizon")
+  check("closing discards the parked draft", taken == "", taken)
+  check("the stack box is cleared when its own conversation closes", f.edit.text == "", f.edit.text)
+  S.Add({ convKey = "w:Brisa-Horizon", text = "hey again", sender = "Brisa-Horizon" })
+  K.Open("w:Brisa-Horizon")
+  check("reopening after a close shows an empty box, not the old draft", f.edit.text == "", f.edit.text)
+
+  local savedNames = LOCALIZED_CLASS_NAMES_MALE
+  LOCALIZED_CLASS_NAMES_MALE = { DRUID = "Druid" }
+  local realLocale = GetLocale
+  GetLocale = function() return "enUS" end
+  K.Flip(0)
+  check("enUS upper-cases the stack's meta line", f.card.meta.text:find("DRUID", 1, true) ~= nil, f.card.meta.text)
+  GetLocale = function() return "deDE" end
+  K.Open("w:Vexa-Horizon")
+  K.Open("w:Brisa-Horizon")
+  check("deDE leaves the stack's meta line alone", f.card.meta.text:find("Druid", 1, true) ~= nil, f.card.meta.text)
+  GetLocale = realLocale
+  LOCALIZED_CLASS_NAMES_MALE = savedNames
+
+  K.Hide()
+  K.Disable()
+  T.Disable()
+  S.Reset()
+`, 'stack-keep-place');
+
 // --- Stack: OnHide cancels a pending open and drops reply-box focus (fix round 1, finding 4) ----
 run(`
   local S, T, K = HorizonSuite.Echo.Store, HorizonSuite.Echo.Tiles, HorizonSuite.Echo.Stack
@@ -1816,6 +1857,10 @@ run(`
   CreateFrame = STUB_CREATE_FRAME
   local sent = {}
   C_ChatInfo = { SendChatMessage = function(msg, chatType, _, target) sent[#sent + 1] = chatType .. ":" .. tostring(target) .. ":" .. msg end }
+  -- The meta line's upper-casing is locale-gated (View.Upper); pin enUS so this section's
+  -- assertions about the meta text's case stay meaningful.
+  local realLocale = GetLocale
+  GetLocale = function() return "enUS" end
   T.Enable()
   K.Enable()
   C.Enable()
@@ -1897,6 +1942,7 @@ run(`
   T.Disable()
   check("a disabled card ignores new messages", pcall(S.Add, { convKey = "w:Late-Horizon", text = "x" }), "threw")
   C_ChatInfo = nil
+  GetLocale = realLocale
   S.Reset()
 `, 'card');
 
@@ -2029,6 +2075,73 @@ run(`
   T.Disable()
   S.Reset()
 `, 'card-width');
+
+// --- Card: keep your place ---------------------------------------------------------------
+run(`
+  local Echo = HorizonSuite.Echo
+  local S, T, K, C = Echo.Store, Echo.Tiles, Echo.Stack, Echo.Card
+  S.Reset()
+  CreateFrame = STUB_CREATE_FRAME
+  T.Enable()
+  K.Enable()
+  C.Enable()
+  local f = C._frames()
+  local Lt = HorizonSuite.L
+
+  S.Add({ convKey = "w:Brisa-Horizon", text = "m1", sender = "Brisa-Horizon", class = "DRUID" })
+  for i = 2, 30 do S.Add({ convKey = "w:Brisa-Horizon", text = "m" .. i, sender = "Brisa-Horizon" }) end
+  C.Open("w:Brisa-Horizon")
+  C.Scroll(5)
+  local pinned = f.bubbles[1].text.text
+
+  rawset(Lt, "ECHO_NEW_BELOW", "%d new ↓")
+  S.Add({ convKey = "w:Brisa-Horizon", text = "n1", sender = "Brisa-Horizon" })
+  S.Add({ convKey = "w:Brisa-Horizon", text = "n2", sender = "Brisa-Horizon" })
+  S.Add({ convKey = "w:Brisa-Horizon", text = "n3", sender = "Brisa-Horizon" })
+  check("the bubble stays put while scrolled up", f.bubbles[1].text.text == pinned, f.bubbles[1].text.text)
+  check("the hint counts the new messages", f.hint.text.text == "3 new ↓", f.hint.text.text)
+  check("the hint is shown", f.hint.shown, "hidden")
+
+  f.hint.scripts.OnClick(f.hint)
+  check("clicking the hint jumps to the newest message", f.bubbles[1].text.text == "n3", f.bubbles[1].text.text)
+  check("clicking the hint hides it", not f.hint.shown, "shown")
+
+  S.Add({ convKey = "w:Brisa-Horizon", text = "n4", sender = "Brisa-Horizon" })
+  check("at the bottom a new message renders at once", f.bubbles[1].text.text == "n4", f.bubbles[1].text.text)
+  check("no hint shows at the bottom", not f.hint.shown, "shown")
+  rawset(Lt, "ECHO_NEW_BELOW", nil)
+
+  -- Closed drafts: a conversation closed while its draft sits in the box.
+  S.Add({ convKey = "w:Vexa-Horizon", text = "hey", sender = "Vexa-Horizon" })
+  C.Show("w:Brisa-Horizon")
+  f.edit:SetText("draft for brisa")
+  S.Close("w:Brisa-Horizon")
+  local taken = Echo.TakeDraft("w:Brisa-Horizon")
+  check("closing discards the parked draft", taken == "", taken)
+  check("the box is cleared when its own conversation closes", f.edit.text == "", f.edit.text)
+  S.Add({ convKey = "w:Brisa-Horizon", text = "hey again", sender = "Brisa-Horizon" })
+  C.Open("w:Brisa-Horizon")
+  check("reopening after a close shows an empty box, not the old draft", f.edit.text == "", f.edit.text)
+
+  -- Upper-casing only in English. A mixed-case localized class name makes the change visible.
+  local savedNames = LOCALIZED_CLASS_NAMES_MALE
+  LOCALIZED_CLASS_NAMES_MALE = { DRUID = "Druid" }
+  local realLocale = GetLocale
+  GetLocale = function() return "enUS" end
+  C.Show("w:Brisa-Horizon")
+  check("enUS upper-cases the meta line", f.meta.text:find("DRUID", 1, true) ~= nil, f.meta.text)
+  GetLocale = function() return "deDE" end
+  C.Show("w:Vexa-Horizon")
+  C.Show("w:Brisa-Horizon")
+  check("deDE leaves the meta line alone", f.meta.text:find("Druid", 1, true) ~= nil, f.meta.text)
+  GetLocale = realLocale
+  LOCALIZED_CLASS_NAMES_MALE = savedNames
+
+  C.Disable()
+  K.Disable()
+  T.Disable()
+  S.Reset()
+`, 'card-keep-place');
 
 // --- Stack: OnHide parks the draft (fix round 1, finding 1) -------------------------------
 run(`

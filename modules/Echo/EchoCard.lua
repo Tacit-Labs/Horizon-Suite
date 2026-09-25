@@ -38,10 +38,11 @@ Card.LINE_HEIGHT = 14
 Card.FEED_TIME_WIDTH = 40
 Card.FEED_GAP = 2
 
-local root, nameText, metaText, area, edit, send, menuButton, chevron, statusLine
+local root, nameText, metaText, area, edit, send, menuButton, chevron, statusLine, hint
 local rowTiles, bubbles, labels = {}, {}, {}
 local currentKey, renderedKey
 local offset = 0  -- newest messages scrolled past
+local newBelow = 0  -- messages added while scrolled up, shown by the hint
 local areaHeight = Card.AREA_HEIGHT  -- the message area's height for the card now shown
 
 --- Take the card's width and height from the settings and re-derive the sizes built on
@@ -221,6 +222,22 @@ local function Create()
         if self.retry then Card.Retry(self.retry) end
     end)
     statusLine:Hide()
+
+    hint = CreateFrame("Button", nil, area, "BackdropTemplate")
+    hint:SetSize(90, 20)
+    Paint(hint, View.PANEL_BG, View.PANEL_BORDER)
+    hint:SetPoint("BOTTOM", area, "BOTTOM", 0, 4)
+    hint.text = Echo.NewText(hint, 11, "")
+    hint.text:SetPoint("CENTER", hint, "CENTER", 0, 0)
+    hint.text:SetTextColor(a.r, a.g, a.b, 1)
+    hint:RegisterForClicks("LeftButtonUp")
+    hint:SetScript("OnClick", function()
+        offset = 0
+        newBelow = 0
+        hint:Hide()
+        Card.Render()
+    end)
+    hint:Hide()
 
     send = CreateFrame("Button", nil, root, "BackdropTemplate")
     send:SetSize(30, 30)
@@ -493,6 +510,8 @@ function Card.Render()
         if renderedKey then Echo.ParkDraft(renderedKey, edit:GetText()) end
         edit:SetText(Echo.TakeDraft(conv.key))
         offset = 0
+        newBelow = 0
+        hint:Hide()
     end
     renderedKey = conv.key
     currentKey = conv.key
@@ -503,7 +522,7 @@ function Card.Render()
     local spec = View.TileSpec(conv)
     nameText:SetText(View.DisplayName(conv))
     nameText:SetTextColor(spec.r, spec.g, spec.b, 1)
-    metaText:SetText(View.CardMeta(conv):upper())
+    metaText:SetText(View.Upper(View.CardMeta(conv)))
     if conv.kind == "whisper" then
         edit.placeholder:SetText(L["ECHO_WHISPER_TO"]:format(View.DisplayName(conv)))
     else
@@ -591,6 +610,8 @@ function Card.Hide()
     -- well keeps the harness's stand-in frames, which don't fire OnHide on Hide(), correct.
     ParkDraft()
     if edit then edit:ClearFocus() end
+    newBelow = 0
+    if hint then hint:Hide() end
     root:Hide()
 end
 
@@ -605,6 +626,10 @@ function Card.Scroll(delta)
     if not root or not root:IsShown() then return end
     offset = offset + delta
     Card.Render()
+    if offset == 0 then
+        newBelow = 0
+        hint:Hide()
+    end
 end
 
 --- Send the reply box's text to the card's conversation.
@@ -615,6 +640,8 @@ function Card.Submit()
     -- the render that draws the new bubble, which runs on the next frame, so it must
     -- draw at the bottom, not scrolled past.
     offset = 0
+    newBelow = 0
+    hint:Hide()
     -- A send that can't route keeps its text in the box, so nothing typed is lost.
     if Echo.Send.Send(currentKey, text) then edit:SetText("") end
 end
@@ -634,12 +661,34 @@ end
 
 --- A Store change. Another conversation's news only touches the tile row; the shown
 -- conversation's own changes, a close (which may be the shown one's), and changes with no
--- conversation (reset, restore) redraw the whole card.
+-- conversation (reset, restore) redraw the whole card. A message added to the shown
+-- conversation while scrolled up keeps the bubbles still and counts it on the hint instead.
+-- A close discards that conversation's draft regardless of whether the card is shown.
 -- @param convKey string|nil
 -- @param change string|nil
 function Card.OnStoreChange(convKey, change)
+    if change == "closed" then
+        Echo.TakeDraft(convKey)
+        if convKey == renderedKey then
+            edit:SetText("")
+            renderedKey = nil
+        end
+    end
     if not root or not root:IsShown() then return end
-    if convKey and renderedKey and convKey ~= renderedKey and change ~= "closed" then
+    if change == "closed" then
+        Echo.Redraw.Mark("card")
+        return
+    end
+    local added = change == "toast" or change == "count" or change == "quiet" or change == "silent"
+    if added and convKey == renderedKey and offset > 0 then
+        offset = offset + 1
+        newBelow = newBelow + 1
+        hint.text:SetText(L["ECHO_NEW_BELOW"]:format(newBelow))
+        hint:Show()
+        Echo.Redraw.Mark("cardRow")
+        return
+    end
+    if convKey and renderedKey and convKey ~= renderedKey then
         Echo.Redraw.Mark("cardRow")
     else
         Echo.Redraw.Mark("card")
@@ -674,6 +723,6 @@ function Card._frames()
     return {
         root = root, rowTiles = rowTiles, name = nameText, meta = metaText, area = area,
         edit = edit, send = send, menu = menuButton, chevron = chevron,
-        bubbles = bubbles, labels = labels, status = statusLine,
+        bubbles = bubbles, labels = labels, status = statusLine, hint = hint,
     }
 end

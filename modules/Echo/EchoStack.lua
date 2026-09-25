@@ -292,7 +292,7 @@ function Stack.Render()
     Echo.PaintTileFace(face, spec)
     card.name:SetText(View.DisplayName(conv))
     card.name:SetTextColor(spec.r, spec.g, spec.b, 1)
-    card.meta:SetText(View.MetaLine(conv, Echo.Store.Now()):upper())
+    card.meta:SetText(View.Upper(View.MetaLine(conv, Echo.Store.Now())))
 
     -- A feed line reads as its time, then its text: shift the text column right by the time.
     -- Lines below the first hang off the one above, so only the first is re-anchored.
@@ -517,7 +517,18 @@ function Stack.HoverLeave()
     end
 end
 
-function Stack.OnStoreChange()
+-- A close discards that conversation's draft regardless of whether the stack is shown, and
+-- clears the shared box when it was showing that conversation's card.
+-- @param convKey string|nil
+-- @param change string|nil
+function Stack.OnStoreChange(convKey, change)
+    if change == "closed" then
+        Echo.TakeDraft(convKey)
+        if convKey == renderedKey then
+            edit:SetText("")
+            renderedKey = nil
+        end
+    end
     if root and root:IsShown() then Echo.Redraw.Mark("stack") end
 end
 
