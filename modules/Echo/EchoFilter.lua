@@ -3,9 +3,14 @@
     "Hide whispers Echo has stored": while on, a whisper Echo files in a conversation is
     hidden from Blizzard's chat windows. A whisper Echo could not read (secret text or a
     secret sender) is never hidden, so nothing is lost. Blizzard sets the reply target
-    after the filters run, so a hidden incoming whisper sets it here instead.
+    after the filters run, so a hidden incoming whisper sets it here instead. Blizzard
+    also plays the whisper sound and flashes the taskbar icon after the filters run; a
+    hidden incoming whisper does both here instead, once per chat frame.
+    While C_ChatInfo.InChatMessagingLockdown() is true, nothing is hidden: Blizzard's own
+    secure code owns the line, the sound and the reply target during that window.
     Blizzard: ChatFrameUtil.AddMessageEventFilter / RemoveMessageEventFilter (legacy
-    ChatFrame_* globals), ChatFrameUtil.SetLastTellTarget / ChatEdit_SetLastTellTarget.
+    ChatFrame_* globals), ChatFrameUtil.SetLastTellTarget / ChatEdit_SetLastTellTarget,
+    PlaySound, SOUNDKIT.TELL_MESSAGE, FlashClientIcon, C_ChatInfo.InChatMessagingLockdown.
 ]]
 
 local addon = _G.HorizonSuite
@@ -40,9 +45,40 @@ local function SetLastTell(sender, chatType)
     if fn then pcall(fn, sender, chatType) end
 end
 
+local lastAlertAt
+
+--- Play the whisper sound and flash the taskbar icon, once per chat frame: the filter
+-- runs once per registered event for the same line within one frame.
+local function Alert()
+    local now = GetTime and GetTime() or 0
+    if now == lastAlertAt then return end
+    lastAlertAt = now
+    if SOUNDKIT and SOUNDKIT.TELL_MESSAGE then
+        pcall(PlaySound, SOUNDKIT.TELL_MESSAGE)
+    end
+    if FlashClientIcon then
+        pcall(FlashClientIcon)
+    end
+end
+
+--- True while chat messaging lockdown is in effect. Resolved and pcalled at call time;
+-- anything but a plain, non-secret boolean counts as "in lockdown", so the filter fails
+-- safe and Blizzard's own secure code keeps handling the line.
+local function InLockdown()
+    local info = _G.C_ChatInfo
+    local fn = info and info.InChatMessagingLockdown
+    if not fn then return false end
+    local ok, result = pcall(fn)
+    if not ok then return true end
+    if Echo.IsSecret(result) then return true end
+    if type(result) ~= "boolean" then return true end
+    return result
+end
+
 --- True when Echo files this whisper as a readable message.
 -- @return boolean
 function Filter.ShouldHide(event, ...)
+    if InLockdown() then return false end
     local record = Echo.Events.BuildRecord(event, ...)
     return record ~= nil and not record.secret
 end
@@ -51,10 +87,13 @@ end
 function Filter.Handler(_, event, ...)
     if Filter.ShouldHide(event, ...) then
         local chatType = INCOMING[event]
-        if chatType then SetLastTell((select(2, ...)), chatType) end
+        if chatType then
+            SetLastTell((select(2, ...)), chatType)
+            Alert()
+        end
         return true
     end
-    return false, ...
+    return false
 end
 
 --- Register or remove the filter.

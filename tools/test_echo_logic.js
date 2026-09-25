@@ -2996,9 +2996,8 @@ run(`
   check("the reply target follows a hidden whisper", lastTell and lastTell[1] == "Brisa-Horizon" and lastTell[2] == "WHISPER", lastTell and lastTell[1])
 
   lastTell = nil
-  local keep, text = F.Handler(nil, "CHAT_MSG_WHISPER", SECRET("hi"), "Brisa-Horizon", "", "", "", "", 0, 0, "", 0, 1, "Player-1-DRUID")
+  local keep = F.Handler(nil, "CHAT_MSG_WHISPER", SECRET("hi"), "Brisa-Horizon", "", "", "", "", 0, 0, "", 0, 1, "Player-1-DRUID")
   check("a secret whisper stays in Blizzard chat", keep == false, keep)
-  check("its arguments pass through", issecretvalue(text), text)
   check("no reply target from a kept whisper", lastTell == nil, lastTell and lastTell[1])
 
   keep = F.Handler(nil, "CHAT_MSG_WHISPER", "hi", SECRET("Brisa-Horizon"), "", "", "", "", 0, 0, "", 0, 1, "Player-1-DRUID")
@@ -3025,6 +3024,73 @@ run(`
   HorizonSuite.GetDB = nil
   ChatFrame_AddMessageEventFilter, ChatFrame_RemoveMessageEventFilter, ChatEdit_SetLastTellTarget = nil, nil, nil
 `, 'echo-filter');
+
+// --- A hidden whisper still plays the sound and flashes the taskbar icon --------------------
+run(`
+  local Echo = HorizonSuite.Echo
+  local F = Echo.Filter
+  ChatEdit_SetLastTellTarget = function() end
+  local soundCalls, flashCalls = 0, 0
+  PlaySound = function(id) if id == 3081 then soundCalls = soundCalls + 1 end end
+  SOUNDKIT = { TELL_MESSAGE = 3081 }
+  FlashClientIcon = function() flashCalls = flashCalls + 1 end
+  local now = 100
+  GetTime = function() return now end
+
+  F.Handler(nil, "CHAT_MSG_WHISPER", "hi", "Brisa-Horizon", "", "", "", "", 0, 0, "", 0, 1, "Player-1-DRUID")
+  F.Handler(nil, "CHAT_MSG_WHISPER", "hi again", "Brisa-Horizon", "", "", "", "", 0, 0, "", 0, 1, "Player-1-DRUID")
+  check("two hides at the same time play one sound", soundCalls == 1, soundCalls)
+  check("two hides at the same time flash once", flashCalls == 1, flashCalls)
+
+  now = 101
+  F.Handler(nil, "CHAT_MSG_WHISPER", "later", "Brisa-Horizon", "", "", "", "", 0, 0, "", 0, 1, "Player-1-DRUID")
+  check("a later time plays the sound again", soundCalls == 2, soundCalls)
+  check("a later time flashes again", flashCalls == 2, flashCalls)
+
+  local keep = F.Handler(nil, "CHAT_MSG_WHISPER", SECRET("hi"), "Brisa-Horizon", "", "", "", "", 0, 0, "", 0, 1, "Player-1-DRUID")
+  check("a kept secret whisper is not hidden", keep == false, keep)
+  check("a kept whisper plays no sound", soundCalls == 2, soundCalls)
+  check("a kept whisper flashes nothing", flashCalls == 2, flashCalls)
+
+  F.Handler(nil, "CHAT_MSG_WHISPER_INFORM", "hi", "Brisa-Horizon", "", "", "", "", 0, 0, "", 0, 1, "Player-1-DRUID")
+  check("a hidden inform plays no sound", soundCalls == 2, soundCalls)
+  check("a hidden inform flashes nothing", flashCalls == 2, flashCalls)
+
+  PlaySound, SOUNDKIT, FlashClientIcon, GetTime, ChatEdit_SetLastTellTarget = nil, nil, nil, nil, nil
+`, 'echo-filter-alert');
+
+// --- Never hide during chat messaging lockdown --------------------------------------------
+run(`
+  local Echo = HorizonSuite.Echo
+  local F = Echo.Filter
+  local lastTell
+  ChatEdit_SetLastTellTarget = function(name, chatType) lastTell = { name, chatType } end
+  local soundCalls = 0
+  PlaySound = function() soundCalls = soundCalls + 1 end
+  SOUNDKIT = { TELL_MESSAGE = 3081 }
+
+  C_ChatInfo = { InChatMessagingLockdown = function() return true end }
+  local keep = F.Handler(nil, "CHAT_MSG_WHISPER", "hi", "Brisa-Horizon", "", "", "", "", 0, 0, "", 0, 1, "Player-1-DRUID")
+  check("lockdown keeps a readable whisper", keep == false, keep)
+  check("no reply target during lockdown", lastTell == nil, lastTell)
+  check("no sound during lockdown", soundCalls == 0, soundCalls)
+
+  -- A secret or failed lockdown result fails safe (counts as lockdown).
+  C_ChatInfo = { InChatMessagingLockdown = function() return SECRET(true) end }
+  keep = F.Handler(nil, "CHAT_MSG_WHISPER", "hi", "Brisa-Horizon", "", "", "", "", 0, 0, "", 0, 1, "Player-1-DRUID")
+  check("a secret lockdown result fails safe", keep == false, keep)
+
+  C_ChatInfo = { InChatMessagingLockdown = function() error("boom") end }
+  keep = F.Handler(nil, "CHAT_MSG_WHISPER", "hi", "Brisa-Horizon", "", "", "", "", 0, 0, "", 0, 1, "Player-1-DRUID")
+  check("a failed lockdown check fails safe", keep == false, keep)
+
+  C_ChatInfo = { InChatMessagingLockdown = function() return false end }
+  keep = F.Handler(nil, "CHAT_MSG_WHISPER", "hi", "Brisa-Horizon", "", "", "", "", 0, 0, "", 0, 1, "Player-1-DRUID")
+  check("no lockdown hides as usual", keep == true, keep)
+
+  C_ChatInfo = nil
+  PlaySound, SOUNDKIT, ChatEdit_SetLastTellTarget = nil, nil, nil
+`, 'echo-filter-lockdown');
 
 // --- Options page builds -----------------------------------------------------
 run(read('options/modules/defaults/OptionsDefaultsEcho.lua'), 'echo-defaults-2');
