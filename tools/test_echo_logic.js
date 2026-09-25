@@ -1717,23 +1717,40 @@ run(`
   local meta = V.CardMeta(S.Get("w:Brisa-Horizon"))
   check("card meta names the class", meta:find("Druid", 1, true) ~= nil, meta)
 
-  -- Invite target: a whisperer's bare name, a Battle.net friend on WoW as Name-Realm,
-  -- and nil for anything else.
+  -- Invite target: a whisperer's bare name, a Battle.net friend on WoW as Name-Realm (only
+  -- when they can actually play with you), and nil for anything else, including yourself.
+  -- The stub UnitName() ("Kaelis") plus GetNormalizedRealmName() ("Horizon") make the
+  -- player's own key "Kaelis-Horizon".
   check("a whisper's invite target is its name", V.InviteTarget({ kind = "whisper", key = "w:Brisa-Horizon" }) == "Brisa-Horizon", V.InviteTarget({ kind = "whisper", key = "w:Brisa-Horizon" }))
   check("a secret whisper name has no invite target", V.InviteTarget({ kind = "whisper", key = SECRET("w:Brisa-Horizon") }) == nil, "?")
-  local savedBnetInvite = C_BattleNet
+  check("a self-whisper has no invite target", V.InviteTarget({ kind = "whisper", key = "w:Kaelis-Horizon" }) == nil, "?")
+  local savedBnetInvite, savedWowProjectID, savedCanCooperate = C_BattleNet, WOW_PROJECT_ID, CanCooperateWithGameAccount
+  WOW_PROJECT_ID = 1
+  CanCooperateWithGameAccount = nil
   C_BattleNet = { GetAccountInfoByID = function(id)
-    if id == 1 then return { gameAccountInfo = { clientProgram = "WoW", characterName = "Brisa", realmName = "Horizon" } } end
+    if id == 1 then return { gameAccountInfo = { clientProgram = "WoW", characterName = "Brisa", realmName = "Horizon", wowProjectID = 1, isInCurrentRegion = true } } end
     if id == 2 then return { gameAccountInfo = { clientProgram = "App" } } end
-    if id == 3 then return { gameAccountInfo = { clientProgram = "WoW", characterName = SECRET("Brisa"), realmName = "Horizon" } } end
-    if id == 4 then return { gameAccountInfo = { clientProgram = "WoW", characterName = "Brisa", realmName = "" } } end
+    if id == 3 then return { gameAccountInfo = { clientProgram = "WoW", characterName = SECRET("Brisa"), realmName = "Horizon", wowProjectID = 1 } } end
+    if id == 4 then return { gameAccountInfo = { clientProgram = "WoW", characterName = "Brisa", realmName = "", wowProjectID = 1 } } end
+    -- A Classic friend: a different wowProjectID than ours.
+    if id == 5 then return { gameAccountInfo = { clientProgram = "WoW", characterName = "Brisa", realmName = "Horizon", wowProjectID = 2 } } end
+    -- On a realm with a space in its name.
+    if id == 6 then return { gameAccountInfo = { clientProgram = "WoW", characterName = "Brisa", realmName = "Argent Dawn", wowProjectID = 1, isInCurrentRegion = true } } end
     return nil
   end }
   check("a battle.net friend on WoW targets Name-Realm", V.InviteTarget({ kind = "bnet", key = "bn:1" }) == "Brisa-Horizon", V.InviteTarget({ kind = "bnet", key = "bn:1" }))
   check("a battle.net friend in the app has no invite target", V.InviteTarget({ kind = "bnet", key = "bn:2" }) == nil, "?")
   check("a battle.net friend with a secret name has no invite target", V.InviteTarget({ kind = "bnet", key = "bn:3" }) == nil, "?")
   check("a battle.net friend missing a realm has no invite target", V.InviteTarget({ kind = "bnet", key = "bn:4" }) == nil, "?")
-  C_BattleNet = savedBnetInvite
+  check("a Classic friend gets no invite target", V.InviteTarget({ kind = "bnet", key = "bn:5" }) == nil, "?")
+  check("a realm with a space collapses it", V.InviteTarget({ kind = "bnet", key = "bn:6" }) == "Brisa-ArgentDawn", V.InviteTarget({ kind = "bnet", key = "bn:6" }))
+
+  -- When the client offers CanCooperateWithGameAccount, it decides, full stop.
+  CanCooperateWithGameAccount = function() return false end
+  check("CanCooperateWithGameAccount false gets no invite target", V.InviteTarget({ kind = "bnet", key = "bn:1" }) == nil, "?")
+  CanCooperateWithGameAccount = function() return true end
+  check("CanCooperateWithGameAccount true overrides a mismatched project", V.InviteTarget({ kind = "bnet", key = "bn:5" }) == "Brisa-Horizon", V.InviteTarget({ kind = "bnet", key = "bn:5" }))
+  C_BattleNet, WOW_PROJECT_ID, CanCooperateWithGameAccount = savedBnetInvite, savedWowProjectID, savedCanCooperate
   check("a group has no invite target", V.InviteTarget({ kind = "party", key = "party" }) == nil, "?")
   check("a feed has no invite target", V.InviteTarget({ kind = "loot", key = "loot" }) == nil, "?")
 

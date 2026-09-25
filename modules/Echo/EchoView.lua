@@ -567,19 +567,39 @@ function View.StatusText(status)
     return ""
 end
 
+-- Whether a Battle.net friend's WoW game account can be invited: `CanCooperateWithGameAccount`
+-- is the direct, authoritative answer where the client offers it; otherwise fall back to
+-- comparing project (Retail/Classic/etc, only when both sides are readable numbers) and
+-- region, since a friend on a different project or a different region can't group with you.
+-- @param game table  a Battle.net gameAccountInfo table
+-- @return boolean
+local function CanInvite(game)
+    if type(CanCooperateWithGameAccount) == "function" then
+        local ok, result = pcall(CanCooperateWithGameAccount, game)
+        return ok and result == true
+    end
+    local theirs, ours = game.wowProjectID, WOW_PROJECT_ID
+    if Echo.IsSecret(theirs) or Echo.IsSecret(ours) or type(theirs) ~= "number" or type(ours) ~= "number" then
+        return false
+    end
+    if theirs ~= ours then return false end
+    return game.isInCurrentRegion ~= false
+end
+
 --- The unit to invite to group from a conversation's menu: a whisperer's "Name-Realm", or
--- a Battle.net friend's character when it's on WoW and both name fields are readable.
--- A group, channel, feed, or a Battle.net friend in the app (or with an unreadable name)
--- has none.
+-- a Battle.net friend's character when it's on WoW, both name fields are readable, and the
+-- friend can actually play with you. A group, channel, feed, a Battle.net friend in the app
+-- (or one who can't cooperate with you), an unreadable name, or yourself has none.
 -- @param conv table
 -- @return string|nil
 function View.InviteTarget(conv)
     local kind, key = conv.kind, conv.key
     if Echo.IsSecret(key) or type(key) ~= "string" then return nil end
+    local target
     if kind == "whisper" then
         local name = key:sub(3)
         if Echo.IsSecret(name) or type(name) ~= "string" or name == "" then return nil end
-        return name
+        target = name
     elseif kind == "bnet" then
         local id = tonumber(key:sub(4))
         local api = C_BattleNet and C_BattleNet.GetAccountInfoByID
@@ -591,12 +611,16 @@ function View.InviteTarget(conv)
         local client = game.clientProgram
         local wowClient = BNET_CLIENT_WOW or "WoW"
         if Echo.IsSecret(client) or client ~= wowClient then return nil end
+        if not CanInvite(game) then return nil end
         local name, realm = game.characterName, game.realmName
         if Echo.IsSecret(name) or type(name) ~= "string" or name == "" then return nil end
         if Echo.IsSecret(realm) or type(realm) ~= "string" or realm == "" then return nil end
-        return name .. "-" .. realm
+        target = name .. "-" .. realm:gsub(" ", "")
+    else
+        return nil
     end
-    return nil
+    if Echo.Events and target == Echo.Events.PlayerKey() then return nil end
+    return target
 end
 
 View.TIER_CHOICES = { "default", "loud", "count", "quiet", "muted" }
