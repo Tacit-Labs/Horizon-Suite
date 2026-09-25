@@ -83,6 +83,7 @@ const FILES = [
   'modules/Echo/EchoHistory.lua',
   'modules/Echo/EchoEvents.lua',
   'modules/Echo/EchoSend.lua',
+  'modules/Echo/EchoView.lua',
   'modules/Echo/EchoSlash.lua',
 ];
 for (const f of FILES) run(read(f), f);
@@ -791,6 +792,98 @@ run(`
   check("unbound history has no session", #H.SessionKeys(1100) == 0 and H.SaveSession({ "w:X-Horizon" }, 1) == false, "?")
   S.Reset()
 `, 'history-session');
+
+// --- View: tiles, names, lines, layout, toast queue ------------------------------------
+run(`
+  local S, V = HorizonSuite.Echo.Store, HorizonSuite.Echo.View
+  S.Reset()
+  RAID_CLASS_COLORS = { DRUID = { r = 1, g = 0.49, b = 0.04 } }
+  ChatTypeInfo = { PARTY = { r = 0.67, g = 0.67, b = 1 } }
+  LOCALIZED_CLASS_NAMES_MALE = { DRUID = "Druid" }
+  local realNow = S.Now
+  S.Now = function() return 5000 end
+
+  check("setting falls back to Echo's default", (function()
+    HorizonSuite.ECHO_DEFAULTS = { echoMaxTiles = 8 }
+    return HorizonSuite.Echo.Setting("echoMaxTiles") == 8 end)(), "no default")
+  HorizonSuite.GetDB = function(k, d) if k == "echoMaxTiles" then return 5 end return d end
+  check("a saved setting wins", HorizonSuite.Echo.Setting("echoMaxTiles") == 5, HorizonSuite.Echo.Setting("echoMaxTiles"))
+  HorizonSuite.GetDB = nil
+
+  check("initial of a name", V.Initial("brisa") == "B", V.Initial("brisa"))
+  check("a multibyte first letter stays whole", V.Initial("élan") == "é", V.Initial("élan"))
+  check("initial of a secret is a placeholder", V.Initial(SECRET("x")) == "?", V.Initial(SECRET("x")))
+
+  S.Add({ convKey = "w:Brisa-Horizon", text = "got the leather", class = "DRUID", sender = "Brisa-Horizon", time = 4990 })
+  S.Add({ convKey = "w:Brisa-Horizon", text = "can you craft it?", class = "DRUID", sender = "Brisa-Horizon", time = 4995 })
+  local brisa = S.Get("w:Brisa-Horizon")
+  local spec = V.TileSpec(brisa)
+  check("whisper tile shows the initial", spec.letter == "B", spec.letter)
+  check("whisper tile takes the class colour", spec.r == 1 and spec.g == 0.49 and not spec.glyph, spec.r)
+  check("loud unread shows a dot", spec.badge == "dot", spec.badge)
+  check("whisper name drops the realm", V.DisplayName(brisa) == "Brisa", V.DisplayName(brisa))
+  local meta = V.MetaLine(brisa, 5000)
+  check("meta names the class, the unread count and the age",
+        meta:find("Druid", 1, true) and meta:find("ECHO_NEW_COUNT", 1, true) and meta:find("ECHO_JUST_NOW", 1, true), meta)
+  check("whisper lines are just the text", V.LineText(brisa, brisa.messages[1]) == "got the leather", V.LineText(brisa, brisa.messages[1]))
+
+  S.Add({ convKey = "w:Unknown-Horizon", text = "hi" })
+  check("an unknown class falls back to neutral", V.TileSpec(S.Get("w:Unknown-Horizon")).r == V.NEUTRAL.r, "?")
+  S.Add({ convKey = "bn:77", text = "yo", sender = "|Kq1|k" })
+  local bnet = S.Get("bn:77")
+  check("a battle.net tile is battle.net blue without a class", V.TileSpec(bnet).b == V.BNET.b and V.TileSpec(bnet).r == V.BNET.r, "?")
+  check("a battle.net name is the protected sender, untouched", V.DisplayName(bnet) == "|Kq1|k", V.DisplayName(bnet))
+  check("battle.net meta says battle.net", V.MetaLine(bnet, 5000):find("ECHO_BATTLENET", 1, true) ~= nil, V.MetaLine(bnet, 5000))
+
+  S.Add({ convKey = "party", text = "pull", sender = "Tank-Horizon" })
+  S.Add({ convKey = "party", text = "now", sender = "Tank-Horizon" })
+  local party = S.Get("party")
+  local pspec = V.TileSpec(party)
+  check("a party tile is a glyph", pspec.glyph == true and pspec.letter == "P", pspec.letter)
+  check("the glyph uses Blizzard's party colour", pspec.r == 0.67 and pspec.b == 1, pspec.r)
+  check("a count-tier tile shows the number", pspec.badge == "count" and pspec.count == 2, pspec.badge)
+  check("a group line names the speaker", V.LineText(party, party.messages[1]) == "Tank: pull", V.LineText(party, party.messages[1]))
+  check("a group's name is its label", V.DisplayName(party) == "ECHO_KIND_PARTY", V.DisplayName(party))
+  local secretLine = { text = SECRET("boss plan"), secret = true, sender = "Tank-Horizon" }
+  check("a secret line is passed through untouched", rawequal(V.LineText(party, secretLine), secretLine.text), "joined")
+  S.Add({ convKey = "guild", text = "gz" })
+  check("a quiet tile shows no badge", V.TileSpec(S.Get("guild")).badge == nil, V.TileSpec(S.Get("guild")).badge)
+  S.Add({ convKey = "ch:Trade", text = "wts" })
+  check("a channel tile uses its first letter", V.TileSpec(S.Get("ch:Trade")).letter == "T", V.TileSpec(S.Get("ch:Trade")).letter)
+  check("a channel's name is its key name", V.DisplayName(S.Get("ch:Trade")) == "Trade", V.DisplayName(S.Get("ch:Trade")))
+  S.SetTier("w:Brisa-Horizon", "muted")
+  check("a muted conversation shows no badge", V.TileSpec(brisa).badge == nil, V.TileSpec(brisa).badge)
+  S.SetTier("w:Brisa-Horizon", nil)
+
+  check("newest loud conversation", V.NewestLoud(S.List()).key == "bn:77", V.NewestLoud(S.List()).key)
+  check("no loud conversation falls back to the first", V.NewestLoud({ { key = "x", lastLoud = 0 } }).key == "x", "?")
+  check("an empty list has no newest", V.NewestLoud({}) == nil, "?")
+
+  local ten = {}
+  for i = 1, 10 do ten[i] = { key = "k" .. i } end
+  local visible, overflow = V.Column(ten, 8)
+  check("overflow keeps 7 tiles and a +3 tile", #visible == 7 and overflow == 3 and visible[1].key == "k1", #visible .. "/" .. overflow)
+  visible, overflow = V.Column({ ten[1], ten[2] }, 8)
+  check("under the cap there is no overflow", #visible == 2 and overflow == 0, #visible .. "/" .. overflow)
+
+  local recent = V.Recent(brisa, 1)
+  check("recent returns the newest messages oldest first", #recent == 1 and recent[1].text == "can you craft it?", recent[1] and recent[1].text)
+  check("recent never goes past the start", #V.Recent(brisa, 10) == 2, #V.Recent(brisa, 10))
+  check("age under a minute", V.Age(30) == "ECHO_JUST_NOW", V.Age(30))
+  check("age in minutes", V.Age(125) == "2m", V.Age(125))
+  check("age in hours", V.Age(7200) == "2h", V.Age(7200))
+  check("age in days", V.Age(200000) == "2d", V.Age(200000))
+
+  local q = V.NewToastQueue()
+  q:Hold("a", 1); q:Hold("b", 3); q:Hold("a", 5)
+  check("the queue counts conversations, not messages", q:Count() == 2, q:Count())
+  local order = q:Release()
+  check("held toasts play newest first, one per conversation", table.concat(order, ",") == "a,b", table.concat(order, ","))
+  check("release empties the queue", q:Count() == 0 and #q:Release() == 0, q:Count())
+
+  S.Now = realNow
+  S.Reset()
+`, 'view');
 
 // --- Summary -------------------------------------------------------------------
 run(`
