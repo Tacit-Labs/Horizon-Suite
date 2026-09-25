@@ -94,4 +94,5 @@ function Echo.ApplyOptions()
     local card = _G.HorizonSuiteEchoCard
     if card and card:IsShown() and Echo.Card.Reanchor then Echo.Card.Reanchor() end
     if Echo.Redraw then Echo.Redraw.Mark("tiles") end
+    Echo.Filter.Apply(Echo.Setting("echoHideStoredWhispers") == true)
 end

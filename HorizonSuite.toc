@@ -163,6 +163,7 @@ modules/Essence/EssenceModule.lua
 modules/Echo/EchoStore.lua
 modules/Echo/EchoHistory.lua
 modules/Echo/EchoEvents.lua
+modules/Echo/EchoFilter.lua
 modules/Echo/EchoSend.lua
 modules/Echo/EchoView.lua
 modules/Echo/EchoRedraw.lua

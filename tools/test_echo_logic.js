@@ -113,6 +113,7 @@ const FILES = [
   'modules/Echo/EchoStore.lua',
   'modules/Echo/EchoHistory.lua',
   'modules/Echo/EchoEvents.lua',
+  'modules/Echo/EchoFilter.lua',
   'modules/Echo/EchoSend.lua',
   'modules/Echo/EchoView.lua',
   'modules/Echo/EchoRedraw.lua',
@@ -2962,6 +2963,58 @@ run(`
   column.SetScale, column.GetScale = nil, nil
   Echo.Store.Reset()
 `, 'echo-layout-options');
+
+// --- Blizzard whisper filter ----------------------------------------------------
+run(`
+  local Echo = HorizonSuite.Echo
+  local F = Echo.Filter
+  local added, removed = {}, {}
+  ChatFrame_AddMessageEventFilter = function(event, fn) added[event] = fn end
+  ChatFrame_RemoveMessageEventFilter = function(event, fn) if added[event] == fn then added[event] = nil end removed[event] = true end
+  local lastTell
+  ChatEdit_SetLastTellTarget = function(name, chatType) lastTell = { name, chatType } end
+
+  F.Apply(true)
+  check("filter on registers whispers", added.CHAT_MSG_WHISPER == F.Handler and added.CHAT_MSG_WHISPER_INFORM == F.Handler, "missing")
+  check("filter on registers Battle.net whispers", added.CHAT_MSG_BN_WHISPER == F.Handler, "missing")
+  check("filter active", F.active == true, F.active)
+  F.Apply(true)
+  check("applying twice is harmless", added.CHAT_MSG_WHISPER == F.Handler, "lost")
+
+  local hide = F.Handler(nil, "CHAT_MSG_WHISPER", "hi", "Brisa-Horizon", "", "", "", "", 0, 0, "", 0, 1, "Player-1-DRUID")
+  check("a filed whisper is hidden", hide == true, hide)
+  check("the reply target follows a hidden whisper", lastTell and lastTell[1] == "Brisa-Horizon" and lastTell[2] == "WHISPER", lastTell and lastTell[1])
+
+  lastTell = nil
+  local keep, text = F.Handler(nil, "CHAT_MSG_WHISPER", SECRET("hi"), "Brisa-Horizon", "", "", "", "", 0, 0, "", 0, 1, "Player-1-DRUID")
+  check("a secret whisper stays in Blizzard chat", keep == false, keep)
+  check("its arguments pass through", issecretvalue(text), text)
+  check("no reply target from a kept whisper", lastTell == nil, lastTell and lastTell[1])
+
+  keep = F.Handler(nil, "CHAT_MSG_WHISPER", "hi", SECRET("Brisa-Horizon"), "", "", "", "", 0, 0, "", 0, 1, "Player-1-DRUID")
+  check("a secret sender stays in Blizzard chat", keep == false, keep)
+
+  HorizonSuite.Platform.caps.bnetWhispers = false
+  F.Apply(false); F.Apply(true)
+  check("no Battle.net filter without Battle.net whispers", added.CHAT_MSG_BN_WHISPER == nil, "registered")
+  HorizonSuite.Platform.caps.bnetWhispers = true
+
+  F.Apply(false)
+  check("filter off removes whispers", added.CHAT_MSG_WHISPER == nil and added.CHAT_MSG_WHISPER_INFORM == nil, "still there")
+  check("filter inactive", F.active == false, F.active)
+
+  -- ApplyOptions drives it.
+  local db = { echoHideStoredWhispers = true }
+  HorizonSuite.GetDB = function(k, d) if db[k] ~= nil then return db[k] end return d end
+  CreateFrame = STUB_CREATE_FRAME
+  Echo.ApplyOptions()
+  check("setting on applies the filter", F.active == true, F.active)
+  db.echoHideStoredWhispers = false
+  Echo.ApplyOptions()
+  check("setting off removes the filter", F.active == false, F.active)
+  HorizonSuite.GetDB = nil
+  ChatFrame_AddMessageEventFilter, ChatFrame_RemoveMessageEventFilter, ChatEdit_SetLastTellTarget = nil, nil, nil
+`, 'echo-filter');
 
 // --- Redraw: one repaint per frame -------------------------------------------
 run(`
