@@ -1408,6 +1408,8 @@ run(`
   check("the newest held toast shows", toast.shown and toast.convKey == "w:E-Horizon", toast.convKey)
   toast.scripts.OnClick(toast)
   K.Hide()
+  -- A toast click opens the card now; close it too, or no later toast shows (G3).
+  HorizonSuite.Echo.Card.Hide()
   T.NextToast()
   check("after a toast is clicked the stale held toasts do not play", not toast.shown, toast.convKey)
 
@@ -2109,6 +2111,35 @@ run(`
   LOCALIZED_CLASS_NAMES_MALE = savedNames
   S.Reset()
 `, 'final-g2');
+
+// --- Final fix G3: no toast over an open card ----------------------------------------------
+run(`
+  local S, T, K, C = HorizonSuite.Echo.Store, HorizonSuite.Echo.Tiles, HorizonSuite.Echo.Stack, HorizonSuite.Echo.Card
+  S.Reset()
+  CreateFrame = STUB_CREATE_FRAME
+  T.Enable()
+  K.Enable()
+  C.Enable()
+  S.Add({ convKey = "w:Brisa-Horizon", text = "hi", class = "DRUID", sender = "Brisa-Horizon" })
+  local toast = T._toast()
+  toast:Hide()
+  C.Open("w:Brisa-Horizon")
+  S.Add({ convKey = "w:Vexa-Horizon", text = "gz", sender = "Vexa-Horizon" })
+  check("G3: a loud message while the card is open shows no toast", not toast.shown, toast.convKey)
+  check("G3: the new conversation still gets its tile", T.TileFor("w:Vexa-Horizon") ~= nil, "no tile")
+  C.Hide()
+  T.Hold(true)
+  C.Open("w:Brisa-Horizon")
+  S.Add({ convKey = "w:Orin-Horizon", text = "yo", sender = "Orin-Horizon" })
+  C.Hide()
+  T.Hold(false)
+  check("G3: a loud message while the card is open is not queued for after combat", not toast.shown, toast.convKey)
+
+  C.Disable()
+  K.Disable()
+  T.Disable()
+  S.Reset()
+`, 'final-g3');
 
 // --- Summary -------------------------------------------------------------------
 run(`
