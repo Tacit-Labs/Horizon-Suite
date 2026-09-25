@@ -72,6 +72,7 @@ Store.FEED_KINDS = { loot = true, progress = true, system = true }
 
 local conversations = {}
 local overrides = {}
+local kindTiers = {}
 local listeners = {}
 local unrouted = 0
 local seq = 0  -- monotonic: time() has one-second resolution, ordering needs better
@@ -136,7 +137,28 @@ function Store.TierOf(convKey)
     local override = overrides[convKey]
     if override then return override end
     local kind = Store.KindOf(convKey)
-    return (kind and Store.DEFAULT_TIERS[kind]) or "quiet"
+    return kind and Store.KindTier(kind) or "quiet"
+end
+
+--- The tier a kind rings at unless a conversation overrides it: the player's setting for
+-- that kind (Echo.ApplyOptions), else the default.
+-- @param kind string
+-- @return string
+function Store.KindTier(kind)
+    return kindTiers[kind] or Store.DEFAULT_TIERS[kind] or "quiet"
+end
+
+--- Set a kind's tier from the options; nil restores the default. Views repaint.
+-- @param kind string  A Store.DEFAULT_TIERS key
+-- @param tier string|nil
+-- @return boolean
+function Store.SetKindTier(kind, tier)
+    if not Store.DEFAULT_TIERS[kind] then return false end
+    if tier ~= nil and not Store.VALID_TIERS[tier] then return false end
+    if kindTiers[kind] == tier then return true end
+    kindTiers[kind] = tier
+    Notify(nil, nil)
+    return true
 end
 
 -- Save a conversation's pin and tier (Task 1 of plan 3).

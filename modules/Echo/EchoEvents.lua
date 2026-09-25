@@ -19,7 +19,7 @@ local IsSecret = Echo.IsSecret
 local Events = {}
 Echo.Events = Events
 
--- Extra mention words (case-insensitive). Options fill this in plan 3.
+-- Extra mention words (case-insensitive), from the echoKeywords setting.
 Events.keywords = {}
 
 local OUTGOING_EVENTS = {
@@ -73,6 +73,19 @@ function Events.IsMention(text)
         if type(word) == "string" and word ~= "" and lower:find(word:lower(), 1, true) then return true end
     end
     return false
+end
+
+--- Replace the mention keywords from a comma-separated setting.
+-- @param text string|nil
+function Events.SetKeywords(text)
+    local out = {}
+    if type(text) == "string" then
+        for word in text:gmatch("[^,]+") do
+            word = word:match("^%s*(.-)%s*$")
+            if word ~= "" then out[#out + 1] = word end
+        end
+    end
+    Events.keywords = out
 end
 
 --- Conversation name for a channel. Zone channels arrive as "General - Zul'Aman"; the zone
@@ -272,6 +285,9 @@ function Events.Dispatch(event, ...)
     end
     -- A system line may fail a pending whisper; it is then filed in the System feed too.
     if event == "CHAT_MSG_SYSTEM" then Events.OnSystemMessage((...)) end
+    -- A switched-off feed files nothing (the system line above still checked for a failed whisper).
+    local feedKind = Store.EVENT_KIND[event]
+    if Store.FEED_KINDS[feedKind] and Echo.FeedEnabled and not Echo.FeedEnabled(feedKind) then return end
     local record, reason = Events.BuildRecord(event, ...)
     if not record then
         if reason == "unrouted" then Store.CountUnrouted() end

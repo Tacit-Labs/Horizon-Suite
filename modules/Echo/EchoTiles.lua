@@ -214,7 +214,7 @@ function Tiles.Refresh()
     if not column or not column:IsShown() then return end
     local View = Echo.View
     local list = Echo.Store.List()
-    local visible, overflow = View.Column(list, tonumber(Echo.Setting("echoMaxTiles")) or 8)
+    local visible, overflow = View.Column(list, math.max(2, tonumber(Echo.Setting("echoMaxTiles")) or 8))
     local slot = 1
     if overflow > 0 then
         overflowTile.convKey = list[#visible + 1].key

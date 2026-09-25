@@ -82,6 +82,7 @@ function Echo.Init()
     Echo.Stack.Enable()
     Echo.Card.Enable()
     Echo.Links.Hook()
+    Echo.ApplyOptions()
     if not lifecycle then
         lifecycle = CreateFrame("Frame")
         lifecycle:SetScript("OnEvent", OnLifecycleEvent)

@@ -423,7 +423,7 @@ View.TIER_CHOICES = { "default", "loud", "count", "quiet", "muted" }
 -- @return table entries
 function View.MenuSpec(conv)
     local override = Echo.Store.OverrideOf(conv.key) or "default"
-    local defaultTier = Echo.Store.DEFAULT_TIERS[conv.kind] or "quiet"
+    local defaultTier = Echo.Store.KindTier(conv.kind)
     local entries = {
         { kind = "button", label = conv.pinned and L["ECHO_UNPIN"] or L["ECHO_PIN"], action = "pin" },
         { kind = "divider" },

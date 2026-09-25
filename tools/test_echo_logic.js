@@ -121,6 +121,7 @@ const FILES = [
   'modules/Echo/EchoStack.lua',
   'modules/Echo/EchoMenu.lua',
   'modules/Echo/EchoCard.lua',
+  'modules/Echo/EchoOptions.lua',
   'modules/Echo/EchoSlash.lua',
 ];
 for (const f of FILES) run(read(f), f);
@@ -2779,6 +2780,107 @@ run(`
   T.Disable()
   S.Reset()
 `, 'feeds-history-toast');
+
+// --- Defaults, keys and limits -------------------------------------------------
+run(read('options/modules/defaults/OptionsDefaultsEcho.lua'), 'echo-defaults');
+run(`
+  local A = HorizonSuite
+  local S = A.Echo.Store
+  for kind, tier in pairs(S.DEFAULT_TIERS) do
+    local key = A.Echo.TierKey(kind)
+    check("tier default for " .. kind, A.ECHO_DEFAULTS[key] == tier, tostring(A.ECHO_DEFAULTS[key]))
+  end
+  for key in pairs(A.ECHO_DEFAULTS) do
+    check("routed key " .. key, A.ECHO_KEYS[key] == true, key)
+  end
+  check("position keys routed", A.ECHO_KEYS.echoX and A.ECHO_KEYS.echoY, "echoX/echoY")
+  check("at least two tiles", A.ECHO_LIMITS.echoMaxTiles.min == 2, A.ECHO_LIMITS.echoMaxTiles.min)
+  check("tier key", A.Echo.TierKey("bnet") == "echoTierBnet", A.Echo.TierKey("bnet"))
+  check("feed key", A.Echo.FeedKey("loot") == "echoFeedLoot", A.Echo.FeedKey("loot"))
+  -- Later sections run without defaults, as before this plan.
+  A.ECHO_DEFAULTS, A.ECHO_KEYS, A.ECHO_LIMITS = nil, nil, nil
+`, 'echo-defaults-check');
+
+// --- Settings applied to the Store, Events and History ----------------------------
+run(`
+  local Echo = HorizonSuite.Echo
+  local S, E = Echo.Store, Echo.Events
+  S.Reset()
+  local db = {}
+  HorizonSuite.GetDB = function(k, d) if db[k] ~= nil then return db[k] end return d end
+
+  check("kind tier defaults", S.KindTier("guild") == "quiet", S.KindTier("guild"))
+  db.echoTierGuild = "loud"
+  Echo.ApplyOptions()
+  check("guild follows its setting", S.KindTier("guild") == "loud", S.KindTier("guild"))
+  check("a guild conversation rings loud", S.TierOf("guild") == "loud", S.TierOf("guild"))
+  S.SetTier("guild", "muted")
+  check("a conversation's own tier still wins", S.TierOf("guild") == "muted", S.TierOf("guild"))
+  S.SetTier("guild", nil)
+  db.echoTierGuild = "bogus"
+  Echo.ApplyOptions()
+  check("an unknown tier falls back to the default", S.KindTier("guild") == "quiet", S.KindTier("guild"))
+  check("SetKindTier refuses junk", S.SetKindTier("guild", "loudest") == false, "accepted")
+  -- The harness L returns keys; give the two strings the label is built from real text.
+  local Lt = HorizonSuite.L
+  rawset(Lt, "ECHO_TIER_DEFAULT", "Default (%s)"); rawset(Lt, "ECHO_TIER_COUNT", "Count")
+  db.echoTierGuild = "count"
+  Echo.ApplyOptions()
+  local label
+  for _, e in ipairs(Echo.View.MenuSpec({ key = "guild", kind = "guild", pinned = false })) do
+    if e.value == "default" then label = e.label end
+  end
+  check("the menu's default label follows the setting", label == "Default (Count)", label)
+  rawset(Lt, "ECHO_TIER_DEFAULT", nil); rawset(Lt, "ECHO_TIER_COUNT", nil)
+
+  db.echoKeywords = " heal , ,Tank,  "
+  Echo.ApplyOptions()
+  check("keywords parsed", #E.keywords == 2 and E.keywords[1] == "heal" and E.keywords[2] == "Tank", #E.keywords)
+  check("keyword mention", E.IsMention("need a TANK for keys") == true, "no mention")
+  check("your name still counts", E.IsMention("kaelis you there") == true, "no mention")
+  db.echoKeywords = ""
+  Echo.ApplyOptions()
+  check("no keywords", #E.keywords == 0, #E.keywords)
+
+  -- A switched-off feed files nothing and closes its tile.
+  E.Dispatch("CHAT_MSG_LOOT", "You receive loot: [Linen Cloth].", "Kaelis-Horizon", nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+  check("loot feed on", S.Get("loot") ~= nil and S.Get("loot").open, "no loot feed")
+  db.echoFeedLoot = false
+  Echo.ApplyOptions()
+  check("switching the feed off closes it", not S.Get("loot").open, "still open")
+  local before = #S.Get("loot").messages
+  E.Dispatch("CHAT_MSG_LOOT", "You receive loot: [Wool Cloth].", "Kaelis-Horizon", nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+  check("a switched-off feed files nothing", #S.Get("loot").messages == before, #S.Get("loot").messages)
+  check("FeedEnabled", Echo.FeedEnabled("loot") == false and Echo.FeedEnabled("system") == true, "wrong")
+  check("a conversation kind is never a switched-off feed", Echo.FeedEnabled("whisper") == true, "off")
+  db.echoFeedLoot = nil
+
+  -- A system line still fails a pending whisper with the System feed off.
+  db.echoFeedSystem = false
+  Echo.ApplyOptions()
+  S.AddPending("w:Ghost-Horizon", "hi")
+  E.Dispatch("CHAT_MSG_SYSTEM", "No player named 'Ghost' is currently playing.")
+  local ghost = S.Get("w:Ghost-Horizon")
+  check("failed whisper with the feed off", ghost.messages[#ghost.messages].status == "failed", ghost.messages[#ghost.messages].status)
+  check("no system feed", S.Get("system") == nil or not S.Get("system").open, "system feed open")
+  db.echoFeedSystem = nil
+
+  -- The history switch.
+  local H = Echo.History
+  local saved = {}
+  H.Bind(saved, function() return "Kaelis-Horizon" end)
+  db.echoSaveHistory = false
+  Echo.ApplyOptions()
+  check("history off writes nothing", H.Append("w:Brisa-Horizon", { time = 1, text = "hi" }) == false, "wrote")
+  db.echoSaveHistory = nil
+  Echo.ApplyOptions()
+  check("history on writes", H.Append("w:Brisa-Horizon", { time = 1, text = "hi" }) == true, "did not write")
+  H.Unbind()
+
+  HorizonSuite.GetDB = nil
+  Echo.ApplyOptions()
+  S.Reset()
+`, 'echo-apply-options');
 
 // --- Redraw: one repaint per frame -------------------------------------------
 run(`
