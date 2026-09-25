@@ -2242,6 +2242,40 @@ run(`
   S.Reset()
 `, 'final-g5');
 
+// --- Final fix G6: the reply keybind while the card is open ---------------------------------
+run(`
+  local Echo = HorizonSuite.Echo
+  local S, T, K, C = Echo.Store, Echo.Tiles, Echo.Stack, Echo.Card
+  S.Reset()
+  CreateFrame = STUB_CREATE_FRAME
+  T.Enable()
+  K.Enable()
+  C.Enable()
+  local f, sf = C._frames(), K._frames()
+  S.Add({ convKey = "w:Brisa-Horizon", text = "hi", class = "DRUID", sender = "Brisa-Horizon" })
+  C.Open("w:Brisa-Horizon")
+  S.Add({ convKey = "w:Vexa-Horizon", text = "you there?", sender = "Vexa-Horizon" })
+  Echo.ParkDraft("w:Vexa-Horizon", "half")
+  f.edit.focused = false
+  K.ReplyToNewest()
+  check("G6: the keybind switches the open card to the newest loud conversation", f.root:IsShown() and f.name.text == "Vexa", f.name.text)
+  check("G6: the card's reply box is focused", f.edit.focused == true, tostring(f.edit.focused))
+  check("G6: the stack stays shut", not sf.root:IsShown(), "shown")
+  check("G6: the draft came back with the conversation", f.edit.text == "half", f.edit.text)
+  f.edit:SetText("halfr")
+  check("G6: the card box handles OnChar", type(f.edit.scripts.OnChar) == "function", "no OnChar")
+  if f.edit.scripts.OnChar then f.edit.scripts.OnChar(f.edit, "r") end
+  check("G6: the keybind's own key is not typed into the card box", f.edit.text == "half", f.edit.text)
+  f.edit:SetText("halfx")
+  if f.edit.scripts.OnChar then f.edit.scripts.OnChar(f.edit, "x") end
+  check("G6: later typing is kept", f.edit.text == "halfx", f.edit.text)
+
+  C.Disable()
+  K.Disable()
+  T.Disable()
+  S.Reset()
+`, 'final-g6');
+
 // --- Summary -------------------------------------------------------------------
 run(`
   print(PASS .. " passed, " .. FAIL .. " failed")

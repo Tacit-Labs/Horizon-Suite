@@ -427,10 +427,17 @@ function Stack.Toggle()
     end
 end
 
---- Keybind: open on the conversation with the newest incoming loud message, reply box focused.
+--- Keybind: open on the conversation with the newest incoming loud message, reply box
+-- focused. With the card open, the card switches to it instead and focuses its own box.
 function Stack.ReplyToNewest()
     local newest = Echo.View.NewestIncomingLoud(Echo.Store.List())
-    if newest then Stack.Open(newest.key, true) end
+    if not newest then return end
+    if Echo.Card and Echo.Card.IsShown() then
+        Echo.Card.Show(newest.key)
+        Echo.Card.Focus()
+        return
+    end
+    Stack.Open(newest.key, true)
 end
 
 --- Move to another card (the mouse wheel).

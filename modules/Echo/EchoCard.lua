@@ -235,6 +235,14 @@ local function Create()
         if self:GetText() == "" then self.placeholder:Show() end
         if Echo.Links then Echo.Links.Blur(self) end
     end)
+    -- A keybind that focuses the box must not type its own key into it; restore whatever
+    -- draft was there before the keybind stole focus (as the stack's box does).
+    edit:SetScript("OnChar", function(self)
+        if self.swallow then
+            self.swallow = false
+            self:SetText(self.beforeSwallow or "")
+        end
+    end)
     edit:SetScript("OnTextChanged", function(self)
         if self:GetText() ~= "" then
             self.placeholder:Hide()
@@ -454,7 +462,17 @@ function Card.Open(convKey, focus)
     Anchor()
     root:Show()
     Card.Render()
-    if focus and root:IsShown() then edit:SetFocus() end
+    if focus then Card.Focus() end
+end
+
+--- Focus the open card's reply box. The key that did it (a keybind) is swallowed: its
+-- character, typed in the same frame, doesn't land in the box.
+function Card.Focus()
+    if not root or not root:IsShown() then return end
+    edit.beforeSwallow = edit:GetText()
+    edit:SetFocus()
+    edit.swallow = true
+    C_Timer.After(0, function() if edit then edit.swallow = false end end)
 end
 
 --- Switch the open card to another conversation (opens it if closed).
