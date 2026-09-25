@@ -175,8 +175,24 @@ local function Create()
     card.meta:SetPoint("TOPLEFT", card.name, "BOTTOMLEFT", 0, -3)
     card.meta:SetTextColor(0.55, 0.60, 0.75, 1)
 
-    card.close = CreateFrame("Button", nil, card, "UIPanelCloseButton")
-    card.close:SetPoint("TOPRIGHT", card, "TOPRIGHT", -2, -2)
+    -- A flat × drawn from two thin bars, in the card's own grey; brighter on hover.
+    card.close = CreateFrame("Button", nil, card)
+    card.close:SetSize(20, 20)
+    card.close:SetPoint("TOPRIGHT", card, "TOPRIGHT", -8, -8)
+    card.close.bars = {}
+    for i, angle in ipairs({ math.pi / 4, -math.pi / 4 }) do
+        local bar = card.close:CreateTexture(nil, "ARTWORK")
+        bar:SetSize(12, 2)
+        bar:SetPoint("CENTER", card.close, "CENTER", 0, 0)
+        bar:SetColorTexture(0.55, 0.60, 0.75, 1)
+        bar:SetRotation(angle)
+        card.close.bars[i] = bar
+    end
+    local function TintClose(r, g, b)
+        for _, bar in ipairs(card.close.bars) do bar:SetColorTexture(r, g, b, 1) end
+    end
+    card.close:SetScript("OnEnter", function() TintClose(0.95, 0.96, 1) end)
+    card.close:SetScript("OnLeave", function() TintClose(0.55, 0.60, 0.75) end)
     card.close:SetScript("OnClick", function() Stack.CloseCurrent() end)
 
     card.lines = {}
@@ -269,12 +285,14 @@ function Stack.Render()
         local fs, msg = card.lines[i], recent[i]
         if msg then
             fs:SetText(View.LineText(conv, msg))
+            -- Your lines on the right and dimmer, like sent bubbles; theirs on the left.
+            fs:SetJustifyH(msg.outgoing and "RIGHT" or "LEFT")
             if msg.status == "failed" then
                 fs:SetTextColor(1, 0.35, 0.35, 1)
             elseif msg.status == "pending" then
-                fs:SetTextColor(0.6, 0.62, 0.7, 1)
+                fs:SetTextColor(0.55, 0.57, 0.65, 1)
             elseif msg.outgoing then
-                fs:SetTextColor(0.85, 0.87, 0.95, 1)
+                fs:SetTextColor(0.72, 0.74, 0.82, 1)
             else
                 fs:SetTextColor(r, g, b, 1)
             end
