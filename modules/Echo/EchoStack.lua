@@ -329,8 +329,11 @@ function Stack.Render()
     edit.placeholder:SetText(L["ECHO_QUICK_REPLY"])
     edit.placeholder:SetShown(edit:GetText() == "" and not edit:HasFocus())
 
-    -- Feeds are read-only: no reply box.
-    edit:SetShown(not View.IsFeed(conv.kind))
+    -- Feeds are read-only: no reply box. Clear focus too, or a focused box left behind by
+    -- flipping from a conversation card reads as "keep open" to the hover-close poll.
+    local feed = View.IsFeed(conv.kind)
+    if feed then edit:ClearFocus() end
+    edit:SetShown(not feed)
 
     for i = 1, Stack.BEHIND do
         local other = list[cursor + i]

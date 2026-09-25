@@ -2447,6 +2447,12 @@ run(`
   K.Open("w:Brisa-Horizon")
   check("a conversation card keeps its reply box", f.edit.shown == true, tostring(f.edit.shown))
   check("the stack card's links are live", f.card.scripts.OnHyperlinkClick ~= nil, "not attached")
+
+  K.Open("w:Brisa-Horizon", true)
+  check("opening focused focuses the reply box", f.edit.focused == true, tostring(f.edit.focused))
+  K.Select("loot")
+  check("flipping to a feed card clears the reply box's focus", f.edit.focused == false, tostring(f.edit.focused))
+  check("flipping to a feed card hides the reply box", f.edit.shown == false, tostring(f.edit.shown))
   K.Hide()
 
   C.Open("w:Brisa-Horizon")
