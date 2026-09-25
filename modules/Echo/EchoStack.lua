@@ -29,6 +29,7 @@ local behind = {}
 local list, cursor = {}, 1
 local currentKey            -- the card on top follows its conversation, not its position
 local renderedKey           -- the conversation last drawn onto the shared reply box
+local drafts = {}           -- unsent reply text per conversation, while another card is on top
 local openTimer
 local armed, away, pollAccum = false, 0, 0   -- hover-close poll state
 
@@ -235,9 +236,14 @@ function Stack.Render()
     cursor = math.max(1, math.min(cursor, #list))
     local conv = list[cursor]
     if renderedKey ~= conv.key then
-        -- The reply box is shared by whichever card is on top; a draft for one
-        -- conversation must never bleed onto another when the top card changes.
-        edit:SetText("")
+        -- The reply box is shared by whichever card is on top: park the old card's draft
+        -- and bring back the new card's, so a draft never bleeds onto another conversation.
+        if renderedKey then
+            local text = edit:GetText()
+            drafts[renderedKey] = (text ~= "") and text or nil
+        end
+        edit:SetText(drafts[conv.key] or "")
+        drafts[conv.key] = nil
     end
     renderedKey = conv.key
     currentKey = conv.key
@@ -442,6 +448,9 @@ function Stack.Disable()
         Stack.subscribed = false
     end
     Stack.Hide()
+    drafts = {}
+    renderedKey = nil
+    if edit then edit:SetText("") end
 end
 
 -- Test and debug handle.
