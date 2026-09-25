@@ -102,7 +102,8 @@ When `Platform.Has("secretChat")` is false, only the first case applies.
 `EchoSend.Send(convKey, text)` maps the key to a chat type and target, then calls the platform's send function, resolved once at init.
 
 - An outgoing bubble starts as `pending`.
-- The matching `_INFORM` event marks it `sent`.
+- The matching `_INFORM` event marks it `sent`. The server echoes whispers in send order but can re-encode the text (item links gain fields), so a whisper or BNet echo that matches no pending text confirms the oldest pending message. Group channels keep exact-text matching, because lines typed in Blizzard's box echo there too.
+- During chat messaging lockdown (`C_ChatInfo.InChatMessagingLockdown`), each part is filed and marked `failed` at once, and nothing is sent.
 - A "player not found" system message for that target marks it `failed`, with a retry action.
 - Shift-clicking an item or achievement while an Echo input has focus inserts the link into that input instead of Blizzard's edit box, through a hook on the insert-link path.
 

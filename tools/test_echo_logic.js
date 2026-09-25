@@ -239,6 +239,23 @@ run(`
         S.ConfirmSent({ convKey = "w:New-Horizon", text = "hello", outgoing = true }) == false and S.Get("w:New-Horizon") ~= nil,
         "not opened")
 
+  -- The server can re-encode a whisper (item links gain fields), so its echo may not match
+  -- the text sent. Whisper echoes arrive in send order: confirm the oldest pending one.
+  local link1 = S.AddPending("w:Re-Horizon", "look |cffa335ee|Hitem:1::|h[Cloak]|h|r")
+  local link2 = S.AddPending("w:Re-Horizon", "second")
+  check("a re-encoded whisper echo confirms the oldest pending",
+        S.ConfirmSent({ convKey = "w:Re-Horizon", text = "look |cffa335ee|Hitem:1:0:0:0|h[Cloak]|h|r", outgoing = true }) == true
+        and link1.status == "sent" and link2.status == "pending", link1.status)
+  check("a re-encoded echo adds no duplicate bubble", #S.Get("w:Re-Horizon").messages == 2, #S.Get("w:Re-Horizon").messages)
+  local bn = S.AddPending("bn:5", "gg |Hitem:1::|h[X]|h")
+  check("a re-encoded bnet echo confirms the oldest pending",
+        S.ConfirmSent({ convKey = "bn:5", text = "gg |Hitem:1:0|h[X]|h", outgoing = true }) == true
+        and bn.status == "sent" and #S.Get("bn:5").messages == 1, bn.status)
+  local omw = S.AddPending("party", "omw")
+  check("a party echo with different text is filed as new",
+        S.ConfirmSent({ convKey = "party", text = "typed in the blizzard box", outgoing = true }) == false
+        and omw.status == "pending" and #S.Get("party").messages == 2, omw.status)
+
   local p3 = S.AddPending("w:Brisa-Horizon", "third")
   local p4 = S.AddPending("w:Brisa-Horizon", "fourth")
   check("failure marks the newest pending",
@@ -552,6 +569,21 @@ run(`
   check("long text goes out in parts",
         sent[4] == "PARTY:nil:aaa bbb" and sent[5] == "PARTY:nil:ccc", tostring(sent[4]) .. "/" .. tostring(sent[5]))
   Send.MAX_BYTES = 255
+
+  -- Chat messaging lockdown (Midnight encounters): file as failed, never call the API.
+  local before = #sent
+  C_ChatInfo.InChatMessagingLockdown = function() return true end
+  Send.Send("w:Brisa-Horizon", "locked out")
+  local locked = S.Get("w:Brisa-Horizon").messages
+  check("lockdown does not call the send function", #sent == before, #sent)
+  check("lockdown files the reply as failed",
+        locked[#locked].text == "locked out" and locked[#locked].status == "failed", locked[#locked].status)
+  Send.Send("bn:77", "locked bnet")
+  check("lockdown blocks bnet sends too", #sent == before, #sent)
+  C_ChatInfo.InChatMessagingLockdown = function() error("no api") end
+  Send.Send("party", "check failed")
+  check("a throwing lockdown check does not block sending", sent[#sent] == "PARTY:nil:check failed", sent[#sent])
+  C_ChatInfo.InChatMessagingLockdown = nil
 
   C_ChatInfo.SendChatMessage = function() error("blocked") end
   Send.Send("w:Brisa-Horizon", "again")
