@@ -28,7 +28,9 @@ local root, card, edit, more
 local behind = {}
 local list, cursor = {}, 1
 local currentKey            -- the card on top follows its conversation, not its position
-local openTimer, closeTimer
+local renderedKey           -- the conversation last drawn onto the shared reply box
+local openTimer
+local armed, away, pollAccum = false, 0, 0   -- hover-close poll state
 
 local function Paint(frame, alpha)
     local bg, border = Echo.View.PANEL_BG, Echo.View.PANEL_BORDER
@@ -39,6 +41,14 @@ end
 
 local function FontPath()
     return (addon.GetDefaultFontPath and addon.GetDefaultFontPath()) or "Fonts\\FRIZQT__.TTF"
+end
+
+-- Declared here (ahead of Create/Open) so root's OnUpdate poll and Open's arming check
+-- can see it as a lexical upvalue rather than a stale forward reference.
+local function MouseOverEcho()
+    local column = _G.HorizonSuiteEchoColumn
+    if root and root:IsShown() and root:IsMouseOver() then return true end
+    return column ~= nil and column:IsShown() and column:IsMouseOver()
 end
 
 local function CreateEdit()
@@ -71,11 +81,12 @@ local function CreateEdit()
         if self:GetText() == "" then self.placeholder:Show() end
         Stack.HoverLeave()
     end)
-    -- A keybind that focuses the box must not type its own key into it.
+    -- A keybind that focuses the box must not type its own key into it; restore whatever
+    -- draft was there before the keybind stole focus, rather than wiping it.
     edit:SetScript("OnChar", function(self)
         if self.swallow then
             self.swallow = false
-            self:SetText("")
+            self:SetText(self.beforeSwallow or "")
         end
     end)
 end
@@ -90,6 +101,37 @@ local function Create()
     root:SetScript("OnMouseWheel", function(_, delta) Stack.Flip(-delta) end)
     root:SetScript("OnEnter", function() Stack.HoverEnter() end)
     root:SetScript("OnLeave", function() Stack.HoverLeave() end)
+    -- Closing on mouse-leave can't be event-driven: card/edit/buttons are mouse-enabled
+    -- children with no OnEnter/OnLeave of their own, so root's OnLeave fires the instant the
+    -- mouse crosses onto any of them and nothing fires when it later leaves those children.
+    -- Poll instead: once armed (the mouse has been over Echo since this open), track how
+    -- long it's been continuously away and close after HOVER_CLOSE seconds of that.
+    root:SetScript("OnUpdate", function(_, elapsed)
+        pollAccum = pollAccum + elapsed
+        if pollAccum < 0.1 then return end
+        local dt = pollAccum
+        pollAccum = 0
+        local over = MouseOverEcho()
+        local focused = edit and edit:HasFocus()
+        if over then armed = true end
+        if over or focused then
+            away = 0
+        elseif armed then
+            away = away + dt
+            if away >= Stack.HOVER_CLOSE then
+                Stack.Hide()
+            end
+        end
+    end)
+    root:SetScript("OnHide", function()
+        -- Covers closes that bypass Stack.Hide entirely, e.g. Escape via UISpecialFrames
+        -- calling root:Hide() directly: leave no pending open timer or stuck focus behind.
+        if openTimer then
+            openTimer:Cancel()
+            openTimer = nil
+        end
+        if edit then edit:ClearFocus() end
+    end)
     table.insert(UISpecialFrames, "HorizonSuiteEchoStack")
 
     for i = 1, Stack.BEHIND do
@@ -192,6 +234,12 @@ function Stack.Render()
     end
     cursor = math.max(1, math.min(cursor, #list))
     local conv = list[cursor]
+    if renderedKey ~= conv.key then
+        -- The reply box is shared by whichever card is on top; a draft for one
+        -- conversation must never bleed onto another when the top card changes.
+        edit:SetText("")
+    end
+    renderedKey = conv.key
     currentKey = conv.key
     local spec = View.TileSpec(conv)
 
@@ -268,6 +316,12 @@ local function Anchor()
     else
         root:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
     end
+    -- root's own level just moved (e.g. above a raised column); re-assert the card stack's
+    -- levels relative to it so the top card and its behind-cards stay correctly ordered.
+    for i = 1, Stack.BEHIND do
+        behind[i]:SetFrameLevel(root:GetFrameLevel() + Stack.BEHIND - i + 1)
+    end
+    card:SetFrameLevel(root:GetFrameLevel() + Stack.BEHIND + 1)
 end
 
 local function CancelTimer(timer)
@@ -291,12 +345,17 @@ function Stack.Open(convKey, focus)
         end
     end
     currentKey = conversations[cursor].key
-    CancelTimer(closeTimer)
-    closeTimer = nil
     Anchor()
     root:Show()
+    -- Arm the hover-close poll immediately if the mouse is already over Echo (a hover-open);
+    -- otherwise a keybind/click open with the mouse elsewhere must stay put until the
+    -- director dismisses it explicitly (Escape/toggle/close), never auto-close underneath them.
+    armed = MouseOverEcho()
+    away = 0
+    pollAccum = 0
     Stack.Render()
     if focus then
+        edit.beforeSwallow = edit:GetText()
         edit:SetFocus()
         edit.swallow = true
         C_Timer.After(0, function() if edit then edit.swallow = false end end)
@@ -305,8 +364,9 @@ end
 
 function Stack.Hide()
     CancelTimer(openTimer)
-    CancelTimer(closeTimer)
-    openTimer, closeTimer = nil, nil
+    openTimer = nil
+    armed = false
+    away = 0
     if edit then edit:ClearFocus() end
     if root then root:Hide() end
 end
@@ -340,16 +400,8 @@ function Stack.CloseCurrent()
     if conv then Echo.Store.Close(conv.key) end
 end
 
-local function MouseOverEcho()
-    local column = _G.HorizonSuiteEchoColumn
-    if root and root:IsShown() and root:IsMouseOver() then return true end
-    return column ~= nil and column:IsShown() and column:IsMouseOver()
-end
-
 --- The mouse entered the column or the stack: open after the hover delay (not in combat).
 function Stack.HoverEnter()
-    CancelTimer(closeTimer)
-    closeTimer = nil
     if (root and root:IsShown()) or openTimer or InCombatLockdown() then return end
     local delay = tonumber(Echo.Setting("echoHoverDelay")) or 0.35
     openTimer = C_Timer.NewTimer(delay, function()
@@ -358,18 +410,13 @@ function Stack.HoverEnter()
     end)
 end
 
---- The mouse left: close shortly unless it came back or the reply box has focus.
+--- The mouse left before the open timer fired: cancel it. Closing once already open is the
+-- OnUpdate poll's job now (see Create), since child frames swallow root's own OnLeave.
 function Stack.HoverLeave()
     if openTimer and not MouseOverEcho() then
         openTimer:Cancel()
         openTimer = nil
     end
-    if not root or not root:IsShown() then return end
-    CancelTimer(closeTimer)
-    closeTimer = C_Timer.NewTimer(Stack.HOVER_CLOSE, function()
-        closeTimer = nil
-        if not MouseOverEcho() and not (edit and edit:HasFocus()) then Stack.Hide() end
-    end)
 end
 
 function Stack.OnStoreChange()

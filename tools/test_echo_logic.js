@@ -1038,6 +1038,104 @@ run(`
   S.Reset()
 `, 'stack');
 
+// --- Stack: poll-based hover close (fix round 1, finding 1) ------------------------------
+run(`
+  local S, T, K = HorizonSuite.Echo.Store, HorizonSuite.Echo.Tiles, HorizonSuite.Echo.Stack
+  S.Reset()
+  CreateFrame = STUB_CREATE_FRAME
+  T.Enable()
+  K.Enable()
+  local f = K._frames()
+  S.Add({ convKey = "w:Brisa-Horizon", text = "hi", class = "DRUID", sender = "Brisa-Horizon" })
+
+  -- (a) opened with the mouse elsewhere: never arms, so it never auto-closes
+  K.Open(nil)
+  check("opens", f.root:IsShown(), "hidden")
+  f.root.scripts.OnUpdate(f.root, 1.0)
+  check("not armed: a mouse-away open never auto-closes", f.root:IsShown(), "hidden")
+  K.Hide()
+
+  -- (b) the mouse enters (arming it) then leaves: closes once away >= HOVER_CLOSE
+  K.Open(nil)
+  f.root.IsMouseOver = function() return true end
+  f.root.scripts.OnUpdate(f.root, 0.2)
+  check("armed while over: stays open", f.root:IsShown(), "hidden")
+  f.root.IsMouseOver = function() return false end
+  f.root.scripts.OnUpdate(f.root, 0.5)
+  check("armed and away past HOVER_CLOSE: closes", not f.root:IsShown(), "shown")
+  f.root.IsMouseOver = nil
+
+  -- (c) armed and away, but the reply box has focus: away time never accrues
+  K.Open(nil)
+  f.root.IsMouseOver = function() return true end
+  f.root.scripts.OnUpdate(f.root, 0.2)
+  f.root.IsMouseOver = function() return false end
+  f.edit.HasFocus = function() return true end
+  f.root.scripts.OnUpdate(f.root, 1.0)
+  check("a focused reply box holds the stack open", f.root:IsShown(), "hidden")
+  f.root.IsMouseOver = nil
+  f.edit.HasFocus = nil
+
+  K.Hide()
+  K.Disable()
+  T.Disable()
+  S.Reset()
+`, 'stack-hover');
+
+// --- Stack: the draft belongs to the box on top, not the conversation (fix round 1, finding 2) --
+run(`
+  local S, T, K = HorizonSuite.Echo.Store, HorizonSuite.Echo.Tiles, HorizonSuite.Echo.Stack
+  S.Reset()
+  CreateFrame = STUB_CREATE_FRAME
+  T.Enable()
+  K.Enable()
+  local f = K._frames()
+
+  S.Add({ convKey = "w:Brisa-Horizon", text = "hi", class = "DRUID", sender = "Brisa-Horizon" })
+  S.Add({ convKey = "w:Vexa-Horizon", text = "gz", sender = "Vexa-Horizon" })
+  K.Open(nil)
+  check("opens on the newest conversation", f.card.name.text == "Vexa", f.card.name.text)
+  f.edit:SetText("for vexa")
+  K.Flip(1)
+  check("flipping to another card clears the previous card's draft", f.edit.text == "", f.edit.text)
+
+  K.Open("w:Brisa-Horizon")
+  check("open moves the named conversation on top", f.card.name.text == "Brisa", f.card.name.text)
+  f.edit:SetText("draft")
+  K.Open("w:Brisa-Horizon", true)
+  check("reopening the same card on top keeps its draft", f.edit.text == "draft", f.edit.text)
+  f.edit:SetText("draftr")
+  f.edit.scripts.OnChar(f.edit, "r")
+  check("a swallowed keybind char restores the draft, not empties it", f.edit.text == "draft", f.edit.text)
+
+  K.Hide()
+  K.Disable()
+  T.Disable()
+  S.Reset()
+`, 'stack-draft');
+
+// --- Stack: OnHide cancels a pending open and drops reply-box focus (fix round 1, finding 4) ----
+run(`
+  local S, T, K = HorizonSuite.Echo.Store, HorizonSuite.Echo.Tiles, HorizonSuite.Echo.Stack
+  S.Reset()
+  CreateFrame = STUB_CREATE_FRAME
+  T.Enable()
+  K.Enable()
+  local f = K._frames()
+  S.Add({ convKey = "w:Brisa-Horizon", text = "hi", class = "DRUID", sender = "Brisa-Horizon" })
+
+  K.Open("w:Brisa-Horizon", true)
+  check("focusing the reply box sets focus", f.edit.focused == true, tostring(f.edit.focused))
+  check("root registers an OnHide handler", type(f.root.scripts.OnHide) == "function", type(f.root.scripts.OnHide))
+  f.root.scripts.OnHide(f.root)
+  check("OnHide clears the reply box focus", f.edit.focused == false, tostring(f.edit.focused))
+
+  K.Hide()
+  K.Disable()
+  T.Disable()
+  S.Reset()
+`, 'stack-onhide');
+
 // --- Summary -------------------------------------------------------------------
 run(`
   print(PASS .. " passed, " .. FAIL .. " failed")
