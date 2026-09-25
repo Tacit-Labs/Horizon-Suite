@@ -112,7 +112,8 @@ When `Platform.Has("secretChat")` is false, only the first case applies.
 ### Collapsed: tiles
 
 - The column anchors to a screen edge (right by default) and grows upward from its anchor. It can be unlocked and dragged from options, like Focus.
-- Whisper tiles show the sender's initial on their class colour. BNet friends not on a character get a neutral Battle.net-blue tile. Channel tiles are dark with a glyph: **P**, **R**, **I**, **G**, **O**, or the channel's first letter.
+- Whisper tiles show the sender's class emblem on their class colour, with a short name (realm dropped, at most 5 characters, UTF-8 aware) across the bottom. A class with no resolvable icon falls back to the initial on class colour. BNet friends not on a character get the Battle.net logo on a blue tile, with no name label: a `|K` name can't be cut. A Battle.net friend on a WoW character shows their class icon instead. Channel tiles show a short name: **Gen**, **Trade**, **Def**, **LFG**, **Serv**, **WDef**, **New**, or the first 4 characters for anything else. Group kinds keep their glyphs: **P**, **R**, **I**, **G**, **O**.
+- One painter, `Echo.PaintTileFace`, draws every tile face (column, card row, stack card, toast), and one rule, `View.Badge`, decides every badge.
 - Unread: a dot on loud conversations, a number on count-tier ones, and nothing on quiet ones until opened.
 - At most 8 tiles, configurable. Beyond that, a **+N** tile opens the stack.
 - Order: pinned first, then by last loud message. A mention or raid warning counts as a loud message: it toasts and moves its tile up. Ordinary count and quiet messages do not reorder.
@@ -129,10 +130,11 @@ When `Platform.Has("secretChat")` is false, only the first case applies.
 ### Expanded: card
 
 - Grows from the stack position. Other conversations become a tile row across the top; a chevron collapses back to tiles.
-- The header shows name, class and relationship (friend, guildmate, Battle.net), plus online status where the game provides it.
+- The header shows name, class and relationship (friend, guildmate, Battle.net), plus online status where the game provides it. This meta line is upper-cased only on English clients, because `upper()` only touches ASCII letters and would otherwise mangle accented text.
 - Bubbles: incoming on the left, outgoing on the right in the accent tint. The newest outgoing bubble shows pending, sent or failed. Consecutive messages from the same sender within 2 minutes are grouped. Channel cards show the sender name in class colour above each group.
 - Renders the last 100 messages in pooled bubble frames inside a scroll frame.
-- × closes the conversation and removes its tile. Whisper history returns if that person messages again.
+- While scrolled up, an incoming message doesn't move what you're reading. It keeps counting behind a clickable "N new ↓" hint instead of shifting the view. Scrolling back to the bottom, switching conversations, sending a reply or closing the card all clear the hint.
+- × closes the conversation and removes its tile. Whisper history returns if that person messages again. Clicking the tile of the conversation the card already shows, in the column or in the card's own tile row, closes the card instead of doing nothing; any other tile still switches to it.
 - Width, height, scale, strata and font follow the suite's usual options.
 
 **Decided for plan 3 (2026-09-25):**
@@ -193,6 +195,7 @@ HorizonDB.echoHistory = {
 - Capped at 100 entries per conversation and trimmed on `PLAYER_LOGOUT`.
 - Secret messages are never written.
 - Nothing is written when **Save whisper history** is off. **Clear history** wipes the table.
+- Closing a conversation drops its unsent draft on purpose. The stack and the card share drafts per conversation, and closing either one discards the draft for both.
 
 ## Options
 
@@ -280,13 +283,14 @@ Each step can ship on its own:
 
 **Plan 5 did:** the one-frame redraw coalescing for Tiles, Card and Stack; the per-feed on/off option (Loot, Progress, System); the column-edge option flipping which side the toast and stack open on; the scale-safe saved position, so a scale change no longer moves the column; and clamping `echoMaxTiles` to at least 2 in the options.
 
-**Carried into plan 6.** What is left from the old "plan 4" list, plus its own scope (options and polish; this list was "plan 4" before the feeds took that number):
+**Plan 6 did:**
 
-- Better tile icons than the first letter of a name (director, 2026-09-25), for example class icons from `core/ClassIconMedia.lua` for whispers, portraits or race icons, a Battle.net logo.
-- Channel glyphs collide (General and Guild are both "G"). Give them distinct glyphs.
-- Extend `Echo.PaintTileFace` to cover the toast and the stack card, which still carry their own copy of the icon / glyph / letter three-way branch.
-- One shared badge-tier helper for the tile, the card's row and the stack, instead of each deciding the badge from the tier on its own.
-- Coalesce the card's re-renders on busy channels further. Another conversation's news already repaints only its tile row.
-- Anchor the scroll position while scrolled up, so new messages do not shift what you are reading.
-- Keep drafts of closed conversations, or decide they are dropped on purpose.
-- `upper()` on localized meta text only changes ASCII letters. Use a locale-aware upper case, or leave the text as it is.
+- Class icons on whisper tiles, with a short name (realm dropped, 5 characters, UTF-8 aware) across the bottom, and the initial on class colour as the fallback. `core/ClassIconMedia.lua` first, then Blizzard's class atlas.
+- A Battle.net logo on blue for friends not on a character, and their class icon (no name label) when they are; a `|K` name can't be cut.
+- Distinct channel short names, so General and Guild no longer share "G".
+- One painter, `Echo.PaintTileFace`, for the column tile, the toast, the stack card and the card's row, replacing each surface's own icon / glyph / letter branch.
+- One badge rule, `View.Badge`, shared by the tile, the card's row and the stack.
+- The card keeps its place while scrolled up, with a clickable "N new ↓" hint, instead of re-rendering under the reader.
+- Closing a conversation drops its unsent draft on purpose, for both the stack and the card.
+- Clicking the tile of the conversation the card already shows now closes the card.
+- `View.Upper` upper-cases header meta text only on English clients, instead of mangling accented text on every locale.
