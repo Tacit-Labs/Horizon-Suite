@@ -866,10 +866,15 @@ git commit -m "chore(echo): declare the feed and link globals for luacheck" -m "
 - [ ] **Step 2: Checklist (director, in game)**
 
 1. Loot something, pick up gold and earn currency: a **Loot** tile with a bag icon appears, with no badge (it's quiet). Hover or click it: timestamped lines in Blizzard's loot colours, and no reply box.
-2. Gain reputation or experience, or watch a guildmate earn an achievement: a **Progress** tile with a star appears. The achievement line names the player, and clicking the name opens their menu.
+2. Gain reputation or experience, or watch a guildmate earn an achievement: a **Progress** tile with a star appears. The achievement line names the player: left-click the name to open a whisper to them, right-click it to open their menu.
 3. "You feel rested", a system message or a Battle.net friend logging in: a **System** tile with a cog appears. Whisper an offline name: the whisper shows "Not delivered", and the System feed also has the "No player named…" line.
 4. Hover an item link in a loot line, in a whisper bubble and in the stack: the item tooltip shows. Click it: it behaves like Blizzard's chat. Shift-click it with a reply box focused: the link goes into Echo's box.
 5. `⋯` → Notifications → Count on Loot: its tile shows a number. Muted: nothing.
 6. `/reload`: the feed tiles are gone until new lines arrive. Your whisper tiles come back as before.
 7. In a dungeon, loot during a boss fight (if the game hides the line): the Loot feed still gets a line, and nothing errors.
-8. Repeat on Forever. Battle.net friend alerts only appear where the client has Battle.net.
+8. Keep the Loot card open through a group-loot roll burst (a dungeon boss with several drops) and watch the frame rate: no visible hitch while the lines arrive.
+9. Scroll over the bubbles with the mouse wheel, on a feed card and on a conversation card: the lines move, and the newest come back when you scroll down.
+10. With many messages in a card, the `⋯` button and the row tiles stay clickable: no bubble spills over them or blocks their clicks.
+11. Close the Loot feed (the stack card's × or `⋯` → Close). Loot something: the tile stays gone until `/reload`, then comes back with the next loot line.
+12. Click a link in a feed line (an item, then a player name), then enter combat: no "action blocked" or "interface action failed" error appears.
+13. Repeat on Forever. Battle.net friend alerts only appear where the client has Battle.net.

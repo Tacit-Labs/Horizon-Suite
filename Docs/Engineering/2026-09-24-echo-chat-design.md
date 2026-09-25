@@ -273,10 +273,13 @@ Each step can ship on its own:
 
 **Carried into plan 5** (options and polish; this list was "plan 4" before the feeds took that number):
 
+- **First task of plan 5:** coalesce the Tiles, Card and Stack redraws behind a one-frame dirty flag, so a burst of lines repaints once. Feeds make this matter: a group-loot roll burst files many lines in a frame, each of which currently redraws every view.
+- A per-feed on/off option (Loot, Progress, System), for players who never want a feed's tile.
+- Extend `Echo.PaintTileFace` to cover the toast and the stack card, which still carry their own copy of the icon / glyph / letter three-way branch.
+- One shared badge-tier helper for the tile, the card's row and the stack, instead of each deciding the badge from the tier on its own.
 - The column-edge option also flips which side the toast and stack open on.
 - A scale change re-derives the saved position, so the column doesn't jump.
 - Channel glyphs collide (General and Guild are both "G"); give them distinct glyphs.
-- Coalesce redraws on busy channels instead of redrawing on every line.
 - Clamp `echoMaxTiles` to at least 2 in the options.
 - Better tile icons than the first letter of a name (director, 2026-09-25) — e.g. class icons from `core/ClassIconMedia.lua` for whispers, portraits or race icons, a Battle.net logo.
 - Coalesce the card's re-renders on busy channels further; another conversation's news already repaints only its tile row.
