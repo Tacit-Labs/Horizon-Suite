@@ -440,6 +440,28 @@ run(`
   check("secret class from the GUID lookup is not stored", r.class == nil, r.class)
   GetPlayerInfoByGUID = savedInfo
 
+  -- Own line with a secret sender: the readable GUID still says it is yours.
+  local savedUnitGUID = UnitGUID
+  UnitGUID = function(unit) if unit == "player" then return "Player-1-ME" end end
+  r = E.BuildRecord("CHAT_MSG_RAID", payload("kaelis here", SECRET("Kaelis-Horizon"), nil, "Player-1-ME"))
+  check("own raid line with a secret sender is outgoing", r and r.outgoing == true, r and r.outgoing)
+  check("own raid line with a secret sender is not urgent", r and r.urgent == false, r and r.urgent)
+  r = E.BuildRecord("CHAT_MSG_RAID", payload("go", SECRET("Lead-Horizon"), nil, "Player-1-DRUID"))
+  check("another player's GUID with a secret sender is incoming", r and r.outgoing == false, r and r.outgoing)
+  r = E.BuildRecord("CHAT_MSG_RAID", payload("go", SECRET("Lead-Horizon"), nil, SECRET("Player-1-ME")))
+  check("a secret GUID with a secret sender is incoming", r and r.outgoing == false, r and r.outgoing)
+  UnitGUID = function() return SECRET("Player-1-ME") end
+  r = E.BuildRecord("CHAT_MSG_RAID", payload("go", SECRET("Lead-Horizon"), nil, "Player-1-ME"))
+  check("a secret player GUID is never compared", r and r.outgoing == false, r and r.outgoing)
+  UnitGUID = function(unit) if unit == "player" then return "Player-1-ME" end end
+  S.Reset()
+  local own = S.AddPending("raid", "omw")
+  E.Dispatch("CHAT_MSG_RAID", payload("omw", SECRET("Kaelis-Horizon"), nil, "Player-1-ME"))
+  check("own raid line with a secret sender confirms the pending send",
+        own.status == "sent" and #S.Get("raid").messages == 1, own.status .. "/" .. #S.Get("raid").messages)
+  UnitGUID = savedUnitGUID
+  S.Reset()
+
   none, reason = E.BuildRecord("CHAT_MSG_SAY", payload("hi", "A-B"))
   check("non-Echo event is ignored", none == nil and reason == "ignored", reason)
 
