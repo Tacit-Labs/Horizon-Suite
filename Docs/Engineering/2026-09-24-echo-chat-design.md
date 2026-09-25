@@ -145,6 +145,22 @@ When `Platform.Has("secretChat")` is false, only the first case applies.
 - Shift-clicking a link while an Echo reply box has focus inserts it there, through a post-hook on the game's own link insertion.
 - The rest of the old plan 3 (options page, dashboard, whisper filter, keywords, polish) is plan 4.
 
+### Feeds (plan 4, decided 2026-09-25)
+
+Echo stays a layer beside Blizzard's chat, not a replacement (a full overhaul was considered and set aside: it would mean showing secret lines Echo can't sort, keeping Blizzard's input box for protected slash commands, and a combat log Midnight largely closes to addons). Three read-only **feed** conversations collect non-conversation lines:
+
+| Feed | Events |
+|---|---|
+| **Loot** (`loot`) | `CHAT_MSG_LOOT`, `CHAT_MSG_MONEY`, `CHAT_MSG_CURRENCY` |
+| **Progress** (`progress`) | `CHAT_MSG_COMBAT_FACTION_CHANGE`, `CHAT_MSG_COMBAT_XP_GAIN`, `CHAT_MSG_SKILL`, `CHAT_MSG_ACHIEVEMENT`, `CHAT_MSG_GUILD_ACHIEVEMENT` |
+| **System** (`system`) | `CHAT_MSG_SYSTEM`, `BN_INLINE_TOAST_ALERT` (Battle.net builds only) |
+
+- Quiet by default; the ⋯ menu can change it. Session only, never persisted or restored.
+- Tiles show an icon (bag, star, cog) rather than a letter. The card and stack show feeds read-only: no reply box; full-width lines with a timestamp in Blizzard's colour for that line type.
+- A feed is chosen by event type, not sender, so a secret line still lands in its feed and shows via SetText.
+- Links in conversation bubbles, feed lines and the stack's lines are live: hover for the tooltip, click through the game's own `SetItemRef`, shift-click to link.
+- The combat log stays Blizzard's.
+
 ### Keybinds
 
 Added to `Bindings.xml` under "Horizon Suite":
@@ -255,13 +271,14 @@ Each step can ship on its own:
 - Add `Store.Unsubscribe` if views are rebuilt at runtime.
 - Slash command strings move to `addon.L` in plan 3.
 
-**Carried into plan 4.** Found while building the tiles and stack, left for options and polish:
+**Carried into plan 5** (options and polish; this list was "plan 4" before the feeds took that number):
 
 - The column-edge option also flips which side the toast and stack open on.
 - A scale change re-derives the saved position, so the column doesn't jump.
 - Channel glyphs collide (General and Guild are both "G"); give them distinct glyphs.
 - Coalesce redraws on busy channels instead of redrawing on every line.
 - Clamp `echoMaxTiles` to at least 2 in the options.
+- Better tile icons than the first letter of a name (director, 2026-09-25) — e.g. class icons from `core/ClassIconMedia.lua` for whispers, portraits or race icons, a Battle.net logo.
 - Coalesce the card's re-renders on busy channels further; another conversation's news already repaints only its tile row.
 - Anchor the scroll position while scrolled up, so new messages don't shift what you're reading.
 - Keep drafts of closed conversations, or decide they're dropped on purpose.
