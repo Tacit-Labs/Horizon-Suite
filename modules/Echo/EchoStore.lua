@@ -213,7 +213,8 @@ function Store.Get(convKey)
     return conversations[convKey]
 end
 
---- Open conversations: pinned first, then most recent loud message, then newest created.
+--- Open conversations: pinned first, then most recent loud message, then conversations
+-- restored from the last session in their saved order, then newest created.
 -- Count and quiet messages never change the order.
 -- @return table conversations
 function Store.List()
@@ -224,6 +225,9 @@ function Store.List()
     table.sort(out, function(a, b)
         if a.pinned ~= b.pinned then return a.pinned end
         if a.lastLoud ~= b.lastLoud then return a.lastLoud > b.lastLoud end
+        local ra, rb = a.restoreRank, b.restoreRank
+        if (ra ~= nil) ~= (rb ~= nil) then return ra ~= nil end
+        if ra and ra ~= rb then return ra < rb end
         return a.createdSeq > b.createdSeq
     end)
     return out
@@ -351,18 +355,23 @@ function Store.OpenKeys()
 end
 
 --- Reopen conversations saved at the end of the last session, seeded from history.
--- Keys are restored last-first so the saved first key ends up on top, and every
--- restored conversation sits below anything with a loud message this session.
--- A conversation that already exists, including one closed this session, is left alone.
+-- Each restored conversation is ranked by its position in keys (1 = top): restored tiles
+-- sit below anything with a loud message this session but above channels that spoke
+-- after login, in their saved order. A conversation that already exists, including one
+-- closed this session, is not reopened; one restored earlier takes its rank from this
+-- list, so a retry with the full list (Battle.net friends arrive late) keeps the order.
 -- @param keys table|nil  convKeys, top first
 -- @return number restored
 function Store.Restore(keys)
     local restored = 0
     keys = keys or {}
-    for i = #keys, 1, -1 do
+    for i = 1, #keys do
         local key = keys[i]
-        if Store.PERSISTED_KINDS[Store.KindOf(key)] and not conversations[key] then
-            GetOrCreate(key)
+        local existing = conversations[key]
+        if existing then
+            if existing.restoreRank then existing.restoreRank = i end
+        elseif Store.PERSISTED_KINDS[Store.KindOf(key)] then
+            GetOrCreate(key).restoreRank = i
             restored = restored + 1
         end
     end

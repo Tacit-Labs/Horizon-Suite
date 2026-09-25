@@ -769,6 +769,36 @@ run(`
   S.Reset()
 `, 'store-restore');
 
+// --- Store: restored tiles keep their saved place (final review F3) ---------------------
+run(`
+  local S = HorizonSuite.Echo.Store
+  local function order()
+    local keys = {}
+    for i, c in ipairs(S.List()) do keys[i] = c.key end
+    return table.concat(keys, ",")
+  end
+  S.Reset()
+  S.Restore({ "w:A-Horizon", "w:B-Horizon" })
+  S.Add({ convKey = "ch:Trade", text = "wts" })
+  check("restored tiles stay above a channel that spoke after login",
+        order() == "w:A-Horizon,w:B-Horizon,ch:Trade", order())
+
+  -- The friends list arrives late: the first restore can't map the battletag yet, the
+  -- retry passes the full saved list and only adds what is missing.
+  S.Reset()
+  S.Restore({ "w:A-Horizon" })
+  S.Add({ convKey = "ch:Trade", text = "wts" })
+  S.Restore({ "w:A-Horizon", "bn:9" })
+  check("a late battle.net tile takes its saved place below the first",
+        order() == "w:A-Horizon,bn:9,ch:Trade", order())
+
+  S.Reset()
+  S.Restore({ "w:A-Horizon" })
+  S.Restore({ "bn:9", "w:A-Horizon" })
+  check("a late battle.net tile saved on top goes on top", order() == "bn:9,w:A-Horizon", order())
+  S.Reset()
+`, 'store-restore-rank');
+
 // --- History: open session save and restore -------------------------------------------
 run(`
   local S, H = HorizonSuite.Echo.Store, HorizonSuite.Echo.History
