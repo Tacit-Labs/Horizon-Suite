@@ -246,6 +246,46 @@ These are assumptions, not facts. Settle them in the first implementation step, 
 - Item 5 settled (Retail, 2026-09-25): `/dump ChatEdit_InsertLink == ChatFrameUtil.InsertLink` prints `false`, so the legacy global is a wrapper rather than an alias, and hooking `ChatFrameUtil.InsertLink` catches both paths. Shift-clicked links reach a focused Echo box; the expanded card, menu, remembered pins and tiers all checked in game.
 - Item 4 is settled from the code: `AugmentToastStyles.lua` is a plain table of functions loaded by the TOC before `AugmentModule.lua`, so it works with Augment disabled.
 
+## Ideas from Whisper Stack (plan 7, 2026-09-26)
+
+Plan 7 brought five features into Echo, each one an idea seen in Whisper Stack (an
+addon by Devin) and reimplemented from scratch for Echo's own architecture and
+constraints:
+
+- **A class icon without a message to carry one.** Restored history, Battle.net
+  friends and some whispers arrive with no class attached, so a tile falls back
+  to a letter. `Echo.Class` looks a whisperer up in your group, then your guild,
+  then your friends list, and caches the first match on the conversation. A
+  Battle.net friend is resolved fresh every time instead, since they can switch
+  characters mid-session.
+- **A sound for the whispers Echo hides.** Echo can play its own sound when it
+  hides a whisper from Blizzard's chat. The rule is one-sided: Echo's sound
+  plays only for whispers Echo hides, and whispers Blizzard still shows keep
+  Blizzard's own sound. Echo never touches Blizzard's chat frames to silence
+  them, so the two never double up and never go silent together.
+- **Invite to group from a whisper's menu.** The menu offers Invite only when
+  the target can actually join your group: for a Battle.net friend, that means
+  `CanCooperateWithGameAccount` says yes where the client offers it, or
+  failing that a matching game project and region. It never offers Invite for
+  yourself.
+- **An Auto screen edge.** The column can follow whichever half of the screen it
+  sits on, rather than a fixed left or right, so the stack and card open away
+  from the column instead of over it.
+- **The card growing out of the clicked tile.** Opening the card animates it
+  scaling and fading in from the tile that was clicked, rather than simply
+  appearing.
+
+Two points worth keeping in mind when working on any of this:
+
+- **Echo never writes to Blizzard's own chat-frame fields.** Every one of these
+  features reads Blizzard's APIs (roster, friends, Battle.net, chat settings)
+  but never writes to them and never hooks or replaces a Blizzard chat
+  function. This keeps Echo out of the taint rules that govern Blizzard's own
+  frames.
+- **Whisper Stack carried no licence.** Its ideas were reimplemented from a
+  plain-English description of what it does, not from its source, which Echo
+  never read or copied.
+
 ## Testing
 
 - **Logic tests:** `tools/test_echo_logic.js`, in the same shape as `tools/test_lootroll_logic.js` (fengari, stubbed globals, real locale file). Covers conversation keys, tier and ordering rules, unread counters, the history cap and trim, "secret messages are never persisted", and "sender secret produces no conversation, only a marker count".

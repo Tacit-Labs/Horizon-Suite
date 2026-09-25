@@ -202,5 +202,8 @@
 - [ ] A Battle.net friend on a WoW character shows their class icon.
 - [ ] With "Hide whispers Echo has stored" on, each sound choice plays on a whisper. Play sound previews it. Off is silent. With hiding off, Blizzard's own ding plays once.
 - [ ] Invite to group from a whisper's ⋯ menu sends the invite.
+- [ ] Invite a Battle.net friend on a realm with a space in its name (e.g. Argent Dawn); the invite reaches them.
+- [ ] A Battle.net friend on Classic shows no Invite.
 - [ ] Auto edge: drag the column to the left half of the screen. The stack, card and pop-ups open to its right.
 - [ ] Clicking a tile, the card grows smoothly out of it. With "Animate the card" off, it just appears.
+- [ ] The card eases out as it grows, rather than moving at a constant speed.
