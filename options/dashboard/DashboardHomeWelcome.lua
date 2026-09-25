@@ -38,7 +38,7 @@ function addon.DashboardHomeWelcome_Init(env)
     local SBg  = (WDef and WDef.SectionCardBg) or { 0.09, 0.09, 0.11, 0.96 }
     local SBgA = SBg[4] * (DASHBOARD_CONTENT_CARD_ALPHA_MULT or 1)
 
-    local MODULE_ORDER = { "focus", "presence", "vista", "insight", "augment", "essence" }
+    local MODULE_ORDER = { "focus", "presence", "vista", "insight", "augment", "essence", "echo" }
 
     local MODULE_COLORS = {
         focus    = { 1.00, 0.82, 0.20 },
@@ -47,6 +47,7 @@ function addon.DashboardHomeWelcome_Init(env)
         insight  = { 1.00, 0.40, 0.70 },
         augment    = { 0.20, 0.80, 0.40 },
         essence  = { 0.86, 0.08, 0.24 },
+        echo     = { 0.56, 0.64, 0.91 },
     }
 
     local MODULE_ICONS = {
@@ -56,6 +57,7 @@ function addon.DashboardHomeWelcome_Init(env)
         insight  = "ui_profession_inscription",
         augment    = "Spell_holy_powerinfusion",
         essence  = "achievement_character_human_male",
+        echo     = "inv_letter_15",
     }
 
     local MODULE_DESCS = {
@@ -65,6 +67,7 @@ function addon.DashboardHomeWelcome_Init(env)
         insight  = L["HOME_MOD_INSIGHT_SHORT"],
         augment    = L["HOME_MOD_AUGMENT_SHORT"],
         essence  = L["HOME_MOD_ESSENCE_SHORT"],
+        echo     = L["HOME_MOD_ECHO_SHORT"],
     }
 
     -- Horizontal inset is on the scroll frame (match detail/subcategory); cards align to scroll content left.

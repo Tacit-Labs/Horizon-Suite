@@ -30,6 +30,7 @@ local categories = {
                 { type = "toggle", name = BM and BM("insight"),                                  desc = L["DASH_TOOLTIPS_CLASS_COLOURS_SPEC_FACTION"],   dbKey = "_module_insight",  get = function() return addon:IsModuleEnabled("insight")  end, set = function(v) setModuleFromOptions("insight",  v) end },
                 { type = "toggle", name = (BM and BM("augment") or L["NAME_ADDON_LOOT"])    .. previewSuffix, desc = L["DASH_LOOT_TOASTS_ITEMS_MONEY_CURRENCY"]    .. previewDescSuffix, dbKey = "_module_augment", get = function() return addon:IsModuleEnabled("augment") end, set = function(v) setModuleFromOptions("augment", v) end },
                 { type = "toggle", name = (BM and BM("essence") or L["NAME_ADDON_CHARACTER"]) .. previewSuffix, desc = L["DASH_ESSENCE_MODULE_SHORT_DESCRIPTION"] .. previewDescSuffix, dbKey = "_module_essence", get = function() return addon:IsModuleEnabled("essence") end, set = function(v) setModuleFromOptions("essence", v) end },
+                { type = "toggle", name = (BM and BM("echo") or L["NAME_ADDON_CHAT"]) .. previewSuffix, desc = L["DASH_ECHO_MODULE_SHORT_DESCRIPTION"] .. previewDescSuffix, dbKey = "_module_echo", get = function() return addon:IsModuleEnabled("echo") end, set = function(v) setModuleFromOptions("echo", v) end },
                 { type = "moduleReloadPrompt" },
             }
         end,

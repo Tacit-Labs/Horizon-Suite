@@ -126,12 +126,13 @@ function addon.Dashboard_BuildMainFrame()
                 insight = addon.Dashboard_BrandModule("insight"),
                 augment = addon.Dashboard_BrandModule("augment"),
                 essence = addon.Dashboard_BrandModule("essence"),
+                echo = addon.Dashboard_BrandModule("echo"),
                 meridian = addon.Dashboard_BrandModule("meridian"),
             }
             f.dashboardModuleLabels = moduleLabels
 
             -- Preview-labelled modules (tiles, sidebar, welcome); keep in sync with OptionsData Modules toggles.
-            local PREVIEW_MODULE_KEYS = { essence = true }
+            local PREVIEW_MODULE_KEYS = { essence = true, echo = true }
             -- Coming-soon modules: planned but with no in-game content yet.
             local COMING_SOON_MODULE_KEYS = { meridian = true }
 
@@ -145,6 +146,7 @@ function addon.Dashboard_BuildMainFrame()
                 insight  = { 255/255, 102/255, 179/255 },  -- FF66B3
                 augment    = {  51/255, 204/255, 102/255 },  -- 33CC66
                 essence  = { 220/255,  20/255,  60/255 },  -- DC143C
+                echo     = { 143/255, 163/255, 232/255 },  -- 8FA3E8
             }
 
             local function ShouldShowModuleOnDashboard(mk)
@@ -627,7 +629,7 @@ function addon.Dashboard_BuildMainFrame()
 
             local searchModuleFilterMenuRows = {}
             local SEARCH_MODULE_FILTER_ROW_H = 28
-            local SEARCH_MODULE_FILTER_GROUP_ORDER = { "axis", "focus", "insight", "essence", "presence", "vista", "augment" }
+            local SEARCH_MODULE_FILTER_GROUP_ORDER = { "axis", "focus", "insight", "essence", "echo", "presence", "vista", "augment" }
 
             local searchModuleFilterMenu = CreateFrame("Frame", nil, f, "BackdropTemplate")
             searchModuleFilterMenu:SetFrameLevel(f:GetFrameLevel() + 12)
@@ -1666,7 +1668,7 @@ function addon.Dashboard_BuildMainFrame()
 
             -- ===== POPULATE SIDEBAR =====
             -- Group categories by moduleKey; build all groups so we can show/hide on refresh.
-            local MODULE_LABELS = { ["axis"] = addon.Dashboard_BrandModule("axis") or "Axis", ["modules"] = L["MODULES"], ["focus"] = addon.Dashboard_BrandModule("focus"), ["presence"] = addon.Dashboard_BrandModule("presence"), ["insight"] = addon.Dashboard_BrandModule("insight"), ["augment"] = addon.Dashboard_BrandModule("augment"), ["vista"] = addon.Dashboard_BrandModule("vista"), ["essence"] = addon.Dashboard_BrandModule("essence"), ["meridian"] = addon.Dashboard_BrandModule("meridian") }
+            local MODULE_LABELS = { ["axis"] = addon.Dashboard_BrandModule("axis") or "Axis", ["modules"] = L["MODULES"], ["focus"] = addon.Dashboard_BrandModule("focus"), ["presence"] = addon.Dashboard_BrandModule("presence"), ["insight"] = addon.Dashboard_BrandModule("insight"), ["augment"] = addon.Dashboard_BrandModule("augment"), ["vista"] = addon.Dashboard_BrandModule("vista"), ["essence"] = addon.Dashboard_BrandModule("essence"), ["echo"] = addon.Dashboard_BrandModule("echo"), ["meridian"] = addon.Dashboard_BrandModule("meridian") }
             f.dashboardMODULE_LABELS = MODULE_LABELS
             local groups = {}
             for i, cat in ipairs(addon.OptionCategories) do
@@ -1680,7 +1682,7 @@ function addon.Dashboard_BuildMainFrame()
                 tinsert(groups[mk].categories, i)
             end
             f.dashboardSidebarGroups = groups
-            local groupOrder = { "axis", "focus", "insight", "essence", "presence", "vista", "augment" }
+            local groupOrder = { "axis", "focus", "insight", "essence", "echo", "presence", "vista", "augment" }
             local sidebarRows = {}
             -- Extra height added to group headers when subtitle mode is active.
             local SUBTITLE_EXTRA_H = 14
@@ -2218,7 +2220,7 @@ function addon.Dashboard_BuildMainFrame()
 
             --- Live-refresh module display names in the sidebar and search filter when the
             --- moduleNameDisplay setting changes. Home tiles and baked toggle labels update on reload.
-            local MODULE_NAME_KEYS = { "axis", "focus", "presence", "vista", "insight", "augment", "essence", "meridian" }
+            local MODULE_NAME_KEYS = { "axis", "focus", "presence", "vista", "insight", "augment", "essence", "echo", "meridian" }
             f.RefreshModuleDisplayNames = function()
                 -- Re-populate label caches in place so runtime closures pick up new values.
                 if f.dashboardModuleLabels then
