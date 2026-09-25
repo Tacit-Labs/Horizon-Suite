@@ -2141,6 +2141,42 @@ run(`
   S.Reset()
 `, 'final-g3');
 
+// --- Final fix G4: another conversation's message repaints only the card's tile row -------
+run(`
+  local S, T, K, C = HorizonSuite.Echo.Store, HorizonSuite.Echo.Tiles, HorizonSuite.Echo.Stack, HorizonSuite.Echo.Card
+  S.Reset()
+  CreateFrame = STUB_CREATE_FRAME
+  T.Enable()
+  K.Enable()
+  C.Enable()
+  local f = C._frames()
+  S.Add({ convKey = "w:Brisa-Horizon", text = "hi", class = "DRUID", sender = "Brisa-Horizon" })
+  S.Add({ convKey = "w:Vexa-Horizon", text = "gz", sender = "Vexa-Horizon" })
+  S.MarkRead("w:Vexa-Horizon")
+  C.Open("w:Brisa-Horizon")
+  local function RowTile(key)
+    for _, b in ipairs(f.rowTiles) do if b.convKey == key and b.shown then return b end end
+  end
+  check("G4: a read conversation's row tile has no dot", not RowTile("w:Vexa-Horizon").dot.shown, "dot")
+  f.bubbles[1].text.text = "sentinel"
+  S.Add({ convKey = "w:Vexa-Horizon", text = "still there?", sender = "Vexa-Horizon" })
+  check("G4: another conversation's message leaves the bubbles untouched", f.bubbles[1].text.text == "sentinel", f.bubbles[1].text.text)
+  check("G4: it still dots that conversation's row tile", RowTile("w:Vexa-Horizon") and RowTile("w:Vexa-Horizon").dot.shown, "no dot")
+  check("G4: the card's conversation keeps its outline", RowTile("w:Brisa-Horizon") ~= nil and not RowTile("w:Brisa-Horizon").dot.shown, "?")
+  S.Add({ convKey = "w:Orin-Horizon", text = "new here", sender = "Orin-Horizon" })
+  check("G4: a new conversation gets a row tile without a full render", RowTile("w:Orin-Horizon") ~= nil and f.bubbles[1].text.text == "sentinel", f.bubbles[1].text.text)
+  S.Add({ convKey = "w:Brisa-Horizon", text = "back", sender = "Brisa-Horizon" })
+  check("G4: the card's own conversation still renders in full", f.bubbles[1].text.text == "back", f.bubbles[1].text.text)
+  f.bubbles[1].text.text = "sentinel"
+  S.Close("w:Orin-Horizon")
+  check("G4: closing another conversation renders in full", f.bubbles[1].text.text == "back" and RowTile("w:Orin-Horizon") == nil, f.bubbles[1].text.text)
+
+  C.Disable()
+  K.Disable()
+  T.Disable()
+  S.Reset()
+`, 'final-g4');
+
 // --- Summary -------------------------------------------------------------------
 run(`
   print(PASS .. " passed, " .. FAIL .. " failed")

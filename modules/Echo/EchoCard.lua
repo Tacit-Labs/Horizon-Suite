@@ -358,6 +358,31 @@ local function RenderMessages(conv)
     for j = usedLabels + 1, #labels do labels[j]:Hide() end
 end
 
+-- The row of tiles across the top: the open conversations, the shown one outlined, the
+-- others dotted when they have something new.
+local function PaintRow(list, shownKey)
+    local View = Echo.View
+    local a = View.ACCENT
+    for i = 1, Card.TILES do
+        local b, other = rowTiles[i], list[i]
+        if other then
+            local spec = View.TileSpec(other)
+            b.convKey = other.key
+            PaintTile(b, spec)
+            if other.key == shownKey then
+                b:SetBackdropBorderColor(a.r, a.g, a.b, 1)
+            else
+                b:SetBackdropBorderColor(0, 0, 0, 0.7)
+            end
+            b.dot:SetShown(spec.badge ~= nil and other.key ~= shownKey)
+            b:Show()
+        else
+            b.convKey = nil
+            b:Hide()
+        end
+    end
+end
+
 --- Redraw the card around its conversation, and mark that conversation read.
 function Card.Render()
     if not root or not root:IsShown() then return end
@@ -377,25 +402,7 @@ function Card.Render()
     renderedKey = conv.key
     currentKey = conv.key
 
-    local a = View.ACCENT
-    for i = 1, Card.TILES do
-        local b, other = rowTiles[i], list[i]
-        if other then
-            local spec = View.TileSpec(other)
-            b.convKey = other.key
-            PaintTile(b, spec)
-            if other.key == conv.key then
-                b:SetBackdropBorderColor(a.r, a.g, a.b, 1)
-            else
-                b:SetBackdropBorderColor(0, 0, 0, 0.7)
-            end
-            b.dot:SetShown(spec.badge ~= nil and other.key ~= conv.key)
-            b:Show()
-        else
-            b.convKey = nil
-            b:Hide()
-        end
-    end
+    PaintRow(list, conv.key)
 
     local spec = View.TileSpec(conv)
     nameText:SetText(View.DisplayName(conv))
@@ -497,8 +504,18 @@ function Card.Retry(msg)
     end
 end
 
-function Card.OnStoreChange()
-    if root and root:IsShown() then Card.Render() end
+--- A Store change. Another conversation's news only touches the tile row; the shown
+-- conversation's own changes, a close (which may be the shown one's), and changes with no
+-- conversation (reset, restore) redraw the whole card.
+-- @param convKey string|nil
+-- @param change string|nil
+function Card.OnStoreChange(convKey, change)
+    if not root or not root:IsShown() then return end
+    if convKey and renderedKey and convKey ~= renderedKey and change ~= "closed" then
+        PaintRow(Echo.Store.List(), renderedKey)
+    else
+        Card.Render()
+    end
 end
 
 function Card.Enable()
