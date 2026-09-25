@@ -4,7 +4,7 @@
     All of Echo's secret-value handling lives here (spec: Intake and secret values):
       - sender readable, text secret: routed, flagged secret, never persisted
       - sender secret on a whisper: no conversation; counted as unrouted
-    Blizzard: CHAT_MSG_* events, GetPlayerInfoByGUID, GetNormalizedRealmName,
+    Blizzard: CHAT_MSG_* events, GetPlayerInfoByGUID, GetNormalizedRealmName, UnitGUID,
     ERR_CHAT_PLAYER_NOT_FOUND_S.
 ]]
 
@@ -42,6 +42,16 @@ end
 --- @return string|nil  The player's "Name-Realm"
 function Events.PlayerKey()
     return Events.NormaliseName(UnitName and UnitName("player"))
+end
+
+--- True when a readable GUID is the player's own. Secret GUIDs are never compared.
+-- @param guid any
+-- @return boolean
+local function IsPlayerGUID(guid)
+    if guid == nil or IsSecret(guid) or type(guid) ~= "string" or not UnitGUID then return false end
+    local ok, mine = pcall(UnitGUID, "player")
+    if not ok or IsSecret(mine) or type(mine) ~= "string" then return false end
+    return guid == mine
 end
 
 local function ClassFromGUID(guid)
@@ -85,7 +95,14 @@ function Events.BuildRecord(event, text, sender, _, _, _, _, _, _, channelBaseNa
 
     local senderKey = (kind ~= "bnet") and Events.NormaliseName(sender) or nil
     local outgoing = OUTGOING_EVENTS[event] == true
-        or (kind ~= "whisper" and kind ~= "bnet" and senderKey ~= nil and senderKey == Events.PlayerKey())
+    if not outgoing and kind ~= "whisper" and kind ~= "bnet" then
+        if senderKey ~= nil then
+            outgoing = senderKey == Events.PlayerKey()
+        else
+            -- Secret sender: a readable GUID can still say the line is your own.
+            outgoing = IsPlayerGUID(guid)
+        end
+    end
 
     local textSecret = IsSecret(text)
     local record = {
