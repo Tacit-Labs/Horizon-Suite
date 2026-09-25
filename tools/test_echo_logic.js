@@ -13,6 +13,12 @@
  * answers true for it. Code under test must ask Echo.IsSecret before touching
  * a chat argument, exactly as it must in game.
  *
+ * Caveat: because the fake is a table, type(secret) is "table" here but
+ * "string" in game. A `type(x) == "string"` check made without IsSecret first
+ * therefore rejects the fake and passes this harness, yet lets a real secret
+ * through. Where that matters, a test swaps in a type() that answers "string"
+ * for the fake (see "secret class from the GUID lookup") and restores it.
+ *
  * Usage:
  *   npm install --prefix "$HOME/.cache/hs-test" fengari   # once, outside the repo
  *   NODE_PATH="$HOME/.cache/hs-test/node_modules" node tools/test_echo_logic.js
@@ -54,7 +60,8 @@ run(`
                  Has = function(k) return _G.HorizonSuite.Platform.caps[k] == true end },
   }
   SECRET = function(v) return { __secret = true, v = v } end
-  issecretvalue = function(v) return type(v) == "table" and v.__secret == true end
+  local rawType = type  -- a test may swap type() to mimic game secrets; the stub must not see it
+  issecretvalue = function(v) return rawType(v) == "table" and v.__secret == true end
   UnitName = function() return "Kaelis" end
   GetNormalizedRealmName = function() return "Horizon" end
   GetPlayerInfoByGUID = function(guid)
@@ -419,6 +426,20 @@ run(`
   check("secret sender in a group channel still routes", r and r.convKey == "raid" and r.sender == nil, r and r.convKey)
   r = E.BuildRecord("CHAT_MSG_WHISPER", payload("hi", "Brisa-Horizon", nil, SECRET("Player-1-DRUID")))
   check("secret GUID gives no class", r.class == nil, r.class)
+  local savedInfo = GetPlayerInfoByGUID
+  GetPlayerInfoByGUID = function() return "Druid", SECRET("DRUID") end
+  -- In game a secret string answers type() with "string"; make the fake do the same here,
+  -- so only an IsSecret check keeps it out of the record.
+  local realType = type
+  type = function(v)
+    if realType(v) == "table" and v.__secret == true then return "string" end
+    return realType(v)
+  end
+  r = E.BuildRecord("CHAT_MSG_WHISPER", payload("hi", "Brisa-Horizon", nil, "Player-1-DRUID"))
+  type = realType
+  check("secret class from the GUID lookup is not stored", r.class == nil, r.class)
+  GetPlayerInfoByGUID = savedInfo
+
   none, reason = E.BuildRecord("CHAT_MSG_SAY", payload("hi", "A-B"))
   check("non-Echo event is ignored", none == nil and reason == "ignored", reason)
 
