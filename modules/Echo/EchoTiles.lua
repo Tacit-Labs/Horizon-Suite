@@ -46,19 +46,56 @@ function Echo.NewText(parent, size, flags)
     return fs
 end
 
---- Draw a tile spec's face: its icon, cropped, when it has one; otherwise its letter.
--- @param icon Texture  shown for an icon, hidden otherwise
--- @param letter FontString
+--- Draw a tile spec through one host. Every tile host (column tile, card row tile,
+-- stack card tile, toast) shares this painter so a face's rules live in one place.
+-- @param face table  { bg, icon, letter, label, size, smallSize } - fields a host omits are nil
 -- @param spec table  View.TileSpec
-function Echo.PaintTileFace(icon, letter, spec)
-    if spec.icon then
-        icon:SetTexture(spec.icon)
-        icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
-        icon:Show()
-        letter:SetText("")
-    else
-        icon:Hide()
-        letter:SetText(spec.letter)
+function Echo.PaintTileFace(face, spec)
+    if face.bg then
+        face.bg:SetColorTexture(Echo.View.FaceBackground(spec))
+    end
+    if face.icon then
+        if spec.face == "icon" then
+            face.icon:SetTexture(spec.icon)
+            if spec.iconFull then
+                face.icon:SetTexCoord(0, 1, 0, 1)
+            else
+                face.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+            end
+            face.icon:Show()
+        elseif spec.face == "class" then
+            local classIcon = spec.classIcon
+            if classIcon.kind == "atlas" then
+                face.icon:SetAtlas(classIcon.atlas)
+            else
+                face.icon:SetTexture(classIcon.path)
+                face.icon:SetTexCoord(0, 1, 0, 1)
+            end
+            face.icon:Show()
+        else
+            face.icon:Hide()
+        end
+    end
+    if face.letter then
+        local size = spec.small and face.smallSize or face.size
+        if face.letter._echoSize ~= size then
+            Echo.TrackFont(face.letter, size, "OUTLINE")
+            face.letter._echoSize = size
+        end
+        if spec.face == "letter" or spec.face == "glyph" then
+            face.letter:SetText(spec.letter)
+        else
+            face.letter:SetText("")
+        end
+        if spec.face == "glyph" then
+            face.letter:SetTextColor(spec.r, spec.g, spec.b, 1)
+        else
+            face.letter:SetTextColor(0.05, 0.05, 0.07, 1)
+        end
+    end
+    if face.label then
+        face.label:SetText(spec.label or "")
+        face.label:SetTextColor(0.95, 0.96, 1, 1)
     end
 end
 
@@ -87,6 +124,15 @@ local function CreateTile()
     b.icon:SetPoint("TOPLEFT", b, "TOPLEFT", 3, -3)
     b.icon:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", -3, 3)
     b.icon:Hide()
+    b.labelShade = b:CreateTexture(nil, "OVERLAY")
+    b.labelShade:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT", 0, 0)
+    b.labelShade:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", 0, 0)
+    b.labelShade:SetHeight(12)
+    b.labelShade:SetColorTexture(0, 0, 0, 0.55)
+    b.labelShade:Hide()
+    b.label = Echo.NewText(b, 9, "OUTLINE")
+    b.label:SetPoint("BOTTOM", b, "BOTTOM", 0, 2)
+    b.label:SetWordWrap(false)
     local a = Echo.View.ACCENT
     b.dot = b:CreateTexture(nil, "OVERLAY")
     b.dot:SetSize(8, 8)
@@ -108,18 +154,21 @@ local function CreateTile()
     return b
 end
 
+-- The column tile keeps its own backdrop (no face.bg), coloured with FaceBackground so it
+-- shares the rule every other host uses.
 local function PaintTile(b, conv)
-    local spec = Echo.View.TileSpec(conv)
+    local View = Echo.View
+    local spec = View.TileSpec(conv)
     b.convKey = conv.key
-    Echo.PaintTileFace(b.icon, b.letter, spec)
-    if spec.glyph then
-        PaintGlyphFrame(b, spec.r, spec.g, spec.b)
-        b.letter:SetTextColor(spec.r, spec.g, spec.b, 1)
+    local face = { icon = b.icon, letter = b.letter, label = b.label, size = 16, smallSize = 10 }
+    Echo.PaintTileFace(face, spec)
+    b:SetBackdropColor(View.FaceBackground(spec))
+    if spec.face == "glyph" or spec.face == "icon" then
+        b:SetBackdropBorderColor(spec.r, spec.g, spec.b, 0.8)
     else
-        b:SetBackdropColor(spec.r, spec.g, spec.b, 0.95)
         b:SetBackdropBorderColor(0, 0, 0, 0.7)
-        b.letter:SetTextColor(0.05, 0.05, 0.07, 1)
     end
+    b.labelShade:SetShown(spec.label ~= nil and spec.label ~= "")
     b.dot:SetShown(spec.badge == "dot")
     b.count:SetText(spec.badge == "count" and tostring(spec.count) or "")
     b:Show()
@@ -241,6 +290,8 @@ function Tiles.Refresh()
         overflowTile.dot:Hide()
         overflowTile.icon:Hide()
         overflowTile.count:SetText("")
+        overflowTile.label:SetText("")
+        overflowTile.labelShade:Hide()
         overflowTile:ClearAllPoints()
         overflowTile:SetPoint("BOTTOM", column, "BOTTOM", 0, slot * STEP)
         overflowTile:Show()
@@ -325,6 +376,10 @@ local function CreateToast()
     entry.iconDark = f:CreateTexture(nil, "BORDER")
     entry.iconDark:SetColorTexture(0, 0, 0, 0.6)
     entry.icon = f:CreateTexture(nil, "ARTWORK")
+    -- entry.icon is also the toast's chrome anchor (ApplyChrome positions it); the face's
+    -- own icon paints onto this overlay above it instead of onto the anchor itself.
+    entry.face = f:CreateTexture(nil, "OVERLAY")
+    entry.face:SetAllPoints(entry.icon)
     entry.letter = Echo.NewText(f, 14, "")
     entry.letter:SetPoint("CENTER", entry.icon, "CENTER", 0, 0)
     entry.title = Echo.NewText(f, 12)
@@ -360,20 +415,8 @@ function Tiles.ShowToast(convKey)
     if not toast then CreateToast() end
     local entry = toast.entry
     local spec = View.TileSpec(conv)
-    if spec.icon then
-        entry.icon:SetTexture(spec.icon)
-        entry.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
-        entry.letter:SetText("")
-    elseif spec.glyph then
-        local bg = View.GLYPH_BG
-        entry.icon:SetColorTexture(bg[1], bg[2], bg[3], 1)
-        entry.letter:SetTextColor(spec.r, spec.g, spec.b, 1)
-        entry.letter:SetText(spec.letter)
-    else
-        entry.icon:SetColorTexture(spec.r, spec.g, spec.b, 1)
-        entry.letter:SetTextColor(0.05, 0.05, 0.07, 1)
-        entry.letter:SetText(spec.letter)
-    end
+    local face = { bg = entry.icon, icon = entry.face, letter = entry.letter, size = 14, smallSize = 9 }
+    Echo.PaintTileFace(face, spec)
     entry.title:SetText(View.DisplayName(conv))
     if msg.secret or Echo.IsSecret(msg.text) then
         entry.body:SetText(L["ECHO_NEW_MESSAGE"])

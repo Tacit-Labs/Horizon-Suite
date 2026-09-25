@@ -180,6 +180,9 @@ local function Create()
     card.tile = card:CreateTexture(nil, "ARTWORK")
     card.tile:SetSize(28, 28)
     card.tile:SetPoint("TOPLEFT", card, "TOPLEFT", 12, -12)
+    card.tileIcon = card:CreateTexture(nil, "OVERLAY")
+    card.tileIcon:SetPoint("TOPLEFT", card.tile, "TOPLEFT", 2, -2)
+    card.tileIcon:SetPoint("BOTTOMRIGHT", card.tile, "BOTTOMRIGHT", -2, 2)
     card.letter = Echo.NewText(card, 14, "")
     card.letter:SetPoint("CENTER", card.tile, "CENTER", 0, 0)
     card.name = Echo.NewText(card, 13)
@@ -285,20 +288,8 @@ function Stack.Render()
     currentKey = conv.key
     local spec = View.TileSpec(conv)
 
-    if spec.icon then
-        card.tile:SetTexture(spec.icon)
-        card.tile:SetTexCoord(0.08, 0.92, 0.08, 0.92)
-        card.letter:SetText("")
-    elseif spec.glyph then
-        local bg = View.GLYPH_BG
-        card.tile:SetColorTexture(bg[1], bg[2], bg[3], 1)
-        card.letter:SetTextColor(spec.r, spec.g, spec.b, 1)
-        card.letter:SetText(spec.letter)
-    else
-        card.tile:SetColorTexture(spec.r, spec.g, spec.b, 1)
-        card.letter:SetTextColor(0.05, 0.05, 0.07, 1)
-        card.letter:SetText(spec.letter)
-    end
+    local face = { bg = card.tile, icon = card.tileIcon, letter = card.letter, size = 14, smallSize = 9 }
+    Echo.PaintTileFace(face, spec)
     card.name:SetText(View.DisplayName(conv))
     card.name:SetTextColor(spec.r, spec.g, spec.b, 1)
     card.meta:SetText(View.MetaLine(conv, Echo.Store.Now()):upper())

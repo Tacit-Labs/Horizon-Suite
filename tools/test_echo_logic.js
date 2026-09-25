@@ -89,6 +89,10 @@ run(`
       if k == "SetFocus" then return function(self) self.focused = true end end
       if k == "ClearFocus" then return function(self) self.focused = false end end
       if k == "SetBackdropColor" then return function(self, r, g, b, a) self.bg = { r, g, b, a }; self.alpha = a end end
+      if k == "SetTexture" then return function(self, tex) self.texture = tex; self.atlas = nil end end
+      if k == "SetAtlas" then return function(self, atlas) self.atlas = atlas; self.texture = nil end end
+      if k == "SetColorTexture" then return function(self, r, g, b, a) self.colorTexture = { r, g, b, a } end end
+      if k == "SetTexCoord" then return function(self, ...) self.texCoord = { ... } end end
       if k == "SetSize" then return function(self, w, h) self.width = w; self.height = h end end
       if k == "CreateTexture" or k == "CreateFontString" then return function(self) return STUB_FRAME(self) end end
       if fixed[k] ~= nil then local v = fixed[k]; return function() return v end end
@@ -2813,7 +2817,9 @@ run(`
   T.holding = false
   S.SetTier("loot", "loud")
   local toast = T._toast()
-  local icon = toast and toast.entry.icon
+  -- entry.icon is the face's background layer now; the icon texture itself paints onto
+  -- entry.face, the overlay added over it (Task 2, "one painter for every tile").
+  local icon = toast and toast.entry.face
   local texture
   if icon then icon.SetTexture = function(_, tex) texture = tex end end
   S.Add({ convKey = "loot", text = "You receive loot: [Cloak].", feed = true, chatType = "LOOT", time = 102 })
@@ -3423,6 +3429,137 @@ run(`
   R.Clear()
   R.sync = true
 `, 'redraw');
+
+// --- One painter: every host draws a spec through Echo.PaintTileFace -----------------
+run(`
+  local S, T, K, C, V = HorizonSuite.Echo.Store, HorizonSuite.Echo.Tiles, HorizonSuite.Echo.Stack, HorizonSuite.Echo.Card, HorizonSuite.Echo.View
+  S.Reset()
+  CreateFrame = STUB_CREATE_FRAME
+  T.Enable()
+  K.Enable()
+  C.Enable()
+
+  -- A class-icon whisper: icon shown on every host, the column tile alone carries the label.
+  HorizonSuite.ResolveClassIconDisplay = function() return { kind = "file", path = "Interface\\\\ClassIcon\\\\Druid" } end
+  S.Add({ convKey = "w:Brisa-Horizon", text = "hi", class = "DRUID", sender = "Brisa-Horizon" })
+  local brisaSpec = V.TileSpec(S.Get("w:Brisa-Horizon"))
+  check("setup: whisper resolves a class face", brisaSpec.face == "class", brisaSpec.face)
+
+  local colTile = T.TileFor("w:Brisa-Horizon")
+  check("column tile: class icon shown", colTile.icon.shown == true, tostring(colTile.icon.shown))
+  check("column tile: class icon textured", colTile.icon.texture == "Interface\\\\ClassIcon\\\\Druid", tostring(colTile.icon.texture))
+  check("column tile: whisper label shown", colTile.label.text == "Brisa", colTile.label.text)
+  check("column tile: label shade shown", colTile.labelShade.shown == true, tostring(colTile.labelShade.shown))
+
+  C.Open("w:Brisa-Horizon")
+  local cf = C._frames()
+  local brisaRow
+  for _, b in ipairs(cf.rowTiles) do if b.convKey == "w:Brisa-Horizon" then brisaRow = b end end
+  check("card row tile: class icon shown", brisaRow and brisaRow.icon.shown == true, "?")
+  check("card row tile: class icon textured", brisaRow and brisaRow.icon.texture == "Interface\\\\ClassIcon\\\\Druid", "?")
+  C.Hide()
+
+  K.Open("w:Brisa-Horizon")
+  local kf = K._frames()
+  check("stack card tile: class icon shown", kf.card.tileIcon.shown == true, tostring(kf.card.tileIcon.shown))
+  check("stack card tile: class icon textured", kf.card.tileIcon.texture == "Interface\\\\ClassIcon\\\\Druid", "?")
+  K.Hide()
+
+  local toast = T._toast()
+  check("toast: class icon shown", toast and toast.entry.face.shown == true, "?")
+  check("toast: class icon textured", toast and toast.entry.face.texture == "Interface\\\\ClassIcon\\\\Druid", "?")
+
+  -- An atlas class icon paints through SetAtlas instead of SetTexture.
+  HorizonSuite.ResolveClassIconDisplay = function() return { kind = "atlas", atlas = "classicon-druid" } end
+  S.Add({ convKey = "w:Vexa-Horizon", text = "hi", class = "DRUID", sender = "Vexa-Horizon" })
+  local vexaTile = T.TileFor("w:Vexa-Horizon")
+  check("column tile: atlas class icon set", vexaTile.icon.atlas == "classicon-druid", tostring(vexaTile.icon.atlas))
+  HorizonSuite.ResolveClassIconDisplay = nil
+
+  -- A Battle.net logo: icon shown, full texcoords, on every host.
+  S.Add({ convKey = "bn:1", text = "yo", sender = "|Kq1|k" })
+  local bnetSpec = V.TileSpec(S.Get("bn:1"))
+  check("setup: bnet with no class is the logo", bnetSpec.face == "icon" and bnetSpec.icon == V.BNET_LOGO, bnetSpec.face)
+
+  local bnetTile = T.TileFor("bn:1")
+  check("column tile: bnet icon shown", bnetTile.icon.shown == true, "?")
+  check("column tile: bnet full texcoords", bnetTile.icon.texCoord and bnetTile.icon.texCoord[1] == 0 and bnetTile.icon.texCoord[2] == 1, "?")
+
+  C.Open("bn:1")
+  local bnetRow
+  for _, b in ipairs(cf.rowTiles) do if b.convKey == "bn:1" then bnetRow = b end end
+  check("card row tile: bnet icon shown", bnetRow and bnetRow.icon.shown == true, "?")
+  check("card row tile: bnet full texcoords", bnetRow and bnetRow.icon.texCoord and bnetRow.icon.texCoord[1] == 0 and bnetRow.icon.texCoord[2] == 1, "?")
+  C.Hide()
+
+  K.Open("bn:1")
+  check("stack card tile: bnet icon shown", kf.card.tileIcon.shown == true, "?")
+  check("stack card tile: bnet full texcoords", kf.card.tileIcon.texCoord and kf.card.tileIcon.texCoord[1] == 0 and kf.card.tileIcon.texCoord[2] == 1, "?")
+  K.Hide()
+
+  T.ShowToast("bn:1")
+  toast = T._toast()
+  check("toast: bnet icon shown", toast.entry.face.shown == true, "?")
+  check("toast: bnet full texcoords", toast.entry.face.texCoord and toast.entry.face.texCoord[1] == 0 and toast.entry.face.texCoord[2] == 1, "?")
+
+  -- A General channel: letter "Gen" at the small size, on every host.
+  S.Add({ convKey = "ch:General", text = "lfg" })
+  local genSpec = V.TileSpec(S.Get("ch:General"))
+  check("setup: General channel is Gen, small", genSpec.letter == "Gen" and genSpec.small == true, genSpec.letter)
+
+  local genTile = T.TileFor("ch:General")
+  check("column tile: Gen letter", genTile.letter.text == "Gen", genTile.letter.text)
+  check("column tile: Gen small size", genTile.letter._echoSize == 10, tostring(genTile.letter._echoSize))
+
+  C.Open("ch:General")
+  local genRow
+  for _, b in ipairs(cf.rowTiles) do if b.convKey == "ch:General" then genRow = b end end
+  check("card row tile: Gen letter", genRow and genRow.letter.text == "Gen", "?")
+  check("card row tile: Gen small size", genRow and genRow.letter._echoSize == 8, tostring(genRow and genRow.letter._echoSize))
+  C.Hide()
+
+  K.Open("ch:General")
+  check("stack card tile: Gen letter", kf.card.letter.text == "Gen", kf.card.letter.text)
+  check("stack card tile: Gen small size", kf.card.letter._echoSize == 9, tostring(kf.card.letter._echoSize))
+  K.Hide()
+
+  T.ShowToast("ch:General")
+  toast = T._toast()
+  check("toast: Gen letter", toast.entry.letter.text == "Gen", toast.entry.letter.text)
+  check("toast: Gen small size", toast.entry.letter._echoSize == 9, tostring(toast.entry.letter._echoSize))
+
+  -- A party glyph: letter "P" at the full size; the column tile's label shade stays hidden.
+  S.Add({ convKey = "party", text = "pull", sender = "Tank-Horizon" })
+  local partySpec = V.TileSpec(S.Get("party"))
+  check("setup: party is a glyph P", partySpec.glyph == true and partySpec.letter == "P", partySpec.letter)
+
+  local partyTile = T.TileFor("party")
+  check("column tile: party letter", partyTile.letter.text == "P", partyTile.letter.text)
+  check("column tile: party full size", partyTile.letter._echoSize == 16, tostring(partyTile.letter._echoSize))
+  check("column tile: label shade hidden for a glyph tile", partyTile.labelShade.shown == false, tostring(partyTile.labelShade.shown))
+
+  C.Open("party")
+  local partyRow
+  for _, b in ipairs(cf.rowTiles) do if b.convKey == "party" then partyRow = b end end
+  check("card row tile: party letter", partyRow and partyRow.letter.text == "P", "?")
+  check("card row tile: party full size", partyRow and partyRow.letter._echoSize == 12, tostring(partyRow and partyRow.letter._echoSize))
+  C.Hide()
+
+  K.Open("party")
+  check("stack card tile: party letter", kf.card.letter.text == "P", kf.card.letter.text)
+  check("stack card tile: party full size", kf.card.letter._echoSize == 14, tostring(kf.card.letter._echoSize))
+  K.Hide()
+
+  T.ShowToast("party")
+  toast = T._toast()
+  check("toast: party letter", toast.entry.letter.text == "P", toast.entry.letter.text)
+  check("toast: party full size", toast.entry.letter._echoSize == 14, tostring(toast.entry.letter._echoSize))
+
+  C.Disable()
+  K.Disable()
+  T.Disable()
+  S.Reset()
+`, 'one-painter');
 
 // --- Summary -------------------------------------------------------------------
 run(`

@@ -103,15 +103,9 @@ end
 
 local function PaintTile(b, spec)
     local View = Echo.View
-    Echo.PaintTileFace(b.icon, b.letter, spec)
-    if spec.glyph then
-        local bg = View.GLYPH_BG
-        b:SetBackdropColor(bg[1], bg[2], bg[3], bg[4])
-        b.letter:SetTextColor(spec.r, spec.g, spec.b, 1)
-    else
-        b:SetBackdropColor(spec.r, spec.g, spec.b, 0.95)
-        b.letter:SetTextColor(0.05, 0.05, 0.07, 1)
-    end
+    local face = { icon = b.icon, letter = b.letter, size = 12, smallSize = 8 }
+    Echo.PaintTileFace(face, spec)
+    b:SetBackdropColor(View.FaceBackground(spec))
 end
 
 -- No MenuUtil (an older client), no ⋯ button: it would open nothing.
