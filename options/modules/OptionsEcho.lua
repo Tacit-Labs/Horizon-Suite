@@ -1,0 +1,136 @@
+--[[
+    Horizon Suite - Echo - Options page
+    One dashboard category for Echo. Every setting is in ECHO_KEYS, so a change re-applies
+    through Echo.ApplyOptions (options/OptionsData.lua) without a reload.
+]]
+local addon = _G.HorizonSuite
+if not addon or not addon.OptionCategories then return end
+local L = addon.L
+local function getDB(k, d) return addon.OptionsData_GetDB(k, d) end
+local function setDB(k, v) addon.OptionsData_SetDB(k, v) end
+local Section, Button, Toggle = addon.Section, addon.Button, addon.Toggle
+local D   = addon.ECHO_DEFAULTS
+local LIM = addon.ECHO_LIMITS
+if not D or not LIM then return end
+
+local function clamp(v, key)
+    local lim = LIM[key]
+    return math.max(lim.min, math.min(lim.max, v))
+end
+
+local function Echo() return addon.Echo end
+
+local TIER_OPTIONS = {
+    { L["ECHO_TIER_LOUD"],  "loud"  },
+    { L["ECHO_TIER_COUNT"], "count" },
+    { L["ECHO_TIER_QUIET"], "quiet" },
+    { L["ECHO_TIER_MUTED"], "muted" },
+}
+
+local function TierKey(kind) return "echoTier" .. kind:sub(1, 1):upper() .. kind:sub(2) end
+local function FeedKey(kind) return "echoFeed" .. kind:sub(1, 1):upper() .. kind:sub(2) end
+
+local function TierDropdown(kind, label)
+    local key = TierKey(kind)
+    return { type = "dropdown", name = label, desc = L["ECHO_TIER_DESC"], dbKey = key,
+        options = TIER_OPTIONS, preserveOrder = true,
+        get = function() return getDB(key, D[key]) end,
+        set = function(v) setDB(key, v) end }
+end
+
+local function IntSlider(key, name, desc, step)
+    return { type = "slider", name = name, desc = desc, dbKey = key,
+        min = LIM[key].min, max = LIM[key].max, step = step,
+        get = function() return tonumber(getDB(key, D[key])) or D[key] end,
+        set = function(v) setDB(key, clamp(math.floor(v + 0.5), key)) end }
+end
+
+local options = {
+    Section(L["ECHO_SECTION_GENERAL"]),
+    { type = "dropdown", name = L["ECHO_COLUMN_EDGE"], desc = L["ECHO_COLUMN_EDGE_DESC"], dbKey = "echoColumnEdge",
+      options = { { L["ECHO_EDGE_RIGHT"], "right" }, { L["ECHO_EDGE_LEFT"], "left" } }, preserveOrder = true,
+      get = function() return getDB("echoColumnEdge", D.echoColumnEdge) end,
+      set = function(v) setDB("echoColumnEdge", v == "left" and "left" or "right") end },
+    Toggle(L["ECHO_LOCK"], L["ECHO_LOCK_DESC"], "echoLockPosition", D.echoLockPosition),
+    Button(L["AXIS_RESET_POSITION"], L["ECHO_RESET_POSITION_DESC"], function()
+        setDB("echoX", nil)
+        setDB("echoY", nil)
+    end),
+    { type = "slider", name = L["ECHO_SCALE"], desc = L["ECHO_SCALE_DESC"], dbKey = "echoScale",
+      min = LIM.echoScale.min * 100, max = LIM.echoScale.max * 100, step = 5,
+      get = function() return math.floor((tonumber(getDB("echoScale", D.echoScale)) or 1) * 100 + 0.5) end,
+      set = function(v) setDB("echoScale", clamp(v / 100, "echoScale")) end },
+    { type = "dropdown", name = L["ECHO_STRATA"], desc = L["ECHO_STRATA_DESC"], dbKey = "echoFrameStrata",
+      options = {
+          { L["FOCUS_STRATA_BACKGROUND"], "BACKGROUND" }, { L["FOCUS_STRATA_LOW"], "LOW" },
+          { L["FOCUS_STRATA_MEDIUM"], "MEDIUM" }, { L["FOCUS_STRATA_HIGH"], "HIGH" },
+          { L["ECHO_STRATA_DIALOG"], "DIALOG" },
+      }, preserveOrder = true,
+      get = function() return getDB("echoFrameStrata", D.echoFrameStrata) end,
+      set = function(v) setDB("echoFrameStrata", v) end },
+    IntSlider("echoMaxTiles", L["ECHO_MAX_TILES"], L["ECHO_MAX_TILES_DESC"], 1),
+
+    Section(L["ECHO_SECTION_NOTIFICATIONS"]),
+    { type = "dropdown", name = L["ECHO_TOAST_STYLE"], desc = L["ECHO_TOAST_STYLE_DESC"], dbKey = "echoToastStyle",
+      options = {
+          { L["AUGMENT_TOAST_STYLE_COMPACT"], "compact" },
+          { L["AUGMENT_TOAST_STYLE_FRAMED"],  "framed"  },
+          { L["AUGMENT_TOAST_STYLE_ACCENT"],  "accent"  },
+      }, preserveOrder = true,
+      get = function() return getDB("echoToastStyle", D.echoToastStyle) end,
+      set = function(v) setDB("echoToastStyle", v) end },
+    IntSlider("echoToastSeconds", L["ECHO_TOAST_SECONDS"], L["ECHO_TOAST_SECONDS_DESC"], 1),
+    Toggle(L["ECHO_HOLD_IN_COMBAT"], L["ECHO_HOLD_IN_COMBAT_DESC"], "echoHoldToastsInCombat", D.echoHoldToastsInCombat),
+    { type = "editbox", name = L["ECHO_KEYWORDS"], labelText = L["ECHO_KEYWORDS"], desc = L["ECHO_KEYWORDS_DESC"],
+      dbKey = "echoKeywords", height = 24,
+      get = function() return getDB("echoKeywords", D.echoKeywords) or "" end,
+      set = function(v) setDB("echoKeywords", type(v) == "string" and v:gsub("[\r\n]+", ",") or "") end },
+
+    Section(L["ECHO_SECTION_TIERS"]),
+    TierDropdown("whisper",  L["ECHO_KIND_WHISPER"]),
+    TierDropdown("bnet",     L["ECHO_KIND_BNET"]),
+    TierDropdown("party",    L["ECHO_KIND_PARTY"]),
+    TierDropdown("raid",     L["ECHO_KIND_RAID"]),
+    TierDropdown("instance", L["ECHO_KIND_INSTANCE"]),
+    TierDropdown("guild",    L["ECHO_KIND_GUILD"]),
+    TierDropdown("officer",  L["ECHO_KIND_OFFICER"]),
+    TierDropdown("channel",  L["ECHO_KIND_CHANNEL"]),
+
+    Section(L["ECHO_SECTION_FEEDS"]),
+}
+
+for _, kind in ipairs({ "loot", "progress", "system" }) do
+    local name = L["ECHO_KIND_" .. kind:upper()]
+    local feedKey = FeedKey(kind)
+    options[#options + 1] = Toggle(L["ECHO_FEED_SHOW"]:format(name), L["ECHO_FEED_SHOW_DESC"], feedKey, D[feedKey])
+    local tier = TierDropdown(kind, L["ECHO_FEED_TIER"]:format(name))
+    tier.visibleWhen = function() return getDB(feedKey, D[feedKey]) ~= false end
+    options[#options + 1] = tier
+end
+
+local tail = {
+    Section(L["ECHO_SECTION_HISTORY"]),
+    Toggle(L["ECHO_SAVE_HISTORY"], L["ECHO_SAVE_HISTORY_DESC"], "echoSaveHistory", D.echoSaveHistory),
+    Button(L["ECHO_CLEAR_HISTORY"], L["ECHO_CLEAR_HISTORY_DESC"], function()
+        local E = Echo()
+        if E and E.ConfirmClearHistory then E.ConfirmClearHistory() end
+    end),
+
+    Section(L["ECHO_SECTION_BLIZZARD_CHAT"]),
+    Toggle(L["ECHO_HIDE_STORED"], L["ECHO_HIDE_STORED_DESC"], "echoHideStoredWhispers", D.echoHideStoredWhispers),
+
+    Section(L["ECHO_SECTION_CARD"]),
+    IntSlider("echoCardWidth",  L["ECHO_CARD_WIDTH"],  L["ECHO_CARD_SIZE_DESC"], 10),
+    IntSlider("echoCardHeight", L["ECHO_CARD_HEIGHT"], L["ECHO_CARD_SIZE_DESC"], 10),
+    { type = "dropdown", name = L["ECHO_FONT"], desc = L["ECHO_FONT_DESC"], dbKey = "echoFontPath", searchable = true,
+      options = function() return addon.GetPerElementFontDropdownOptions("echoFontPath") end,
+      get = function() return getDB("echoFontPath", D.echoFontPath) end,
+      set = function(v) setDB("echoFontPath", v) end,
+      displayFn = addon.DisplayPerElementFont, fontPreviewInList = true },
+}
+for _, opt in ipairs(tail) do options[#options + 1] = opt end
+
+addon.OptionCategories[#addon.OptionCategories + 1] = {
+    key = "Echo", name = L["NAME_ADDON_CHAT"], desc = L["ECHO_DESC"], moduleKey = "echo",
+    options = options,
+}

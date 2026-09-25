@@ -73,6 +73,20 @@ local function OnLifecycleEvent(_, event)
     end
 end
 
+--- Ask before wiping saved whisper history (options page button).
+function Echo.ConfirmClearHistory()
+    if not StaticPopupDialogs or not StaticPopup_Show then return end
+    if not StaticPopupDialogs.HORIZONSUITE_ECHO_CLEAR_HISTORY then
+        StaticPopupDialogs.HORIZONSUITE_ECHO_CLEAR_HISTORY = {
+            text = addon.L["ECHO_CLEAR_HISTORY_CONFIRM"],
+            button1 = YES, button2 = NO,
+            timeout = 0, whileDead = true, hideOnEscape = true, preferredIndex = 3,
+            OnAccept = function() Echo.History.Clear() end,
+        }
+    end
+    StaticPopup_Show("HORIZONSUITE_ECHO_CLEAR_HISTORY")
+end
+
 function Echo.Init()
     -- The key function resolves lazily: Forever only knows the realm after PLAYER_LOGIN,
     -- and History writes nothing for whispers until it does.

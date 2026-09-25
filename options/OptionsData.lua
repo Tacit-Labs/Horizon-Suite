@@ -118,6 +118,10 @@ function OptionsData_SetDB(key, value)
     if addon.ESSENCE_KEYS and addon.ESSENCE_KEYS[key] and addon.Essence and addon.Essence.ApplyEssenceOptions then
         addon.Essence.ApplyEssenceOptions()
     end
+    if addon.ECHO_KEYS and addon.ECHO_KEYS[key] and addon.Echo and addon.Echo.ApplyOptions
+        and addon.IsModuleEnabled and addon:IsModuleEnabled("echo") then
+        addon.Echo.ApplyOptions()
+    end
     if addon.AUGMENT_KEYS and addon.AUGMENT_KEYS[key]
         and addon.Augment and addon.Augment.ApplyAugmentOptions
         and not (addon._colorPickerLive and COLOR_LIVE_KEYS[key]) then

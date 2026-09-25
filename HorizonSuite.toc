@@ -201,6 +201,7 @@ options/modules/OptionsFocus.lua
 options/modules/OptionsPresence.lua
 options/modules/OptionsInsight.lua
 options/modules/OptionsEssence.lua
+options/modules/OptionsEcho.lua
 options/modules/OptionsVista.lua
 options/modules/OptionsAugment.lua
 options/modules/OptionsAugmentTalkingHead.lua

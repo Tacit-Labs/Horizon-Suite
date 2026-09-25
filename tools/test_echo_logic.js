@@ -2878,6 +2878,16 @@ run(`
   check("history on writes", H.Append("w:Brisa-Horizon", { time = 1, text = "hi" }) == true, "did not write")
   H.Unbind()
 
+  -- Clear falls back to the raw SavedVariables table when History is unbound (Echo disabled).
+  HorizonSuite.DATABASE = "HorizonDB_Test"
+  _G[HorizonSuite.DATABASE] = { echoHistory = { chars = { x = {} }, prefs = { p = 1 } } }
+  Echo.History.Clear()
+  local cleared = _G[HorizonSuite.DATABASE].echoHistory
+  check("clear with History unbound empties chars", next(cleared.chars) == nil, cleared.chars)
+  check("clear with History unbound keeps prefs", cleared.prefs.p == 1, cleared.prefs.p)
+  _G[HorizonSuite.DATABASE] = nil
+  HorizonSuite.DATABASE = nil
+
   HorizonSuite.GetDB = nil
   Echo.ApplyOptions()
   S.Reset()
@@ -3015,6 +3025,46 @@ run(`
   HorizonSuite.GetDB = nil
   ChatFrame_AddMessageEventFilter, ChatFrame_RemoveMessageEventFilter, ChatEdit_SetLastTellTarget = nil, nil, nil
 `, 'echo-filter');
+
+// --- Options page builds -----------------------------------------------------
+run(read('options/modules/defaults/OptionsDefaultsEcho.lua'), 'echo-defaults-2');
+run(`
+  local A = HorizonSuite
+  A.OptionCategories = {}
+  local db = {}
+  A.OptionsData_GetDB = function(k, d) if db[k] ~= nil then return db[k] end return d end
+  A.OptionsData_SetDB = function(k, v) db[k] = v end
+  local function merge(t, o) if o then for k, v in pairs(o) do t[k] = v end end return t end
+  A.Section = function(n) return { type = "section", name = n } end
+  A.Button = function(n, d, f) return { type = "button", name = n, desc = d, onClick = f } end
+  A.Toggle = function(n, d, key, def, o) return merge({ type = "toggle", name = n, desc = d, dbKey = key,
+    get = function() return A.OptionsData_GetDB(key, def) end, set = function(v) A.OptionsData_SetDB(key, v) end }, o) end
+  A.GetPerElementFontDropdownOptions = function() return { { "Global", "__global__" } } end
+`, 'echo-options-stubs');
+run(read('options/modules/OptionsEcho.lua'), 'options/modules/OptionsEcho.lua');
+run(`
+  local A = HorizonSuite
+  local cat = A.OptionCategories[1]
+  check("one Echo category", #A.OptionCategories == 1 and cat.moduleKey == "echo", #A.OptionCategories)
+  local keys = {}
+  for _, opt in ipairs(cat.options) do if opt.dbKey then keys[opt.dbKey] = opt end end
+  for key in pairs(A.ECHO_DEFAULTS) do
+    if key ~= "echoHoverDelay" then check("on the page: " .. key, keys[key] ~= nil, key) end
+  end
+  keys.echoScale.set(250)
+  check("scale slider clamps", A.OptionsData_GetDB("echoScale") == 1.6, A.OptionsData_GetDB("echoScale"))
+  keys.echoScale.set(85)
+  check("scale slider stores a fraction", A.OptionsData_GetDB("echoScale") == 0.85, A.OptionsData_GetDB("echoScale"))
+  check("scale slider reads percent", keys.echoScale.get() == 85, keys.echoScale.get())
+  keys.echoMaxTiles.set(1)
+  check("max tiles at least two", A.OptionsData_GetDB("echoMaxTiles") == 2, A.OptionsData_GetDB("echoMaxTiles"))
+  check("guild tier default", keys.echoTierGuild.get() == "quiet", keys.echoTierGuild.get())
+  A.OptionsData_SetDB("echoFeedLoot", false)
+  check("loot tier hidden with its feed off", keys.echoTierLoot.visibleWhen() == false, "shown")
+  A.OptionCategories, A.OptionsData_GetDB, A.OptionsData_SetDB = nil, nil, nil
+  A.Section, A.Button, A.Toggle, A.GetPerElementFontDropdownOptions = nil, nil, nil, nil
+  A.ECHO_DEFAULTS, A.ECHO_KEYS, A.ECHO_LIMITS = nil, nil, nil
+`, 'echo-options-page');
 
 // --- Redraw: one repaint per frame -------------------------------------------
 run(`

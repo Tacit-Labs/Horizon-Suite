@@ -253,8 +253,13 @@ end
 
 --- Wipe all saved whispers, for every character and Battle.net, and the saved session.
 function History.Clear()
-    if not root then return end
-    root.chars = {}
-    root.bnet = {}
-    root.session = {}
+    local target = root
+    if not target then
+        local db = _G[addon.DATABASE]
+        target = type(db) == "table" and type(db.echoHistory) == "table" and db.echoHistory or nil
+    end
+    if not target then return end
+    target.chars = {}
+    target.bnet = {}
+    target.session = {}
 end
