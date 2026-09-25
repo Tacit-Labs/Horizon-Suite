@@ -113,12 +113,13 @@ end
 -- @return table keys  top first; Battle.net friends no longer listed are dropped
 function History.SessionKeys(now, maxAge)
     local out = {}
-    if not root or type(root.session) ~= "table" then return out end
+    if not root or not enabledCheck() or type(root.session) ~= "table" then return out end
     local charKey = characterKey()
     local session = charKey and root.session[charKey]
     if type(session) ~= "table" or type(session.t) ~= "number" then return out end
     if now - session.t > (maxAge or History.SESSION_MAX_AGE) then return out end
-    for _, key in ipairs(session.keys or {}) do
+    if type(session.keys) ~= "table" then return out end
+    for _, key in ipairs(session.keys) do
         if type(key) == "string" and key:sub(1, 3) == "bt:" then
             local id = History.AccountIDForTag(key:sub(4))
             if id then out[#out + 1] = "bn:" .. id end
@@ -193,7 +194,6 @@ function History.Load(convKey)
     return out
 end
 
---- Wipe all saved whispers, for every character and Battle.net.
 --- Wipe all saved whispers, for every character and Battle.net, and the saved session.
 function History.Clear()
     if not root then return end

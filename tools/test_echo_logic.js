@@ -779,6 +779,13 @@ run(`
   H.SetEnabledCheck(function() return true end)
   H.Clear()
   check("clear wipes the session too", next(db.echoHistory.session) == nil, "kept")
+  db.echoHistory.session["Kaelis-Horizon"] = { t = 1000, keys = 5 }
+  local ok, result = pcall(H.SessionKeys, 1100)
+  check("corrupted keys (non-table) restores nothing without throwing", ok and #result == 0, ok and #result or "threw")
+  H.SaveSession({ "w:X-Horizon" }, 1000)
+  H.SetEnabledCheck(function() return false end)
+  check("session with history disabled restores nothing", #H.SessionKeys(1100) == 0, "restored")
+  H.SetEnabledCheck(function() return true end)
   C_BattleNet, BNGetNumFriends = savedBattleNet, savedNumFriends
   H.Unbind()
   check("unbound history has no session", #H.SessionKeys(1100) == 0 and H.SaveSession({ "w:X-Horizon" }, 1) == false, "?")
