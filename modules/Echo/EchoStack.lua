@@ -333,6 +333,10 @@ end
 -- @param focus boolean|nil  Focus the quick-reply box
 function Stack.Open(convKey, focus)
     if not root then Create() end
+    -- A click or keybind during the hover delay wins: the pending hover open must not
+    -- fire afterwards and replace the card that was asked for.
+    CancelTimer(openTimer)
+    openTimer = nil
     local conversations = Echo.Store.List()
     if #conversations == 0 then return end
     cursor = 1
@@ -406,6 +410,7 @@ function Stack.HoverEnter()
     local delay = tonumber(Echo.Setting("echoHoverDelay")) or 0.35
     openTimer = C_Timer.NewTimer(delay, function()
         openTimer = nil
+        if root and root:IsShown() then return end
         if MouseOverEcho() then Stack.Open(nil) end
     end)
 end
