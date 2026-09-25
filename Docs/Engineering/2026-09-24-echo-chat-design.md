@@ -115,7 +115,7 @@ When `Platform.Has("secretChat")` is false, only the first case applies.
 - Whisper tiles show the sender's initial on their class colour. BNet friends not on a character get a neutral Battle.net-blue tile. Channel tiles are dark with a glyph: **P**, **R**, **I**, **G**, **O**, or the channel's first letter.
 - Unread: a dot on loud conversations, a number on count-tier ones, and nothing on quiet ones until opened.
 - At most 8 tiles, configurable. Beyond that, a **+N** tile opens the stack.
-- Order: pinned first, then by last loud message. Count and quiet messages do not reorder.
+- Order: pinned first, then by last loud message. A mention or raid warning counts as a loud message: it toasts and moves its tile up. Ordinary count and quiet messages do not reorder.
 - The bottom button opens the stack and is the drag handle when the column is unlocked.
 - The preview toast slides out beside the tile for loud messages only, using the shared toast chrome. Clicking it opens that card.
 
@@ -224,3 +224,11 @@ Each step can ship on its own:
 4. Stack and quick reply
 5. Card
 6. Options, persistence, keybinds and polish
+
+**Carried into plan 2.** Found while building the foundation, left for the view work:
+
+- History must expose its saved conversation keys (`History.Keys`, restored through `Store.Restore`), so `/reload` brings back whisper tiles. Battle.net history is saved under `bt:<BattleTag>`, so restoring it needs a BattleTag-to-current-account-ID lookup across the friends list.
+- Views order bubbles by array position, not `record.seq`: history-seeded messages all carry `seq = 0`.
+- Decide whether `Store.Close` should clear `pinned`.
+- Add `Store.Unsubscribe` if views are rebuilt at runtime.
+- Slash command strings move to `addon.L` in plan 3.

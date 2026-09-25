@@ -2017,6 +2017,10 @@ git switch feature/echo-foundation
 5. `/run HorizonSuite.Echo.Send.Send("ch:<ChannelBaseName>", "echo test")` in a channel you're in, to check that `GetChannelName(baseName)` resolves.
 6. Enter a dungeon or raid encounter with `/h echo probe 20` running, and have a groupmate whisper you and speak in instance chat mid-pull. Note which arguments show `SECRET`.
 7. `/reload`, then `/h echo status`. There are no conversations (the Store is session-only). Whisper the same friend again, and the conversation shows `messages` equal to the history count plus one.
+8. Log out fully, log back in, and BNet-whisper the same friend. Their saved history reappears in that friend's `bn:` conversation (keyed on disk by BattleTag, since the account ID changes between sessions), and never in another friend's.
+9. Send a whisper containing an item link through `Echo.Send.Send`. `/h echo status` shows it turned `sent`, with no duplicate outgoing message from the re-encoded echo.
+10. Reply to General and to Trade with `Echo.Send.Send("ch:<ChannelBaseName>", …)` while the probe runs, and read the probe's `route=`. If it is `none`, zone channels may need the full channel name for `GetChannelName`.
+11. During an encounter, watch `/h echo probe 20` for a `SECRET` sender on your own raid line, and check it is filed as outgoing rather than as an incoming message.
 
 - [ ] **Step 3: Forever beta checks (director, in game)**
 
