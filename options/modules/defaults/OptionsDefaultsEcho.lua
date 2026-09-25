@@ -37,6 +37,7 @@ addon.ECHO_DEFAULTS = {
     echoHideStoredWhispers = false,
     echoCardWidth          = 360,
     echoCardHeight         = 440,
+    echoCardTextSize       = 11,
     echoFontPath           = "__global__",
 }
 
@@ -46,6 +47,7 @@ addon.ECHO_LIMITS = {
     echoToastSeconds = { min = 2,   max = 10 },
     echoCardWidth    = { min = 320, max = 520 },
     echoCardHeight   = { min = 320, max = 640 },
+    echoCardTextSize = { min = 9,   max = 16 },
 }
 
 -- Every setting, plus the dragged position, re-applies Echo when it changes.

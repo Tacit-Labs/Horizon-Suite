@@ -3614,6 +3614,26 @@ run(`
   check("no measurement keeps the whole name", fs.text == "Thornwickshire", fs.text)
 `, 'echo-fit-text');
 
+// --- Card message text size ---------------------------------------------------
+run(`
+  CreateFrame = STUB_CREATE_FRAME
+  local Echo = HorizonSuite.Echo
+  local C = Echo.Card
+  local db = { echoCardTextSize = 14 }
+  HorizonSuite.GetDB = function(k, d) if db[k] ~= nil then return db[k] end return d end
+  HorizonSuite.ECHO_LIMITS = { echoCardTextSize = { min = 9, max = 16 } }
+  check("the card's text defaults to 11", C.TEXT_SIZE == 11, C.TEXT_SIZE)
+  C.ApplySize()
+  check("the card's text follows its setting", C.TEXT_SIZE == 14, C.TEXT_SIZE)
+  db.echoCardTextSize = 40
+  C.ApplySize()
+  check("the card's text size is clamped", C.TEXT_SIZE == 16, C.TEXT_SIZE)
+  db.echoCardTextSize = nil
+  C.ApplySize()
+  check("back to the default", C.TEXT_SIZE == 11, C.TEXT_SIZE)
+  HorizonSuite.GetDB, HorizonSuite.ECHO_LIMITS = nil, nil
+`, 'echo-card-text-size');
+
 // --- Redraw: one repaint per frame -------------------------------------------
 run(`
   CreateFrame = STUB_CREATE_FRAME

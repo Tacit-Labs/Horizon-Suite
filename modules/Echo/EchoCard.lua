@@ -35,6 +35,7 @@ Card.GAP = 3
 Card.GROUP_GAP = 10
 Card.SECRET_LINES = 3
 Card.LINE_HEIGHT = 14
+Card.TEXT_SIZE = 11  -- message text; echoCardTextSize
 Card.FEED_TIME_WIDTH = 40
 Card.FEED_GAP = 2
 
@@ -59,6 +60,11 @@ function Card.ApplySize()
     Card.HEIGHT = clamp(Echo.Setting("echoCardHeight"), "echoCardHeight", 440)
     Card.AREA_HEIGHT = Card.HEIGHT - Card.AREA_TOP - Card.AREA_BOTTOM
     Card.BUBBLE_MAX = Card.WIDTH - 110
+    local size = clamp(Echo.Setting("echoCardTextSize"), "echoCardTextSize", 11)
+    if size ~= Card.TEXT_SIZE then
+        Card.TEXT_SIZE = size
+        for _, b in ipairs(bubbles) do Echo.TrackFont(b.text, size, "") end
+    end
     if root then
         root:SetSize(Card.WIDTH, Card.HEIGHT)
         if root:IsShown() then Card.Render() end
@@ -300,7 +306,7 @@ local function Bubble(i)
     if b then return b end
     b = CreateFrame("Frame", nil, area, "BackdropTemplate")
     b:SetBackdrop(Echo.FLAT)
-    b.text = Echo.NewText(b, 12, "")
+    b.text = Echo.NewText(b, Card.TEXT_SIZE, "")
     b.text:SetPoint("TOPLEFT", b, "TOPLEFT", Card.BUBBLE_PAD, -Card.BUBBLE_PAD)
     b.text:SetJustifyH("LEFT")
     b.text:SetJustifyV("TOP")
@@ -338,7 +344,7 @@ local function SizeBubble(b, text, secret)
     local width, height
     if secret then
         width = Card.BUBBLE_MAX
-        height = Card.SECRET_LINES * Card.LINE_HEIGHT
+        height = Card.SECRET_LINES * (Card.TEXT_SIZE + 3)
     else
         local measured
         if b.text.GetUnboundedStringWidth then measured = b.text:GetUnboundedStringWidth() end
@@ -369,7 +375,7 @@ local function SizeFeedLine(b, msg, secret)
     b.text:SetText(msg.text)
     local height
     if secret then
-        height = Card.SECRET_LINES * Card.LINE_HEIGHT
+        height = Card.SECRET_LINES * (Card.TEXT_SIZE + 3)
     else
         local h = b.text:GetStringHeight()
         if Echo.IsSecret(h) or type(h) ~= "number" or h <= 0 then h = Card.LINE_HEIGHT end
