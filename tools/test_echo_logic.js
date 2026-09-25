@@ -2345,8 +2345,16 @@ run(`
   E.Dispatch("CHAT_MSG_SYSTEM", "No player named 'Ghost' is currently playing.")
   check("a system line still fails the pending whisper", q.status == "failed", q.status)
   check("and it is filed in the system feed", S.Get("system") and #S.Get("system").messages == 1, "not filed")
+  local T = HorizonSuite.Echo.Tiles
+  local savedShowToast, toasted, lootChange = T.ShowToast, 0, nil
+  T.ShowToast = function(...) toasted = toasted + 1; return savedShowToast(...) end
+  local function listen(key, change) if key == "loot" then lootChange = change end end
+  S.Subscribe(listen)
   E.Dispatch("CHAT_MSG_LOOT", p("You receive loot: [Cloak].", "Kaelis-Horizon"))
   check("a feed line counts as unread but stays quiet", S.Get("loot").unread == 1 and S.TierOf("loot") == "quiet", S.Get("loot").unread)
+  check("a quiet feed line shows no toast", toasted == 0 and lootChange == "quiet", tostring(lootChange))
+  S.Unsubscribe(listen)
+  T.ShowToast = savedShowToast
 
   local registered = {}
   E.Enable()  -- makes sure the event frame exists (an earlier section may have made it)
@@ -2414,8 +2422,9 @@ run(`
   ChatTypeInfo = { LOOT = { r = 0, g = 0.67, b = 0 }, SYSTEM = { r = 1, g = 1, b = 0 }, PARTY = { r = 0.67, g = 0.67, b = 1 } }
   local r, g, b = V.LineColor(S.Get("loot"), { chatType = "LOOT" })
   check("a feed line takes its own line type's colour", r == 0 and g == 0.67, r)
-  r = V.LineColor(S.Get("loot"), { chatType = "NOT_A_TYPE" })
-  check("an unknown line type falls back to the feed's colour", r ~= nil, "nil")
+  r, g, b = V.LineColor(S.Get("loot"), { chatType = "NOT_A_TYPE" })
+  local fr, fg, fb = V.ChatColor("loot")
+  check("an unknown line type falls back to the feed's colour", r == fr and g == fg and b == fb, tostring(r) .. "," .. tostring(g) .. "," .. tostring(b))
   r, g, b = V.LineColor({ kind = "party" }, {})
   check("a conversation line uses its conversation's colour", r == 0.67 and b == 1, r)
   ChatTypeInfo = savedInfo
@@ -2711,6 +2720,61 @@ run(`
   C.Disable()
   S.Reset()
 `, 'card-feed-area');
+
+// --- Feeds never reach history or the saved open list; a loud feed toasts with its icon -----
+run(`
+  local Echo = HorizonSuite.Echo
+  local S, H, T, K, C, V = Echo.Store, Echo.History, Echo.Tiles, Echo.Stack, Echo.Card, Echo.View
+  S.Reset()
+  local db = {}
+  H.Bind(db, function() return "Kaelis-Horizon" end)
+  S.Add({ convKey = "loot", text = "You receive loot: [Cloak].", feed = true, chatType = "LOOT", time = 100 })
+  S.Add({ convKey = "w:Brisa-Horizon", text = "hi", sender = "Brisa-Horizon", time = 101 })
+  local function inHistory(key)
+    for _, bucket in pairs(db.echoHistory.chars or {}) do
+      if type(bucket) == "table" then
+        for k, v in pairs(bucket) do
+          if k == key then return true end
+          if type(v) == "table" and v[key] ~= nil then return true end
+        end
+      end
+    end
+    return false
+  end
+  check("a feed line never reaches history", not inHistory("loot"), "written")
+  check("while a whisper does (the probe above can see history)", inHistory("w:Brisa-Horizon"), "not written")
+  local keys = S.OpenKeys()
+  local hasLoot, hasBrisa = false, false
+  for _, k in ipairs(keys) do
+    if k == "loot" then hasLoot = true end
+    if k == "w:Brisa-Horizon" then hasBrisa = true end
+  end
+  check("feeds are never saved as open", not hasLoot and hasBrisa, table.concat(keys, ","))
+  H.Unbind()
+  S.Reset()
+
+  CreateFrame = STUB_CREATE_FRAME
+  T.Enable()
+  if K._frames() then K.Hide() end
+  if C._frames() then C.Hide() end
+  local savedHolding = T.holding
+  T.holding = false
+  S.SetTier("loot", "loud")
+  local toast = T._toast()
+  local icon = toast and toast.entry.icon
+  local texture
+  if icon then icon.SetTexture = function(_, tex) texture = tex end end
+  S.Add({ convKey = "loot", text = "You receive loot: [Cloak].", feed = true, chatType = "LOOT", time = 102 })
+  toast = T._toast()
+  check("a loud feed toasts", toast and toast.shown and toast.convKey == "loot", toast and toast.convKey)
+  check("a loud feed's toast shows its icon", texture == V.FEED_ICONS.loot, tostring(texture))
+  if icon then icon.SetTexture = nil end
+  if toast then toast:Hide() end
+  S.SetTier("loot", nil)
+  T.holding = savedHolding
+  T.Disable()
+  S.Reset()
+`, 'feeds-history-toast');
 
 // --- Summary -------------------------------------------------------------------
 run(`
