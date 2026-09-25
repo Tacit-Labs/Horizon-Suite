@@ -251,6 +251,14 @@ run(`
         type(db.echoHistory) == "table" and type(db.echoHistory.chars) == "table" and type(db.echoHistory.bnet) == "table",
         "missing")
 
+  -- Battle.net account IDs last one session; history is keyed by BattleTag instead.
+  local tags = { [77] = "Friend#1234" }
+  local savedBattleNet = C_BattleNet
+  C_BattleNet = { GetAccountInfoByID = function(id)
+    if tags[id] == "THROW" then error("api down") end
+    return tags[id] and { battleTag = tags[id] } or nil
+  end }
+
   S.Add({ convKey = "w:Brisa-Horizon", text = "got the leather" })
   S.Add({ convKey = "w:Brisa-Horizon", text = SECRET("mid-pull"), secret = true })
   S.Add({ convKey = "bn:77", text = "bnet hi" })
@@ -262,8 +270,11 @@ run(`
   local brisa = mine and mine["w:Brisa-Horizon"]
   check("whisper persisted per character", brisa and brisa[1].text == "got the leather", brisa and #brisa)
   check("secret and pending messages not persisted", brisa and #brisa == 1, brisa and #brisa)
-  check("bnet persisted account-wide",
-        db.echoHistory.bnet["bn:77"] and db.echoHistory.bnet["bn:77"][1].text == "bnet hi", "missing")
+  local friend = db.echoHistory.bnet["bt:Friend#1234"]
+  check("bnet persisted account-wide under the BattleTag",
+        friend and #friend == 1 and friend[1].text == "bnet hi", friend and #friend)
+  check("bnet never persisted under the session account id", db.echoHistory.bnet["bn:77"] == nil, "keyed by id")
+  check("resolver reads the BattleTag", H.BattleTagFor("bn:77") == "Friend#1234", H.BattleTagFor("bn:77"))
   check("channels not persisted", mine["guild"] == nil, "persisted")
   check("demo messages not persisted", mine["w:Demo-Horizon"] == nil, "persisted")
 
@@ -291,8 +302,40 @@ run(`
   S.Reset()
   S.Add({ convKey = "w:Brisa-Horizon", text = "hello alt" })
   check("whisper history is per character", #S.Get("w:Brisa-Horizon").messages == 1, #S.Get("w:Brisa-Horizon").messages)
-  S.Add({ convKey = "bn:77", text = "again" })
-  check("bnet history follows the account", #S.Get("bn:77").messages == 2, #S.Get("bn:77").messages)
+  -- Next session the same friend has a new account ID; history follows the BattleTag.
+  tags = { [88] = "Friend#1234", [77] = "Other#9999" }
+  S.Add({ convKey = "bn:88", text = "again" })
+  check("bnet history follows the BattleTag across a new account id",
+        #S.Get("bn:88").messages == 2 and S.Get("bn:88").messages[1].text == "bnet hi", #S.Get("bn:88").messages)
+  S.Add({ convKey = "bn:77", text = "who dis" })
+  check("a reused account id never loads another friend's history",
+        #S.Get("bn:77").messages == 1 and S.Get("bn:77").messages[1].text == "who dis", #S.Get("bn:77").messages)
+  check("the reused id writes to its own friend",
+        #db.echoHistory.bnet["bt:Other#9999"] == 1 and #db.echoHistory.bnet["bt:Friend#1234"] == 2,
+        #db.echoHistory.bnet["bt:Friend#1234"])
+
+  local function bnetBuckets()
+    local n = 0
+    for _ in pairs(db.echoHistory.bnet) do n = n + 1 end
+    return n
+  end
+  tags[55] = nil
+  check("unresolvable BattleTag writes nothing",
+        H.Append("bn:55", { text = "x", time = 1 }) == false and bnetBuckets() == 2, bnetBuckets())
+  check("unresolvable BattleTag loads nothing", #H.Load("bn:55") == 0, #H.Load("bn:55"))
+  tags[66] = SECRET("Friend#1234")
+  check("secret BattleTag writes nothing",
+        H.Append("bn:66", { text = "x", time = 1 }) == false and #db.echoHistory.bnet["bt:Friend#1234"] == 2,
+        #db.echoHistory.bnet["bt:Friend#1234"])
+  check("secret BattleTag loads nothing", #H.Load("bn:66") == 0, #H.Load("bn:66"))
+  tags[44] = ""
+  check("empty BattleTag writes nothing", H.Append("bn:44", { text = "x", time = 1 }) == false, "written")
+  tags[33] = "THROW"
+  check("a throwing lookup writes nothing", H.Append("bn:33", { text = "x", time = 1 }) == false, "written")
+  C_BattleNet = nil
+  check("no C_BattleNet writes nothing", H.Append("bn:88", { text = "x", time = 1 }) == false, "written")
+  check("no C_BattleNet loads nothing", #H.Load("bn:88") == 0, #H.Load("bn:88"))
+  C_BattleNet = savedBattleNet
 
   charKey = nil
   check("no character key yet, no whisper written", H.Append("w:Early-Horizon", { text = "x", time = 1 }) == false, "written")

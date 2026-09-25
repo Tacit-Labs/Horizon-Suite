@@ -156,11 +156,12 @@ Whisper history is not profile data, because profiles are shared and copied betw
 ```lua
 HorizonDB.echoHistory = {
     chars = { ["Name-Realm"] = { ["w:Brisa-Realm"] = { {t=…, out=false, text="…"}, … } } },
-    bnet  = { ["bn:12345"]   = { {t=…, out=true,  text="…"}, … } },
+    bnet  = { ["bt:Friend#1234"] = { {t=…, out=true, text="…"}, … } },
 }
 ```
 
-- Character whispers are stored per character. BNet whispers are stored account-wide, keyed by account ID, with names resolved fresh each session.
+- Character whispers are stored per character. BNet whispers are stored account-wide, keyed by the friend's BattleTag (`bt:<BattleTag>`, read through `C_BattleNet.GetAccountInfoByID`). The in-session conversation key stays `bn:<accountID>`, but Blizzard's account ID only lasts one session, so it is never persisted: keying history by it could load one friend's whispers into another friend's conversation after a relog.
+- Fail closed: when the BattleTag cannot be read (no API, no friend info, an empty or secret value), nothing is written and nothing is loaded for that conversation.
 - Capped at 100 entries per conversation and trimmed on `PLAYER_LOGOUT`.
 - Secret messages are never written.
 - Nothing is written when **Save whisper history** is off. **Clear history** wipes the table.
