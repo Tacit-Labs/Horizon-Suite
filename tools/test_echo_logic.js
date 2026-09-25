@@ -70,6 +70,35 @@ run(`
   end
   ERR_CHAT_PLAYER_NOT_FOUND_S = "No player named '%s' is currently playing."
 
+  -- Stand-in frames for smoke tests: every method exists and does nothing, except the
+  -- handful whose results the Echo frames read back.
+  function STUB_FRAME(parent)
+    local o = { scripts = {}, shown = false, parent = parent, text = "", points = {} }
+    local fixed = { GetFrameLevel = 1, GetScale = 1, GetFrameStrata = "MEDIUM", IsMouseOver = false, HasFocus = false }
+    return setmetatable(o, { __index = function(_, k)
+      if k == "SetScript" then return function(self, n, fn) self.scripts[n] = fn end end
+      if k == "GetScript" then return function(self, n) return self.scripts[n] end end
+      if k == "Show" then return function(self) self.shown = true end end
+      if k == "Hide" then return function(self) self.shown = false end end
+      if k == "SetShown" then return function(self, v) self.shown = v and true or false end end
+      if k == "IsShown" then return function(self) return self.shown end end
+      if k == "SetText" then return function(self, t) self.text = t end end
+      if k == "GetText" then return function(self) return self.text end end
+      if k == "SetPoint" then return function(self, ...) self.points[#self.points + 1] = { ... } end end
+      if k == "ClearAllPoints" then return function(self) self.points = {} end end
+      if k == "SetFocus" then return function(self) self.focused = true end end
+      if k == "ClearFocus" then return function(self) self.focused = false end end
+      if k == "CreateTexture" or k == "CreateFontString" then return function(self) return STUB_FRAME(self) end end
+      if fixed[k] ~= nil then local v = fixed[k]; return function() return v end end
+      return function() end
+    end })
+  end
+  function STUB_CREATE_FRAME(_, name, parent) local f = STUB_FRAME(parent); if name then _G[name] = f end; return f end
+  UIParent = STUB_FRAME()
+  UISpecialFrames = {}
+  C_Timer = { After = function() end, NewTimer = function() return { Cancel = function() end } end }
+  InCombatLockdown = function() return false end
+
   PASS, FAIL = 0, 0
   function check(name, ok, got)
     if ok then PASS = PASS + 1
@@ -84,6 +113,7 @@ const FILES = [
   'modules/Echo/EchoEvents.lua',
   'modules/Echo/EchoSend.lua',
   'modules/Echo/EchoView.lua',
+  'modules/Echo/EchoTiles.lua',
   'modules/Echo/EchoSlash.lua',
 ];
 for (const f of FILES) run(read(f), f);
@@ -884,6 +914,62 @@ run(`
   S.Now = realNow
   S.Reset()
 `, 'view');
+
+// --- Tiles: smoke test with stand-in frames ---------------------------------------------
+run(`
+  local S, T = HorizonSuite.Echo.Store, HorizonSuite.Echo.Tiles
+  S.Reset()
+  -- The events section installs a minimal CreateFrame of its own; use the stand-ins here.
+  CreateFrame = STUB_CREATE_FRAME
+  T.Enable()
+  local column = _G.HorizonSuiteEchoColumn
+  check("the column exists and is shown", column and column:IsShown(), "missing")
+  check("the default anchor is bottom right", column.points[1] and column.points[1][1] == "BOTTOMRIGHT", column.points[1] and column.points[1][1])
+
+  S.Add({ convKey = "w:Brisa-Horizon", text = "got the leather", class = "DRUID", sender = "Brisa-Horizon" })
+  local tile = T.TileFor("w:Brisa-Horizon")
+  check("a whisper gets a tile with its initial", tile and tile.convKey == "w:Brisa-Horizon" and tile.letter.text == "B", tile and tile.letter.text)
+  check("a loud unread shows the dot", tile.dot.shown == true, tile.dot.shown)
+  local toast = T._toast()
+  check("a loud message shows the toast", toast and toast.shown and toast.convKey == "w:Brisa-Horizon", toast and toast.convKey)
+  check("the toast body is the message", toast.entry.body.text == "got the leather", toast.entry.body.text)
+  check("the toast title is the name", toast.entry.title.text == "Brisa", toast.entry.title.text)
+
+  S.Add({ convKey = "party", text = "pull", sender = "Tank-Horizon" })
+  S.Add({ convKey = "party", text = "go", sender = "Tank-Horizon" })
+  local ptile = T.TileFor("party")
+  check("a party tile shows its count", ptile and ptile.count.text == "2" and not ptile.dot.shown, ptile and ptile.count.text)
+  check("a count message does not toast", toast.convKey == "w:Brisa-Horizon", toast.convKey)
+
+  S.Add({ convKey = "w:Secret-Horizon", text = SECRET("boss"), secret = true, sender = "Secret-Horizon" })
+  check("a secret message toasts as 'new message'", toast.entry.body.text == "ECHO_NEW_MESSAGE", toast.entry.body.text)
+
+  T.Hold(true)
+  toast:Hide()
+  S.Add({ convKey = "w:Vexa-Horizon", text = "gz", sender = "Vexa-Horizon" })
+  check("in combat the toast is held", not toast.shown, "shown")
+  T.Hold(false)
+  check("after combat the held toast plays", toast.shown and toast.convKey == "w:Vexa-Horizon", toast.convKey)
+
+  for i = 1, 10 do S.Add({ convKey = "w:Many" .. i .. "-Horizon", text = "hi" }) end
+  local overflow = T._overflow()
+  check("past the cap an overflow tile shows the rest", overflow.shown and overflow.letter.text:sub(1, 1) == "+", overflow.letter.text)
+
+  S.CountUnrouted(); S.CountUnrouted()
+  local marker = T._marker()
+  check("the marker shows unrouted messages", marker.shown and marker.text.text == "ECHO_IN_CHAT", marker.text.text)
+  marker.scripts.OnClick(marker)
+  check("clicking the marker clears it", S.GetUnroutedCount() == 0 and not marker.shown, S.GetUnroutedCount())
+
+  S.Close("w:Brisa-Horizon")
+  check("a closed conversation loses its tile", T.TileFor("w:Brisa-Horizon") == nil, "still there")
+
+  T.Disable()
+  check("disable hides the column", not column:IsShown(), "shown")
+  local ok = pcall(S.Add, { convKey = "w:After-Horizon", text = "x" })
+  check("a disabled column ignores new messages", ok, "threw")
+  S.Reset()
+`, 'tiles');
 
 // --- Summary -------------------------------------------------------------------
 run(`
