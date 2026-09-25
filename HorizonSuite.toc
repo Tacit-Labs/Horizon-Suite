@@ -164,6 +164,8 @@ modules/Echo/EchoStore.lua
 modules/Echo/EchoHistory.lua
 modules/Echo/EchoEvents.lua
 modules/Echo/EchoSend.lua
+modules/Echo/EchoSlash.lua
+modules/Echo/EchoModule.lua
 options/OptionsWidgets.lua
 options/HorizonColorPicker.lua
 options/OptionsDefaults.lua
