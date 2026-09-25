@@ -1,8 +1,11 @@
 --[[
     Horizon Suite - Echo - History
     Whisper history in HorizonDB.echoHistory: per character for whispers, account-wide
-    for Battle.net (names resolve fresh each session; only the account ID is keyed).
+    for Battle.net. A bnetAccountID only lasts one session, so Battle.net history is
+    keyed by the friend's BattleTag ("bt:Name#1234"); when the BattleTag cannot be read
+    (no API, no friend, secret) nothing is written or loaded for that conversation.
     Never writes secret, pending, failed or demo messages. Channels are never persisted.
+    Blizzard: C_BattleNet.GetAccountInfoByID.
 ]]
 
 local addon = _G.HorizonSuite
@@ -42,12 +45,30 @@ function History.SetEnabledCheck(fn)
     if type(fn) == "function" then enabledCheck = fn end
 end
 
+--- The friend's BattleTag for a "bn:<accountID>" conversation.
+-- @param convKey string
+-- @return string|nil battleTag  nil when it cannot be read or is secret
+function History.BattleTagFor(convKey)
+    if Echo.Store.KindOf(convKey) ~= "bnet" then return nil end
+    local id = tonumber(convKey:sub(4))
+    local api = C_BattleNet and C_BattleNet.GetAccountInfoByID
+    if not id or type(api) ~= "function" then return nil end
+    local ok, info = pcall(api, id)
+    if not ok or type(info) ~= "table" then return nil end
+    local battleTag = info.battleTag
+    if Echo.IsSecret(battleTag) or type(battleTag) ~= "string" or battleTag == "" then return nil end
+    return battleTag
+end
+
 local function Bucket(convKey, create)
     if not root then return nil end
     local kind = Echo.Store.KindOf(convKey)
-    local parent
+    local parent, listKey = nil, convKey
     if kind == "bnet" then
+        local battleTag = History.BattleTagFor(convKey)
+        if not battleTag then return nil end
         parent = root.bnet
+        listKey = "bt:" .. battleTag
     elseif kind == "whisper" then
         local charKey = characterKey()
         if not charKey then return nil end
@@ -58,10 +79,10 @@ local function Bucket(convKey, create)
         end
     end
     if not parent then return nil end
-    local list = parent[convKey]
+    local list = parent[listKey]
     if not list and create then
         list = {}
-        parent[convKey] = list
+        parent[listKey] = list
     end
     return list
 end
