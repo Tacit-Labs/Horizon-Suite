@@ -79,11 +79,21 @@ local function HandleEchoSlash(msg)
     elseif cmd == "clearhistory" then
         Echo.History.Clear()
         HSPrint("Echo: whisper history cleared for every character.")
+    elseif cmd == "lock" or cmd == "unlock" then
+        addon.SetDB("echoLockPosition", cmd == "lock")
+        HSPrint(cmd == "lock" and "Echo: column locked."
+            or "Echo: column unlocked. Drag the chat button at its foot to move it, then /h echo lock.")
+    elseif cmd == "reset" then
+        Echo.Tiles.ResetPosition()
+        HSPrint("Echo: column moved back to the bottom right.")
     elseif cmd == "" or cmd == "help" then
         HSPrint("Echo commands:")
         HSPrint("  /h echo toggle       - Enable / disable Echo (reloads the UI)")
         HSPrint("  /h echo status       - List conversations, tiers and unread counts")
         HSPrint("  /h echo probe [n]    - Describe the next n chat messages (default 10)")
+        HSPrint("  /h echo unlock       - Let the column be dragged by its chat button")
+        HSPrint("  /h echo lock         - Lock the column in place")
+        HSPrint("  /h echo reset        - Move the column back to the bottom right")
         HSPrint("  /h echo test         - Add sample conversations")
         HSPrint("  /h echo clearhistory - Delete saved whisper history")
     else
