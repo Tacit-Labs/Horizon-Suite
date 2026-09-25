@@ -616,9 +616,9 @@ end
 function Card.OnStoreChange(convKey, change)
     if not root or not root:IsShown() then return end
     if convKey and renderedKey and convKey ~= renderedKey and change ~= "closed" then
-        PaintRow(Echo.Store.List(), renderedKey)
+        Echo.Redraw.Mark("cardRow")
     else
-        Card.Render()
+        Echo.Redraw.Mark("card")
     end
 end
 
@@ -628,6 +628,12 @@ function Card.Enable()
         Echo.Store.Subscribe(Card.OnStoreChange)
         Card.subscribed = true
     end
+    Echo.Redraw.Register("card", function()
+        if root and root:IsShown() then Card.Render() end
+    end)
+    Echo.Redraw.Register("cardRow", function()
+        if root and root:IsShown() and renderedKey then PaintRow(Echo.Store.List(), renderedKey) end
+    end)
 end
 
 function Card.Disable()

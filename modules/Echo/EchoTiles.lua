@@ -415,10 +415,16 @@ function Tiles.Hold(on)
     end
 end
 
---- Store listener: redraw, then toast or hold a loud message.
+--- Store listener: mark the column for repainting, then toast or hold a loud message.
+-- A loud message repaints at once: its toast points at the tile it has just moved to.
 function Tiles.OnStoreChange(convKey, change)
-    Tiles.Refresh()
-    if change ~= "toast" or not convKey then return end
+    if change == "toast" then
+        Tiles.Refresh()
+    else
+        Echo.Redraw.Mark("tiles")
+        return
+    end
+    if not convKey then return end
     -- The open stack or card already shows the conversation (it re-renders, its tile
     -- badges); a toast over it would only cover it, and a held one would replay stale later.
     local stack = _G.HorizonSuiteEchoStack
@@ -439,6 +445,7 @@ function Tiles.Enable()
         Echo.Store.Subscribe(Tiles.OnStoreChange)
         Tiles.subscribed = true
     end
+    Echo.Redraw.Register("tiles", Tiles.Refresh)
     Tiles.ApplyPosition()
     column:Show()
     Tiles.Refresh()

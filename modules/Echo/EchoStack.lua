@@ -528,7 +528,7 @@ function Stack.HoverLeave()
 end
 
 function Stack.OnStoreChange()
-    if root and root:IsShown() then Stack.Render() end
+    if root and root:IsShown() then Echo.Redraw.Mark("stack") end
 end
 
 function Stack.Enable()
@@ -537,6 +537,9 @@ function Stack.Enable()
         Echo.Store.Subscribe(Stack.OnStoreChange)
         Stack.subscribed = true
     end
+    Echo.Redraw.Register("stack", function()
+        if root and root:IsShown() then Stack.Render() end
+    end)
 end
 
 function Stack.Disable()

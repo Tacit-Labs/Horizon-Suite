@@ -100,6 +100,7 @@ end
 
 function Echo.Disable()
     if lifecycle then lifecycle:UnregisterAllEvents() end
+    Echo.Redraw.Clear()
     restoredAt = nil
     Echo.Card.Disable()
     Echo.Stack.Disable()

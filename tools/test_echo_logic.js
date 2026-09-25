@@ -115,6 +115,7 @@ const FILES = [
   'modules/Echo/EchoEvents.lua',
   'modules/Echo/EchoSend.lua',
   'modules/Echo/EchoView.lua',
+  'modules/Echo/EchoRedraw.lua',
   'modules/Echo/EchoLinks.lua',
   'modules/Echo/EchoTiles.lua',
   'modules/Echo/EchoStack.lua',
@@ -123,6 +124,9 @@ const FILES = [
   'modules/Echo/EchoSlash.lua',
 ];
 for (const f of FILES) run(read(f), f);
+
+// Views repaint synchronously in every section except the coalescing tests below.
+run(`HorizonSuite.Echo.Redraw.sync = true`, 'redraw-sync');
 
 // --- Store: keys, kinds and tiers --------------------------------------------
 run(`
@@ -2775,6 +2779,55 @@ run(`
   T.Disable()
   S.Reset()
 `, 'feeds-history-toast');
+
+// --- Redraw: one repaint per frame -------------------------------------------
+run(`
+  CreateFrame = STUB_CREATE_FRAME
+  local Echo = HorizonSuite.Echo
+  local R = Echo.Redraw
+  R.sync = false
+  local calls = {}
+  R.Register("tiles", function() calls[#calls + 1] = "tiles" end)
+  R.Register("card", function() calls[#calls + 1] = "card" end)
+  R.Register("cardRow", function() calls[#calls + 1] = "cardRow" end)
+  R.Mark("tiles"); R.Mark("tiles"); R.Mark("tiles")
+  check("a mark waits for the next frame", #calls == 0, #calls)
+  check("the mark is pending", R.Pending("tiles") == true, R.Pending("tiles"))
+  R.Flush()
+  check("three marks repaint once", #calls == 1 and calls[1] == "tiles", table.concat(calls, ","))
+  check("nothing pending after a flush", R.Pending("tiles") == false, R.Pending("tiles"))
+
+  calls = {}
+  R.Mark("cardRow"); R.Mark("card")
+  R.Flush()
+  check("a full card render drops the row repaint", #calls == 1 and calls[1] == "card", table.concat(calls, ","))
+
+  calls = {}
+  R.Mark("card"); R.Mark("tiles")
+  R.Flush()
+  check("tiles repaint before the card", calls[1] == "tiles" and calls[2] == "card", table.concat(calls, ","))
+
+  calls = {}
+  R.Mark("tiles"); R.Clear(); R.Flush()
+  check("Clear drops pending marks", #calls == 0, #calls)
+
+  -- A burst of lines through the real views: one Tiles.Refresh.
+  local Store = Echo.Store
+  Store.Reset()
+  Echo.Tiles.Enable()
+  local refreshes, real = 0, Echo.Tiles.Refresh
+  Echo.Tiles.Refresh = function() refreshes = refreshes + 1; return real() end
+  R.Register("tiles", function() Echo.Tiles.Refresh() end)
+  for i = 1, 20 do Store.Add({ convKey = "loot", text = "item " .. i }) end
+  check("twenty feed lines, no repaint yet", refreshes == 0, refreshes)
+  R.Flush()
+  check("twenty feed lines, one repaint", refreshes == 1, refreshes)
+  Echo.Tiles.Refresh = real
+  Echo.Tiles.Disable()
+  Store.Reset()
+  R.Clear()
+  R.sync = true
+`, 'redraw');
 
 // --- Summary -------------------------------------------------------------------
 run(`
