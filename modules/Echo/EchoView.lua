@@ -46,6 +46,16 @@ View.BNET = { r = 0.00, g = 0.68, b = 1.00 }
 
 View.GLYPHS = { party = "P", raid = "R", instance = "I", guild = "G", officer = "O" }
 
+-- Battle.net's logo, uncropped: the only art a Battle.net tile without a class ever shows.
+View.BNET_LOGO = "Interface\\FriendsFrame\\Battlenet-Battleneticon"
+
+-- Channel key (the conversation key's name, spaces stripped) -> its short label. A channel
+-- without an entry here falls back to View.ShortName(name, 4).
+View.CHANNEL_SHORT = {
+    General = "Gen", Trade = "Trade", LocalDefense = "Def", LookingForGroup = "LFG",
+    Services = "Serv", WorldDefense = "WDef", NewcomerChat = "New",
+}
+
 -- ChatTypeInfo keys, so each kind uses Blizzard's own chat colour.
 View.CHAT_TYPE = {
     whisper = "WHISPER", bnet = "BN_WHISPER", party = "PARTY", raid = "RAID",
@@ -54,6 +64,7 @@ View.CHAT_TYPE = {
 }
 
 local FIRST_CHAR = "^[\1-\127\194-\244][\128-\191]*"
+local UTF8_CHAR = "[\1-\127\194-\244][\128-\191]*"
 
 --- First character of a readable string, UTF-8 aware, upper-cased when ASCII.
 -- @param s string
@@ -63,6 +74,41 @@ function View.Initial(s)
     local c = s:match(FIRST_CHAR)
     if not c or c == "" then return "?" end
     return c:upper()
+end
+
+--- Number of UTF-8 characters in a readable string.
+-- @param s string
+-- @return number
+local function Utf8Len(s)
+    local n = 0
+    for _ in s:gmatch(UTF8_CHAR) do n = n + 1 end
+    return n
+end
+
+--- The first `max` UTF-8 characters of a readable string.
+-- @param s string
+-- @param max number
+-- @return string  "" for secret, empty or non-string input
+function View.ShortName(s, max)
+    if Echo.IsSecret(s) or type(s) ~= "string" then return "" end
+    local out, n = {}, 0
+    for c in s:gmatch(UTF8_CHAR) do
+        if n >= max then break end
+        out[#out + 1] = c
+        n = n + 1
+    end
+    return table.concat(out)
+end
+
+--- Upper-case a readable string, but only where the player's locale reads it naturally
+-- upper-cased; other locales (and accented Latin scripts) keep their own casing.
+-- @param s string
+-- @return string  s unchanged for secret or non-string input
+function View.Upper(s)
+    if Echo.IsSecret(s) or type(s) ~= "string" then return s end
+    local locale = type(GetLocale) == "function" and GetLocale() or nil
+    if locale == "enUS" or locale == "enGB" then return s:upper() end
+    return s
 end
 
 --- Class colour for a class file.
@@ -134,49 +180,112 @@ function View.DisplayName(conv)
     return L["ECHO_KIND_" .. kind:upper()]
 end
 
+--- The badge a tile shows for its unread count: a dot for a loud conversation, the count
+-- itself for a count-tier one, nothing for a quiet or muted one or when there is nothing
+-- unread.
+-- @param conv table
+-- @return string|nil  "dot" | "count" | nil
+function View.Badge(conv)
+    if (conv.unread or 0) <= 0 then return nil end
+    local tier = Echo.Store.TierOf(conv.key)
+    if tier == "loud" then return "dot" end
+    if tier == "count" then return "count" end
+    return nil
+end
+
+--- A class's icon, bundled Horizon art first, Blizzard's class atlas second. Tolerates
+-- addon.ResolveClassIconDisplay being absent (the logic harness doesn't load it).
+-- @param class string|nil
+-- @return table|nil  { kind = "file", path = ... } | { kind = "atlas", atlas = ... }
+local function ClassIcon(class)
+    if Echo.IsSecret(class) or type(class) ~= "string" or class == "" then return nil end
+    local resolve = addon.ResolveClassIconDisplay
+    if type(resolve) ~= "function" then return nil end
+    local ok, display = pcall(resolve, class, "custom")
+    if ok and display then return display end
+    ok, display = pcall(resolve, class, "default")
+    if ok and display then return display end
+    return nil
+end
+
+--- The background colour behind a tile's face.
+-- @param spec table  View.TileSpec
+-- @return number r, number g, number b, number a
+function View.FaceBackground(spec)
+    if spec.face == "icon" and spec.icon == View.BNET_LOGO then
+        return View.BNET.r, View.BNET.g, View.BNET.b, 0.95
+    end
+    if spec.face == "glyph" or spec.face == "icon" then
+        local bg = View.GLYPH_BG
+        return bg[1], bg[2], bg[3], bg[4]
+    end
+    return spec.r, spec.g, spec.b, 0.95
+end
+
 --- What a tile shows.
 -- @param conv table
--- @return table { letter, r, g, b, glyph = boolean|nil, badge = "dot"|"count"|nil, count = number }
+-- @return table  see Docs/Engineering/2026-09-25-echo-looks-plan.md, "One description of a tile"
 function View.TileSpec(conv)
-    local kind = conv.kind
-    local spec = { count = conv.unread or 0 }
+    local kind, key = conv.kind, conv.key
+    local spec = { count = conv.unread or 0, letter = "" }
+
     if View.FEED_ICONS[kind] then
-        spec.glyph = true
+        spec.face = "icon"
         spec.icon = View.FEED_ICONS[kind]
-        spec.letter = ""
-        spec.r, spec.g, spec.b = View.ChatColor(kind)
-        if spec.count > 0 then
-            local tier = Echo.Store.TierOf(conv.key)
-            if tier == "loud" then spec.badge = "dot" elseif tier == "count" then spec.badge = "count" end
-        end
-        return spec
-    end
-    if kind == "whisper" or kind == "bnet" then
-        local r, g, b = View.ClassColor(View.LastClass(conv))
-        if not r then
-            local c = (kind == "bnet") and View.BNET or View.NEUTRAL
-            r, g, b = c.r, c.g, c.b
-        end
-        spec.r, spec.g, spec.b = r, g, b
-        if kind == "whisper" then
-            spec.letter = View.Initial(conv.key:sub(3))
-        else
-            local tag = Echo.History and Echo.History.BattleTagFor(conv.key)
-            spec.letter = View.Initial(tag or "B")
-        end
-    else
         spec.glyph = true
-        spec.letter = View.GLYPHS[kind] or View.Initial(conv.key:sub(4))
+        spec.r, spec.g, spec.b = View.ChatColor(kind)
+    elseif kind == "whisper" then
+        local name = key:sub(3)
+        name = name:match("^([^-]+)") or name
+        spec.label = View.ShortName(name, 5)
+        local class = View.LastClass(conv)
+        local classIcon = ClassIcon(class)
+        local r, g, b = View.ClassColor(class)
+        if classIcon then
+            spec.face = "class"
+            spec.classIcon = classIcon
+        else
+            spec.face = "letter"
+            spec.letter = View.Initial(name)
+        end
+        if r then
+            spec.r, spec.g, spec.b = r, g, b
+        else
+            spec.r, spec.g, spec.b = View.NEUTRAL.r, View.NEUTRAL.g, View.NEUTRAL.b
+        end
+    elseif kind == "bnet" then
+        local class = View.LastClass(conv)
+        local classIcon = ClassIcon(class)
+        local r, g, b = View.ClassColor(class)
+        if classIcon then
+            spec.face = "class"
+            spec.classIcon = classIcon
+            if r then
+                spec.r, spec.g, spec.b = r, g, b
+            else
+                spec.r, spec.g, spec.b = View.BNET.r, View.BNET.g, View.BNET.b
+            end
+        else
+            spec.face = "icon"
+            spec.icon = View.BNET_LOGO
+            spec.iconFull = true
+            spec.r, spec.g, spec.b = View.BNET.r, View.BNET.g, View.BNET.b
+        end
+    elseif kind == "channel" then
+        spec.face = "glyph"
+        spec.glyph = true
+        local name = key:sub(4)
+        spec.letter = View.CHANNEL_SHORT[(name:gsub(" ", ""))] or View.ShortName(name, 4)
+        spec.r, spec.g, spec.b = View.ChatColor(kind)
+    else
+        spec.face = "glyph"
+        spec.glyph = true
+        spec.letter = View.GLYPHS[kind] or View.Initial(key:sub(4))
         spec.r, spec.g, spec.b = View.ChatColor(kind)
     end
-    local tier = Echo.Store.TierOf(conv.key)
-    if spec.count > 0 then
-        if tier == "loud" then
-            spec.badge = "dot"
-        elseif tier == "count" then
-            spec.badge = "count"
-        end
-    end
+
+    if Utf8Len(spec.letter) > 1 then spec.small = true end
+    spec.badge = View.Badge(conv)
     return spec
 end
 

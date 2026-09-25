@@ -921,7 +921,7 @@ run(`
   S.Add({ convKey = "guild", text = "gz" })
   check("a quiet tile shows no badge", V.TileSpec(S.Get("guild")).badge == nil, V.TileSpec(S.Get("guild")).badge)
   S.Add({ convKey = "ch:Trade", text = "wts" })
-  check("a channel tile uses its first letter", V.TileSpec(S.Get("ch:Trade")).letter == "T", V.TileSpec(S.Get("ch:Trade")).letter)
+  check("a channel tile uses its short name", V.TileSpec(S.Get("ch:Trade")).letter == "Trade", V.TileSpec(S.Get("ch:Trade")).letter)
   check("a channel's name is its key name", V.DisplayName(S.Get("ch:Trade")) == "Trade", V.DisplayName(S.Get("ch:Trade")))
   S.SetTier("w:Brisa-Horizon", "muted")
   check("a muted conversation shows no badge", V.TileSpec(brisa).badge == nil, V.TileSpec(brisa).badge)
@@ -3277,6 +3277,91 @@ run(`
   end
   check("no literal strings printed by /h echo", literal == 0, literal)
 `, 'echo-slash-locale');
+
+// --- View: tile faces ----------------------------------------------------------
+run(`
+  local S, V = HorizonSuite.Echo.Store, HorizonSuite.Echo.View
+  S.Reset()
+  RAID_CLASS_COLORS = { DRUID = { r = 1, g = 0.49, b = 0.04 } }
+
+  check("short name", V.ShortName("Brisa", 5) == "Brisa", V.ShortName("Brisa", 5))
+  check("short name truncates", V.ShortName("Thornwick", 5) == "Thorn", V.ShortName("Thornwick", 5))
+  check("short name counts characters, not bytes", V.ShortName("Ælfrida", 5) == "Ælfri", V.ShortName("Ælfrida", 5))
+  check("short name of a secret is empty", V.ShortName(SECRET("x"), 5) == "", V.ShortName(SECRET("x"), 5))
+  check("short name of a non-string is empty", V.ShortName(nil, 5) == "", "?")
+
+  S.Add({ convKey = "ch:General", text = "lfg" })
+  local genSpec = V.TileSpec(S.Get("ch:General"))
+  check("channel General is Gen", genSpec.letter == "Gen" and genSpec.small == true, genSpec.letter)
+  S.Add({ convKey = "ch:Guild", text = "hi" })
+  local chGuildSpec = V.TileSpec(S.Get("ch:Guild"))
+  check("a channel named Guild isn't the guild kind", chGuildSpec.letter == "Guil" and chGuildSpec.small == true, chGuildSpec.letter)
+  S.Add({ convKey = "guild", text = "gz" })
+  local guildSpec = V.TileSpec(S.Get("guild"))
+  check("the guild kind is its glyph", guildSpec.letter == "G" and not guildSpec.small, guildSpec.letter)
+  S.Add({ convKey = "ch:Trade", text = "wts" })
+  local tradeSpec = V.TileSpec(S.Get("ch:Trade"))
+  check("channel Trade is Trade", tradeSpec.letter == "Trade" and tradeSpec.small == true, tradeSpec.letter)
+  S.Add({ convKey = "ch:Local Defense", text = "inc" })
+  local defSpec = V.TileSpec(S.Get("ch:Local Defense"))
+  check("channel Local Defense is Def", defSpec.letter == "Def" and defSpec.small == true, defSpec.letter)
+  S.Add({ convKey = "ch:MyCustom", text = "hi" })
+  local customSpec = V.TileSpec(S.Get("ch:MyCustom"))
+  check("an unlisted channel is capped at 4", customSpec.letter == "MyCu" and customSpec.small == true, customSpec.letter)
+
+  S.Add({ convKey = "w:Brisa-Horizon", text = "hi", class = "DRUID", sender = "Brisa-Horizon" })
+  local brisa = S.Get("w:Brisa-Horizon")
+  HorizonSuite.ResolveClassIconDisplay = function(class, source) return { kind = "file", path = "X" } end
+  local classSpec = V.TileSpec(brisa)
+  check("a resolved class gives a class face", classSpec.face == "class", classSpec.face)
+  check("the class face carries the icon", classSpec.classIcon and classSpec.classIcon.path == "X", "?")
+  check("a whisper's label is its short name", classSpec.label == "Brisa", classSpec.label)
+  HorizonSuite.ResolveClassIconDisplay = function() return nil end
+  local letterSpec = V.TileSpec(brisa)
+  check("no resolved class gives a letter face", letterSpec.face == "letter", letterSpec.face)
+  check("the letter face's letter is the initial", letterSpec.letter == "B", letterSpec.letter)
+  check("the letter face keeps the label", letterSpec.label == "Brisa", letterSpec.label)
+  HorizonSuite.ResolveClassIconDisplay = nil
+
+  S.Add({ convKey = "bn:77", text = "yo", sender = "|Kq1|k" })
+  local bnet = S.Get("bn:77")
+  local bnetSpec = V.TileSpec(bnet)
+  check("a classless Battle.net tile is the logo", bnetSpec.face == "icon" and bnetSpec.icon == V.BNET_LOGO
+        and bnetSpec.iconFull == true and bnetSpec.label == nil, bnetSpec.face)
+  S.Add({ convKey = "bn:77", text = "yo again", class = "DRUID", sender = "|Kq1|k" })
+  HorizonSuite.ResolveClassIconDisplay = function() return { kind = "file", path = "Y" } end
+  local bnetClassSpec = V.TileSpec(S.Get("bn:77"))
+  check("a classed Battle.net tile is a class face", bnetClassSpec.face == "class" and bnetClassSpec.label == nil, bnetClassSpec.face)
+  HorizonSuite.ResolveClassIconDisplay = nil
+
+  S.Add({ convKey = "loot", text = "You receive item: Foo", feed = true, chatType = "LOOT" })
+  local feedSpec = V.TileSpec(S.Get("loot"))
+  check("a feed is still an icon face", feedSpec.face == "icon" and feedSpec.icon == V.FEED_ICONS.loot
+        and feedSpec.iconFull == nil, feedSpec.face)
+
+  S.SetTier("w:Brisa-Horizon", "loud")
+  check("loud with unread shows a dot", V.Badge(brisa) == "dot", V.Badge(brisa))
+  S.SetTier("w:Brisa-Horizon", "count")
+  check("count with unread shows the count", V.Badge(brisa) == "count", V.Badge(brisa))
+  S.SetTier("w:Brisa-Horizon", "quiet")
+  check("quiet shows no badge", V.Badge(brisa) == nil, V.Badge(brisa))
+  S.SetTier("w:Brisa-Horizon", "loud")
+  local zeroUnread = { key = "w:Zero-Horizon", unread = 0 }
+  check("zero unread shows no badge even when loud", V.Badge(zeroUnread) == nil, "?")
+  S.SetTier("w:Brisa-Horizon", nil)
+
+  local realLocale = GetLocale
+  GetLocale = function() return "enUS" end
+  check("enUS upper-cases", V.Upper("abc") == "ABC", V.Upper("abc"))
+  GetLocale = function() return "deDE" end
+  check("deDE leaves accented text alone", V.Upper("über") == "über", V.Upper("über"))
+  local secretVal = SECRET("x")
+  check("Upper leaves a secret alone", rawequal(V.Upper(secretVal), secretVal), "?")
+  GetLocale = realLocale
+
+  HorizonSuite.ResolveClassIconDisplay = nil
+  S.Reset()
+`, 'view-tile-faces');
 
 // --- Redraw: one repaint per frame -------------------------------------------
 run(`
