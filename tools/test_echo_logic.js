@@ -920,6 +920,17 @@ run(`
   check("no loud conversation falls back to the first", V.NewestLoud({ { key = "x", lastLoud = 0 } }).key == "x", "?")
   check("an empty list has no newest", V.NewestLoud({}) == nil, "?")
 
+  local replied = { key = "replied", lastLoud = 5, messages = { { seq = 2 }, { seq = 5, outgoing = true } } }
+  local waiting = { key = "waiting", lastLoud = 4, messages = { { seq = 4 } } }
+  local chatter = { key = "chatter", lastLoud = 0, messages = { { seq = 9 } } }
+  check("reply target is the newest incoming loud message, not your own reply",
+        V.NewestIncomingLoud({ replied, waiting, chatter }).key == "waiting",
+        V.NewestIncomingLoud and V.NewestIncomingLoud({ replied, waiting, chatter }).key)
+  local onlySent = { key = "sent", lastLoud = 3, messages = { { seq = 3, outgoing = true } } }
+  check("with no incoming loud message it falls back to the newest loud",
+        V.NewestIncomingLoud({ chatter, onlySent }).key == "sent", V.NewestIncomingLoud({ chatter, onlySent }).key)
+  check("an empty list has no reply target", V.NewestIncomingLoud({}) == nil, "?")
+
   local ten = {}
   for i = 1, 10 do ten[i] = { key = "k" .. i } end
   local visible, overflow = V.Column(ten, 8)
@@ -1047,12 +1058,13 @@ run(`
 
   K.ReplyToNewest()
   check("reply-to-newest opens with the box focused", f.root:IsShown() and f.edit.focused == true, tostring(f.edit.focused))
-  check("reply-to-newest picks the newest loud conversation", f.card.name.text == "Brisa", f.card.name.text)
+  -- Brisa was just replied to, so Vexa's unanswered whisper is the one waiting.
+  check("reply-to-newest picks the newest incoming loud conversation, not the one just answered", f.card.name.text == "Vexa", f.card.name.text)
   f.edit.scripts.OnEscapePressed(f.edit)
   check("escape leaves the box first", f.edit.focused == false and f.root:IsShown(), tostring(f.edit.focused))
 
   K.CloseCurrent()
-  check("closing the top card shows the next conversation", f.card.name.text == "Vexa" and not S.Get("w:Brisa-Horizon").open, f.card.name.text)
+  check("closing the top card shows the next conversation", f.card.name.text == "Brisa" and not S.Get("w:Vexa-Horizon").open, f.card.name.text)
 
   K.Hide()
   check("hide closes the stack", not f.root:IsShown(), "shown")

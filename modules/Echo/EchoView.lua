@@ -181,6 +181,24 @@ function View.NewestLoud(list)
     return best or list[1]
 end
 
+--- The conversation to reply to: the newest incoming message among loud conversations
+-- (a reply of your own moves a conversation up but does not make it the one waiting).
+-- Falls back to NewestLoud when no loud conversation has an incoming message.
+-- @param list table  Store.List()
+-- @return table|nil conversation
+function View.NewestIncomingLoud(list)
+    local best, bestSeq
+    for _, conv in ipairs(list) do
+        if (conv.lastLoud or 0) > 0 then
+            local msg = View.LastIncoming(conv)
+            if msg and msg.seq and (not bestSeq or msg.seq > bestSeq) then
+                best, bestSeq = conv, msg.seq
+            end
+        end
+    end
+    return best or View.NewestLoud(list)
+end
+
 --- The last n messages, oldest first.
 -- @param conv table
 -- @param n number
