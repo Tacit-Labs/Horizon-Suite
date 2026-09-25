@@ -161,6 +161,19 @@ function View.LastClass(conv)
     return nil
 end
 
+--- A conversation's class: the newest incoming message's, else a group/guild/friends or
+-- Battle.net lookup (Echo.Class.Resolve). Tolerates Echo.Class being absent (a harness
+-- that doesn't load EchoClass.lua).
+-- @param conv table
+-- @return string|nil
+function View.ClassOf(conv)
+    local class = View.LastClass(conv)
+    if class then return class end
+    local resolve = Echo.Class and Echo.Class.Resolve
+    if type(resolve) ~= "function" then return nil end
+    return resolve(conv)
+end
+
 --- Title for a conversation's tile, toast and card. A Battle.net name is a protected
 -- string and is returned whole.
 -- @param conv table
@@ -240,7 +253,7 @@ function View.TileSpec(conv)
         local name = key:sub(3)
         name = name:match("^([^-]+)") or name
         spec.label = name  -- whole; the column tile shrinks it to fit (Echo.FitText)
-        local class = View.LastClass(conv)
+        local class = View.ClassOf(conv)
         local classIcon = ClassIcon(class)
         local r, g, b = View.ClassColor(class)
         if classIcon then
@@ -256,7 +269,7 @@ function View.TileSpec(conv)
             spec.r, spec.g, spec.b = View.NEUTRAL.r, View.NEUTRAL.g, View.NEUTRAL.b
         end
     elseif kind == "bnet" then
-        local class = View.LastClass(conv)
+        local class = View.ClassOf(conv)
         local classIcon = ClassIcon(class)
         local r, g, b = View.ClassColor(class)
         if classIcon then
@@ -370,7 +383,7 @@ function View.MetaLine(conv, now)
     local parts = {}
     -- Only a whisper is one person; a group or channel card's last speaker isn't who the
     -- card is about, so it names no class (a Battle.net card keeps its relationship).
-    local class = conv.kind == "whisper" and View.LastClass(conv) or nil
+    local class = conv.kind == "whisper" and View.ClassOf(conv) or nil
     if class and not Echo.IsSecret(class) then
         local names = LOCALIZED_CLASS_NAMES_MALE
         parts[#parts + 1] = (names and names[class]) or class
@@ -516,7 +529,7 @@ function View.CardMeta(conv)
     local parts = {}
     -- Only a whisper is one person; a group or channel card's last speaker isn't who the
     -- card is about, so it names no class (a Battle.net card keeps its relationship).
-    local class = conv.kind == "whisper" and View.LastClass(conv) or nil
+    local class = conv.kind == "whisper" and View.ClassOf(conv) or nil
     if class and not Echo.IsSecret(class) then
         local names = LOCALIZED_CLASS_NAMES_MALE
         parts[#parts + 1] = (names and names[class]) or class

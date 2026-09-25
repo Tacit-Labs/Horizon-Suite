@@ -166,6 +166,7 @@ modules/Echo/EchoEvents.lua
 modules/Echo/EchoFilter.lua
 modules/Echo/EchoSend.lua
 modules/Echo/EchoView.lua
+modules/Echo/EchoClass.lua
 modules/Echo/EchoRedraw.lua
 modules/Echo/EchoLinks.lua
 modules/Echo/EchoTiles.lua

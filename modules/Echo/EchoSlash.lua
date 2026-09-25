@@ -30,6 +30,17 @@ function Echo.InjectTestConversations()
     end
 end
 
+--- " class=<file>(<source>)", or "" when the conversation has none readable.
+-- @param conv table
+-- @return string
+local function ClassSuffix(conv)
+    local resolve = Echo.Class and Echo.Class.Resolve
+    if type(resolve) ~= "function" then return "" end
+    local class, source = resolve(conv)
+    if Echo.IsSecret(class) or type(class) ~= "string" or class == "" then return "" end
+    return (" class=%s(%s)"):format(class, source or "")
+end
+
 local function PrintStatus()
     local Store = Echo.Store
     local list = Store.List()
@@ -37,7 +48,7 @@ local function PrintStatus()
     for _, conv in ipairs(list) do
         HSPrint(L["ECHO_SLASH_STATUS_ROW"]:format(
             conv.key, Store.TierOf(conv.key), conv.unread, #conv.messages,
-            conv.pinned and L["ECHO_SLASH_PINNED"] or ""))
+            conv.pinned and L["ECHO_SLASH_PINNED"] or "", ClassSuffix(conv)))
     end
 end
 

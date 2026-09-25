@@ -122,6 +122,7 @@ const FILES = [
   'modules/Echo/EchoFilter.lua',
   'modules/Echo/EchoSend.lua',
   'modules/Echo/EchoView.lua',
+  'modules/Echo/EchoClass.lua',
   'modules/Echo/EchoRedraw.lua',
   'modules/Echo/EchoLinks.lua',
   'modules/Echo/EchoTiles.lua',
@@ -3633,6 +3634,165 @@ run(`
   check("back to the default", C.TEXT_SIZE == 11, C.TEXT_SIZE)
   HorizonSuite.GetDB, HorizonSuite.ECHO_LIMITS = nil, nil
 `, 'echo-card-text-size');
+
+// --- Class lookup: a whisperer's class without a GUID ------------------------
+run(`
+  local Echo = HorizonSuite.Echo
+  local S = Echo.Store
+  S.Reset()
+
+  local saved = {
+    IsInRaid = IsInRaid, UnitName = UnitName, UnitClass = UnitClass,
+    IsInGuild = IsInGuild, GetNumGuildMembers = GetNumGuildMembers, GetGuildRosterInfo = GetGuildRosterInfo,
+    C_FriendList = C_FriendList, C_BattleNet = C_BattleNet, BNET_CLIENT_WOW = BNET_CLIENT_WOW,
+    LOCALIZED_CLASS_NAMES_MALE = LOCALIZED_CLASS_NAMES_MALE, LOCALIZED_CLASS_NAMES_FEMALE = LOCALIZED_CLASS_NAMES_FEMALE,
+    Now = S.Now,
+  }
+  LOCALIZED_CLASS_NAMES_MALE = { DRUID = "Druid", ROGUE = "Rogue", EVOKER = "Evoker", MAGE = "Mage", PALADIN = "Paladin" }
+  LOCALIZED_CLASS_NAMES_FEMALE = nil
+
+  -- A group member resolves from the party roster.
+  IsInRaid = function() return false end
+  UnitName = function(unit)
+    if unit == "party1" then return "Brisa", "" end
+    return nil
+  end
+  UnitClass = function(unit)
+    if unit == "party1" then return "Druid", "DRUID" end
+    return nil
+  end
+  IsInGuild = function() return false end
+  C_FriendList = nil
+
+  S.Add({ convKey = "w:Brisa-Horizon", text = "hi" })
+  local brisa = S.Get("w:Brisa-Horizon")
+  local class, source = Echo.Class.Resolve(brisa)
+  check("a group member resolves", class == "DRUID" and source == "group", tostring(class) .. "/" .. tostring(source))
+  check("the class is cached on the conversation", brisa.resolvedClass == "DRUID" and brisa.classSource == "group", brisa.resolvedClass)
+
+  -- A guild member resolves when nobody in the group matches.
+  UnitName = function() return "Someoneelse", "" end
+  IsInGuild = function() return true end
+  GetNumGuildMembers = function() return 1 end
+  GetGuildRosterInfo = function(i)
+    if i == 1 then return "Thornwick-Horizon", "Officer", 1, 60, "Rogue", "Zone", "", "", true, 1, "ROGUE" end
+    return nil
+  end
+  S.Add({ convKey = "w:Thornwick-Horizon", text = "hi" })
+  local thornwick = S.Get("w:Thornwick-Horizon")
+  class, source = Echo.Class.Resolve(thornwick)
+  check("a guild member resolves", class == "ROGUE" and source == "guild", tostring(class) .. "/" .. tostring(source))
+
+  -- A friend resolves when nobody in the group or guild matches.
+  IsInGuild = function() return false end
+  C_FriendList = {
+    GetNumFriends = function() return 1 end,
+    GetFriendInfoByIndex = function(i)
+      if i == 1 then return { name = "Vexa", className = "Evoker" } end
+      return nil
+    end,
+  }
+  S.Add({ convKey = "w:Vexa-Horizon", text = "hi" })
+  local vexa = S.Get("w:Vexa-Horizon")
+  class, source = Echo.Class.Resolve(vexa)
+  check("a friend resolves", class == "EVOKER" and source == "friends", tostring(class) .. "/" .. tostring(source))
+
+  -- A message's own class always wins, even once a lookup has cached something else.
+  S.Add({ convKey = "w:Vexa-Horizon", text = "hi again", class = "MAGE", sender = "Vexa-Horizon" })
+  class, source = Echo.Class.Resolve(vexa)
+  check("a message class wins over lookups", class == "MAGE" and source == "message", tostring(class) .. "/" .. tostring(source))
+
+  -- A secret roster name is skipped: the guild lookup never matches it.
+  IsInGuild = function() return true end
+  GetNumGuildMembers = function() return 1 end
+  GetGuildRosterInfo = function(i)
+    if i == 1 then return SECRET("Cloak-Horizon"), nil, nil, nil, nil, nil, nil, nil, nil, nil, "WARRIOR" end
+    return nil
+  end
+  C_FriendList = nil
+  S.Add({ convKey = "w:Cloak-Horizon", text = "hi" })
+  local cloak = S.Get("w:Cloak-Horizon")
+  class = Echo.Class.Resolve(cloak)
+  check("a secret roster name is skipped", class == nil, tostring(class))
+
+  -- A miss isn't re-scanned within 5 seconds.
+  local clock = 1000
+  S.Now = function() return clock end
+  local rosterCalls = 0
+  IsInGuild = function() return true end
+  GetNumGuildMembers = function() return 1 end
+  GetGuildRosterInfo = function(i) rosterCalls = rosterCalls + 1; return nil end
+  S.Add({ convKey = "w:Miss-Horizon", text = "hi" })
+  local miss = S.Get("w:Miss-Horizon")
+  class = Echo.Class.Resolve(miss)
+  check("a fresh miss has no class", class == nil, tostring(class))
+  local firstCalls = rosterCalls
+  check("a miss is remembered on the conversation", miss.classMissAt ~= nil, tostring(miss.classMissAt))
+  clock = clock + 2
+  class = Echo.Class.Resolve(miss)
+  check("a miss inside 5 seconds isn't re-scanned", rosterCalls == firstCalls, rosterCalls)
+  clock = clock + 4
+  class = Echo.Class.Resolve(miss)
+  check("a miss past 5 seconds is re-scanned", rosterCalls > firstCalls, rosterCalls)
+  S.Now = saved.Now
+
+  -- Battle.net: a friend on WoW resolves; one in another game gets nil; never cached.
+  IsInGuild = function() return false end
+  C_BattleNet = {
+    GetAccountInfoByID = function(id)
+      if id == 1 then return { gameAccountInfo = { clientProgram = BNET_CLIENT_WOW or "WoW", className = "Rogue" } } end
+      if id == 2 then return { gameAccountInfo = { clientProgram = "App", className = "Rogue" } } end
+      return nil
+    end,
+  }
+  S.Add({ convKey = "bn:1", text = "hi", sender = "|Kq1|k" })
+  local bnetWow = S.Get("bn:1")
+  class, source = Echo.Class.Resolve(bnetWow)
+  check("a Battle.net friend on WoW resolves", class == "ROGUE" and source == "bnet", tostring(class) .. "/" .. tostring(source))
+  check("a Battle.net class is never cached", bnetWow.resolvedClass == nil, tostring(bnetWow.resolvedClass))
+  S.Add({ convKey = "bn:2", text = "hi", sender = "|Kq2|k" })
+  local bnetApp = S.Get("bn:2")
+  class = Echo.Class.Resolve(bnetApp)
+  check("a Battle.net friend in another game gets nil", class == nil, tostring(class))
+
+  -- A tile spec for a whisper with no message class but a guild-found class is the class face.
+  IsInGuild = function() return true end
+  GetNumGuildMembers = function() return 1 end
+  GetGuildRosterInfo = function(i)
+    if i == 1 then return "Restored-Horizon", nil, nil, nil, nil, nil, nil, nil, nil, nil, "PALADIN" end
+    return nil
+  end
+  HorizonSuite.ResolveClassIconDisplay = function() return { kind = "file", path = "P" } end
+  S.Add({ convKey = "w:Restored-Horizon", text = "hi" })
+  local restored = S.Get("w:Restored-Horizon")
+  local spec = Echo.View.TileSpec(restored)
+  check("a restored whisper with a guild-found class gets a class face", spec.face == "class", spec.face)
+  HorizonSuite.ResolveClassIconDisplay = nil
+
+  -- A roster event clears a miss and marks tiles, stack and card for repaint.
+  CreateFrame = STUB_CREATE_FRAME
+  IsInGuild = function() return false end
+  local marks = {}
+  Echo.Redraw.Register("tiles", function() marks.tiles = true end)
+  Echo.Redraw.Register("stack", function() marks.stack = true end)
+  Echo.Redraw.Register("card", function() marks.card = true end)
+  Echo.Class.Enable()
+  local frame = Echo.Class._frame()
+  S.Add({ convKey = "w:Retry-Horizon", text = "hi" })
+  local retry = S.Get("w:Retry-Horizon")
+  Echo.Class.Resolve(retry)
+  check("a fresh miss sets classMissAt", retry.classMissAt ~= nil, tostring(retry.classMissAt))
+  frame.scripts.OnEvent(frame, "GROUP_ROSTER_UPDATE")
+  check("a roster event clears a miss", retry.classMissAt == nil, tostring(retry.classMissAt))
+  check("a roster event marks tiles, stack and card", marks.tiles == true and marks.stack == true and marks.card == true, "?")
+  Echo.Class.Disable()
+
+  IsInRaid, UnitName, UnitClass = saved.IsInRaid, saved.UnitName, saved.UnitClass
+  IsInGuild, GetNumGuildMembers, GetGuildRosterInfo = saved.IsInGuild, saved.GetNumGuildMembers, saved.GetGuildRosterInfo
+  C_FriendList, C_BattleNet, BNET_CLIENT_WOW = saved.C_FriendList, saved.C_BattleNet, saved.BNET_CLIENT_WOW
+  LOCALIZED_CLASS_NAMES_MALE, LOCALIZED_CLASS_NAMES_FEMALE = saved.LOCALIZED_CLASS_NAMES_MALE, saved.LOCALIZED_CLASS_NAMES_FEMALE
+  S.Reset()
+`, 'class-lookup');
 
 // --- Redraw: one repaint per frame -------------------------------------------
 run(`

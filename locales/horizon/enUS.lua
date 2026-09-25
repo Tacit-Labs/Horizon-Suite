@@ -2923,7 +2923,7 @@ L["ECHO_CARD_TEXT_SIZE_DESC"]                                 = "Size of the mes
 L["ECHO_FONT"]                                                = "Font"
 L["ECHO_FONT_DESC"]                                           = "Font for Echo's tiles, stack and card."
 L["ECHO_SLASH_STATUS"]                                        = "Echo: %d conversations, %d messages left in Blizzard chat (unrouted)"
-L["ECHO_SLASH_STATUS_ROW"]                                    = "  %s  tier=%s unread=%d messages=%d%s"
+L["ECHO_SLASH_STATUS_ROW"]                                    = "  %s  tier=%s unread=%d messages=%d%s%s"
 L["ECHO_SLASH_PINNED"]                                        = " pinned"
 L["ECHO_SLASH_PROBE"]                                         = "Echo probe: sendChat=%s sendBN=%s secretChat=%s bnetWhispers=%s"
 L["ECHO_SLASH_PROBE_START"]                                   = "Echo probe: describing the next %d chat messages (types only, never text)."
