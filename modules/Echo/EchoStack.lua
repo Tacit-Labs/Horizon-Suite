@@ -22,6 +22,7 @@ Stack.HEIGHT = 176
 Stack.FAN = 10          -- px of each card behind that shows above the one in front
 Stack.BEHIND = 2        -- cards drawn behind the top card
 Stack.LINES = 3         -- messages on the top card
+Stack.FEED_TIME_WIDTH = 36  -- a feed line's time column, left of its text
 Stack.HOVER_CLOSE = 0.4
 
 local root, card, edit, more
@@ -214,7 +215,9 @@ local function Create()
     card.close:SetScript("OnLeave", function() TintClose(0.55, 0.60, 0.75) end)
     card.close:SetScript("OnClick", function() Stack.CloseCurrent() end)
 
-    card.lines = {}
+    -- Each line has its own time FontString beside it (shown for feeds only), so a secret
+    -- text is never joined with its time and stays alone in its FontString.
+    card.lines, card.times = {}, {}
     for i = 1, Stack.LINES do
         local fs = Echo.NewText(card, 12, "")
         fs:SetWidth(Stack.WIDTH - 24)
@@ -227,6 +230,11 @@ local function Create()
             fs:SetPoint("TOPLEFT", card.lines[i - 1], "BOTTOMLEFT", 0, -3)
         end
         card.lines[i] = fs
+        local stamp = Echo.NewText(card, 10, "")
+        stamp:SetPoint("TOPLEFT", fs, "TOPLEFT", -Stack.FEED_TIME_WIDTH, -1)
+        stamp:SetTextColor(0.55, 0.60, 0.75, 1)
+        stamp:Hide()
+        card.times[i] = stamp
     end
 
     CreateEdit()
@@ -299,9 +307,23 @@ function Stack.Render()
     card.name:SetTextColor(spec.r, spec.g, spec.b, 1)
     card.meta:SetText(View.MetaLine(conv, Echo.Store.Now()):upper())
 
+    -- A feed line reads as its time, then its text: shift the text column right by the time.
+    -- Lines below the first hang off the one above, so only the first is re-anchored.
+    local feed = View.IsFeed(conv.kind)
+    local shift = feed and Stack.FEED_TIME_WIDTH or 0
+    card.lines[1]:ClearAllPoints()
+    card.lines[1]:SetPoint("TOPLEFT", card, "TOPLEFT", 12 + shift, -52)
     local recent = View.Recent(conv, Stack.LINES)
     for i = 1, Stack.LINES do
-        local fs, msg = card.lines[i], recent[i]
+        local fs, msg, stamp = card.lines[i], recent[i], card.times[i]
+        fs:SetWidth(Stack.WIDTH - 24 - shift)
+        if msg and feed then
+            stamp:SetText(View.FeedTime(msg.time))
+            stamp:Show()
+        else
+            stamp:SetText("")
+            stamp:Hide()
+        end
         if msg then
             fs:SetText(View.LineText(conv, msg))
             -- Your lines on the right and dimmer, like sent bubbles; theirs on the left.
@@ -331,7 +353,6 @@ function Stack.Render()
 
     -- Feeds are read-only: no reply box. Clear focus too, or a focused box left behind by
     -- flipping from a conversation card reads as "keep open" to the hover-close poll.
-    local feed = View.IsFeed(conv.kind)
     if feed then edit:ClearFocus() end
     edit:SetShown(not feed)
 

@@ -2658,6 +2658,37 @@ run(`
   S.Reset()
 `, 'store-feed-dismissed');
 
+// --- Stack: feed lines carry their time ------------------------------------------------------
+run(`
+  local S, K = HorizonSuite.Echo.Store, HorizonSuite.Echo.Stack
+  S.Reset()
+  CreateFrame = STUB_CREATE_FRAME
+  K.Enable()
+  local savedDate = date
+  date = function() return "12:04" end
+  S.Add({ convKey = "loot", text = "You receive loot: [Cloak].", feed = true, chatType = "LOOT", time = 100 })
+  S.Add({ convKey = "loot", text = SECRET("You receive loot: [Hidden]."), secret = true, feed = true, chatType = "LOOT", time = 101 })
+  S.Add({ convKey = "w:Brisa-Horizon", text = "hi", sender = "Brisa-Horizon", time = 102 })
+  K.Open("loot")
+  local card = K._frames().card
+  local times = rawget(card, "times")
+  check("a stack feed line shows its time", times ~= nil and times[1].shown and times[1].text == "12:04", times and times[1].text)
+  if not times then times = { {}, {}, {} } end
+  check("the time has its own text, apart from the line", card.lines[1].text ~= "12:04" and not rawequal(times[1], card.lines[1]), "?")
+  local secretLine
+  for i = 1, 2 do if type(card.lines[i].text) == "table" then secretLine = card.lines[i] end end
+  check("a secret feed line stays alone in its text", secretLine ~= nil and rawequal(secretLine.text, S.Get("loot").messages[2].text), "joined")
+  local feedX = card.lines[1].points[1] and card.lines[1].points[1][4]
+  K.Open("w:Brisa-Horizon")
+  check("a conversation card shows no time", times[1].shown == false, tostring(times[1].shown))
+  local convX = card.lines[1].points[1] and card.lines[1].points[1][4]
+  check("a feed line's text sits right of its time", type(feedX) == "number" and type(convX) == "number" and feedX > convX, tostring(feedX) .. " vs " .. tostring(convX))
+  date = savedDate
+  K.Hide()
+  K.Disable()
+  S.Reset()
+`, 'stack-feed-times');
+
 // --- Summary -------------------------------------------------------------------
 run(`
   print(PASS .. " passed, " .. FAIL .. " failed")
