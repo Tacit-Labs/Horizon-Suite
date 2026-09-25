@@ -1229,6 +1229,111 @@ run(`
   S.Reset()
 `, 'tiles-stack-open');
 
+// --- Module wiring: login restore, Battle.net retry, combat, logout (final review F4) ------
+// EchoModule.lua is not in FILES: it registers with the addon, so it loads here against a
+// stubbed RegisterModule and everything it touches is put back afterwards.
+run(`
+  local A = HorizonSuite
+  local Echo, S, H, T, K = A.Echo, A.Echo.Store, A.Echo.History, A.Echo.Tiles, A.Echo.Stack
+  S.Reset()
+  MODULE_TEST = {
+    saved = {
+      RegisterModule = A.RegisterModule, DATABASE = A.DATABASE, profileKey = A._GetCurrentCharacterProfileKey,
+      IsModuleEnabled = A.IsModuleEnabled, IsLoggedIn = IsLoggedIn, CreateFrame = CreateFrame,
+      SessionKeys = H.SessionKeys, SaveSession = H.SaveSession, Now = S.Now,
+      hold = A.ECHO_DEFAULTS and A.ECHO_DEFAULTS.echoHoldToastsInCombat,
+    },
+    frames = {},
+  }
+  A.RegisterModule = function(_, name, def) MODULE_TEST.name, MODULE_TEST.def = name, def end
+  A.DATABASE = "ECHO_TEST_DB"
+  _G.ECHO_TEST_DB = {}
+  A._GetCurrentCharacterProfileKey = function() return "Kaelis-Horizon" end
+  A.IsModuleEnabled = function() return true end
+  A.ECHO_DEFAULTS = A.ECHO_DEFAULTS or {}
+  A.ECHO_DEFAULTS.echoHoldToastsInCombat = true
+  IsLoggedIn = function() return false end
+  CreateFrame = function(...)
+    local f = STUB_CREATE_FRAME(...)
+    f.events = {}
+    f.RegisterEvent = function(self, e) self.events[e] = true end
+    f.UnregisterEvent = function(self, e) self.events[e] = nil end
+    f.UnregisterAllEvents = function(self) self.events = {} end
+    MODULE_TEST.frames[#MODULE_TEST.frames + 1] = f
+    return f
+  end
+`, 'module-stubs');
+run(read('modules/Echo/EchoModule.lua'), 'modules/Echo/EchoModule.lua');
+run(`
+  local A = HorizonSuite
+  local Echo, S, H, T, K = A.Echo, A.Echo.Store, A.Echo.History, A.Echo.Tiles, A.Echo.Stack
+  local M = MODULE_TEST
+  check("the module registers as echo", M.name == "echo" and type(M.def) == "table", M.name)
+  local clock = 10000
+  S.Now = function() return clock end
+  local sessionKeys = { "w:Saved-Horizon" }
+  H.SessionKeys = function() return sessionKeys end
+  local saves = 0
+  H.SaveSession = function() saves = saves + 1; return true end
+
+  M.def.OnEnable()
+  local lifecycle
+  for _, f in ipairs(M.frames) do if f.events.PLAYER_LOGOUT then lifecycle = f end end
+  check("a lifecycle frame listens for logout", lifecycle ~= nil, "none")
+  local function fire(event) lifecycle.scripts.OnEvent(lifecycle, event) end
+  check("before the world loads nothing is restored", S.Get("w:Saved-Horizon") == nil, "restored early")
+  check("it waits for PLAYER_ENTERING_WORLD", lifecycle.events.PLAYER_ENTERING_WORLD == true, "not registered")
+
+  fire("PLAYER_LOGOUT")
+  check("a logout before any restore keeps the saved tiles", saves == 0, saves)
+
+  fire("PLAYER_ENTERING_WORLD")
+  check("entering the world restores the saved tiles", S.Get("w:Saved-Horizon") ~= nil, "not restored")
+  check("battle.net friend updates are watched after the restore",
+        lifecycle.events.BN_FRIEND_INFO_CHANGED == true and lifecycle.events.BN_CONNECTED == true, "not registered")
+
+  S.Add({ convKey = "w:Brisa-Horizon", text = "hi", sender = "Brisa-Horizon" })
+  K.Open("w:Brisa-Horizon")
+  local f = K._frames()
+  fire("PLAYER_REGEN_DISABLED")
+  check("combat closes the stack", not f.root:IsShown(), "shown")
+  check("combat holds toasts", T.holding == true, tostring(T.holding))
+  fire("PLAYER_REGEN_ENABLED")
+  check("leaving combat releases toasts", T.holding == false, tostring(T.holding))
+
+  sessionKeys = { "w:Saved-Horizon", "bn:9" }
+  clock = clock + 20
+  fire("BN_FRIEND_INFO_CHANGED")
+  check("a late friends list restores the battle.net tile", S.Get("bn:9") ~= nil, "not restored")
+  sessionKeys = { "w:Saved-Horizon", "bn:9", "bn:10" }
+  clock = clock + 45
+  fire("BN_CONNECTED")
+  check("past a minute battle.net updates restore nothing more", S.Get("bn:10") == nil, "restored late")
+  check("past a minute the battle.net events are dropped",
+        not lifecycle.events.BN_FRIEND_INFO_CHANGED and not lifecycle.events.BN_CONNECTED, "still registered")
+
+  fire("PLAYER_LOGOUT")
+  check("a logout after the restore saves the session", saves == 1, saves)
+
+  M.def.OnDisable()
+  check("disable drops every lifecycle event", next(lifecycle.events) == nil, "still registered")
+  IsLoggedIn = function() return true end
+  sessionKeys = { "w:Again-Horizon" }
+  M.def.OnEnable()
+  check("enabled after login, it restores at once", S.Get("w:Again-Horizon") ~= nil, "not restored")
+  M.def.OnDisable()
+
+  local saved = M.saved
+  A.RegisterModule, A.DATABASE, A._GetCurrentCharacterProfileKey = saved.RegisterModule, saved.DATABASE, saved.profileKey
+  A.IsModuleEnabled, IsLoggedIn, CreateFrame = saved.IsModuleEnabled, saved.IsLoggedIn, saved.CreateFrame
+  H.SessionKeys, H.SaveSession, S.Now = saved.SessionKeys, saved.SaveSession, saved.Now
+  A.ECHO_DEFAULTS.echoHoldToastsInCombat = saved.hold
+  Echo.Init, Echo.Disable, Echo.RestoreSession = nil, nil, nil
+  _G.ECHO_TEST_DB = nil
+  MODULE_TEST = nil
+  S.Reset()
+`, 'module');
+
 // --- Summary -------------------------------------------------------------------
 run(`
   print(PASS .. " passed, " .. FAIL .. " failed")
