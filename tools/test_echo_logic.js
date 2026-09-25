@@ -1136,6 +1136,41 @@ run(`
   S.Reset()
 `, 'stack-onhide');
 
+// --- Stack: a click during the hover delay wins over the hover open (final review F1) ----
+run(`
+  local S, T, K = HorizonSuite.Echo.Store, HorizonSuite.Echo.Tiles, HorizonSuite.Echo.Stack
+  S.Reset()
+  CreateFrame = STUB_CREATE_FRAME
+  T.Enable()
+  K.Enable()
+  local f = K._frames()
+  local column = _G.HorizonSuiteEchoColumn
+  S.Add({ convKey = "w:Brisa-Horizon", text = "hi", class = "DRUID", sender = "Brisa-Horizon" })
+  S.Add({ convKey = "w:Vexa-Horizon", text = "gz", sender = "Vexa-Horizon" })
+
+  local savedNewTimer = C_Timer.NewTimer
+  local fire, cancelled
+  C_Timer.NewTimer = function(_, fn)
+    fire = fn
+    return { Cancel = function() cancelled = true end }
+  end
+  column.IsMouseOver = function() return true end
+  K.HoverEnter()
+  check("hovering a tile starts the open timer", type(fire) == "function", type(fire))
+  K.Open("w:Brisa-Horizon")
+  check("a click opens the clicked (lower) card", f.card.name.text == "Brisa", f.card.name.text)
+  check("opening cancels the pending hover timer", cancelled == true, tostring(cancelled))
+  fire()
+  check("the hover timer firing late leaves the clicked card on top", f.card.name.text == "Brisa", f.card.name.text)
+  column.IsMouseOver = nil
+  C_Timer.NewTimer = savedNewTimer
+
+  K.Hide()
+  K.Disable()
+  T.Disable()
+  S.Reset()
+`, 'stack-hover-click');
+
 // --- Summary -------------------------------------------------------------------
 run(`
   print(PASS .. " passed, " .. FAIL .. " failed")
