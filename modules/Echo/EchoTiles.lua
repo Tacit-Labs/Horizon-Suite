@@ -189,7 +189,7 @@ local function CreateTile()
     b:SetScript("OnClick", function(self)
         if not self.convKey then return end
         if Echo.Card then
-            Echo.Card.Toggle(self.convKey)
+            Echo.Card.Toggle(self.convKey, self)
         elseif Echo.Stack then
             Echo.Stack.Open(self.convKey)
         end

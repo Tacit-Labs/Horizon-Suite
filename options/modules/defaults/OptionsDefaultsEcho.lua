@@ -42,6 +42,7 @@ addon.ECHO_DEFAULTS = {
     echoCardHeight         = 440,
     echoCardTextSize       = 11,
     echoFontPath           = "__global__",
+    echoAnimateCard        = true,
 }
 
 addon.ECHO_LIMITS = {

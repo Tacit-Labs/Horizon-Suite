@@ -192,7 +192,7 @@ local function Create()
         b.dot:SetColorTexture(a.r, a.g, a.b, 1)
         b:RegisterForClicks("LeftButtonUp")
         b:SetScript("OnClick", function(self)
-            if self.convKey then Card.Toggle(self.convKey) end
+            if self.convKey then Card.Toggle(self.convKey, self) end
         end)
         b:Hide()
         rowTiles[i] = b
@@ -563,13 +563,78 @@ end
 
 function Card.Reanchor() Anchor() end
 
+Card.ANIM_DURATION = 0.15
+Card.ANIM_SCALE_FROM = 0.85
+
+-- A Scale animation's from/to methods vary by client: try the newer name first, then the
+-- older one. Guarded so a client (or the harness) offering neither just skips it.
+local function SetScaleValue(scaleAnim, newName, oldName, x, y)
+    if scaleAnim[newName] then
+        scaleAnim[newName](scaleAnim, x, y)
+    elseif scaleAnim[oldName] then
+        scaleAnim[oldName](scaleAnim, x, y)
+    end
+end
+
+-- Where the "grow out of the tile" animation pivots: the tile it opened from, moved to its
+-- own vertical position within the card (clamped to the card's height); without one, the
+-- panel corner nearest the column.
+-- @param fromTile Frame|nil
+-- @return string point, number x, number y
+local function AnimOrigin(fromTile)
+    local corner = Echo.View.PanelSides(Echo.View.Edge()).panel
+    if not fromTile then return corner, 0, 0 end
+    local horiz = corner:find("LEFT", 1, true) and "LEFT" or "RIGHT"
+    local rootTop = root.GetTop and root:GetTop()
+    local tileTop = fromTile.GetTop and fromTile:GetTop()
+    local tileBottom = fromTile.GetBottom and fromTile:GetBottom()
+    if type(rootTop) ~= "number" or type(tileTop) ~= "number" or type(tileBottom) ~= "number" then
+        return corner, 0, 0
+    end
+    local y = rootTop - (tileTop + tileBottom) / 2
+    if y < 0 then y = 0 elseif y > Card.HEIGHT then y = Card.HEIGHT end
+    return "TOP" .. horiz, 0, -y
+end
+
+-- Plays the card's 0.15s "grow out of the tile" open animation, when the setting allows it.
+-- Builds a fresh AnimationGroup each time: cheap, and it sidesteps ever holding a stale
+-- group across a Disable/Enable. Every step is guarded, since CreateAnimationGroup and
+-- CreateAnimation both answer nil in the test harness and on some older clients.
+-- @param fromTile Frame|nil  the tile the card grew out of
+local function PlayOpenAnimation(fromTile)
+    if not Echo.Setting("echoAnimateCard") then return end
+    if not root or not root.CreateAnimationGroup then return end
+    local group = root:CreateAnimationGroup()
+    if not group then return end
+    if group.SetSmoothing then group:SetSmoothing("OUT") end
+    local scale = group.CreateAnimation and group:CreateAnimation("Scale")
+    local alpha = group.CreateAnimation and group:CreateAnimation("Alpha")
+    if scale then
+        if scale.SetDuration then scale:SetDuration(Card.ANIM_DURATION) end
+        SetScaleValue(scale, "SetScaleFrom", "SetFromScale", Card.ANIM_SCALE_FROM, Card.ANIM_SCALE_FROM)
+        SetScaleValue(scale, "SetScaleTo", "SetToScale", 1, 1)
+        if scale.SetOrigin then
+            local point, x, y = AnimOrigin(fromTile)
+            scale:SetOrigin(point, x, y)
+        end
+    end
+    if alpha then
+        if alpha.SetDuration then alpha:SetDuration(Card.ANIM_DURATION) end
+        if alpha.SetFromAlpha then alpha:SetFromAlpha(0) end
+        if alpha.SetToAlpha then alpha:SetToAlpha(1) end
+    end
+    if group.Play then group:Play() end
+end
+
 --- Open the card on a conversation; the stack closes.
 -- @param convKey string|nil  nil for the top conversation
 -- @param focus boolean|nil  focus the reply box
-function Card.Open(convKey, focus)
+-- @param fromTile Frame|nil  the tile clicked to open it; the card grows out of it
+function Card.Open(convKey, focus, fromTile)
     if not root then Create() end
     if #Echo.Store.List() == 0 then return end
     if Echo.Stack then Echo.Stack.Hide() end
+    local wasShown = root:IsShown()
     currentKey = convKey
     offset = 0
     newBelow = 0
@@ -577,6 +642,7 @@ function Card.Open(convKey, focus)
     Anchor()
     root:Show()
     Card.Render()
+    if not wasShown then PlayOpenAnimation(fromTile) end
     if focus then Card.Focus() end
 end
 
@@ -593,9 +659,10 @@ end
 
 --- Switch the open card to another conversation (opens it if closed).
 -- @param convKey string
-function Card.Show(convKey)
+-- @param fromTile Frame|nil  the tile clicked; the card grows out of it if it was closed
+function Card.Show(convKey, fromTile)
     if not root or not root:IsShown() then
-        Card.Open(convKey)
+        Card.Open(convKey, nil, fromTile)
         return
     end
     currentKey = convKey
@@ -604,11 +671,12 @@ end
 
 --- A tile click: close the card if it already shows this conversation, else show it.
 -- @param convKey string
-function Card.Toggle(convKey)
+-- @param fromTile Frame|nil  the tile clicked; the card grows out of it if it was closed
+function Card.Toggle(convKey, fromTile)
     if root and root:IsShown() and convKey == renderedKey then
         Card.Hide()
     else
-        Card.Show(convKey)
+        Card.Show(convKey, fromTile)
     end
 end
 
