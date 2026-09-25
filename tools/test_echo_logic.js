@@ -724,6 +724,16 @@ run(`
   S.Close("w:Top-Horizon")
   check("restore does not reopen a conversation closed this session", S.Restore({ "w:Top-Horizon" }) == 0, "reopened")
   check("restore with nothing is harmless", S.Restore(nil) == 0, "?")
+
+  S.Reset()
+  local aCalled = false
+  local bCalled = false
+  local function listenerA(key, change) aCalled = true; S.Unsubscribe(listenerA) end
+  local function listenerB(key, change) bCalled = true end
+  S.Subscribe(listenerA)
+  S.Subscribe(listenerB)
+  S.Add({ convKey = "guild", text = "x" })
+  check("both listeners called even when one unsubscribes mid-notify", aCalled and bCalled, "bCalled=" .. tostring(bCalled))
   S.Reset()
 `, 'store-restore');
 
