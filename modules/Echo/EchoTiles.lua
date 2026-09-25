@@ -369,6 +369,10 @@ end
 function Tiles.OnStoreChange(convKey, change)
     Tiles.Refresh()
     if change ~= "toast" or not convKey then return end
+    -- The open stack already shows the conversation (its card re-renders, its tile badges);
+    -- a toast over it would only cover the stack, and a held one would replay stale later.
+    local stack = _G.HorizonSuiteEchoStack
+    if stack and stack:IsShown() then return end
     if Tiles.holding then
         local conv = Echo.Store.Get(convKey)
         local last = conv and conv.messages[#conv.messages]
