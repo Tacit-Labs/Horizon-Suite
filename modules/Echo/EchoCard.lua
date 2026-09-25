@@ -41,6 +41,9 @@ Card.FEED_GAP = 2
 
 local root, nameText, metaText, area, edit, send, menuButton, chevron, statusLine, hint
 local rowTiles, bubbles, labels = {}, {}, {}
+-- Forward-declared: Create()'s OnHide handler (defined further down) needs to stop the
+-- open animation, but the animation itself isn't built until later in the file.
+local StopAnimation
 local currentKey, renderedKey
 local offset = 0  -- newest messages scrolled past
 local newBelow = 0  -- messages added while scrolled up, shown by the hint
@@ -142,9 +145,11 @@ local function Create()
     table.insert(UISpecialFrames, "HorizonSuiteEchoCard")
     root:SetScript("OnHide", function()
         -- Covers closes that bypass Card.Hide entirely, e.g. Escape via UISpecialFrames
-        -- calling root:Hide() directly: leave no stale draft or stuck focus behind.
+        -- calling root:Hide() directly: leave no stale draft or stuck focus behind, and
+        -- don't let the open animation keep playing against a hidden card.
         ParkDraft()
         if edit then edit:ClearFocus() end
+        StopAnimation()
     end)
 
     local rule = root:CreateTexture(nil, "OVERLAY")
@@ -596,34 +601,52 @@ local function AnimOrigin(fromTile)
     return "TOP" .. horiz, 0, -y
 end
 
--- Plays the card's 0.15s "grow out of the tile" open animation, when the setting allows it.
--- Builds a fresh AnimationGroup each time: cheap, and it sidesteps ever holding a stale
--- group across a Disable/Enable. Every step is guarded, since CreateAnimationGroup and
--- CreateAnimation both answer nil in the test harness and on some older clients.
--- @param fromTile Frame|nil  the tile the card grew out of
-local function PlayOpenAnimation(fromTile)
-    if not Echo.Setting("echoAnimateCard") then return end
-    if not root or not root.CreateAnimationGroup then return end
+-- The card's "grow out of the tile" open animation: built once, lazily, into these module
+-- locals, and replayed on every animated open. SetSmoothing lives on the Animation objects,
+-- not the AnimationGroup, so it's set on each of them individually.
+local animGroup, animScale, animAlpha
+
+-- Builds the animation group and its Scale/Alpha children once. Every step is guarded,
+-- since CreateAnimationGroup and CreateAnimation both answer nil in the test harness and on
+-- some older clients; a failed build isn't cached, so a later call can retry it.
+local function EnsureAnimation()
+    if animGroup or not root or not root.CreateAnimationGroup then return end
     local group = root:CreateAnimationGroup()
     if not group then return end
-    if group.SetSmoothing then group:SetSmoothing("OUT") end
     local scale = group.CreateAnimation and group:CreateAnimation("Scale")
     local alpha = group.CreateAnimation and group:CreateAnimation("Alpha")
     if scale then
+        if scale.SetSmoothing then scale:SetSmoothing("OUT") end
         if scale.SetDuration then scale:SetDuration(Card.ANIM_DURATION) end
         SetScaleValue(scale, "SetScaleFrom", "SetFromScale", Card.ANIM_SCALE_FROM, Card.ANIM_SCALE_FROM)
         SetScaleValue(scale, "SetScaleTo", "SetToScale", 1, 1)
-        if scale.SetOrigin then
-            local point, x, y = AnimOrigin(fromTile)
-            scale:SetOrigin(point, x, y)
-        end
     end
     if alpha then
+        if alpha.SetSmoothing then alpha:SetSmoothing("OUT") end
         if alpha.SetDuration then alpha:SetDuration(Card.ANIM_DURATION) end
         if alpha.SetFromAlpha then alpha:SetFromAlpha(0) end
         if alpha.SetToAlpha then alpha:SetToAlpha(1) end
     end
-    if group.Play then group:Play() end
+    animGroup, animScale, animAlpha = group, scale, alpha
+end
+
+-- Plays the card's 0.15s "grow out of the tile" open animation, when the setting allows it.
+-- @param fromTile Frame|nil  the tile the card grew out of
+local function PlayOpenAnimation(fromTile)
+    if not Echo.Setting("echoAnimateCard") then return end
+    EnsureAnimation()
+    if not animGroup then return end
+    if animGroup.Stop then animGroup:Stop() end
+    if animScale and animScale.SetOrigin then
+        local point, x, y = AnimOrigin(fromTile)
+        animScale:SetOrigin(point, x, y)
+    end
+    if animGroup.Play then animGroup:Play() end
+end
+
+-- Stops the open animation, if one has ever been built and is (or might be) playing.
+function StopAnimation()
+    if animGroup and animGroup.Stop then animGroup:Stop() end
 end
 
 --- Open the card on a conversation; the stack closes.
@@ -688,12 +711,19 @@ function Card.Hide()
     if edit then edit:ClearFocus() end
     newBelow = 0
     if hint then hint:Hide() end
+    StopAnimation()
     root:Hide()
 end
 
 --- @return boolean
 function Card.IsShown()
     return root ~= nil and root:IsShown()
+end
+
+--- The conversation key the card currently has rendered, if any.
+-- @return string|nil
+function Card.ShownKey()
+    return renderedKey
 end
 
 -- Show the hint raised above the message area, so it never sits under a bubble, with its

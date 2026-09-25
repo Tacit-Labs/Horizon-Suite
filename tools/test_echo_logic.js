@@ -2028,7 +2028,7 @@ run(`
   S.Reset()
 `, 'card-onhide');
 
-// --- Card: grows out of the tile you clicked (Task 5) --------------------------------------
+// --- Card: grows out of the tile you clicked (Task 5, revised final review) ----------------
 run(`
   local Echo = HorizonSuite.Echo
   local S, T, K, C = Echo.Store, Echo.Tiles, Echo.Stack, Echo.Card
@@ -2042,15 +2042,16 @@ run(`
   C.Enable()
   local f = C._frames()
 
-  -- A recorder standing in for a real AnimationGroup, tracking exactly what the "grow out
-  -- of the tile" animation sets on it.
+  -- A recorder standing in for a real AnimationGroup and its Scale/Alpha children, tracking
+  -- exactly what the "grow out of the tile" animation sets on them. SetSmoothing lives on
+  -- the Animation objects here, not the group, matching the real API.
   local function NewRecorder()
       local r = { groupCalls = 0, played = 0, stopped = 0 }
-      r.SetSmoothing = function(self, s) r.smoothing = s end
       r.CreateAnimation = function(self, kind)
           if kind == "Scale" then
               r.scale = {}
               local s = r.scale
+              s.SetSmoothing = function(self, v) s.smoothing = v end
               s.SetDuration = function(self, d) s.duration = d end
               s.SetScaleFrom = function(self, x, y) s.from = { x, y } end
               s.SetScaleTo = function(self, x, y) s.to = { x, y } end
@@ -2059,6 +2060,7 @@ run(`
           elseif kind == "Alpha" then
               r.alpha = {}
               local a = r.alpha
+              a.SetSmoothing = function(self, v) a.smoothing = v end
               a.SetDuration = function(self, d) a.duration = d end
               a.SetFromAlpha = function(self, v) a.from = v end
               a.SetToAlpha = function(self, v) a.to = v end
@@ -2067,78 +2069,101 @@ run(`
       end
       r.Play = function(self) r.played = r.played + 1 end
       r.Stop = function(self) r.stopped = r.stopped + 1 end
-      r.IsPlaying = function(self) return r.played > r.stopped end
       return r
   end
 
   S.Add({ convKey = "w:Brisa-Horizon", text = "hi", sender = "Brisa-Horizon" })
   S.Add({ convKey = "w:Vexa-Horizon", text = "gz", sender = "Vexa-Horizon" })
 
-  -- Opening builds and plays the animation once, pivoted on the panel corner nearest the
-  -- column (the right edge here, so the card's own BOTTOMRIGHT).
-  local rec1 = NewRecorder()
-  f.root.CreateAnimationGroup = function() rec1.groupCalls = rec1.groupCalls + 1; return rec1 end
-  C.Open("w:Brisa-Horizon")
-  check("opening builds the animation once", rec1.groupCalls == 1, rec1.groupCalls)
-  check("opening plays the animation once", rec1.played == 1, rec1.played)
-  check("smoothing is OUT", rec1.smoothing == "OUT", rec1.smoothing)
-  check("the scale runs 0.85 to 1 over 0.15s", rec1.scale.from[1] == 0.85 and rec1.scale.to[1] == 1
-      and rec1.scale.duration == 0.15, rec1.scale.duration)
-  check("the alpha runs 0 to 1 over 0.15s", rec1.alpha.from == 0 and rec1.alpha.to == 1
-      and rec1.alpha.duration == 0.15, rec1.alpha.duration)
-  check("with no tile, the origin is the panel corner", rec1.scale.origin[1] == "BOTTOMRIGHT"
-      and rec1.scale.origin[2] == 0 and rec1.scale.origin[3] == 0, rec1.scale.origin[1])
-
-  -- A second Open while already shown on the same conversation doesn't replay it.
-  C.Open("w:Brisa-Horizon")
-  check("a second Open on the same conversation doesn't rebuild the animation", rec1.groupCalls == 1, rec1.groupCalls)
-  check("a second Open on the same conversation doesn't replay it", rec1.played == 1, rec1.played)
-  C.Hide()
-
-  -- With the setting off, nothing plays.
-  db.echoAnimateCard = false
-  local rec2 = NewRecorder()
-  f.root.CreateAnimationGroup = function() rec2.groupCalls = rec2.groupCalls + 1; return rec2 end
-  C.Open("w:Brisa-Horizon")
-  check("the setting off never builds the animation", rec2.groupCalls == 0, rec2.groupCalls)
-  C.Hide()
-  db.echoAnimateCard = true
-
-  -- A nil group (an old client, or the harness's own stand-in) doesn't error.
+  -- A nil group (an old client, or the harness's own stand-in) doesn't error, and a failed
+  -- build isn't cached: a later successful one still happens.
   f.root.CreateAnimationGroup = function() return nil end
   local ok = pcall(C.Open, "w:Brisa-Horizon")
   check("a nil animation group doesn't error", ok, ok)
   check("the card still opens", f.root:IsShown(), "hidden")
   C.Hide()
 
+  -- The group and its animations are built once, lazily, and reused on every animated open
+  -- from here on.
+  local rec = NewRecorder()
+  f.root.CreateAnimationGroup = function() rec.groupCalls = rec.groupCalls + 1; return rec end
+
+  -- Opening builds and plays the animation once, pivoted on the panel corner nearest the
+  -- column (the right edge here, so the card's own BOTTOMRIGHT).
+  C.Open("w:Brisa-Horizon")
+  check("opening builds the animation once", rec.groupCalls == 1, rec.groupCalls)
+  check("opening plays the animation once", rec.played == 1, rec.played)
+  check("both animations get smoothing OUT", rec.scale.smoothing == "OUT" and rec.alpha.smoothing == "OUT",
+      tostring(rec.scale.smoothing) .. "/" .. tostring(rec.alpha.smoothing))
+  check("the scale runs 0.85 to 1 over 0.15s", rec.scale.from[1] == 0.85 and rec.scale.to[1] == 1
+      and rec.scale.duration == 0.15, rec.scale.duration)
+  check("the alpha runs 0 to 1 over 0.15s", rec.alpha.from == 0 and rec.alpha.to == 1
+      and rec.alpha.duration == 0.15, rec.alpha.duration)
+  check("with no tile, the origin is the panel corner", rec.scale.origin[1] == "BOTTOMRIGHT"
+      and rec.scale.origin[2] == 0 and rec.scale.origin[3] == 0, rec.scale.origin[1])
+
+  -- A second Open while already shown on the same conversation doesn't replay it.
+  C.Open("w:Brisa-Horizon")
+  check("a second Open on the same conversation doesn't rebuild the animation", rec.groupCalls == 1, rec.groupCalls)
+  check("a second Open on the same conversation doesn't replay it", rec.played == 1, rec.played)
+
+  -- Hiding mid-animation stops it (PlayOpenAnimation itself also stops before every replay,
+  -- so these are counted as increases, not absolute totals).
+  local stoppedBefore = rec.stopped
+  C.Hide()
+  check("hiding stops the animation", rec.stopped == stoppedBefore + 1, rec.stopped)
+
+  -- A second animated open (after the hide) reuses the same group rather than rebuilding it,
+  -- stopping it first (it may still be playing) before playing it again.
+  local playedBefore, stopBefore2 = rec.played, rec.stopped
+  C.Open("w:Brisa-Horizon")
+  check("a second animated open reuses the group, not rebuilding it", rec.groupCalls == 1, rec.groupCalls)
+  check("a second animated open plays it again", rec.played == playedBefore + 1, rec.played)
+  check("a second animated open stops it first", rec.stopped == stopBefore2 + 1, rec.stopped)
+  local stoppedBefore3 = rec.stopped
+  C.Hide()
+  check("hiding again stops it again", rec.stopped == stoppedBefore3 + 1, rec.stopped)
+
+  -- With the setting off, the existing group is neither rebuilt nor replayed.
+  db.echoAnimateCard = false
+  local playedBefore4, stoppedBefore4 = rec.played, rec.stopped
+  C.Open("w:Brisa-Horizon")
+  check("the setting off never rebuilds the animation", rec.groupCalls == 1, rec.groupCalls)
+  check("the setting off never plays it", rec.played == playedBefore4, rec.played)
+  check("the setting off never stops it either (nothing to stop)", rec.stopped == stoppedBefore4, rec.stopped)
+  C.Hide()
+  db.echoAnimateCard = true
+
   -- A tile click passes the tile: the origin's point flips to the top of that edge, offset
   -- down by the tile's own vertical position (found via GetTop/GetBottom).
-  local rec3 = NewRecorder()
-  f.root.CreateAnimationGroup = function() return rec3 end
   f.root.GetTop = function() return 400 end
   local rowTile
   for _, b in ipairs(f.rowTiles) do if b.convKey == "w:Vexa-Horizon" then rowTile = b end end
   rowTile.GetTop = function() return 350 end
   rowTile.GetBottom = function() return 324 end
-  C.Open("w:Brisa-Horizon")
-  C.Hide()
+  local playedBefore5 = rec.played
   rowTile.scripts.OnClick(rowTile)
   check("a row tile click opens its conversation", f.name.text == "Vexa", f.name.text)
-  check("a row tile click moves the origin off the panel corner", rec3.scale.origin[1] == "TOPRIGHT", rec3.scale.origin[1])
-  check("the origin's offset follows the tile", rec3.scale.origin[3] == -63, rec3.scale.origin[3])
-  f.root.GetTop = nil
+  check("a row tile click plays the animation", rec.played == playedBefore5 + 1, rec.played)
+  check("a row tile click moves the origin off the panel corner", rec.scale.origin[1] == "TOPRIGHT", rec.scale.origin[1])
+  check("the origin's offset follows the tile", rec.scale.origin[3] == -63, rec.scale.origin[3])
   rowTile.GetTop, rowTile.GetBottom = nil, nil
   C.Hide()
 
-  -- A column tile click (EchoTiles.CreateTile) also passes its tile through to Card.Toggle.
-  local rec4 = NewRecorder()
-  f.root.CreateAnimationGroup = function() rec4.groupCalls = rec4.groupCalls + 1; return rec4 end
+  -- A column tile click (EchoTiles.CreateTile) also passes its own tile through to
+  -- Card.Toggle, exercising the real origin path there too.
   local colTile = T.TileFor("w:Vexa-Horizon")
   check("the column has a tile for the conversation", colTile ~= nil, "nil")
+  colTile.GetTop = function() return 350 end
+  colTile.GetBottom = function() return 324 end
+  local playedBefore6 = rec.played
   colTile.scripts.OnClick(colTile)
   check("a column tile click opens its conversation", f.name.text == "Vexa", f.name.text)
-  check("a column tile click builds and plays the animation", rec4.groupCalls == 1 and rec4.played == 1, rec4.groupCalls)
-  f.root.CreateAnimationGroup = nil
+  check("a column tile click plays the animation again", rec.played == playedBefore6 + 1, rec.played)
+  check("a column tile click moves the origin off the panel corner", rec.scale.origin[1] == "TOPRIGHT", rec.scale.origin[1])
+  check("the origin follows the column tile's own position", rec.scale.origin[3] == -63, rec.scale.origin[3])
+  colTile.GetTop, colTile.GetBottom = nil, nil
+  f.root.GetTop = nil
   C.Hide()
 
   C.Disable()
