@@ -378,6 +378,7 @@ read_globals = {
     "FCF_SelectDockFrame",
     "BNGetNumFriends",
     "DEFAULT_CHAT_FRAME",
+    "SELECTED_CHAT_FRAME",
     "BNSendWhisper",
     "SendChatMessage",
     "ContentTrackingUtil",

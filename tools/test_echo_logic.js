@@ -2430,6 +2430,48 @@ run(`
   GameTooltip, SetItemRef = savedTooltip, savedItemRef
 `, 'links-live');
 
+// --- Links: clicks reach a real chat frame; failures are reported --------------------------
+run(`
+  local Links = HorizonSuite.Echo.Links
+  local savedTooltip, savedItemRef = GameTooltip, SetItemRef
+  local savedDefault, savedSelected, savedHandler = DEFAULT_CHAT_FRAME, SELECTED_CHAT_FRAME, geterrorhandler
+  local hidden, ref, reported = false, nil, nil
+  GameTooltip = {
+    SetOwner = function() end,
+    SetHyperlink = function(_, link) if link == "bad:1" then error("no tooltip") end end,
+    Show = function() end,
+    Hide = function() hidden = true end,
+  }
+  SetItemRef = function(link, text, button, chatFrame) ref = { link, text, button, chatFrame } end
+  CreateFrame = STUB_CREATE_FRAME
+  local f = CreateFrame("Frame")
+  Links.Attach(f)
+  local chat, selected = { editBox = {} }, { editBox = {} }
+  DEFAULT_CHAT_FRAME, SELECTED_CHAT_FRAME = chat, selected
+  f.scripts.OnHyperlinkClick(f, "player:Brisa", "[Brisa]", "LeftButton")
+  check("a link click hands SetItemRef the default chat frame", ref and rawequal(ref[4], chat), ref and tostring(ref[4]))
+  DEFAULT_CHAT_FRAME = nil
+  f.scripts.OnHyperlinkClick(f, "player:Brisa", "[Brisa]", "LeftButton")
+  check("without it, the selected chat frame", ref and rawequal(ref[4], selected), ref and tostring(ref[4]))
+  SELECTED_CHAT_FRAME = nil
+  f.scripts.OnHyperlinkClick(f, "player:Brisa", "[Brisa]", "LeftButton")
+  check("without either, the Echo frame", ref and rawequal(ref[4], f), ref and tostring(ref[4]))
+
+  SetItemRef = function() error("boom") end
+  geterrorhandler = function() return function(err) reported = err end end
+  check("a failing click does not throw", pcall(f.scripts.OnHyperlinkClick, f, "item:1", "[x]", "LeftButton"), "threw")
+  check("a failing click reaches the error handler", type(reported) == "string" and reported:find("boom", 1, true) ~= nil, tostring(reported))
+  geterrorhandler = nil
+  check("no error handler, still no error", pcall(f.scripts.OnHyperlinkClick, f, "item:1", "[x]", "LeftButton"), "threw")
+
+  hidden = false
+  f.scripts.OnHyperlinkEnter(f, "bad:1")
+  check("a link with no tooltip hides the tooltip", hidden == true, tostring(hidden))
+
+  DEFAULT_CHAT_FRAME, SELECTED_CHAT_FRAME, geterrorhandler = savedDefault, savedSelected, savedHandler
+  GameTooltip, SetItemRef = savedTooltip, savedItemRef
+`, 'links-chat-frame');
+
 // --- Icon tiles and read-only feeds in the stack -------------------------------------------
 run(`
   local S, T, K, C = HorizonSuite.Echo.Store, HorizonSuite.Echo.Tiles, HorizonSuite.Echo.Stack, HorizonSuite.Echo.Card

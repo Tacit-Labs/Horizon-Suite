@@ -60,7 +60,18 @@ end
 local function ShowTooltip(frame, link)
     if Echo.IsSecret(link) or type(link) ~= "string" or not GameTooltip then return end
     GameTooltip:SetOwner(frame, "ANCHOR_CURSOR")
-    if pcall(GameTooltip.SetHyperlink, GameTooltip, link) then GameTooltip:Show() end
+    if pcall(GameTooltip.SetHyperlink, GameTooltip, link) then
+        GameTooltip:Show()
+    else
+        GameTooltip:Hide()
+    end
+end
+
+-- Report an error the way the game does, without letting it break the click.
+local function Report(err)
+    if type(geterrorhandler) ~= "function" then return end
+    local handler = geterrorhandler()
+    if type(handler) == "function" then pcall(handler, err) end
 end
 
 --- Make the links in a frame's text live: hover for the tooltip, click through the game's
@@ -72,6 +83,10 @@ function Links.Attach(frame)
     frame:SetScript("OnHyperlinkLeave", function() if GameTooltip then GameTooltip:Hide() end end)
     frame:SetScript("OnHyperlinkClick", function(self, link, text, button)
         if Echo.IsSecret(link) or type(link) ~= "string" or type(SetItemRef) ~= "function" then return end
-        pcall(SetItemRef, link, text, button, self)
+        -- Blizzard's player and channel links read chatFrame.editBox, so hand over a real
+        -- chat frame; the Echo frame is only the last resort.
+        local chatFrame = DEFAULT_CHAT_FRAME or SELECTED_CHAT_FRAME or self
+        local ok, err = pcall(SetItemRef, link, text, button, chatFrame)
+        if not ok then Report(err) end
     end)
 end
