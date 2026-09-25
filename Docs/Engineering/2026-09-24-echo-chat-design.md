@@ -206,6 +206,12 @@ HorizonDB.echoHistory = {
 
 All strings go through `locales/horizon/enUS.lua` so `tools/locale_audit.js` picks them up.
 
+The options page is built (plan 5). Three things to note:
+
+- Positions are saved in screen units. A position saved at a scale other than 1 before plan 5 shifts once.
+- The whisper filter sets the reply target for hidden whispers.
+- A switched-off feed files nothing, but still fails a pending whisper.
+
 ## Platform capabilities
 
 Add to `core/Platform.lua`:
@@ -262,7 +268,7 @@ Each step can ship on its own:
 3. Tiles and preview toast
 4. Stack and quick reply
 5. Card
-6. Options, persistence, keybinds and polish
+6. Options, persistence, keybinds and polish — split across plans 5 and 6
 
 **Carried into plan 2.** Found while building the foundation, left for the view work:
 
@@ -272,18 +278,15 @@ Each step can ship on its own:
 - Add `Store.Unsubscribe` if views are rebuilt at runtime.
 - Slash command strings move to `addon.L` in plan 3.
 
-**Carried into plan 5** (options and polish; this list was "plan 4" before the feeds took that number):
+**Plan 5 did:** the one-frame redraw coalescing for Tiles, Card and Stack; the per-feed on/off option (Loot, Progress, System); the column-edge option flipping which side the toast and stack open on; the scale-safe saved position, so a scale change no longer moves the column; and clamping `echoMaxTiles` to at least 2 in the options.
 
-- **First task of plan 5:** coalesce the Tiles, Card and Stack redraws behind a one-frame dirty flag, so a burst of lines repaints once. Feeds make this matter: a group-loot roll burst files many lines in a frame, each of which currently redraws every view.
-- A per-feed on/off option (Loot, Progress, System), for players who never want a feed's tile.
+**Carried into plan 6.** What is left from the old "plan 4" list, plus its own scope (options and polish; this list was "plan 4" before the feeds took that number):
+
+- Better tile icons than the first letter of a name (director, 2026-09-25), for example class icons from `core/ClassIconMedia.lua` for whispers, portraits or race icons, a Battle.net logo.
+- Channel glyphs collide (General and Guild are both "G"). Give them distinct glyphs.
 - Extend `Echo.PaintTileFace` to cover the toast and the stack card, which still carry their own copy of the icon / glyph / letter three-way branch.
 - One shared badge-tier helper for the tile, the card's row and the stack, instead of each deciding the badge from the tier on its own.
-- The column-edge option also flips which side the toast and stack open on.
-- A scale change re-derives the saved position, so the column doesn't jump.
-- Channel glyphs collide (General and Guild are both "G"); give them distinct glyphs.
-- Clamp `echoMaxTiles` to at least 2 in the options.
-- Better tile icons than the first letter of a name (director, 2026-09-25) — e.g. class icons from `core/ClassIconMedia.lua` for whispers, portraits or race icons, a Battle.net logo.
-- Coalesce the card's re-renders on busy channels further; another conversation's news already repaints only its tile row.
-- Anchor the scroll position while scrolled up, so new messages don't shift what you're reading.
-- Keep drafts of closed conversations, or decide they're dropped on purpose.
-- `upper()` on localized meta text only changes ASCII letters; use a locale-aware upper case or leave the text as it is.
+- Coalesce the card's re-renders on busy channels further. Another conversation's news already repaints only its tile row.
+- Anchor the scroll position while scrolled up, so new messages do not shift what you are reading.
+- Keep drafts of closed conversations, or decide they are dropped on purpose.
+- `upper()` on localized meta text only changes ASCII letters. Use a locale-aware upper case, or leave the text as it is.
