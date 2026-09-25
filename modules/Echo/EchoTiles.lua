@@ -50,8 +50,9 @@ function Echo.NewText(parent, size, flags)
     return fs
 end
 
-local function HoverEnter()
-    if Echo.Stack then Echo.Stack.HoverEnter() end
+-- A tile hovers its own conversation to the front; the chat button hovers none (top card).
+local function HoverEnter(self)
+    if Echo.Stack then Echo.Stack.HoverEnter(self and self.convKey) end
 end
 
 local function HoverLeave()
@@ -428,3 +429,4 @@ end
 function Tiles._toast() return toast end
 function Tiles._overflow() return overflowTile end
 function Tiles._marker() return marker end
+function Tiles._stackButton() return stackButton end

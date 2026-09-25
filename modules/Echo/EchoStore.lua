@@ -188,7 +188,7 @@ function Store.Add(record)
     local change
     if record.outgoing then
         change = "silent"
-        conv.unread = 0
+        if not record.keepUnread then conv.unread = 0 end
         if tier == "loud" then conv.lastLoud = seq end
     elseif tier == "muted" then
         change = "silent"
