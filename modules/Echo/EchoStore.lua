@@ -215,9 +215,15 @@ function Store.Add(record)
     record.seq = seq
     record.time = record.time or Store.Now()
     Append(conv, record)
-    conv.open = true
     if record.channelIndex then conv.channelIndex = record.channelIndex end
     Persist(record)
+    -- A feed the player closed stays closed until reload: its lines are still filed so the
+    -- views stay consistent, but they neither reopen the tile nor count as unread.
+    if conv.dismissed then
+        Notify(record.convKey, "silent")
+        return "silent"
+    end
+    conv.open = true
 
     local tier = Store.TierOf(record.convKey)
     local change
@@ -284,10 +290,12 @@ function Store.SetPinned(convKey, pinned)
 end
 
 --- Remove a conversation's tile. Messages are kept, so a new message reopens it with context.
+-- A feed is dismissed instead: it stays closed until Store.Reset (a /reload).
 function Store.Close(convKey)
     local conv = conversations[convKey]
     if not conv then return end
     conv.open = false
+    if Store.FEED_KINDS[conv.kind] then conv.dismissed = true end
     conv.unread = 0
     conv.pinned = false
     SavePref(convKey)

@@ -2586,6 +2586,50 @@ run(`
   S.Reset()
 `, 'stack-reply-to-newest-feed-guard');
 
+// --- Store: a closed feed stays closed until reload ----------------------------------------
+run(`
+  local S = HorizonSuite.Echo.Store
+  S.Reset()
+  local function listed(key)
+    for _, c in ipairs(S.List()) do if c.key == key then return true end end
+    return false
+  end
+  local notified
+  local function listen(key, change) if key == "loot" then notified = change end end
+  S.Subscribe(listen)
+  S.Add({ convKey = "loot", text = "You receive loot: [Cloak].", feed = true, chatType = "LOOT" })
+  S.Close("loot")
+  local before = #S.Get("loot").messages
+  notified = nil
+  local change = S.Add({ convKey = "loot", text = "You receive loot: [Boots].", feed = true, chatType = "LOOT" })
+  check("a closed feed is not reopened by a new line", not listed("loot"), "reopened")
+  check("a closed feed still files the line", #S.Get("loot").messages == before + 1, #S.Get("loot").messages)
+  check("a closed feed counts no unread", S.Get("loot").unread == 0, S.Get("loot").unread)
+  check("a closed feed's line still notifies the views", notified ~= nil, tostring(notified))
+  check("a closed feed's line never toasts", change ~= "toast" and change ~= nil, tostring(change))
+
+  S.SetTier("loot", "loud")
+  change = S.Add({ convKey = "loot", text = "You receive loot: [Belt].", feed = true, chatType = "LOOT" })
+  check("a closed loud feed stays closed and quiet", not listed("loot") and change ~= "toast", tostring(change))
+
+  S.Add({ convKey = "w:Brisa-Horizon", text = "hi", sender = "Brisa-Horizon" })
+  S.Close("w:Brisa-Horizon")
+  S.Add({ convKey = "w:Brisa-Horizon", text = "still there?", sender = "Brisa-Horizon" })
+  check("a closed whisper still reopens on a new message", listed("w:Brisa-Horizon"), "stayed closed")
+
+  S.SetTier("progress", "muted")
+  S.Add({ convKey = "progress", text = "You gain 10 XP.", feed = true, chatType = "COMBAT_XP_GAIN" })
+  check("a muted feed keeps its tile", listed("progress"), "no tile")
+  S.SetTier("loot", nil)
+  S.SetTier("progress", nil)
+
+  S.Reset()
+  S.Add({ convKey = "loot", text = "You receive loot: [Cloak].", feed = true, chatType = "LOOT" })
+  check("after a reset a new loot line shows the loot tile again", listed("loot"), "still closed")
+  S.Unsubscribe(listen)
+  S.Reset()
+`, 'store-feed-dismissed');
+
 // --- Summary -------------------------------------------------------------------
 run(`
   print(PASS .. " passed, " .. FAIL .. " failed")
