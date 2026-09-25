@@ -2315,6 +2315,15 @@ run(`
   check("an alert with a secret name is ignored", none == nil and reason == "ignored", reason)
   BN_INLINE_TOAST_FRIEND_ONLINE = savedOnline
 
+  local savedPending = BN_INLINE_TOAST_FRIEND_PENDING
+  BN_INLINE_TOAST_FRIEND_PENDING = "You have %d pending invites."
+  none, reason = E.BuildRecord("BN_INLINE_TOAST_ALERT", p("FRIEND_PENDING", "|Kq1|k"))
+  check("an alert whose text needs a count is ignored", none == nil and reason == "ignored", reason)
+  BN_INLINE_TOAST_FRIEND_PENDING = "%s sent %d invites"
+  none, reason = E.BuildRecord("BN_INLINE_TOAST_ALERT", p("FRIEND_PENDING", "|Kq1|k"))
+  check("an alert with a name and a count is ignored", none == nil and reason == "ignored", reason)
+  BN_INLINE_TOAST_FRIEND_PENDING = savedPending
+
   r = E.BuildRecord("CHAT_MSG_LOOT", p(SECRET("You receive loot: [Hidden]."), "Kaelis-Horizon"))
   check("a secret loot line still lands in its feed", r and r.convKey == "loot" and r.secret == true, r and r.convKey)
 

@@ -91,7 +91,7 @@ end
 -- Achievement lines arrive as "%s has earned…" and are filled with the achiever's link.
 local ACHIEVEMENT_EVENTS = { CHAT_MSG_ACHIEVEMENT = true, CHAT_MSG_GUILD_ACHIEVEMENT = true }
 
--- Only the Battle.net friend alert needs the capability to be registered.
+-- Only the Battle.net whisper events and the friend alert need the capability to be registered.
 local BNET_EVENTS = {
     CHAT_MSG_BN_WHISPER = true, CHAT_MSG_BN_WHISPER_INFORM = true, BN_INLINE_TOAST_ALERT = true,
 }
@@ -111,6 +111,7 @@ local function BuildFeedRecord(event, kind, text, sender)
             if not ok then return nil, "ignored" end
             template = formatted
         end
+        if template:find("%%%a") then return nil, "ignored" end
         text, textSecret = template, false
     elseif ACHIEVEMENT_EVENTS[event] and not textSecret and type(text) == "string"
         and text:find("%s", 1, true) and not IsSecret(sender) and type(sender) == "string" and sender ~= "" then
