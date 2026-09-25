@@ -75,6 +75,7 @@ const FILES = [
   'modules/Echo/EchoStore.lua',
   'modules/Echo/EchoHistory.lua',
   'modules/Echo/EchoEvents.lua',
+  'modules/Echo/EchoSend.lua',
 ];
 for (const f of FILES) run(read(f), f);
 
@@ -414,6 +415,68 @@ run(`
   HorizonSuite.Platform.caps.bnetWhispers = true
   S.Reset()
 `, 'events');
+
+// --- Send: routes, splitting, sending ---------------------------------------------------
+run(`
+  local S, Send = HorizonSuite.Echo.Store, HorizonSuite.Echo.Send
+  S.Reset()
+  GetChannelName = function(name) if name == "Trade" then return 2, "Trade - City" end return 0 end
+  local function route(key)
+    local r = Send.RouteFor(key)
+    return r and (r.chatType .. ":" .. tostring(r.target)) or "none"
+  end
+  check("whisper route", route("w:Brisa-Horizon") == "WHISPER:Brisa-Horizon", route("w:Brisa-Horizon"))
+  check("bnet route uses the numeric id",
+        route("bn:77") == "BN_WHISPER:77" and type(Send.RouteFor("bn:77").target) == "number", route("bn:77"))
+  check("party route", route("party") == "PARTY:nil", route("party"))
+  check("instance route", route("instance") == "INSTANCE_CHAT:nil", route("instance"))
+  check("channel route uses the joined index", route("ch:Trade") == "CHANNEL:2", route("ch:Trade"))
+  check("a channel you left cannot be sent to", route("ch:Gone") == "none", route("ch:Gone"))
+  check("a bad key cannot be sent to", route("nope") == "none", route("nope"))
+
+  local parts = Send.Split("  hello  ")
+  check("short text trimmed, one part", #parts == 1 and parts[1] == "hello", parts[1])
+  check("blank text has no parts", #Send.Split("   ") == 0, #Send.Split("   "))
+  parts = Send.Split("aaa bbb ccc", 7)
+  check("splits at the last space that fits",
+        #parts == 2 and parts[1] == "aaa bbb" and parts[2] == "ccc", table.concat(parts, "|"))
+  local link = "|cffa335ee|Hitem:1::|h[Cloak of the Wind]|h|r"
+  parts = Send.Split("loot " .. link .. " is mine", 45)
+  check("never splits inside a link", #parts == 3 and parts[2] == link, table.concat(parts, " / "))
+  parts = Send.Split("ééééé", 5)
+  check("a hard cut never splits a UTF-8 character",
+        #parts == 3 and parts[1] == "éé" and parts[3] == "é", table.concat(parts, "|"))
+
+  local sent = {}
+  C_ChatInfo = { SendChatMessage = function(msg, chatType, lang, target)
+    sent[#sent + 1] = chatType .. ":" .. tostring(target) .. ":" .. msg end }
+  BNSendWhisper = function(id, msg) sent[#sent + 1] = "BN:" .. id .. ":" .. msg end
+
+  check("send whisper", Send.Send("w:Brisa-Horizon", "sure") == true and sent[1] == "WHISPER:Brisa-Horizon:sure", sent[1])
+  local first = S.Get("w:Brisa-Horizon").messages[1]
+  check("a sent whisper waits as pending", first.status == "pending" and first.outgoing, first.status)
+  check("send bnet", Send.Send("bn:77", "yo") and sent[2] == "BN:77:yo", sent[2])
+  check("send party", Send.Send("party", "omw") and sent[3] == "PARTY:nil:omw", sent[3])
+  check("blank text is not sent", Send.Send("party", "   ") == false and #sent == 3, #sent)
+  check("an unroutable key is not sent", Send.Send("ch:Gone", "x") == false and #sent == 3, #sent)
+
+  Send.MAX_BYTES = 7
+  Send.Send("party", "aaa bbb ccc")
+  check("long text goes out in parts",
+        sent[4] == "PARTY:nil:aaa bbb" and sent[5] == "PARTY:nil:ccc", tostring(sent[4]) .. "/" .. tostring(sent[5]))
+  Send.MAX_BYTES = 255
+
+  C_ChatInfo.SendChatMessage = function() error("blocked") end
+  Send.Send("w:Brisa-Horizon", "again")
+  local msgs = S.Get("w:Brisa-Horizon").messages
+  check("a send that throws is marked failed", msgs[#msgs].status == "failed", msgs[#msgs].status)
+
+  C_ChatInfo = nil
+  SendChatMessage = function(msg, chatType) sent[#sent + 1] = "LEGACY:" .. chatType .. ":" .. msg end
+  Send.Send("guild", "hi")
+  check("falls back to the global send function", sent[#sent] == "LEGACY:GUILD:hi", sent[#sent])
+  S.Reset()
+`, 'send');
 
 // --- Summary -------------------------------------------------------------------
 run(`
