@@ -188,7 +188,7 @@ function Store.Add(record)
     local change
     if record.outgoing then
         change = "silent"
-        if not record.keepUnread then conv.unread = 0 end
+        conv.unread = 0
         if tier == "loud" then conv.lastLoud = seq end
     elseif tier == "muted" then
         change = "silent"
@@ -316,6 +316,37 @@ function Store.ConfirmSent(record)
     Persist(pending)
     Notify(record.convKey, "update")
     return true
+end
+
+--- True when a conversation has an outgoing message waiting for its echo.
+-- @param convKey string
+-- @return boolean
+function Store.HasPending(convKey)
+    local conv = conversations[convKey]
+    if not conv then return false end
+    for _, m in ipairs(conv.messages) do
+        if m.status == "pending" then return true end
+    end
+    return false
+end
+
+--- In a conversation with yourself, claim the newest outgoing line with this text that has
+-- not yet met its received copy, so the copy is not shown a second time.
+-- @param convKey string
+-- @param text string
+-- @return boolean claimed
+function Store.ClaimSelfEcho(convKey, text)
+    local conv = conversations[convKey]
+    if not conv or Echo.IsSecret(text) or type(text) ~= "string" then return false end
+    local messages = conv.messages
+    for i = #messages, math.max(1, #messages - 5), -1 do
+        local m = messages[i]
+        if m.outgoing and not m.selfEchoed and m.text == text then
+            m.selfEchoed = true
+            return true
+        end
+    end
+    return false
 end
 
 --- Mark the newest pending message in a conversation as failed.

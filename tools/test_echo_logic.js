@@ -93,7 +93,7 @@ run(`
       return function() end
     end })
   end
-  function STUB_CREATE_FRAME(_, name, parent) local f = STUB_FRAME(parent); if name then _G[name] = f end; return f end
+  function STUB_CREATE_FRAME(_, name, parent, template) local f = STUB_FRAME(parent); f.template = template ~= "BackdropTemplate" and template or nil; if name then _G[name] = f end; return f end
   UIParent = STUB_FRAME()
   UISpecialFrames = {}
   C_Timer = { After = function() end, NewTimer = function() return { Cancel = function() end } end }
@@ -1279,21 +1279,66 @@ run(`
   S.Reset()
 `, 'stack-hover-tile');
 
-// --- Events: a whisper to yourself stays unread --------------------------------------------
+// --- Events: a conversation with yourself shows each message once ---------------------------
 run(`
   local S, E = HorizonSuite.Echo.Store, HorizonSuite.Echo.Events
   S.Reset()
   local function p(text, who) return text, who, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil end
+
+  -- Typed in Blizzard's box: the game sends the received copy, then the sent echo.
   E.Dispatch("CHAT_MSG_WHISPER", p("note to self", "Kaelis-Horizon"))
   E.Dispatch("CHAT_MSG_WHISPER_INFORM", p("note to self", "Kaelis-Horizon"))
   local me = S.Get("w:Kaelis-Horizon")
-  check("the echo of a whisper to yourself does not mark it read", me.unread == 1, me.unread)
-  check("both halves of a self-whisper are kept", #me.messages == 2, #me.messages)
+  check("a whisper to yourself shows once", #me.messages == 1 and not me.messages[1].outgoing, #me.messages)
+  check("a whisper to yourself stays unread", me.unread == 1, me.unread)
+
+  -- Sent from Echo's reply box: pending line, received copy, then the echo.
+  local pending = S.AddPending("w:Kaelis-Horizon", "from echo")
+  E.Dispatch("CHAT_MSG_WHISPER", p("from echo", "Kaelis-Horizon"))
+  E.Dispatch("CHAT_MSG_WHISPER_INFORM", p("from echo", "Kaelis-Horizon"))
+  check("an Echo reply to yourself shows once", #me.messages == 2, #me.messages)
+  check("the echo confirms the pending line", pending.status == "sent", pending.status)
+
+  -- The same text twice is two messages, not one.
+  E.Dispatch("CHAT_MSG_WHISPER", p("from echo", "Kaelis-Horizon"))
+  E.Dispatch("CHAT_MSG_WHISPER_INFORM", p("from echo", "Kaelis-Horizon"))
+  check("repeating the same text to yourself is a new message", #me.messages == 3, #me.messages)
+
+  -- A secret copy cannot be compared, so it is kept.
+  E.Dispatch("CHAT_MSG_WHISPER", p(SECRET("mid-pull"), "Kaelis-Horizon"))
+  check("a secret whisper to yourself is kept", #me.messages == 4, #me.messages)
+
   E.Dispatch("CHAT_MSG_WHISPER", p("hi", "Brisa-Horizon"))
   E.Dispatch("CHAT_MSG_WHISPER_INFORM", p("hey", "Brisa-Horizon"))
-  check("replying to someone else still marks it read", S.Get("w:Brisa-Horizon").unread == 0, S.Get("w:Brisa-Horizon").unread)
+  local brisa = S.Get("w:Brisa-Horizon")
+  check("other conversations keep both sides", #brisa.messages == 2, #brisa.messages)
+  check("replying to someone else still marks it read", brisa.unread == 0, brisa.unread)
   S.Reset()
 `, 'self-whisper');
+
+// --- Stack: your lines sit on the right; a flat close button -------------------------------
+run(`
+  local S, T, K = HorizonSuite.Echo.Store, HorizonSuite.Echo.Tiles, HorizonSuite.Echo.Stack
+  S.Reset()
+  CreateFrame = STUB_CREATE_FRAME
+  T.Enable()
+  K.Enable()
+  local f = K._frames()
+  for _, fs in ipairs(f.card.lines) do fs.SetJustifyH = function(self, j) self.justify = j end end
+  S.Add({ convKey = "w:Brisa-Horizon", text = "got the leather", class = "DRUID", sender = "Brisa-Horizon" })
+  S.Add({ convKey = "w:Brisa-Horizon", text = "sure", outgoing = true, status = "sent" })
+  K.Open("w:Brisa-Horizon")
+  check("their line sits on the left", f.card.lines[1].justify == "LEFT", f.card.lines[1].justify)
+  check("your line sits on the right", f.card.lines[2].justify == "RIGHT", f.card.lines[2].justify)
+  check("the close button is Echo's own, not Blizzard's", rawget(f.card.close, "template") == nil and rawget(f.card.close, "bars") ~= nil, tostring(rawget(f.card.close, "template")))
+  f.card.close.scripts.OnClick(f.card.close)
+  check("the close button closes the conversation", not S.Get("w:Brisa-Horizon").open, "still open")
+  for _, fs in ipairs(f.card.lines) do fs.SetJustifyH = nil end
+  K.Hide()
+  K.Disable()
+  T.Disable()
+  S.Reset()
+`, 'stack-lines-close');
 
 // --- Tiles: no toast over an open stack (final review F2) --------------------------------
 run(`
