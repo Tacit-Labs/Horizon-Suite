@@ -163,6 +163,7 @@ modules/Essence/EssenceModule.lua
 modules/Echo/EchoStore.lua
 modules/Echo/EchoHistory.lua
 modules/Echo/EchoEvents.lua
+modules/Echo/EchoSend.lua
 options/OptionsWidgets.lua
 options/HorizonColorPicker.lua
 options/OptionsDefaults.lua
