@@ -1124,7 +1124,7 @@ run(`
   S.Reset()
 `, 'stack-hover');
 
-// --- Stack: the draft belongs to the box on top, not the conversation (fix round 1, finding 2) --
+// --- Stack: each card keeps its own draft (fix round 1, finding 2; final review F6b) --------
 run(`
   local S, T, K = HorizonSuite.Echo.Store, HorizonSuite.Echo.Tiles, HorizonSuite.Echo.Stack
   S.Reset()
@@ -1139,7 +1139,13 @@ run(`
   check("opens on the newest conversation", f.card.name.text == "Vexa", f.card.name.text)
   f.edit:SetText("for vexa")
   K.Flip(1)
-  check("flipping to another card clears the previous card's draft", f.edit.text == "", f.edit.text)
+  check("the other card starts with an empty box", f.edit.text == "", f.edit.text)
+  f.edit:SetText("for brisa")
+  K.Flip(-1)
+  check("flipping back restores that card's draft", f.edit.text == "for vexa", f.edit.text)
+  K.Flip(1)
+  check("each card keeps its own draft", f.edit.text == "for brisa", f.edit.text)
+  f.edit:SetText("")
 
   K.Open("w:Brisa-Horizon")
   check("open moves the named conversation on top", f.card.name.text == "Brisa", f.card.name.text)
