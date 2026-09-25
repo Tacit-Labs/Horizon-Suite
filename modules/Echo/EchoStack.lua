@@ -383,9 +383,9 @@ function Stack.Toggle()
     end
 end
 
---- Keybind: open on the conversation with the newest loud message, reply box focused.
+--- Keybind: open on the conversation with the newest incoming loud message, reply box focused.
 function Stack.ReplyToNewest()
-    local newest = Echo.View.NewestLoud(Echo.Store.List())
+    local newest = Echo.View.NewestIncomingLoud(Echo.Store.List())
     if newest then Stack.Open(newest.key, true) end
 end
 
