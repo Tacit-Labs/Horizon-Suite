@@ -1717,8 +1717,29 @@ run(`
   local meta = V.CardMeta(S.Get("w:Brisa-Horizon"))
   check("card meta names the class", meta:find("Druid", 1, true) ~= nil, meta)
 
+  -- Invite target: a whisperer's bare name, a Battle.net friend on WoW as Name-Realm,
+  -- and nil for anything else.
+  check("a whisper's invite target is its name", V.InviteTarget({ kind = "whisper", key = "w:Brisa-Horizon" }) == "Brisa-Horizon", V.InviteTarget({ kind = "whisper", key = "w:Brisa-Horizon" }))
+  check("a secret whisper name has no invite target", V.InviteTarget({ kind = "whisper", key = SECRET("w:Brisa-Horizon") }) == nil, "?")
+  local savedBnetInvite = C_BattleNet
+  C_BattleNet = { GetAccountInfoByID = function(id)
+    if id == 1 then return { gameAccountInfo = { clientProgram = "WoW", characterName = "Brisa", realmName = "Horizon" } } end
+    if id == 2 then return { gameAccountInfo = { clientProgram = "App" } } end
+    if id == 3 then return { gameAccountInfo = { clientProgram = "WoW", characterName = SECRET("Brisa"), realmName = "Horizon" } } end
+    if id == 4 then return { gameAccountInfo = { clientProgram = "WoW", characterName = "Brisa", realmName = "" } } end
+    return nil
+  end }
+  check("a battle.net friend on WoW targets Name-Realm", V.InviteTarget({ kind = "bnet", key = "bn:1" }) == "Brisa-Horizon", V.InviteTarget({ kind = "bnet", key = "bn:1" }))
+  check("a battle.net friend in the app has no invite target", V.InviteTarget({ kind = "bnet", key = "bn:2" }) == nil, "?")
+  check("a battle.net friend with a secret name has no invite target", V.InviteTarget({ kind = "bnet", key = "bn:3" }) == nil, "?")
+  check("a battle.net friend missing a realm has no invite target", V.InviteTarget({ kind = "bnet", key = "bn:4" }) == nil, "?")
+  C_BattleNet = savedBnetInvite
+  check("a group has no invite target", V.InviteTarget({ kind = "party", key = "party" }) == nil, "?")
+  check("a feed has no invite target", V.InviteTarget({ kind = "loot", key = "loot" }) == nil, "?")
+
   local spec = V.MenuSpec(S.Get("w:Brisa-Horizon"))
   check("the menu starts with pin", spec[1].kind == "button" and spec[1].action == "pin" and spec[1].label == "ECHO_PIN", spec[1].label)
+  check("a whisper menu offers invite next", spec[2].kind == "button" and spec[2].action == "invite" and spec[2].label == "ECHO_INVITE", spec[2].label)
   local radios, selected = 0, nil
   for _, e in ipairs(spec) do
     if e.kind == "radio" then radios = radios + 1; if e.selected then selected = e.value end end
@@ -1733,6 +1754,15 @@ run(`
   for _, e in ipairs(spec) do if e.kind == "radio" and e.selected then selected = e.value end end
   check("a pinned conversation offers unpin", spec[1].label == "ECHO_UNPIN", spec[1].label)
   check("the override is selected", selected == "muted", selected)
+
+  local groupSpec = V.MenuSpec({ key = "party", kind = "party", pinned = false })
+  local hasInvite = false
+  for _, e in ipairs(groupSpec) do if e.action == "invite" then hasInvite = true end end
+  check("a group menu has no invite", hasInvite == false, "?")
+  local feedSpec = V.MenuSpec({ key = "loot", kind = "loot", pinned = false })
+  hasInvite = false
+  for _, e in ipairs(feedSpec) do if e.action == "invite" then hasInvite = true end end
+  check("a feed menu has no invite", hasInvite == false, "?")
 
   E.ClearDrafts()
   E.ParkDraft("w:A-Horizon", "half a thought")
@@ -1823,21 +1853,37 @@ run(`
   function rootDescription:CreateDivider() calls[#calls + 1] = { "divider" } end
   function rootDescription:CreateRadio(label, isSelected, setSelected) calls[#calls + 1] = { "radio", label, isSelected, setSelected } end
   M.Build(rootDescription, "w:Brisa-Horizon")
-  check("the menu has pin, a title, five choices and close", #calls == 10 and calls[1][1] == "button" and calls[4][1] == "radio" and calls[10][1] == "button", #calls)
+  check("the menu has pin, invite, a title, five choices and close", #calls == 11 and calls[1][1] == "button" and calls[2][1] == "button" and calls[5][1] == "radio" and calls[11][1] == "button", #calls)
 
   calls[1][3]()
   check("pin pins", S.Get("w:Brisa-Horizon").pinned == true, "?")
   M.Run("w:Brisa-Horizon", "pin")
   check("pin again unpins", S.Get("w:Brisa-Horizon").pinned == false, "?")
 
-  local muted = calls[8]
+  local savedPartyInfo, savedInviteUnit = C_PartyInfo, InviteUnit
+  local invited
+  C_PartyInfo = { InviteUnit = function(target) invited = target end }
+  calls[2][3]()
+  check("invite calls C_PartyInfo.InviteUnit with the target", invited == "Brisa-Horizon", tostring(invited))
+  invited = nil
+  C_PartyInfo = nil
+  InviteUnit = function(target) invited = target end
+  M.Run("w:Brisa-Horizon", "invite")
+  check("invite falls back to the global InviteUnit", invited == "Brisa-Horizon", tostring(invited))
+  invited = nil
+  InviteUnit = function() error("boom") end
+  check("a throwing invite is survived", pcall(M.Run, "w:Brisa-Horizon", "invite"), "threw")
+  C_PartyInfo, InviteUnit = savedPartyInfo, savedInviteUnit
+  check("invite on an unknown conversation is a no-op", pcall(M.Run, "w:Nobody-Horizon", "invite"), "threw")
+
+  local muted = calls[9]
   check("the muted choice is not selected yet", muted[3]() == false, "?")
   muted[4]()
   check("choosing muted mutes", S.TierOf("w:Brisa-Horizon") == "muted" and muted[3]() == true, S.TierOf("w:Brisa-Horizon"))
-  calls[4][4]()
-  check("choosing default clears the override", S.OverrideOf("w:Brisa-Horizon") == nil and calls[4][3]() == true, S.OverrideOf("w:Brisa-Horizon"))
+  calls[5][4]()
+  check("choosing default clears the override", S.OverrideOf("w:Brisa-Horizon") == nil and calls[5][3]() == true, S.OverrideOf("w:Brisa-Horizon"))
 
-  calls[10][3]()
+  calls[11][3]()
   check("close closes the conversation", not S.Get("w:Brisa-Horizon").open, "still open")
 
   calls = {}

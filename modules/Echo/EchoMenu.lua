@@ -16,13 +16,21 @@ Echo.Menu = Menu
 
 --- Carry out one menu choice.
 -- @param convKey string
--- @param action string  "pin" | "tier" | "close"
+-- @param action string  "pin" | "invite" | "tier" | "close"
 -- @param value string|nil  the tier for "tier" ("default" clears the override)
 function Menu.Run(convKey, action, value)
     local Store = Echo.Store
     if action == "pin" then
         local conv = Store.Get(convKey)
         if conv then Store.SetPinned(convKey, not conv.pinned) end
+    elseif action == "invite" then
+        local conv = Store.Get(convKey)
+        local target = conv and Echo.View.InviteTarget(conv)
+        if target then
+            local invite = C_PartyInfo and C_PartyInfo.InviteUnit
+            if type(invite) ~= "function" then invite = _G.InviteUnit end
+            if type(invite) == "function" then pcall(invite, target) end
+        end
     elseif action == "tier" then
         Store.SetTier(convKey, (value ~= "default") and value or nil)
     elseif action == "close" then

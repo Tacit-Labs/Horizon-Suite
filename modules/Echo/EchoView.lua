@@ -550,6 +550,38 @@ function View.StatusText(status)
     return ""
 end
 
+--- The unit to invite to group from a conversation's menu: a whisperer's "Name-Realm", or
+-- a Battle.net friend's character when it's on WoW and both name fields are readable.
+-- A group, channel, feed, or a Battle.net friend in the app (or with an unreadable name)
+-- has none.
+-- @param conv table
+-- @return string|nil
+function View.InviteTarget(conv)
+    local kind, key = conv.kind, conv.key
+    if Echo.IsSecret(key) or type(key) ~= "string" then return nil end
+    if kind == "whisper" then
+        local name = key:sub(3)
+        if Echo.IsSecret(name) or type(name) ~= "string" or name == "" then return nil end
+        return name
+    elseif kind == "bnet" then
+        local id = tonumber(key:sub(4))
+        local api = C_BattleNet and C_BattleNet.GetAccountInfoByID
+        if not id or type(api) ~= "function" then return nil end
+        local ok, info = pcall(api, id)
+        if not ok or Echo.IsSecret(info) or type(info) ~= "table" then return nil end
+        local game = info.gameAccountInfo
+        if Echo.IsSecret(game) or type(game) ~= "table" then return nil end
+        local client = game.clientProgram
+        local wowClient = BNET_CLIENT_WOW or "WoW"
+        if Echo.IsSecret(client) or client ~= wowClient then return nil end
+        local name, realm = game.characterName, game.realmName
+        if Echo.IsSecret(name) or type(name) ~= "string" or name == "" then return nil end
+        if Echo.IsSecret(realm) or type(realm) ~= "string" or realm == "" then return nil end
+        return name .. "-" .. realm
+    end
+    return nil
+end
+
 View.TIER_CHOICES = { "default", "loud", "count", "quiet", "muted" }
 
 --- The ⋯ menu for a conversation, as data (EchoMenu builds the real menu from it).
@@ -560,9 +592,12 @@ function View.MenuSpec(conv)
     local defaultTier = Echo.Store.KindTier(conv.kind)
     local entries = {
         { kind = "button", label = conv.pinned and L["ECHO_UNPIN"] or L["ECHO_PIN"], action = "pin" },
-        { kind = "divider" },
-        { kind = "title", label = L["ECHO_NOTIFICATIONS"] },
     }
+    if View.InviteTarget(conv) then
+        entries[#entries + 1] = { kind = "button", label = L["ECHO_INVITE"], action = "invite" }
+    end
+    entries[#entries + 1] = { kind = "divider" }
+    entries[#entries + 1] = { kind = "title", label = L["ECHO_NOTIFICATIONS"] }
     for _, value in ipairs(View.TIER_CHOICES) do
         local label
         if value == "default" then
