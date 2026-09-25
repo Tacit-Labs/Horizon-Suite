@@ -29,7 +29,6 @@ local behind = {}
 local list, cursor = {}, 1
 local currentKey            -- the card on top follows its conversation, not its position
 local renderedKey           -- the conversation last drawn onto the shared reply box
-local drafts = {}           -- unsent reply text per conversation, while another card is on top
 local openTimer
 local hoverKey              -- the tile hovered last while the open delay runs
 local armed, away, pollAccum = false, 0, 0   -- hover-close poll state
@@ -78,9 +77,13 @@ local function CreateEdit()
         self:SetText("")
     end)
     edit:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
-    edit:SetScript("OnEditFocusGained", function(self) self.placeholder:Hide() end)
+    edit:SetScript("OnEditFocusGained", function(self)
+        self.placeholder:Hide()
+        if Echo.Links then Echo.Links.Focus(self) end
+    end)
     edit:SetScript("OnEditFocusLost", function(self)
         if self:GetText() == "" then self.placeholder:Show() end
+        if Echo.Links then Echo.Links.Blur(self) end
         Stack.HoverLeave()
     end)
     -- A keybind that focuses the box must not type its own key into it; restore whatever
@@ -255,12 +258,8 @@ function Stack.Render()
     if renderedKey ~= conv.key then
         -- The reply box is shared by whichever card is on top: park the old card's draft
         -- and bring back the new card's, so a draft never bleeds onto another conversation.
-        if renderedKey then
-            local text = edit:GetText()
-            drafts[renderedKey] = (text ~= "") and text or nil
-        end
-        edit:SetText(drafts[conv.key] or "")
-        drafts[conv.key] = nil
+        if renderedKey then Echo.ParkDraft(renderedKey, edit:GetText()) end
+        edit:SetText(Echo.TakeDraft(conv.key))
     end
     renderedKey = conv.key
     currentKey = conv.key
@@ -396,6 +395,12 @@ function Stack.Hide()
     openTimer = nil
     armed = false
     away = 0
+    -- Park the draft so the card, or the stack when it reopens, can take it back.
+    if edit and renderedKey then
+        Echo.ParkDraft(renderedKey, edit:GetText())
+        edit:SetText("")
+        renderedKey = nil
+    end
     if edit then edit:ClearFocus() end
     if root then root:Hide() end
 end
@@ -485,7 +490,7 @@ function Stack.Disable()
         Stack.subscribed = false
     end
     Stack.Hide()
-    drafts = {}
+    Echo.ClearDrafts()
     renderedKey = nil
     if edit then edit:SetText("") end
 end

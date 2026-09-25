@@ -113,6 +113,7 @@ const FILES = [
   'modules/Echo/EchoEvents.lua',
   'modules/Echo/EchoSend.lua',
   'modules/Echo/EchoView.lua',
+  'modules/Echo/EchoLinks.lua',
   'modules/Echo/EchoTiles.lua',
   'modules/Echo/EchoStack.lua',
   'modules/Echo/EchoSlash.lua',
@@ -1670,6 +1671,73 @@ run(`
   check("no key, no draft", E.TakeDraft(nil) == "", "?")
   S.Reset()
 `, 'view-card');
+
+// --- Links: shift-click into the focused Echo box; drafts move between views -----------
+run(`
+  local Links, S, T, K = HorizonSuite.Echo.Links, HorizonSuite.Echo.Store, HorizonSuite.Echo.Tiles, HorizonSuite.Echo.Stack
+  local savedHook, savedUtil, savedLegacy = hooksecurefunc, ChatFrameUtil, ChatEdit_InsertLink
+  local hooks = {}
+  hooksecurefunc = function(a, b, c)
+    if type(a) == "table" then hooks[#hooks + 1] = { target = a, name = b, fn = c }
+    else hooks[#hooks + 1] = { name = a, fn = b } end
+  end
+  ChatFrameUtil = { InsertLink = function() end }
+  ChatEdit_InsertLink = function() end
+  Links.hooked = nil
+  Links.Hook()
+  Links.Hook()
+  check("one insertion function is hooked, once", #hooks == 1 and hooks[1].name == "InsertLink" and hooks[1].target == ChatFrameUtil, #hooks)
+
+  local box = { text = "", focused = true }
+  function box:Insert(t) self.text = self.text .. t end
+  function box:HasFocus() return self.focused end
+  local link = "|cffa335ee|Hitem:1::|h[Cloak]|h|r"
+  hooks[1].fn(link)
+  check("without a focused Echo box nothing is inserted", box.text == "", box.text)
+  Links.Focus(box)
+  hooks[1].fn(link)
+  check("a shift-clicked link goes into the focused Echo box", box.text == link, box.text)
+  box.focused = false
+  hooks[1].fn(link)
+  check("a box that lost focus without telling us gets nothing", box.text == link, box.text)
+  box.focused = true
+  Links.Focus(box)
+  Links.Blur(box)
+  hooks[1].fn(link)
+  check("after blur nothing is inserted", box.text == link, box.text)
+  check("empty or non-string links are ignored", Links.Insert("") == false and Links.Insert(nil) == false, "?")
+
+  hooks = {}
+  ChatFrameUtil = nil
+  Links.hooked = nil
+  Links.Hook()
+  check("older clients hook ChatEdit_InsertLink", #hooks == 1 and hooks[1].name == "ChatEdit_InsertLink", #hooks)
+  Links.hooked = nil
+  hooksecurefunc, ChatFrameUtil, ChatEdit_InsertLink = savedHook, savedUtil, savedLegacy
+
+  -- The stack parks its draft on hide, so another view can pick it up.
+  S.Reset()
+  CreateFrame = STUB_CREATE_FRAME
+  T.Enable()
+  K.Enable()
+  local f = K._frames()
+  S.Add({ convKey = "w:Brisa-Horizon", text = "hi", sender = "Brisa-Horizon" })
+  K.Open("w:Brisa-Horizon")
+  f.edit:SetText("half a reply")
+  K.Hide()
+  check("hiding the stack empties its box", f.edit.text == "", f.edit.text)
+  check("hiding the stack parks the draft", HorizonSuite.Echo.TakeDraft("w:Brisa-Horizon") == "half a reply", "lost")
+  f.edit.HasFocus = function() return true end
+  f.edit.scripts.OnEditFocusGained(f.edit)
+  local inserted = Links.Insert("L")
+  check("the stack's box tells Links when it has focus", inserted, "not focused")
+  f.edit.scripts.OnEditFocusLost(f.edit)
+  check("and when it loses it", Links.Insert("L") == false, "still focused")
+  f.edit.HasFocus = nil
+  K.Disable()
+  T.Disable()
+  S.Reset()
+`, 'links');
 
 // --- Summary -------------------------------------------------------------------
 run(`
