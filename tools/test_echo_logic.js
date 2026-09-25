@@ -3817,6 +3817,27 @@ run(`
   Echo.TrackFont = realTrackFont
 `, 'final-h4');
 
+// --- Final fix H5: the column tile's label shade draws under the label, and the count -----
+// --- badge moves off the name when a label is shown ----------------------------------------
+run(`
+  local S, T, V = HorizonSuite.Echo.Store, HorizonSuite.Echo.Tiles, HorizonSuite.Echo.View
+  S.Reset()
+  CreateFrame = STUB_CREATE_FRAME
+  T.Enable()
+
+  S.Add({ convKey = "w:Brisa-Horizon", text = "hi", sender = "Brisa-Horizon" })
+  local tile = T.TileFor("w:Brisa-Horizon")
+  check("H5: the label shade draws in ARTWORK, under the OVERLAY label text", tile.labelShade.drawLayer == "ARTWORK" and tile.labelShade.drawSublevel == 7, tostring(tile.labelShade.drawLayer) .. "/" .. tostring(tile.labelShade.drawSublevel))
+  check("H5: a labelled tile moves its count off the bottom name", tile.count.points[#tile.count.points][1] == "TOPLEFT", tile.count.points[#tile.count.points][1])
+
+  S.Add({ convKey = "party", text = "pull", sender = "Tank-Horizon" })
+  local partyTile = T.TileFor("party")
+  check("H5: a glyph tile with no label keeps the count at the bottom corner", partyTile.count.points[#partyTile.count.points][1] == "BOTTOMRIGHT", partyTile.count.points[#partyTile.count.points][1])
+
+  T.Disable()
+  S.Reset()
+`, 'final-h5');
+
 // --- Summary -------------------------------------------------------------------
 run(`
   print(PASS .. " passed, " .. FAIL .. " failed")

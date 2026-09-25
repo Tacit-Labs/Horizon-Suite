@@ -126,7 +126,8 @@ local function CreateTile()
     b.icon:SetPoint("TOPLEFT", b, "TOPLEFT", 3, -3)
     b.icon:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", -3, 3)
     b.icon:Hide()
-    b.labelShade = b:CreateTexture(nil, "OVERLAY")
+    b.labelShade = b:CreateTexture(nil, "ARTWORK")
+    b.labelShade:SetDrawLayer("ARTWORK", 7)
     b.labelShade:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT", 0, 0)
     b.labelShade:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", 0, 0)
     b.labelShade:SetHeight(12)
@@ -170,9 +171,18 @@ local function PaintTile(b, conv)
     else
         b:SetBackdropBorderColor(0, 0, 0, 0.7)
     end
-    b.labelShade:SetShown(spec.label ~= nil and spec.label ~= "")
+    local hasLabel = spec.label ~= nil and spec.label ~= ""
+    b.labelShade:SetShown(hasLabel)
     b.dot:SetShown(spec.badge == "dot")
     b.count:SetText(spec.badge == "count" and tostring(spec.count) or "")
+    -- A shown label sits across the bottom; move the count off it so neither is covered,
+    -- and put it back at the bottom corner when there's no label to clash with.
+    b.count:ClearAllPoints()
+    if hasLabel then
+        b.count:SetPoint("TOPLEFT", b, "TOPLEFT", 2, -2)
+    else
+        b.count:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", -2, 2)
+    end
     b:Show()
 end
 
