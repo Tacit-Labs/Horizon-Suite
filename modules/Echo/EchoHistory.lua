@@ -130,6 +130,63 @@ function History.SessionKeys(now, maxAge)
     return out
 end
 
+-- Where a conversation's pin and tier are saved: Battle.net by BattleTag (the account ID
+-- only lasts a session), everything else by its conversation key.
+local function PrefKey(convKey)
+    if Echo.Store.KindOf(convKey) == "bnet" then
+        local tag = History.BattleTagFor(convKey)
+        return tag and ("bt:" .. tag) or nil
+    end
+    return convKey
+end
+
+local function PrefBucket(create)
+    if not root then return nil end
+    local charKey = characterKey()
+    if not charKey then return nil end
+    if type(root.prefs) ~= "table" then
+        if not create then return nil end
+        root.prefs = {}
+    end
+    local bucket = root.prefs[charKey]
+    if type(bucket) ~= "table" then
+        if not create then return nil end
+        bucket = {}
+        root.prefs[charKey] = bucket
+    end
+    return bucket
+end
+
+--- A conversation's saved pin and tier on this character. Prefs are the player's
+-- settings, not chat content, so the history switch doesn't affect them.
+-- @param convKey string
+-- @return table|nil { tier = string|nil, pinned = boolean|nil }
+function History.LoadPref(convKey)
+    local key = PrefKey(convKey)
+    local bucket = key and PrefBucket(false)
+    local pref = bucket and bucket[key]
+    if type(pref) ~= "table" then return nil end
+    return pref
+end
+
+--- Save a conversation's pin and tier on this character; nothing to save removes it.
+-- @param convKey string
+-- @param tier string|nil  the override, nil for the kind's default
+-- @param pinned boolean|nil
+-- @return boolean saved
+function History.SavePref(convKey, tier, pinned)
+    local key = PrefKey(convKey)
+    if not key then return false end
+    local bucket = PrefBucket(true)
+    if not bucket then return false end
+    if tier == nil and not pinned then
+        bucket[key] = nil
+    else
+        bucket[key] = { tier = tier, pinned = pinned and true or nil }
+    end
+    return true
+end
+
 local function Bucket(convKey, create)
     if not root then return nil end
     local kind = Echo.Store.KindOf(convKey)

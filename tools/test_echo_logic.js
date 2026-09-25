@@ -1531,6 +1531,66 @@ run(`
   S.Reset()
 `, 'module');
 
+// --- Prefs: pins and tiers remembered per character -------------------------------------
+run(`
+  local S, H = HorizonSuite.Echo.Store, HorizonSuite.Echo.History
+  S.Reset()
+  local db = {}
+  local charKey = "Kaelis-Horizon"
+  H.Bind(db, function() return charKey end)
+  local savedBattleNet = C_BattleNet
+  C_BattleNet = { GetAccountInfoByID = function(id) if id == 77 then return { battleTag = "Vexa#1234" } end end }
+
+  S.Add({ convKey = "w:Brisa-Horizon", text = "hi" })
+  S.SetPinned("w:Brisa-Horizon", true)
+  S.SetTier("ch:Trade", "muted")
+  S.Add({ convKey = "bn:77", text = "yo" })
+  S.SetTier("bn:77", "quiet")
+  S.Add({ convKey = "bn:404", text = "who" })
+  S.SetPinned("bn:404", true)
+  local prefs = db.echoHistory.prefs and db.echoHistory.prefs["Kaelis-Horizon"]
+  check("a pin is saved", prefs and prefs["w:Brisa-Horizon"] and prefs["w:Brisa-Horizon"].pinned == true, "missing")
+  check("a tier is saved even before the conversation opens", prefs and prefs["ch:Trade"] and prefs["ch:Trade"].tier == "muted", "missing")
+  check("battle.net prefs are saved by battletag, never account id",
+        prefs and prefs["bt:Vexa#1234"] and prefs["bt:Vexa#1234"].tier == "quiet" and prefs["bn:77"] == nil, "wrong key")
+  check("a battle.net friend without a battletag is not saved", prefs and prefs["bn:404"] == nil and prefs["bt:"] == nil, "saved")
+
+  -- A reload: the store forgets everything; prefs come back as conversations reopen.
+  S.Reset()
+  S.Add({ convKey = "w:Brisa-Horizon", text = "back" })
+  check("the pin survives a reload", S.Get("w:Brisa-Horizon").pinned == true, "lost")
+  S.Add({ convKey = "ch:Trade", text = "wts" })
+  check("the tier survives a reload", S.TierOf("ch:Trade") == "muted" and S.Get("ch:Trade").unread == 0, S.TierOf("ch:Trade"))
+  S.Add({ convKey = "bn:77", text = "again" })
+  check("a battle.net tier survives by battletag", S.TierOf("bn:77") == "quiet", S.TierOf("bn:77"))
+  check("the override can be read", S.OverrideOf("ch:Trade") == "muted" and S.OverrideOf("party") == nil, "?")
+
+  S.SetTier("ch:Trade", nil)
+  check("going back to the default removes the saved entry", prefs["ch:Trade"] == nil, "kept")
+  S.Close("w:Brisa-Horizon")
+  check("closing a conversation drops its saved pin", prefs["w:Brisa-Horizon"] == nil, "kept")
+
+  H.SetEnabledCheck(function() return false end)
+  S.SetPinned("bn:77", true)
+  check("prefs save with history turned off", prefs["bt:Vexa#1234"].pinned == true and prefs["bt:Vexa#1234"].tier == "quiet", "?")
+  H.SetEnabledCheck(function() return true end)
+  H.Clear()
+  check("clearing history keeps prefs", db.echoHistory.prefs["Kaelis-Horizon"]["bt:Vexa#1234"] ~= nil, "wiped")
+
+  charKey = "Alt-Horizon"
+  S.Reset()
+  S.Add({ convKey = "bn:77", text = "x" })
+  check("prefs are per character", S.TierOf("bn:77") == "loud" and S.Get("bn:77").pinned == false, S.TierOf("bn:77"))
+  db.echoHistory.prefs["Alt-Horizon"] = { ["ch:Trade"] = { tier = "shouty" } }
+  S.Add({ convKey = "ch:Trade", text = "x" })
+  check("an invalid saved tier is ignored", S.TierOf("ch:Trade") == "quiet", S.TierOf("ch:Trade"))
+  charKey = "Kaelis-Horizon"
+  C_BattleNet = savedBattleNet
+  H.Unbind()
+  check("an unbound history saves no prefs", H.SavePref("w:X-Horizon", "muted", false) == false, "saved")
+  S.Reset()
+`, 'prefs');
+
 // --- Summary -------------------------------------------------------------------
 run(`
   print(PASS .. " passed, " .. FAIL .. " failed")

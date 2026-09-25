@@ -124,6 +124,20 @@ function Store.TierOf(convKey)
     return (kind and Store.DEFAULT_TIERS[kind]) or "quiet"
 end
 
+-- Save a conversation's pin and tier (Task 1 of plan 3).
+local function SavePref(convKey)
+    if not Echo.History then return end
+    local conv = conversations[convKey]
+    Echo.History.SavePref(convKey, overrides[convKey], conv and conv.pinned)
+end
+
+--- The conversation's own tier, or nil when it follows its kind's default.
+-- @param convKey string
+-- @return string|nil
+function Store.OverrideOf(convKey)
+    return overrides[convKey]
+end
+
 --- Override one conversation's tier; nil restores the default.
 -- @param convKey string
 -- @param tier string|nil
@@ -131,6 +145,7 @@ end
 function Store.SetTier(convKey, tier)
     if tier ~= nil and not Store.VALID_TIERS[tier] then return false end
     overrides[convKey] = tier
+    SavePref(convKey)
     Notify(convKey, "update")
     return true
 end
@@ -151,6 +166,11 @@ local function GetOrCreate(convKey)
     }
     if Store.PERSISTED_KINDS[conv.kind] and Echo.History then
         conv.messages = Echo.History.Load(convKey)
+    end
+    local pref = Echo.History and Echo.History.LoadPref(convKey)
+    if pref then
+        conv.pinned = pref.pinned == true
+        if overrides[convKey] == nil and Store.VALID_TIERS[pref.tier] then overrides[convKey] = pref.tier end
     end
     conversations[convKey] = conv
     return conv
@@ -244,6 +264,7 @@ function Store.SetPinned(convKey, pinned)
     local conv = conversations[convKey]
     if not conv then return end
     conv.pinned = pinned and true or false
+    SavePref(convKey)
     Notify(convKey, "update")
 end
 
@@ -254,6 +275,7 @@ function Store.Close(convKey)
     conv.open = false
     conv.unread = 0
     conv.pinned = false
+    SavePref(convKey)
     Notify(convKey, "closed")
 end
 
