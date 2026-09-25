@@ -232,6 +232,7 @@ read_globals = {
     "UnitIsUnit",
     "UnitExists",
     "UnitGUID",
+    "GetPlayerInfoByGUID",
     "UnitInRaid",
     "UnitInParty",
     "UnitIsPlayer",
@@ -369,6 +370,7 @@ read_globals = {
     "HousingFramesUtil",
     "ChatFrameUtil",
     "BNSendWhisper",
+    "SendChatMessage",
     "ContentTrackingUtil",
     "ProfessionsUtil",
     "GetCVarTableValue",
@@ -469,4 +471,5 @@ read_globals = {
     "FACTION_STANDING_INCREASED",
     "FACTION_STANDING_INCREASED_GENERIC",
     "FACTION_STANDING_DECREASED",
+    "ERR_CHAT_PLAYER_NOT_FOUND_S",
 }
