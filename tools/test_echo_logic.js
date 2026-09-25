@@ -1966,6 +1966,42 @@ run(`
   S.Reset()
 `, 'card-retry');
 
+// --- Card.Retry marks the card for a deferred repaint instead of rendering right away -------
+run(`
+  local Echo = HorizonSuite.Echo
+  local S, T, K, C, R = Echo.Store, Echo.Tiles, Echo.Stack, Echo.Card, Echo.Redraw
+  S.Reset()
+  CreateFrame = STUB_CREATE_FRAME
+  C_ChatInfo = { SendChatMessage = function() end }
+  T.Enable()
+  K.Enable()
+  C.Enable()
+  local f = C._frames()
+
+  S.Add({ convKey = "w:Brisa-Horizon", text = "hi", class = "DRUID", sender = "Brisa-Horizon" })
+  C.Open("w:Brisa-Horizon")
+  f.edit:SetText("first try")
+  f.edit.scripts.OnEnterPressed(f.edit)
+  S.MarkFailed("w:Brisa-Horizon")
+  local failedMsg = f.status.retry
+  check("a failed bubble is not dimmed", f.bubbles[1].alpha == 0.24, f.bubbles[1].alpha)
+
+  R.sync = false
+  f.status.scripts.OnClick(f.status)
+  check("retry still marks the record retried", failedMsg.status == "retried", failedMsg.status)
+  check("the card is pending a repaint, not rendered inline", R.Pending("card") == true, R.Pending("card"))
+  check("the dimmed styling has not landed yet", f.bubbles[1].alpha == 0.24, f.bubbles[1].alpha)
+  R.Flush()
+  check("the dimmed styling lands once the deferred repaint runs", f.bubbles[2].alpha == 0.14, f.bubbles[2].alpha)
+  R.sync = true
+
+  C.Disable()
+  K.Disable()
+  T.Disable()
+  C_ChatInfo = nil
+  S.Reset()
+`, 'card-retry-deferred');
+
 // --- Card: an unmeasurable-width bubble falls back to full width (fix round 1, finding 3) --
 run(`
   local Echo = HorizonSuite.Echo
@@ -2922,6 +2958,8 @@ run(`
   local scale = 1
   column.SetScale = function(self, s) scale = s end
   column.GetScale = function() return scale end
+  local strata = "MEDIUM"
+  column.SetFrameStrata = function(self, s) strata = s end
 
   -- Default corner follows the edge.
   db.echoColumnEdge = "left"
@@ -2929,17 +2967,35 @@ run(`
   local p = column.points[#column.points]
   check("left edge default corner", p[1] == "BOTTOMLEFT" and p[3] == "BOTTOMLEFT" and p[4] > 0, p[1] .. " " .. tostring(p[4]))
 
-  -- A dragged position is kept in screen units across a scale change.
-  db.echoX, db.echoY = 800, 300
-  db.echoScale = 2
+  -- A dragged position is kept in screen units across a scale change. Scale 1.5, not the
+  -- old 2, now that ApplyPosition clamps to 0.6-1.6 without a settings ECHO_LIMITS table
+  -- (Minor 5): 2 would itself be clamped down to 1.6 and break the "halves" arithmetic.
+  db.echoX, db.echoY = 750, 300
+  db.echoScale = 1.5
   Echo.ApplyOptions()
   p = column.points[#column.points]
-  check("scale 2 halves the offsets", p[1] == "BOTTOM" and p[4] == 400 and p[5] == 150, tostring(p[4]) .. "," .. tostring(p[5]))
-  column.GetCenter = function() return 400 end
-  column.GetBottom = function() return 150 end
+  check("scale 1.5 divides the offsets", p[1] == "BOTTOM" and p[4] == 500 and p[5] == 200, tostring(p[4]) .. "," .. tostring(p[5]))
+  column.GetCenter = function() return 500 end
+  column.GetBottom = function() return 200 end
   Echo.Tiles._savePosition()
-  check("saving multiplies by the scale", db.echoX == 800 and db.echoY == 300, tostring(db.echoX) .. "," .. tostring(db.echoY))
+  check("saving multiplies by the scale", db.echoX == 750 and db.echoY == 300, tostring(db.echoX) .. "," .. tostring(db.echoY))
   column.GetCenter, column.GetBottom = nil, nil
+
+  -- Scale and strata are validated: junk falls back to a safe default (Minor 5).
+  db.echoScale = 0
+  Echo.ApplyOptions()
+  check("a zero scale falls back to 1", scale == 1, scale)
+  db.echoScale = 99
+  Echo.ApplyOptions()
+  check("an out-of-range scale clamps to the max", scale == 1.6, scale)
+  db.echoScale = "bogus"
+  Echo.ApplyOptions()
+  check("a non-number scale falls back to 1", scale == 1, scale)
+  db.echoScale = 1.5
+  db.echoFrameStrata = "BOGUS"
+  Echo.ApplyOptions()
+  check("an unknown strata falls back to MEDIUM", strata == "MEDIUM", strata)
+  db.echoFrameStrata = nil
 
   -- The stack and card open on the edge's side.
   Echo.Stack.Enable(); Echo.Card.Enable()
@@ -2974,6 +3030,9 @@ run(`
   Echo.ApplyOptions()
   local last = set[#set]
   check("font re-applied", last and last[1] == "Fonts\\\\ARIALN.TTF" and last[2] == 12 and last[3] == "", last and last[1])
+  local countBefore = #set
+  Echo.ApplyOptions()
+  check("re-applying the same font path is a no-op", #set == countBefore, #set)
   db.echoFontPath = "__global__"
   check("global font", Echo.FontPath() ~= "__global__", Echo.FontPath())
 
@@ -3031,6 +3090,18 @@ run(`
   db.echoHideStoredWhispers = false
   Echo.ApplyOptions()
   check("setting off removes the filter", F.active == false, F.active)
+
+  local realApply, applyCalls = F.Apply, 0
+  F.Apply = function(...) applyCalls = applyCalls + 1; return realApply(...) end
+  Echo.ApplyOptions()
+  check("re-applying with the same filter setting is a no-op", applyCalls == 0, applyCalls)
+  db.echoHideStoredWhispers = true
+  Echo.ApplyOptions()
+  check("a real filter change still applies", applyCalls == 1 and F.active == true, applyCalls)
+  F.Apply = realApply
+  db.echoHideStoredWhispers = false
+  Echo.ApplyOptions()
+
   HorizonSuite.GetDB = nil
   ChatFrame_AddMessageEventFilter, ChatFrame_RemoveMessageEventFilter, ChatEdit_SetLastTellTarget = nil, nil, nil
 `, 'echo-filter');
@@ -3102,6 +3173,44 @@ run(`
   PlaySound, SOUNDKIT, ChatEdit_SetLastTellTarget = nil, nil, nil
 `, 'echo-filter-lockdown');
 
+// --- OptionsData: the global-font override pushes Echo's font too -------------------------
+run(`
+  local A = HorizonSuite
+  A.DATABASE = "HorizonDB_TestOD"
+  local db = {}
+  A.GetDB = function(k, d) if db[k] ~= nil then return db[k] end return d end
+  A.SetDB = function(k, v) db[k] = v end
+  A.TYPOGRAPHY_KEYS, A.COLOR_LIVE_KEYS, A.SCALE_DEBOUNCE_KEYS, A.CLASS_COLOR_KEYS = {}, {}, {}, {}
+  A.IsModuleEnabled = function(self, name) return A._echoEnabledForTest == true end
+`, 'optionsdata-stubs');
+run(read('options/OptionsData.lua'), 'options/OptionsData.lua');
+run(`
+  local A = HorizonSuite
+  local realApplyFont = A.Echo.ApplyFont
+  local calls = 0
+  A.Echo.ApplyFont = function() calls = calls + 1 end
+
+  A._echoEnabledForTest = true
+  OptionsData_SetDB("useGlobalFont", true)
+  check("the global font toggle re-fonts Echo when Echo is enabled", calls == 1, calls)
+
+  A._echoEnabledForTest = false
+  OptionsData_SetDB("useGlobalFont", true)
+  check("no Echo re-font while Echo is disabled", calls == 1, calls)
+
+  A._echoEnabledForTest = true
+  OptionsData_SetDB("focusShowWorldQuests", true)
+  check("an unrelated key does not re-font Echo", calls == 1, calls)
+
+  A.Echo.ApplyFont = realApplyFont
+  A.TYPOGRAPHY_KEYS, A.COLOR_LIVE_KEYS, A.SCALE_DEBOUNCE_KEYS, A.CLASS_COLOR_KEYS = nil, nil, nil, nil
+  A.IsModuleEnabled, A._echoEnabledForTest = nil, nil
+  A.OptionCategories, A.OptionsData_GetDB, A.OptionsData_SetDB = nil, nil, nil
+  A.OptionsData_GetFontList, A.OptionsData_NotifyMainAddon, A.OptionsData_NotifyMainAddon_Live = nil, nil, nil
+  _G[A.DATABASE] = nil
+  A.GetDB, A.SetDB, A.DATABASE = nil, nil, nil
+`, 'optionsdata-font');
+
 // --- Options page builds -----------------------------------------------------
 run(read('options/modules/defaults/OptionsDefaultsEcho.lua'), 'echo-defaults-2');
 run(`
@@ -3137,6 +3246,13 @@ run(`
   check("guild tier default", keys.echoTierGuild.get() == "quiet", keys.echoTierGuild.get())
   A.OptionsData_SetDB("echoFeedLoot", false)
   check("loot tier hidden with its feed off", keys.echoTierLoot.visibleWhen() == false, "shown")
+  check("keyword box tooltip, not desc", keys.echoKeywords.tooltip == A.L["ECHO_KEYWORDS_DESC"], keys.echoKeywords.tooltip)
+
+  A.OptionsData_SetDB("echoX", 800)
+  A.OptionsData_SetDB("echoY", 300)
+  keys.echoColumnEdge.set("left")
+  check("the edge setter clears the dragged position", A.OptionsData_GetDB("echoX") == nil and A.OptionsData_GetDB("echoY") == nil, tostring(A.OptionsData_GetDB("echoX")))
+
   A.OptionCategories, A.OptionsData_GetDB, A.OptionsData_SetDB = nil, nil, nil
   A.Section, A.Button, A.Toggle, A.GetPerElementFontDropdownOptions = nil, nil, nil, nil
   A.ECHO_DEFAULTS, A.ECHO_KEYS, A.ECHO_LIMITS = nil, nil, nil
@@ -3182,6 +3298,18 @@ run(`
   calls = {}
   R.Mark("tiles"); R.Clear(); R.Flush()
   check("Clear drops pending marks", #calls == 0, #calls)
+
+  -- A handler that errors is reported and does not stop a later handler this flush.
+  local savedHandler, reported = geterrorhandler, nil
+  geterrorhandler = function() return function(err) reported = err end end
+  R.Register("tiles", function() error("tiles boom") end)
+  calls = {}
+  R.Mark("tiles"); R.Mark("card")
+  R.Flush()
+  check("a later handler still runs after an earlier one errors", #calls == 1 and calls[1] == "card", table.concat(calls, ","))
+  check("the error reaches the error handler", type(reported) == "string" and reported:find("tiles boom", 1, true) ~= nil, tostring(reported))
+  geterrorhandler = savedHandler
+  R.Register("tiles", function() calls[#calls + 1] = "tiles" end)
 
   -- A burst of lines through the real views: one Tiles.Refresh.
   local Store = Echo.Store

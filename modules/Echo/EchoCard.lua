@@ -607,8 +607,9 @@ end
 function Card.Submit()
     local text = edit and edit:GetText()
     if not currentKey or not text or text == "" then return end
-    -- Back to the newest before sending: Send.Send's Store.AddPending triggers the render
-    -- that draws the new bubble, and it must draw it at the bottom, not scrolled past.
+    -- Back to the newest before sending: Send.Send's Store.AddPending marks "card" for
+    -- the render that draws the new bubble, which runs on the next frame, so it must
+    -- draw at the bottom, not scrolled past.
     offset = 0
     -- A send that can't route keeps its text in the box, so nothing typed is lost.
     if Echo.Send.Send(currentKey, text) then edit:SetText("") end
@@ -619,11 +620,11 @@ end
 function Card.Retry(msg)
     if not currentKey or not msg or msg.status ~= "failed" then return end
     if Echo.Send.Send(currentKey, msg.text) then
-        -- Send.Send's own Store.AddPending already triggered a re-render (of the newly
-        -- filed part, still "failed" here); render again now that this message reads
-        -- "retried" so its bubble picks up the dimmed styling.
+        -- Send.Send's own Store.AddPending already marked "card" (of the newly filed
+        -- part, still "failed" here); mark it again now that this message reads
+        -- "retried" so its bubble picks up the dimmed styling once repainted.
         msg.status = "retried"
-        Card.Render()
+        Echo.Redraw.Mark("card")
     end
 end
 

@@ -70,9 +70,13 @@ function Echo.TrackFont(obj, size, flags)
     obj:SetFont(Echo.FontPath(), size, flags)
 end
 
---- Re-font every tracked object.
+local appliedPath  -- the path last pushed to every tracked object; Echo.ApplyFont skips a no-op call
+
+--- Re-font every tracked object. Does nothing when the resolved path is unchanged.
 function Echo.ApplyFont()
     local path = Echo.FontPath()
+    if path == appliedPath then return end
+    appliedPath = path
     for obj, f in pairs(tracked) do obj:SetFont(path, f.size, f.flags) end
 end
 
@@ -107,5 +111,6 @@ function Echo.ApplyOptions()
     local card = _G.HorizonSuiteEchoCard
     if card and card:IsShown() and Echo.Card.Reanchor then Echo.Card.Reanchor() end
     if Echo.Redraw then Echo.Redraw.Mark("tiles") end
-    Echo.Filter.Apply(Echo.Setting("echoHideStoredWhispers") == true)
+    local filterOn = Echo.Setting("echoHideStoredWhispers") == true
+    if filterOn ~= Echo.Filter.active then Echo.Filter.Apply(filterOn) end
 end

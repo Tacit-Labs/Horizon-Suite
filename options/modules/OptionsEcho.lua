@@ -27,11 +27,8 @@ local TIER_OPTIONS = {
     { L["ECHO_TIER_MUTED"], "muted" },
 }
 
-local function TierKey(kind) return "echoTier" .. kind:sub(1, 1):upper() .. kind:sub(2) end
-local function FeedKey(kind) return "echoFeed" .. kind:sub(1, 1):upper() .. kind:sub(2) end
-
 local function TierDropdown(kind, label)
-    local key = TierKey(kind)
+    local key = addon.Echo.TierKey(kind)
     return { type = "dropdown", name = label, desc = L["ECHO_TIER_DESC"], dbKey = key,
         options = TIER_OPTIONS, preserveOrder = true,
         get = function() return getDB(key, D[key]) end,
@@ -50,7 +47,11 @@ local options = {
     { type = "dropdown", name = L["ECHO_COLUMN_EDGE"], desc = L["ECHO_COLUMN_EDGE_DESC"], dbKey = "echoColumnEdge",
       options = { { L["ECHO_EDGE_RIGHT"], "right" }, { L["ECHO_EDGE_LEFT"], "left" } }, preserveOrder = true,
       get = function() return getDB("echoColumnEdge", D.echoColumnEdge) end,
-      set = function(v) setDB("echoColumnEdge", v == "left" and "left" or "right") end },
+      set = function(v)
+          setDB("echoX", nil)
+          setDB("echoY", nil)
+          setDB("echoColumnEdge", v == "left" and "left" or "right")
+      end },
     Toggle(L["ECHO_LOCK"], L["ECHO_LOCK_DESC"], "echoLockPosition", D.echoLockPosition),
     Button(L["AXIS_RESET_POSITION"], L["ECHO_RESET_POSITION_DESC"], function()
         setDB("echoX", nil)
@@ -81,7 +82,7 @@ local options = {
       set = function(v) setDB("echoToastStyle", v) end },
     IntSlider("echoToastSeconds", L["ECHO_TOAST_SECONDS"], L["ECHO_TOAST_SECONDS_DESC"], 1),
     Toggle(L["ECHO_HOLD_IN_COMBAT"], L["ECHO_HOLD_IN_COMBAT_DESC"], "echoHoldToastsInCombat", D.echoHoldToastsInCombat),
-    { type = "editbox", name = L["ECHO_KEYWORDS"], labelText = L["ECHO_KEYWORDS"], desc = L["ECHO_KEYWORDS_DESC"],
+    { type = "editbox", name = L["ECHO_KEYWORDS"], labelText = L["ECHO_KEYWORDS"], tooltip = L["ECHO_KEYWORDS_DESC"],
       dbKey = "echoKeywords", height = 24,
       get = function() return getDB("echoKeywords", D.echoKeywords) or "" end,
       set = function(v) setDB("echoKeywords", type(v) == "string" and v:gsub("[\r\n]+", ",") or "") end },
@@ -101,7 +102,7 @@ local options = {
 
 for _, kind in ipairs({ "loot", "progress", "system" }) do
     local name = L["ECHO_KIND_" .. kind:upper()]
-    local feedKey = FeedKey(kind)
+    local feedKey = addon.Echo.FeedKey(kind)
     options[#options + 1] = Toggle(L["ECHO_FEED_SHOW"]:format(name), L["ECHO_FEED_SHOW_DESC"], feedKey, D[feedKey])
     local tier = TierDropdown(kind, L["ECHO_FEED_TIER"]:format(name))
     tier.visibleWhen = function() return getDB(feedKey, D[feedKey]) ~= false end

@@ -29,14 +29,21 @@ function Redraw.Register(name, fn)
     if type(fn) == "function" then handlers[name] = fn end
 end
 
---- Repaint every marked view, once each, in ORDER.
+--- Repaint every marked view, once each, in ORDER. A handler that errors is reported and
+-- skipped, so one broken view does not stop the others repainting this flush.
 function Redraw.Flush()
     local now = dirty
     dirty = {}
     if ticker then ticker:Hide() end
     if now.card then now.cardRow = nil end
     for _, name in ipairs(ORDER) do
-        if now[name] and handlers[name] then handlers[name]() end
+        if now[name] and handlers[name] then
+            local ok, err = pcall(handlers[name])
+            if not ok then
+                local handler = geterrorhandler and geterrorhandler()
+                if handler then handler(err) end
+            end
+        end
     end
 end
 

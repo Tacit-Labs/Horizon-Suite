@@ -134,11 +134,22 @@ end
 
 --- Anchor, scale and strata from settings. Unmoved, the column sits in the bottom corner
 -- of its edge and grows upward; once dragged it is anchored by its bottom centre.
+local VALID_STRATA = { BACKGROUND = true, LOW = true, MEDIUM = true, HIGH = true, DIALOG = true }
+
 function Tiles.ApplyPosition()
     if not column then return end
-    local scale = tonumber(Echo.Setting("echoScale")) or 1
+    local scale = tonumber(Echo.Setting("echoScale"))
+    local limits = addon.ECHO_LIMITS and addon.ECHO_LIMITS.echoScale
+    local minScale, maxScale = (limits and limits.min) or 0.6, (limits and limits.max) or 1.6
+    if type(scale) ~= "number" or scale <= 0 then
+        scale = 1
+    else
+        scale = math.max(minScale, math.min(maxScale, scale))
+    end
     column:SetScale(scale)
-    column:SetFrameStrata(Echo.Setting("echoFrameStrata") or "MEDIUM")
+    local strata = Echo.Setting("echoFrameStrata")
+    if not VALID_STRATA[strata] then strata = "MEDIUM" end
+    column:SetFrameStrata(strata)
     column:ClearAllPoints()
     local x, y = tonumber(Echo.Setting("echoX")), tonumber(Echo.Setting("echoY"))
     if x and y then
