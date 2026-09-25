@@ -3698,6 +3698,23 @@ run(`
   class, source = Echo.Class.Resolve(vexa)
   check("a friend resolves", class == "EVOKER" and source == "friends", tostring(class) .. "/" .. tostring(source))
 
+  -- With no male table, the female table is still checked (fix round 1, finding 2).
+  LOCALIZED_CLASS_NAMES_MALE = nil
+  LOCALIZED_CLASS_NAMES_FEMALE = { PALADIN = "Paladin" }
+  C_FriendList = {
+    GetNumFriends = function() return 1 end,
+    GetFriendInfoByIndex = function(i)
+      if i == 1 then return { name = "Priss", className = "Paladin" } end
+      return nil
+    end,
+  }
+  S.Add({ convKey = "w:Priss-Horizon", text = "hi" })
+  local priss = S.Get("w:Priss-Horizon")
+  class, source = Echo.Class.Resolve(priss)
+  check("a female-table-only friend still maps", class == "PALADIN" and source == "friends", tostring(class) .. "/" .. tostring(source))
+  LOCALIZED_CLASS_NAMES_MALE = { DRUID = "Druid", ROGUE = "Rogue", EVOKER = "Evoker", MAGE = "Mage", PALADIN = "Paladin" }
+  LOCALIZED_CLASS_NAMES_FEMALE = nil
+
   -- A message's own class always wins, even once a lookup has cached something else.
   S.Add({ convKey = "w:Vexa-Horizon", text = "hi again", class = "MAGE", sender = "Vexa-Horizon" })
   class, source = Echo.Class.Resolve(vexa)

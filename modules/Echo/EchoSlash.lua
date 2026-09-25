@@ -38,7 +38,7 @@ local function ClassSuffix(conv)
     if type(resolve) ~= "function" then return "" end
     local class, source = resolve(conv)
     if Echo.IsSecret(class) or type(class) ~= "string" or class == "" then return "" end
-    return (" class=%s(%s)"):format(class, source or "")
+    return L["ECHO_SLASH_STATUS_CLASS"]:format(class, source or "")
 end
 
 local function PrintStatus()

@@ -49,11 +49,12 @@ end
 -- @return string|nil
 local function ClassFileFromLocalized(localized)
     if not Readable(localized) then return nil end
-    for _, names in ipairs({ LOCALIZED_CLASS_NAMES_MALE, LOCALIZED_CLASS_NAMES_FEMALE }) do
-        if type(names) == "table" then
-            for file, label in pairs(names) do
-                if not IsSecret(label) and label == localized then return file end
-            end
+    local tables = {}
+    if type(LOCALIZED_CLASS_NAMES_MALE) == "table" then tables[#tables + 1] = LOCALIZED_CLASS_NAMES_MALE end
+    if type(LOCALIZED_CLASS_NAMES_FEMALE) == "table" then tables[#tables + 1] = LOCALIZED_CLASS_NAMES_FEMALE end
+    for _, names in ipairs(tables) do
+        for file, label in pairs(names) do
+            if not IsSecret(label) and label == localized then return file end
         end
     end
     return nil
@@ -116,7 +117,7 @@ local function FriendsClass(targetName)
     if not okNum or IsSecret(num) or type(num) ~= "number" then return nil, nil end
     for i = 1, num do
         local okInfo, info = pcall(api.GetFriendInfoByIndex, i)
-        if okInfo and type(info) == "table" and not IsSecret(info) then
+        if okInfo and not IsSecret(info) and type(info) == "table" then
             local full = FullName(info.name, nil)
             if full and full == targetName then
                 local classFile = ClassFileFromLocalized(info.className)
@@ -164,9 +165,9 @@ local function ResolveBnet(conv)
     local api = C_BattleNet
     if type(api) ~= "table" or type(api.GetAccountInfoByID) ~= "function" then return nil, nil end
     local ok, info = pcall(api.GetAccountInfoByID, tonumber(id) or id)
-    if not ok or type(info) ~= "table" or IsSecret(info) then return nil, nil end
+    if not ok or IsSecret(info) or type(info) ~= "table" then return nil, nil end
     local gameInfo = info.gameAccountInfo
-    if type(gameInfo) ~= "table" or IsSecret(gameInfo) then return nil, nil end
+    if IsSecret(gameInfo) or type(gameInfo) ~= "table" then return nil, nil end
     local client = gameInfo.clientProgram
     local wowClient = BNET_CLIENT_WOW or "WoW"
     if not Readable(client) or client ~= wowClient then return nil, nil end
