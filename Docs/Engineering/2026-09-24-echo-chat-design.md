@@ -198,6 +198,14 @@ These are assumptions, not facts. Settle them in the first implementation step, 
 4. Whether `modules/Augment/ToastStyles/AugmentToastStyles.lua` works while Augment is disabled. If not, move it to `core/` as part of this work rather than copy it.
 5. Which hook reliably redirects shift-click link insertion to a focused Echo input.
 
+### Results so far (Retail, 2026-09-25, outside instances)
+
+- `/h echo probe` reports `sendChat=yes sendBN=yes secretChat=true bnetWhispers=true`.
+- Whisper and whisper-inform route to `w:Name-Realm`; the reply route is `WHISPER:Name-Realm`. Your own General line is detected as outgoing.
+- No argument was secret outside an instance. Item 1 still needs an in-instance run; #444 saw secret `CHAT_MSG_SYSTEM` anywhere inside an instance on both clients, so a delve or dungeon is enough.
+- **CHAT_MSG_CHANNEL arg 9 carries the zone** (`General - Zul'Aman`), so keying by it made one conversation per zone. Fixed: zone channels (arg 7 `zoneChannelID` > 0) are keyed by the name before ` - `, and replies go to the joined index from arg 8, checked against `GetChannelName(index)` before use. `GetChannelName` accepted the full name (`route=CHANNEL:1`).
+- Item 4 is settled from the code: `AugmentToastStyles.lua` is a plain table of functions loaded by the TOC before `AugmentModule.lua`, so it works with Augment disabled.
+
 ## Testing
 
 - **Logic tests:** `tools/test_echo_logic.js`, in the same shape as `tools/test_lootroll_logic.js` (fengari, stubbed globals, real locale file). Covers conversation keys, tier and ordering rules, unread counters, the history cap and trim, "secret messages are never persisted", and "sender secret produces no conversation, only a marker count".
