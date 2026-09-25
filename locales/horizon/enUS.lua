@@ -2759,3 +2759,21 @@ L["FOCUS_RUN_RESET"]                                          = "Reset Run"
 L["FOCUS_RUN_RESET_TOOLTIP"]                                  = "Start this run's time, experience and money over from zero."
 L["FOCUS_RUN_RESET_DONE"]                                     = "Dungeon run reset."
 L["FOCUS_RUN_RESET_NOT_IN_DUNGEON"]                           = "No dungeon run to reset."
+
+-- =====================================================================
+-- Echo — tiles and stack
+-- =====================================================================
+L["ECHO_NEW_MESSAGE"]                                         = "New message"
+L["ECHO_IN_CHAT"]                                             = "%d in chat"
+L["ECHO_QUICK_REPLY"]                                         = "Quick reply…"
+L["ECHO_OPEN"]                                                = "Open"
+L["ECHO_MORE"]                                                = "+%d more · scroll to flip"
+L["ECHO_SCROLL_HINT"]                                         = "Scroll to flip"
+L["ECHO_NEW_COUNT"]                                           = "%d new"
+L["ECHO_JUST_NOW"]                                            = "just now"
+L["ECHO_BATTLENET"]                                           = "Battle.net"
+L["ECHO_KIND_PARTY"]                                          = "Party"
+L["ECHO_KIND_RAID"]                                           = "Raid"
+L["ECHO_KIND_INSTANCE"]                                       = "Instance"
+L["ECHO_KIND_GUILD"]                                          = "Guild"
+L["ECHO_KIND_OFFICER"]                                        = "Officer"

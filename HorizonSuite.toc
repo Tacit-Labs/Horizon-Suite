@@ -156,6 +156,7 @@ modules/Echo/EchoStore.lua
 modules/Echo/EchoHistory.lua
 modules/Echo/EchoEvents.lua
 modules/Echo/EchoSend.lua
+modules/Echo/EchoView.lua
 modules/Echo/EchoSlash.lua
 modules/Echo/EchoModule.lua
 options/OptionsWidgets.lua
@@ -173,6 +174,7 @@ options/modules/defaults/OptionsDefaultsAugment.lua
 options/modules/defaults/OptionsDefaultsPresence.lua
 options/modules/defaults/OptionsDefaultsInsight.lua
 options/modules/defaults/OptionsDefaultsEssence.lua
+options/modules/defaults/OptionsDefaultsEcho.lua
 options/modules/defaults/OptionsDefaultsVista.lua
 options/modules/defaults/OptionsDefaultsFocus.lua
 options/modules/defaults/OptionsDefaultsAxis.lua
