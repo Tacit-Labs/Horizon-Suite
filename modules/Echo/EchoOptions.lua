@@ -37,6 +37,11 @@ function Echo.FeedEnabled(kind)
     return Echo.Setting(Echo.FeedKey(kind)) ~= false
 end
 
+-- Last applied enabled state per feed kind, so ApplyOptions can tell an off->on change
+-- from a feed that was already on. nil (never applied) never undismisses: a feed the
+-- player dismissed by hand before Echo ever ran ApplyOptions stays dismissed.
+local feedOn = {}
+
 local FONT_USE_GLOBAL = "__global__"
 local tracked = setmetatable({}, { __mode = "k" })  -- FontString / EditBox -> { size, flags }
 
@@ -82,8 +87,16 @@ function Echo.ApplyOptions()
     end
     Echo.Events.SetKeywords(Echo.Setting("echoKeywords"))
     for kind in pairs(Store.FEED_KINDS) do
-        local conv = Store.Get(kind)
-        if not Echo.FeedEnabled(kind) and conv and conv.open then Store.Close(kind) end
+        local on = Echo.FeedEnabled(kind)
+        if on then
+            -- Off->on: the feed reopens for its next line. A feed dismissed by hand while
+            -- staying switched on (feedOn[kind] already true) keeps its dismissal.
+            if feedOn[kind] == false then Store.Undismiss(kind) end
+        else
+            local conv = Store.Get(kind)
+            if conv and conv.open then Store.Close(kind) end
+        end
+        feedOn[kind] = on
     end
     Echo.ApplyFont()
     if Echo.Tiles and Echo.Tiles.ApplyPosition then Echo.Tiles.ApplyPosition() end

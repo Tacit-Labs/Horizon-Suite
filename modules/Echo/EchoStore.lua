@@ -324,6 +324,14 @@ function Store.Close(convKey)
     Notify(convKey, "closed")
 end
 
+--- Clear a feed's dismissal so its next line reopens the tile. Doesn't reopen or notify
+-- by itself; the next filed line does that as usual.
+-- @param convKey string
+function Store.Undismiss(convKey)
+    local conv = conversations[convKey]
+    if conv then conv.dismissed = nil end
+end
+
 --- A message Echo could not file (secret sender). Blizzard's chat frame still shows it.
 function Store.CountUnrouted()
     unrouted = unrouted + 1

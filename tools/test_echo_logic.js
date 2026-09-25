@@ -2855,6 +2855,16 @@ run(`
   check("FeedEnabled", Echo.FeedEnabled("loot") == false and Echo.FeedEnabled("system") == true, "wrong")
   check("a conversation kind is never a switched-off feed", Echo.FeedEnabled("whisper") == true, "off")
   db.echoFeedLoot = nil
+  Echo.ApplyOptions()
+  E.Dispatch("CHAT_MSG_LOOT", "You receive loot: [Bolt of Wool Cloth].", "Kaelis-Horizon", nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+  check("turning the feed back on reopens it on the next line", S.Get("loot").open == true, S.Get("loot") and S.Get("loot").open)
+
+  -- Dismissed by hand while the setting stays on: the dismissal survives ApplyOptions.
+  S.Close("loot")
+  check("closed by hand", S.Get("loot").open == false, S.Get("loot").open)
+  Echo.ApplyOptions()
+  E.Dispatch("CHAT_MSG_LOOT", "You receive loot: [Simple Flour].", "Kaelis-Horizon", nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+  check("a hand-closed feed stays closed with the setting unchanged", S.Get("loot").open == false, S.Get("loot").open)
 
   -- A system line still fails a pending whisper with the System feed off.
   db.echoFeedSystem = false
