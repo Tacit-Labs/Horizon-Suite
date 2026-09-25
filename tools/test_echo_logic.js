@@ -3436,6 +3436,19 @@ run(`
   local p = column.points[#column.points]
   check("left edge default corner", p[1] == "BOTTOMLEFT" and p[3] == "BOTTOMLEFT" and p[4] > 0, p[1] .. " " .. tostring(p[4]))
 
+  -- An undragged Auto column always sits bottom right: the no-saved-position branch reads
+  -- the raw setting, not View.Edge() (which would follow the column's simulated position
+  -- on the left half here and say "left").
+  db.echoColumnEdge = "auto"
+  UIParent.GetWidth = function() return 1000 end
+  column.GetCenter = function() return 200 end
+  check("auto still reports left from the column's position", V.Edge() == "left", V.Edge())
+  Echo.ApplyOptions()
+  p = column.points[#column.points]
+  check("an undragged Auto column sits bottom right", p[1] == "BOTTOMRIGHT" and p[3] == "BOTTOMRIGHT", p[1])
+  column.GetCenter, UIParent.GetWidth = nil, nil
+  db.echoColumnEdge = "left"
+
   -- A dragged position is kept in screen units across a scale change. Scale 1.5, not the
   -- old 2, now that ApplyPosition clamps to 0.6-1.6 without a settings ECHO_LIMITS table
   -- (Minor 5): 2 would itself be clamped down to 1.6 and break the "halves" arithmetic.

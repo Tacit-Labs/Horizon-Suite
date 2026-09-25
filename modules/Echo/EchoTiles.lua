@@ -262,7 +262,7 @@ function Tiles.ApplyPosition()
     local x, y = tonumber(Echo.Setting("echoX")), tonumber(Echo.Setting("echoY"))
     if x and y then
         column:SetPoint("BOTTOM", UIParent, "BOTTOMLEFT", x / scale, y / scale)
-    elseif Echo.View.Edge() == "left" then
+    elseif Echo.Setting("echoColumnEdge") == "left" then
         column:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", 24 / scale, 240 / scale)
     else
         column:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", -24 / scale, 240 / scale)
