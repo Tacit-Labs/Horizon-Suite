@@ -160,6 +160,7 @@ Echo stays a layer beside Blizzard's chat, not a replacement (a full overhaul wa
 - A feed is chosen by event type, not sender, so a secret line still lands in its feed and shows via SetText.
 - Links in conversation bubbles, feed lines and the stack's lines are live: hover for the tooltip, click through the game's own `SetItemRef`, shift-click to link.
 - The combat log stays Blizzard's.
+- Checked in game on Retail (director, 2026-09-25): feed tiles, read-only timestamped feed cards, live links, closing a feed until reload.
 
 ### Keybinds
 
