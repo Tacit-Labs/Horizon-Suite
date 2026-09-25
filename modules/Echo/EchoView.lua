@@ -277,3 +277,168 @@ function View.NewToastQueue()
     end
     return queue
 end
+
+-- ---------------------------------------------------------------------------
+-- The expanded card (plan 3)
+-- ---------------------------------------------------------------------------
+
+View.GROUP_GAP_SECONDS = 120
+
+--- True when message i starts a new group: the other side, another speaker, or a pause.
+-- A secret speaker can't be compared, so it always starts a group.
+-- @param messages table
+-- @param i number
+-- @return boolean
+function View.StartsGroup(messages, i)
+    local cur, prev = messages[i], messages[i - 1]
+    if not prev then return true end
+    if (cur.outgoing and true or false) ~= (prev.outgoing and true or false) then return true end
+    if not cur.outgoing then
+        if Echo.IsSecret(cur.sender) or Echo.IsSecret(prev.sender) or cur.sender ~= prev.sender then
+            return true
+        end
+    end
+    if type(cur.time) == "number" and type(prev.time) == "number"
+        and cur.time - prev.time > View.GROUP_GAP_SECONDS then
+        return true
+    end
+    return false
+end
+
+--- Index of the newest outgoing message, or nil.
+-- @param conv table
+-- @return number|nil
+function View.NewestOutgoing(conv)
+    for i = #conv.messages, 1, -1 do
+        if conv.messages[i].outgoing then return i end
+    end
+    return nil
+end
+
+--- Bubble width: fitted to readable text, the widest bubble when it couldn't be measured.
+-- @param measured number|nil  the text's unwrapped width; nil for secret text
+-- @param maxWidth number
+-- @param pad number  inner padding on each side
+-- @return number
+function View.BubbleWidth(measured, maxWidth, pad)
+    if type(measured) ~= "number" then return maxWidth end
+    return math.min(maxWidth, math.ceil(measured) + pad * 2)
+end
+
+--- Who a conversation is with and whether they're online, where the game says.
+-- @param conv table
+-- @return string|nil label, boolean|nil online
+function View.Relationship(conv)
+    if conv.kind == "bnet" then
+        local online
+        local id = tonumber(conv.key:sub(4))
+        local api = C_BattleNet and C_BattleNet.GetAccountInfoByID
+        if id and type(api) == "function" then
+            local ok, info = pcall(api, id)
+            local game = ok and type(info) == "table" and info.gameAccountInfo
+            if type(game) == "table" and not Echo.IsSecret(game.isOnline) then
+                online = game.isOnline == true
+            end
+        end
+        return L["ECHO_BATTLENET"], online
+    elseif conv.kind == "whisper" then
+        local name = conv.key:sub(3)
+        local friends = C_FriendList and C_FriendList.GetFriendInfo
+        if type(friends) == "function" then
+            local ok, info = pcall(friends, name)
+            if not ok or type(info) ~= "table" then
+                ok, info = pcall(friends, name:match("^([^-]+)") or name)
+            end
+            if ok and type(info) == "table" then
+                local online
+                if not Echo.IsSecret(info.connected) then online = info.connected == true end
+                return L["ECHO_FRIEND"], online
+            end
+        end
+        local guild = C_GuildInfo and C_GuildInfo.MemberExistsByName
+        if type(guild) == "function" then
+            local ok, member = pcall(guild, name)
+            if ok and member == true then return L["ECHO_GUILDMATE"], nil end
+        end
+    end
+    return nil, nil
+end
+
+--- The card header's detail line: class, relationship and online status, readable parts only.
+-- @param conv table
+-- @return string
+function View.CardMeta(conv)
+    local parts = {}
+    local class = View.LastClass(conv)
+    if class and not Echo.IsSecret(class) then
+        local names = LOCALIZED_CLASS_NAMES_MALE
+        parts[#parts + 1] = (names and names[class]) or class
+    end
+    local relationship, online = View.Relationship(conv)
+    if relationship then parts[#parts + 1] = relationship end
+    if online ~= nil then parts[#parts + 1] = online and L["ECHO_ONLINE"] or L["ECHO_OFFLINE"] end
+    return table.concat(parts, " · ")
+end
+
+--- The words under your newest message.
+-- @param status string|nil  "pending" | "sent" | "failed"
+-- @return string
+function View.StatusText(status)
+    if status == "pending" then return L["ECHO_STATUS_PENDING"] end
+    if status == "sent" then return L["ECHO_STATUS_SENT"] end
+    if status == "failed" then return L["ECHO_STATUS_FAILED"] end
+    return ""
+end
+
+View.TIER_CHOICES = { "default", "loud", "count", "quiet", "muted" }
+
+--- The ⋯ menu for a conversation, as data (EchoMenu builds the real menu from it).
+-- @param conv table
+-- @return table entries
+function View.MenuSpec(conv)
+    local override = Echo.Store.OverrideOf(conv.key) or "default"
+    local defaultTier = Echo.Store.DEFAULT_TIERS[conv.kind] or "quiet"
+    local entries = {
+        { kind = "button", label = conv.pinned and L["ECHO_UNPIN"] or L["ECHO_PIN"], action = "pin" },
+        { kind = "divider" },
+        { kind = "title", label = L["ECHO_NOTIFICATIONS"] },
+    }
+    for _, value in ipairs(View.TIER_CHOICES) do
+        local label
+        if value == "default" then
+            label = L["ECHO_TIER_DEFAULT"]:format(L["ECHO_TIER_" .. defaultTier:upper()])
+        else
+            label = L["ECHO_TIER_" .. value:upper()]
+        end
+        entries[#entries + 1] = { kind = "radio", label = label, action = "tier", value = value,
+                                  selected = (value == override) }
+    end
+    entries[#entries + 1] = { kind = "divider" }
+    entries[#entries + 1] = { kind = "button", label = L["ECHO_CLOSE_CONVERSATION"], action = "close" }
+    return entries
+end
+
+-- Unsent replies per conversation, shared by the stack and the card.
+Echo.Drafts = Echo.Drafts or {}
+
+--- Keep a conversation's unsent reply while its box shows something else.
+-- @param convKey string|nil
+-- @param text string|nil
+function Echo.ParkDraft(convKey, text)
+    if not convKey then return end
+    Echo.Drafts[convKey] = (type(text) == "string" and text ~= "") and text or nil
+end
+
+--- Take a conversation's parked reply back.
+-- @param convKey string|nil
+-- @return string  "" when there is none
+function Echo.TakeDraft(convKey)
+    if not convKey then return "" end
+    local text = Echo.Drafts[convKey]
+    Echo.Drafts[convKey] = nil
+    return text or ""
+end
+
+function Echo.ClearDrafts()
+    Echo.Drafts = {}
+end

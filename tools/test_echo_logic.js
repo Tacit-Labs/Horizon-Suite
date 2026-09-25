@@ -1591,6 +1591,83 @@ run(`
   S.Reset()
 `, 'prefs');
 
+// --- View: card helpers, menu data and shared drafts ------------------------------------
+run(`
+  local S, V, E = HorizonSuite.Echo.Store, HorizonSuite.Echo.View, HorizonSuite.Echo
+  S.Reset()
+
+  local msgs = {
+    { sender = "A-Horizon", time = 100 },
+    { sender = "A-Horizon", time = 130 },
+    { sender = "B-Horizon", time = 140 },
+    { outgoing = true, time = 150 },
+    { outgoing = true, time = 400 },
+    { sender = SECRET("A-Horizon"), time = 410 },
+    { sender = SECRET("A-Horizon"), time = 411 },
+  }
+  check("the first message starts a group", V.StartsGroup(msgs, 1) == true, "?")
+  check("the same speaker soon after continues it", V.StartsGroup(msgs, 2) == false, "?")
+  check("another speaker starts a group", V.StartsGroup(msgs, 3) == true, "?")
+  check("switching sides starts a group", V.StartsGroup(msgs, 4) == true, "?")
+  check("a long pause starts a group", V.StartsGroup(msgs, 5) == true, "?")
+  check("a secret speaker always starts a group", V.StartsGroup(msgs, 7) == true, "?")
+
+  check("newest outgoing message", V.NewestOutgoing({ messages = msgs }) == 5, V.NewestOutgoing({ messages = msgs }))
+  check("no outgoing message", V.NewestOutgoing({ messages = { msgs[1] } }) == nil, "?")
+
+  check("a short readable text gets a fitted bubble", V.BubbleWidth(40.2, 250, 8) == 57, V.BubbleWidth(40.2, 250, 8))
+  check("a long readable text stops at the widest bubble", V.BubbleWidth(900, 250, 8) == 250, V.BubbleWidth(900, 250, 8))
+  check("unmeasured text gets the widest bubble", V.BubbleWidth(nil, 250, 8) == 250, V.BubbleWidth(nil, 250, 8))
+
+  check("status text", V.StatusText("pending") == "ECHO_STATUS_PENDING" and V.StatusText("failed") == "ECHO_STATUS_FAILED" and V.StatusText(nil) == "", "?")
+
+  local savedFriends, savedGuild, savedBattleNet = C_FriendList, C_GuildInfo, C_BattleNet
+  C_FriendList = { GetFriendInfo = function(name) if name == "Brisa" then return { connected = false } end end }
+  C_GuildInfo = { MemberExistsByName = function(name) return name == "Thorn-Horizon" end }
+  C_BattleNet = { GetAccountInfoByID = function(id) return { gameAccountInfo = { isOnline = true } } end }
+  local label, online = V.Relationship({ kind = "whisper", key = "w:Brisa-Horizon" })
+  check("a friend found by short name, offline", label == "ECHO_FRIEND" and online == false, tostring(label) .. "/" .. tostring(online))
+  label, online = V.Relationship({ kind = "whisper", key = "w:Thorn-Horizon" })
+  check("a guildmate, online unknown", label == "ECHO_GUILDMATE" and online == nil, tostring(label))
+  label, online = V.Relationship({ kind = "bnet", key = "bn:77" })
+  check("a battle.net friend, online", label == "ECHO_BATTLENET" and online == true, tostring(online))
+  label = V.Relationship({ kind = "whisper", key = "w:Stranger-Horizon" })
+  check("a stranger has no relationship", label == nil, tostring(label))
+  check("channels have no relationship", V.Relationship({ kind = "party", key = "party" }) == nil, "?")
+  C_FriendList = { GetFriendInfo = function() error("boom") end }
+  check("a throwing API is survived", pcall(V.Relationship, { kind = "whisper", key = "w:Brisa-Horizon" }), "threw")
+  C_FriendList, C_GuildInfo, C_BattleNet = savedFriends, savedGuild, savedBattleNet
+
+  S.Add({ convKey = "w:Brisa-Horizon", text = "hi", class = "DRUID", sender = "Brisa-Horizon" })
+  local meta = V.CardMeta(S.Get("w:Brisa-Horizon"))
+  check("card meta names the class", meta:find("Druid", 1, true) ~= nil, meta)
+
+  local spec = V.MenuSpec(S.Get("w:Brisa-Horizon"))
+  check("the menu starts with pin", spec[1].kind == "button" and spec[1].action == "pin" and spec[1].label == "ECHO_PIN", spec[1].label)
+  local radios, selected = 0, nil
+  for _, e in ipairs(spec) do
+    if e.kind == "radio" then radios = radios + 1; if e.selected then selected = e.value end end
+  end
+  check("the menu offers five notification choices", radios == 5, radios)
+  check("default is selected without an override", selected == "default", selected)
+  check("the menu ends with close", spec[#spec].action == "close", spec[#spec].action)
+  S.SetPinned("w:Brisa-Horizon", true)
+  S.SetTier("w:Brisa-Horizon", "muted")
+  spec = V.MenuSpec(S.Get("w:Brisa-Horizon"))
+  selected = nil
+  for _, e in ipairs(spec) do if e.kind == "radio" and e.selected then selected = e.value end end
+  check("a pinned conversation offers unpin", spec[1].label == "ECHO_UNPIN", spec[1].label)
+  check("the override is selected", selected == "muted", selected)
+
+  E.ClearDrafts()
+  E.ParkDraft("w:A-Horizon", "half a thought")
+  E.ParkDraft("w:B-Horizon", "")
+  check("a parked draft comes back once", E.TakeDraft("w:A-Horizon") == "half a thought" and E.TakeDraft("w:A-Horizon") == "", "?")
+  check("an empty draft is not kept", E.TakeDraft("w:B-Horizon") == "", "?")
+  check("no key, no draft", E.TakeDraft(nil) == "", "?")
+  S.Reset()
+`, 'view-card');
+
 // --- Summary -------------------------------------------------------------------
 run(`
   print(PASS .. " passed, " .. FAIL .. " failed")
