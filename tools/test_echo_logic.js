@@ -737,6 +737,54 @@ run(`
   S.Reset()
 `, 'store-restore');
 
+// --- History: open session save and restore -------------------------------------------
+run(`
+  local S, H = HorizonSuite.Echo.Store, HorizonSuite.Echo.History
+  S.Reset()
+  local db = {}
+  local charKey = "Kaelis-Horizon"
+  H.Bind(db, function() return charKey end)
+  local savedBattleNet, savedNumFriends = C_BattleNet, BNGetNumFriends
+  C_BattleNet = {
+    GetAccountInfoByID = function(id) if id == 77 then return { battleTag = "Vexa#1234" } end end,
+    GetFriendAccountInfo = function(i)
+      if i == 1 then return { battleTag = SECRET("Hidden#1"), bnetAccountID = 12 } end
+      if i == 2 then return { battleTag = "Vexa#1234", bnetAccountID = 91 } end
+    end,
+  }
+  BNGetNumFriends = function() return 2 end
+
+  check("session saved", H.SaveSession({ "w:Brisa-Horizon", "bn:77", "bn:404", "party" }, 1000) == true, "not saved")
+  local saved = db.echoHistory.session and db.echoHistory.session["Kaelis-Horizon"]
+  check("session keeps whispers and battletags, never account ids or channels",
+        saved and table.concat(saved.keys, ",") == "w:Brisa-Horizon,bt:Vexa#1234", saved and table.concat(saved.keys, ","))
+  local keys = H.SessionKeys(1600)
+  check("a recent session restores, battle.net mapped to today's account id",
+        table.concat(keys, ",") == "w:Brisa-Horizon,bn:91", table.concat(keys, ","))
+  check("a session older than 30 minutes restores nothing", #H.SessionKeys(1000 + 1801) == 0, "restored")
+  check("a custom max age is honoured", #H.SessionKeys(1100, 50) == 0, "restored")
+  check("a secret battletag in the friends list is skipped", H.AccountIDForTag("Hidden#1") == nil, "matched")
+  BNGetNumFriends = function() return 0 end
+  keys = H.SessionKeys(1100)
+  check("a battle.net friend no longer listed is dropped", table.concat(keys, ",") == "w:Brisa-Horizon", table.concat(keys, ","))
+  BNGetNumFriends = nil
+  check("no friends API, no battle.net restore", table.concat(H.SessionKeys(1100), ",") == "w:Brisa-Horizon", "?")
+  charKey = "Alt-Horizon"
+  check("sessions are per character", #H.SessionKeys(1100) == 0, "leaked")
+  charKey = nil
+  check("no character key, nothing saved", H.SaveSession({ "w:X-Horizon" }, 1100) == false, "saved")
+  charKey = "Kaelis-Horizon"
+  H.SetEnabledCheck(function() return false end)
+  check("history off saves no session", H.SaveSession({ "w:X-Horizon" }, 2000) == false, "saved")
+  H.SetEnabledCheck(function() return true end)
+  H.Clear()
+  check("clear wipes the session too", next(db.echoHistory.session) == nil, "kept")
+  C_BattleNet, BNGetNumFriends = savedBattleNet, savedNumFriends
+  H.Unbind()
+  check("unbound history has no session", #H.SessionKeys(1100) == 0 and H.SaveSession({ "w:X-Horizon" }, 1) == false, "?")
+  S.Reset()
+`, 'history-session');
+
 // --- Summary -------------------------------------------------------------------
 run(`
   print(PASS .. " passed, " .. FAIL .. " failed")

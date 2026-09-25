@@ -60,6 +60,75 @@ function History.BattleTagFor(convKey)
     return battleTag
 end
 
+History.SESSION_MAX_AGE = 1800  -- a reload or a quick relog, not yesterday's login
+
+--- The current session-only account ID for a friend's BattleTag, from the friends list.
+-- @param battleTag string
+-- @return number|nil
+function History.AccountIDForTag(battleTag)
+    local api = C_BattleNet and C_BattleNet.GetFriendAccountInfo
+    if type(BNGetNumFriends) ~= "function" or type(api) ~= "function" then return nil end
+    local okCount, count = pcall(BNGetNumFriends)
+    if not okCount or Echo.IsSecret(count) or type(count) ~= "number" then return nil end
+    for i = 1, count do
+        local ok, info = pcall(api, i)
+        if ok and type(info) == "table" then
+            local tag = info.battleTag
+            if not Echo.IsSecret(tag) and tag == battleTag then
+                local id = info.bnetAccountID
+                if not Echo.IsSecret(id) and type(id) == "number" then return id end
+            end
+        end
+    end
+    return nil
+end
+
+--- Remember which conversations were open, for this character (PLAYER_LOGOUT, which a
+-- reload also fires). Battle.net conversations are saved by BattleTag.
+-- @param keys table  Store.OpenKeys()
+-- @param now number
+-- @return boolean saved
+function History.SaveSession(keys, now)
+    if not root or not enabledCheck() then return false end
+    local charKey = characterKey()
+    if not charKey then return false end
+    local saved = {}
+    for _, key in ipairs(keys or {}) do
+        local kind = Echo.Store.KindOf(key)
+        if kind == "whisper" then
+            saved[#saved + 1] = key
+        elseif kind == "bnet" then
+            local tag = History.BattleTagFor(key)
+            if tag then saved[#saved + 1] = "bt:" .. tag end
+        end
+    end
+    root.session = root.session or {}
+    root.session[charKey] = { t = now, keys = saved }
+    return true
+end
+
+--- The conversations to reopen, if this character's session was saved recently.
+-- @param now number
+-- @param maxAge number|nil  seconds; defaults to History.SESSION_MAX_AGE
+-- @return table keys  top first; Battle.net friends no longer listed are dropped
+function History.SessionKeys(now, maxAge)
+    local out = {}
+    if not root or type(root.session) ~= "table" then return out end
+    local charKey = characterKey()
+    local session = charKey and root.session[charKey]
+    if type(session) ~= "table" or type(session.t) ~= "number" then return out end
+    if now - session.t > (maxAge or History.SESSION_MAX_AGE) then return out end
+    for _, key in ipairs(session.keys or {}) do
+        if type(key) == "string" and key:sub(1, 3) == "bt:" then
+            local id = History.AccountIDForTag(key:sub(4))
+            if id then out[#out + 1] = "bn:" .. id end
+        elseif Echo.Store.KindOf(key) == "whisper" then
+            out[#out + 1] = key
+        end
+    end
+    return out
+end
+
 local function Bucket(convKey, create)
     if not root then return nil end
     local kind = Echo.Store.KindOf(convKey)
@@ -125,8 +194,10 @@ function History.Load(convKey)
 end
 
 --- Wipe all saved whispers, for every character and Battle.net.
+--- Wipe all saved whispers, for every character and Battle.net, and the saved session.
 function History.Clear()
     if not root then return end
     root.chars = {}
     root.bnet = {}
+    root.session = {}
 end
