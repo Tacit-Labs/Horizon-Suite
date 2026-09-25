@@ -41,10 +41,6 @@ local function Paint(frame, alpha)
     frame:SetBackdropBorderColor(border[1], border[2], border[3], border[4])
 end
 
-local function FontPath()
-    return (addon.GetDefaultFontPath and addon.GetDefaultFontPath()) or "Fonts\\FRIZQT__.TTF"
-end
-
 -- Park the shared reply box's draft against the conversation it was drawn for, and clear
 -- it. Idempotent (renderedKey is nil after the first call), called from both root's OnHide
 -- (covers closes that bypass Stack.Hide, e.g. Escape via UISpecialFrames calling
@@ -73,7 +69,7 @@ local function CreateEdit()
     edit:SetBackdrop(Echo.FLAT)
     edit:SetBackdropColor(0.03, 0.03, 0.05, 0.95)
     edit:SetBackdropBorderColor(0.28, 0.30, 0.38, 0.65)
-    edit:SetFont(FontPath(), 12, "")
+    Echo.TrackFont(edit, 12, "")
     edit:SetTextInsets(8, 8, 0, 0)
     edit:SetAutoFocus(false)
     edit:SetMaxLetters(1020)
@@ -384,7 +380,8 @@ local function Anchor()
         root:SetScale(column:GetScale())
         root:SetFrameStrata(column:GetFrameStrata())
         root:SetFrameLevel(column:GetFrameLevel() + 10)
-        root:SetPoint("BOTTOMRIGHT", column, "BOTTOMLEFT", -8, 0)
+        local side = Echo.View.PanelSides(Echo.Setting("echoColumnEdge"))
+        root:SetPoint(side.panel, column, side.rel, side.dx, 0)
     else
         root:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
     end
@@ -395,6 +392,8 @@ local function Anchor()
     end
     card:SetFrameLevel(root:GetFrameLevel() + Stack.BEHIND + 1)
 end
+
+function Stack.Reanchor() Anchor() end
 
 local function CancelTimer(timer)
     if timer then timer:Cancel() end

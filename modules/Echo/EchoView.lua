@@ -25,6 +25,16 @@ function Echo.Setting(key)
     return addon.GetDB(key, fallback)
 end
 
+--- Which way the stack, card and toast open from the column: away from its screen edge.
+-- @param edge string  "right" | "left"
+-- @return table { panel, rel, dx, toast, toastRel, toastDir }
+function View.PanelSides(edge)
+    if edge == "left" then
+        return { panel = "BOTTOMLEFT", rel = "BOTTOMRIGHT", dx = 8, toast = "LEFT", toastRel = "RIGHT", toastDir = 1 }
+    end
+    return { panel = "BOTTOMRIGHT", rel = "BOTTOMLEFT", dx = -8, toast = "RIGHT", toastRel = "LEFT", toastDir = -1 }
+end
+
 -- Echo's module colour, #8FA3E8 (Docs/Branding/ColourSchema.md).
 View.ACCENT = { r = 0x8F / 255, g = 0xA3 / 255, b = 0xE8 / 255 }
 View.PANEL_BG = { 0.06, 0.06, 0.09, 0.94 }

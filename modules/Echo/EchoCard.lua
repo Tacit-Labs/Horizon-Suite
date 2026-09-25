@@ -44,6 +44,26 @@ local currentKey, renderedKey
 local offset = 0  -- newest messages scrolled past
 local areaHeight = Card.AREA_HEIGHT  -- the message area's height for the card now shown
 
+--- Take the card's width and height from the settings and re-derive the sizes built on
+-- them. The bubble width keeps the 110px the original 360px card left beside a bubble.
+function Card.ApplySize()
+    local lim = addon.ECHO_LIMITS
+    local function clamp(v, key, fallback)
+        v = tonumber(v) or fallback
+        local l = lim and lim[key]
+        if l then v = math.max(l.min, math.min(l.max, v)) end
+        return v
+    end
+    Card.WIDTH = clamp(Echo.Setting("echoCardWidth"), "echoCardWidth", 360)
+    Card.HEIGHT = clamp(Echo.Setting("echoCardHeight"), "echoCardHeight", 440)
+    Card.AREA_HEIGHT = Card.HEIGHT - Card.AREA_TOP - Card.AREA_BOTTOM
+    Card.BUBBLE_MAX = Card.WIDTH - 110
+    if root then
+        root:SetSize(Card.WIDTH, Card.HEIGHT)
+        if root:IsShown() then Card.Render() end
+    end
+end
+
 -- Park the reply box's draft against the conversation it was drawn for, and clear it.
 -- Idempotent (renderedKey is nil after the first call), called from both root's OnHide
 -- (covers closes that bypass Card.Hide, e.g. Escape via UISpecialFrames calling
@@ -55,10 +75,6 @@ local function ParkDraft()
         edit:SetText("")
         renderedKey = nil
     end
-end
-
-local function FontPath()
-    return (addon.GetDefaultFontPath and addon.GetDefaultFontPath()) or "Fonts\\FRIZQT__.TTF"
 end
 
 local function Paint(frame, bg, border)
@@ -228,7 +244,7 @@ local function Create()
     edit:SetPoint("BOTTOMLEFT", root, "BOTTOMLEFT", Card.PAD, 12)
     edit:SetPoint("BOTTOMRIGHT", send, "BOTTOMLEFT", -6, 0)
     Paint(edit, { 0.03, 0.03, 0.05, 0.95 }, View.PANEL_BORDER)
-    edit:SetFont(FontPath(), 12, "")
+    Echo.TrackFont(edit, 12, "")
     edit:SetTextInsets(8, 8, 0, 0)
     edit:SetAutoFocus(false)
     edit:SetMaxLetters(1020)
@@ -519,11 +535,14 @@ local function Anchor()
         root:SetScale(column:GetScale())
         root:SetFrameStrata(column:GetFrameStrata())
         root:SetFrameLevel(column:GetFrameLevel() + 10)
-        root:SetPoint("BOTTOMRIGHT", column, "BOTTOMLEFT", -8, 0)
+        local side = Echo.View.PanelSides(Echo.Setting("echoColumnEdge"))
+        root:SetPoint(side.panel, column, side.rel, side.dx, 0)
     else
         root:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
     end
 end
+
+function Card.Reanchor() Anchor() end
 
 --- Open the card on a conversation; the stack closes.
 -- @param convKey string|nil  nil for the top conversation

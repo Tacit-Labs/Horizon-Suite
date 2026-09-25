@@ -2882,6 +2882,87 @@ run(`
   S.Reset()
 `, 'echo-apply-options');
 
+// --- Edge, scale, card size and font ---------------------------------------------
+run(`
+  CreateFrame = STUB_CREATE_FRAME
+  local Echo = HorizonSuite.Echo
+  local V = Echo.View
+  local r, l = V.PanelSides("right"), V.PanelSides("left")
+  check("right edge opens left", r.panel == "BOTTOMRIGHT" and r.rel == "BOTTOMLEFT" and r.dx == -8 and r.toast == "RIGHT" and r.toastDir == -1, r.panel)
+  check("left edge opens right", l.panel == "BOTTOMLEFT" and l.rel == "BOTTOMRIGHT" and l.dx == 8 and l.toast == "LEFT" and l.toastDir == 1, l.panel)
+  check("junk edge is right", V.PanelSides("top").panel == "BOTTOMRIGHT", V.PanelSides("top").panel)
+
+  local db = {}
+  HorizonSuite.GetDB = function(k, d) if db[k] ~= nil then return db[k] end return d end
+  HorizonSuite.SetDB = function(k, v) db[k] = v end
+  Echo.Store.Reset()
+  Echo.Tiles.Enable()
+  local column = _G.HorizonSuiteEchoColumn
+  local scale = 1
+  column.SetScale = function(self, s) scale = s end
+  column.GetScale = function() return scale end
+
+  -- Default corner follows the edge.
+  db.echoColumnEdge = "left"
+  Echo.ApplyOptions()
+  local p = column.points[#column.points]
+  check("left edge default corner", p[1] == "BOTTOMLEFT" and p[3] == "BOTTOMLEFT" and p[4] > 0, p[1] .. " " .. tostring(p[4]))
+
+  -- A dragged position is kept in screen units across a scale change.
+  db.echoX, db.echoY = 800, 300
+  db.echoScale = 2
+  Echo.ApplyOptions()
+  p = column.points[#column.points]
+  check("scale 2 halves the offsets", p[1] == "BOTTOM" and p[4] == 400 and p[5] == 150, tostring(p[4]) .. "," .. tostring(p[5]))
+  column.GetCenter = function() return 400 end
+  column.GetBottom = function() return 150 end
+  Echo.Tiles._savePosition()
+  check("saving multiplies by the scale", db.echoX == 800 and db.echoY == 300, tostring(db.echoX) .. "," .. tostring(db.echoY))
+  column.GetCenter, column.GetBottom = nil, nil
+
+  -- The stack and card open on the edge's side.
+  Echo.Stack.Enable(); Echo.Card.Enable()
+  Echo.Store.Add({ convKey = "w:Brisa-Horizon", sender = "Brisa-Horizon", text = "hi" })
+  Echo.Card.Open("w:Brisa-Horizon")
+  local card = Echo.Card._frames().root
+  p = card.points[#card.points]
+  check("card opens right of a left column", p[1] == "BOTTOMLEFT" and p[3] == "BOTTOMRIGHT" and p[4] == 8, p[1])
+  Echo.Card.Hide()
+  Echo.Stack.Open("w:Brisa-Horizon")
+  local stack = Echo.Stack._frames().root
+  p = stack.points[#stack.points]
+  check("stack opens right of a left column", p[1] == "BOTTOMLEFT" and p[3] == "BOTTOMRIGHT", p[1])
+  Echo.Stack.Hide()
+
+  -- Card size. ECHO_LIMITS was cleared after the defaults section; the clamp needs it.
+  HorizonSuite.ECHO_LIMITS = { echoCardWidth = { min = 320, max = 520 }, echoCardHeight = { min = 320, max = 640 } }
+  db.echoCardWidth, db.echoCardHeight = 480, 600
+  Echo.ApplyOptions()
+  check("card width from settings", card.width == 480 and card.height == 600, tostring(card.width) .. "x" .. tostring(card.height))
+  check("bubble width follows the card", Echo.Card.BUBBLE_MAX == 370, Echo.Card.BUBBLE_MAX)
+  check("message area follows the card", Echo.Card.AREA_HEIGHT == 600 - Echo.Card.AREA_TOP - Echo.Card.AREA_BOTTOM, Echo.Card.AREA_HEIGHT)
+  db.echoCardWidth = 9999
+  Echo.ApplyOptions()
+  check("card width clamped", card.width == 520, card.width)
+
+  -- Font: tracked strings are re-fonted.
+  local set = {}
+  local fs = { SetFont = function(self, path, size, flags) set[#set + 1] = { path, size, flags } end }
+  Echo.TrackFont(fs, 12, "")
+  db.echoFontPath = "Fonts\\\\ARIALN.TTF"
+  Echo.ApplyOptions()
+  local last = set[#set]
+  check("font re-applied", last and last[1] == "Fonts\\\\ARIALN.TTF" and last[2] == 12 and last[3] == "", last and last[1])
+  db.echoFontPath = "__global__"
+  check("global font", Echo.FontPath() ~= "__global__", Echo.FontPath())
+
+  HorizonSuite.GetDB, HorizonSuite.SetDB, HorizonSuite.ECHO_LIMITS = nil, nil, nil
+  Echo.ApplyOptions()
+  Echo.Card.Disable(); Echo.Stack.Disable(); Echo.Tiles.Disable()
+  column.SetScale, column.GetScale = nil, nil
+  Echo.Store.Reset()
+`, 'echo-layout-options');
+
 // --- Redraw: one repaint per frame -------------------------------------------
 run(`
   CreateFrame = STUB_CREATE_FRAME

@@ -35,18 +35,14 @@ local pending = {}          -- keys to toast after combat, newest first
 local queue                 -- View toast queue, made on first Enable
 Tiles.holding = false
 
-local function FontPath()
-    return (addon.GetDefaultFontPath and addon.GetDefaultFontPath()) or "Fonts\\FRIZQT__.TTF"
-end
-
---- A FontString in the addon's default font.
+--- A FontString in Echo's font.
 -- @param parent Frame
 -- @param size number
 -- @param flags string|nil  "" for none; defaults to "OUTLINE"
 -- @return FontString
 function Echo.NewText(parent, size, flags)
     local fs = parent:CreateFontString(nil, "OVERLAY")
-    fs:SetFont(FontPath(), size, flags or "OUTLINE")
+    Echo.TrackFont(fs, size, flags or "OUTLINE")
     return fs
 end
 
@@ -125,27 +121,33 @@ local function PaintTile(b, conv)
     b:Show()
 end
 
+-- Saved in screen units (the column's own coordinates times its scale), so a scale change
+-- leaves the column where it was.
 local function SavePosition()
     local x = column:GetCenter()
     local y = column:GetBottom()
     if not x or not y then return end
-    addon.SetDB("echoX", math.floor(x + 0.5))
-    addon.SetDB("echoY", math.floor(y + 0.5))
+    local scale = column:GetScale() or 1
+    addon.SetDB("echoX", math.floor(x * scale + 0.5))
+    addon.SetDB("echoY", math.floor(y * scale + 0.5))
 end
 
---- Anchor, scale and strata from settings. Unmoved, the column sits bottom right and
--- grows upward; once dragged it is anchored by its bottom centre.
+--- Anchor, scale and strata from settings. Unmoved, the column sits in the bottom corner
+-- of its edge and grows upward; once dragged it is anchored by its bottom centre.
 function Tiles.ApplyPosition()
     if not column then return end
+    local scale = tonumber(Echo.Setting("echoScale")) or 1
+    column:SetScale(scale)
+    column:SetFrameStrata(Echo.Setting("echoFrameStrata") or "MEDIUM")
     column:ClearAllPoints()
     local x, y = tonumber(Echo.Setting("echoX")), tonumber(Echo.Setting("echoY"))
     if x and y then
-        column:SetPoint("BOTTOM", UIParent, "BOTTOMLEFT", x, y)
+        column:SetPoint("BOTTOM", UIParent, "BOTTOMLEFT", x / scale, y / scale)
+    elseif Echo.Setting("echoColumnEdge") == "left" then
+        column:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", 24 / scale, 240 / scale)
     else
-        column:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", -24, 240)
+        column:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", -24 / scale, 240 / scale)
     end
-    column:SetScale(tonumber(Echo.Setting("echoScale")) or 1)
-    column:SetFrameStrata(Echo.Setting("echoFrameStrata") or "MEDIUM")
 end
 
 function Tiles.ResetPosition()
@@ -294,7 +296,8 @@ local function ToastUpdate(self, elapsed)
     -- it; follow the conversation, not the frame.
     self.anchor = Tiles.TileFor(self.convKey) or stackButton
     self:ClearAllPoints()
-    self:SetPoint("RIGHT", self.anchor, "LEFT", -8 - offset, 0)
+    local side = Echo.View.PanelSides(Echo.Setting("echoColumnEdge"))
+    self:SetPoint(side.toast, self.anchor, side.toastRel, side.toastDir * (8 + offset), 0)
 end
 
 local function CreateToast()
@@ -378,7 +381,8 @@ function Tiles.ShowToast(convKey)
     toast.t = 0
     toast:SetAlpha(0)
     toast:ClearAllPoints()
-    toast:SetPoint("RIGHT", toast.anchor, "LEFT", -8, 0)
+    local side = View.PanelSides(Echo.Setting("echoColumnEdge"))
+    toast:SetPoint(side.toast, toast.anchor, side.toastRel, side.toastDir * 8, 0)
     toast:Show()
     return true
 end
@@ -467,3 +471,4 @@ function Tiles._toast() return toast end
 function Tiles._overflow() return overflowTile end
 function Tiles._marker() return marker end
 function Tiles._stackButton() return stackButton end
+function Tiles._savePosition() SavePosition() end
