@@ -2860,3 +2860,8 @@ L["ECHO_STATUS_FAILED"]                                       = "Not delivered"
 L["ECHO_RETRY"]                                               = "Retry"
 L["ECHO_WHISPER_TO"]                                          = "Whisper %s…"
 L["ECHO_REPLY"]                                               = "Reply…"
+
+-- Echo — feeds
+L["ECHO_KIND_LOOT"]                                           = "Loot"
+L["ECHO_KIND_PROGRESS"]                                       = "Progress"
+L["ECHO_KIND_SYSTEM"]                                         = "System"

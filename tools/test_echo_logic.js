@@ -2355,6 +2355,40 @@ run(`
   S.Reset()
 `, 'feeds-events');
 
+// --- View: feed helpers ------------------------------------------------------------------
+run(`
+  local S, V = HorizonSuite.Echo.Store, HorizonSuite.Echo.View
+  S.Reset()
+  check("feeds are feeds", V.IsFeed("loot") and V.IsFeed("progress") and V.IsFeed("system"), "?")
+  check("conversations are not feeds", not V.IsFeed("party") and not V.IsFeed("whisper") and not V.IsFeed(nil), "?")
+
+  S.Add({ convKey = "loot", text = "You receive loot: [Cloak].", feed = true, chatType = "LOOT" })
+  local spec = V.TileSpec(S.Get("loot"))
+  check("a feed tile shows an icon, not a letter", spec.glyph == true and spec.icon == V.FEED_ICONS.loot and spec.letter == "", tostring(spec.icon))
+  check("a quiet feed shows no badge", spec.badge == nil, spec.badge)
+  check("a feed is named by its kind", V.DisplayName(S.Get("loot")) == "ECHO_KIND_LOOT", V.DisplayName(S.Get("loot")))
+  check("each feed has its own icon", V.FEED_ICONS.loot ~= V.FEED_ICONS.progress and V.FEED_ICONS.progress ~= V.FEED_ICONS.system, "?")
+
+  local savedInfo = ChatTypeInfo
+  ChatTypeInfo = { LOOT = { r = 0, g = 0.67, b = 0 }, SYSTEM = { r = 1, g = 1, b = 0 }, PARTY = { r = 0.67, g = 0.67, b = 1 } }
+  local r, g, b = V.LineColor(S.Get("loot"), { chatType = "LOOT" })
+  check("a feed line takes its own line type's colour", r == 0 and g == 0.67, r)
+  r = V.LineColor(S.Get("loot"), { chatType = "NOT_A_TYPE" })
+  check("an unknown line type falls back to the feed's colour", r ~= nil, "nil")
+  r, g, b = V.LineColor({ kind = "party" }, {})
+  check("a conversation line uses its conversation's colour", r == 0.67 and b == 1, r)
+  ChatTypeInfo = savedInfo
+
+  local savedDate = date
+  date = function(fmt, t) return fmt == "%H:%M" and ("12:" .. string.format("%02d", t % 60)) or "?" end
+  check("feed time is hours and minutes", V.FeedTime(125) == "12:05", V.FeedTime(125))
+  check("no time, no stamp", V.FeedTime(nil) == "", V.FeedTime(nil))
+  date = nil
+  check("no date function, no stamp", V.FeedTime(125) == "", V.FeedTime(125))
+  date = savedDate
+  S.Reset()
+`, 'view-feeds');
+
 // --- Summary -------------------------------------------------------------------
 run(`
   print(PASS .. " passed, " .. FAIL .. " failed")

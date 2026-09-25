@@ -40,6 +40,7 @@ View.GLYPHS = { party = "P", raid = "R", instance = "I", guild = "G", officer = 
 View.CHAT_TYPE = {
     whisper = "WHISPER", bnet = "BN_WHISPER", party = "PARTY", raid = "RAID",
     instance = "INSTANCE_CHAT", guild = "GUILD", officer = "OFFICER", channel = "CHANNEL",
+    loot = "LOOT", progress = "ACHIEVEMENT", system = "SYSTEM",
 }
 
 local FIRST_CHAR = "^[\1-\127\194-\244][\128-\191]*"
@@ -129,6 +130,17 @@ end
 function View.TileSpec(conv)
     local kind = conv.kind
     local spec = { count = conv.unread or 0 }
+    if View.FEED_ICONS[kind] then
+        spec.glyph = true
+        spec.icon = View.FEED_ICONS[kind]
+        spec.letter = ""
+        spec.r, spec.g, spec.b = View.ChatColor(kind)
+        if spec.count > 0 then
+            local tier = Echo.Store.TierOf(conv.key)
+            if tier == "loud" then spec.badge = "dot" elseif tier == "count" then spec.badge = "count" end
+        end
+        return spec
+    end
     if kind == "whisper" or kind == "bnet" then
         local r, g, b = View.ClassColor(View.LastClass(conv))
         if not r then
@@ -446,4 +458,40 @@ end
 
 function Echo.ClearDrafts()
     Echo.Drafts = {}
+end
+
+-- ---------------------------------------------------------------------------
+-- Feeds (plan 4)
+-- ---------------------------------------------------------------------------
+
+View.FEED_ICONS = {
+    loot     = "Interface\\Icons\\INV_Misc_Bag_10",
+    progress = "Interface\\Icons\\Achievement_General",
+    system   = "Interface\\Icons\\INV_Misc_Gear_01",
+}
+
+--- True for the read-only feeds (Loot, Progress, System).
+-- @param kind string|nil
+-- @return boolean
+function View.IsFeed(kind)
+    return kind ~= nil and Echo.Store.FEED_KINDS[kind] == true
+end
+
+--- Colour for one line: a feed line in its own line type's colour, else the conversation's.
+-- @param conv table
+-- @param msg table
+-- @return number r, number g, number b
+function View.LineColor(conv, msg)
+    local info = msg and msg.chatType and ChatTypeInfo and ChatTypeInfo[msg.chatType]
+    if info and info.r then return info.r, info.g, info.b end
+    return View.ChatColor(conv.kind)
+end
+
+--- A feed line's timestamp, "HH:MM", or "" when there is no time.
+-- @param t number|nil
+-- @return string
+function View.FeedTime(t)
+    if type(t) ~= "number" or type(date) ~= "function" then return "" end
+    local ok, stamp = pcall(date, "%H:%M", t)
+    return (ok and type(stamp) == "string") and stamp or ""
 end
