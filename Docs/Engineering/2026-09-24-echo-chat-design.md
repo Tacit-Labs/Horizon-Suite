@@ -217,6 +217,7 @@ These are assumptions, not facts. Settle them in the first implementation step, 
 - Inside a delve, before any fight, nothing was secret either: whisper and whisper-inform arrived fully readable. Chat is not hidden merely for being in an instance, so any restriction comes from combat or the encounter. **Still open:** the encounter run (a dungeon boss or M+, ideally with a groupmate whispering mid-pull). Deferred on 2026-09-25; Echo's secret paths are covered by the logic tests until then.
 - Zone channels confirmed as one conversation after the fix (`ch:General`).
 - Whisper history survived `/reload`: the conversation reopened with its two saved messages plus the new ones.
+- Item 5 settled (Retail, 2026-09-25): `/dump ChatEdit_InsertLink == ChatFrameUtil.InsertLink` prints `false`, so the legacy global is a wrapper rather than an alias, and hooking `ChatFrameUtil.InsertLink` catches both paths. Shift-clicked links reach a focused Echo box; the expanded card, menu, remembered pins and tiers all checked in game.
 - Item 4 is settled from the code: `AugmentToastStyles.lua` is a plain table of functions loaded by the TOC before `AugmentModule.lua`, so it works with Augment disabled.
 
 ## Testing
