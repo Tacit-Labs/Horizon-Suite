@@ -84,7 +84,7 @@ end
 
 local function PaintTile(b, spec)
     local View = Echo.View
-    b.letter:SetText(spec.letter)
+    Echo.PaintTileFace(b.icon, b.letter, spec)
     if spec.glyph then
         local bg = View.GLYPH_BG
         b:SetBackdropColor(bg[1], bg[2], bg[3], bg[4])
@@ -152,6 +152,10 @@ local function Create()
         b:SetBackdrop(Echo.FLAT)
         b.letter = Echo.NewText(b, 12, "")
         b.letter:SetPoint("CENTER", b, "CENTER", 0, 0)
+        b.icon = b:CreateTexture(nil, "ARTWORK")
+        b.icon:SetPoint("TOPLEFT", b, "TOPLEFT", 3, -3)
+        b.icon:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", -3, 3)
+        b.icon:Hide()
         b.dot = b:CreateTexture(nil, "OVERLAY")
         b.dot:SetSize(6, 6)
         b.dot:SetPoint("TOPRIGHT", b, "TOPRIGHT", 2, 2)

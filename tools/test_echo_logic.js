@@ -2423,6 +2423,44 @@ run(`
   GameTooltip, SetItemRef = savedTooltip, savedItemRef
 `, 'links-live');
 
+// --- Icon tiles and read-only feeds in the stack -------------------------------------------
+run(`
+  local S, T, K, C = HorizonSuite.Echo.Store, HorizonSuite.Echo.Tiles, HorizonSuite.Echo.Stack, HorizonSuite.Echo.Card
+  S.Reset()
+  CreateFrame = STUB_CREATE_FRAME
+  T.Enable()
+  K.Enable()
+  C.Enable()
+  S.Add({ convKey = "loot", text = "You receive loot: [Cloak].", feed = true, chatType = "LOOT" })
+  S.Add({ convKey = "w:Brisa-Horizon", text = "hi", sender = "Brisa-Horizon", class = "DRUID" })
+
+  local lootTile = T.TileFor("loot")
+  check("a feed tile shows its icon", lootTile and lootTile.icon.shown and lootTile.letter.text == "", lootTile and lootTile.letter.text)
+  local brisaTile = T.TileFor("w:Brisa-Horizon")
+  check("a whisper tile shows its letter, no icon", brisaTile.icon.shown == false and brisaTile.letter.text == "B", brisaTile.letter.text)
+
+  K.Open("loot")
+  local f = K._frames()
+  check("the stack shows a feed card", f.card.name.text == "ECHO_KIND_LOOT", f.card.name.text)
+  check("a feed card has no reply box", f.edit.shown == false, tostring(f.edit.shown))
+  check("the feed card's line is shown", f.card.lines[1].text == "You receive loot: [Cloak].", f.card.lines[1].text)
+  K.Open("w:Brisa-Horizon")
+  check("a conversation card keeps its reply box", f.edit.shown == true, tostring(f.edit.shown))
+  check("the stack card's links are live", f.card.scripts.OnHyperlinkClick ~= nil, "not attached")
+  K.Hide()
+
+  C.Open("w:Brisa-Horizon")
+  local cf = C._frames()
+  local lootRow
+  for _, b in ipairs(cf.rowTiles) do if b.convKey == "loot" then lootRow = b end end
+  check("the card's row shows the feed's icon", lootRow and lootRow.icon.shown and lootRow.letter.text == "", "?")
+  C.Hide()
+  C.Disable()
+  K.Disable()
+  T.Disable()
+  S.Reset()
+`, 'icons-stack-feeds');
+
 // --- Summary -------------------------------------------------------------------
 run(`
   print(PASS .. " passed, " .. FAIL .. " failed")

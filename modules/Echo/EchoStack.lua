@@ -171,6 +171,7 @@ local function Create()
     card:SetPoint("BOTTOM", root, "BOTTOM", 0, 0)
     card:SetFrameLevel(root:GetFrameLevel() + Stack.BEHIND + 1)
     card:EnableMouse(true)
+    if Echo.Links then Echo.Links.Attach(card) end
 
     local a = Echo.View.ACCENT
     local rule = card:CreateTexture(nil, "OVERLAY")
@@ -280,21 +281,25 @@ function Stack.Render()
     currentKey = conv.key
     local spec = View.TileSpec(conv)
 
-    if spec.glyph then
+    if spec.icon then
+        card.tile:SetTexture(spec.icon)
+        card.tile:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+        card.letter:SetText("")
+    elseif spec.glyph then
         local bg = View.GLYPH_BG
         card.tile:SetColorTexture(bg[1], bg[2], bg[3], 1)
         card.letter:SetTextColor(spec.r, spec.g, spec.b, 1)
+        card.letter:SetText(spec.letter)
     else
         card.tile:SetColorTexture(spec.r, spec.g, spec.b, 1)
         card.letter:SetTextColor(0.05, 0.05, 0.07, 1)
+        card.letter:SetText(spec.letter)
     end
-    card.letter:SetText(spec.letter)
     card.name:SetText(View.DisplayName(conv))
     card.name:SetTextColor(spec.r, spec.g, spec.b, 1)
     card.meta:SetText(View.MetaLine(conv, Echo.Store.Now()):upper())
 
     local recent = View.Recent(conv, Stack.LINES)
-    local r, g, b = View.ChatColor(conv.kind)
     for i = 1, Stack.LINES do
         local fs, msg = card.lines[i], recent[i]
         if msg then
@@ -308,7 +313,8 @@ function Stack.Render()
             elseif msg.outgoing then
                 fs:SetTextColor(0.72, 0.74, 0.82, 1)
             else
-                fs:SetTextColor(r, g, b, 1)
+                local lr, lg, lb = View.LineColor(conv, msg)
+                fs:SetTextColor(lr, lg, lb, 1)
             end
             fs:Show()
         else
@@ -322,6 +328,9 @@ function Stack.Render()
     edit:SetWidth(Stack.WIDTH - 24 - (canOpen and 68 or 0))
     edit.placeholder:SetText(L["ECHO_QUICK_REPLY"])
     edit.placeholder:SetShown(edit:GetText() == "" and not edit:HasFocus())
+
+    -- Feeds are read-only: no reply box.
+    edit:SetShown(not View.IsFeed(conv.kind))
 
     for i = 1, Stack.BEHIND do
         local other = list[cursor + i]

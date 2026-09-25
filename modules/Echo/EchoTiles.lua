@@ -50,6 +50,22 @@ function Echo.NewText(parent, size, flags)
     return fs
 end
 
+--- Draw a tile spec's face: its icon, cropped, when it has one; otherwise its letter.
+-- @param icon Texture  shown for an icon, hidden otherwise
+-- @param letter FontString
+-- @param spec table  View.TileSpec
+function Echo.PaintTileFace(icon, letter, spec)
+    if spec.icon then
+        icon:SetTexture(spec.icon)
+        icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+        icon:Show()
+        letter:SetText("")
+    else
+        icon:Hide()
+        letter:SetText(spec.letter)
+    end
+end
+
 -- A tile hovers its own conversation to the front; the chat button hovers none (top card).
 local function HoverEnter(self)
     if Echo.Stack then Echo.Stack.HoverEnter(self and self.convKey) end
@@ -71,6 +87,10 @@ local function CreateTile()
     b:SetBackdrop(Echo.FLAT)
     b.letter = Echo.NewText(b, 16, "")
     b.letter:SetPoint("CENTER", b, "CENTER", 0, 0)
+    b.icon = b:CreateTexture(nil, "ARTWORK")
+    b.icon:SetPoint("TOPLEFT", b, "TOPLEFT", 3, -3)
+    b.icon:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", -3, 3)
+    b.icon:Hide()
     local a = Echo.View.ACCENT
     b.dot = b:CreateTexture(nil, "OVERLAY")
     b.dot:SetSize(8, 8)
@@ -91,7 +111,7 @@ end
 local function PaintTile(b, conv)
     local spec = Echo.View.TileSpec(conv)
     b.convKey = conv.key
-    b.letter:SetText(spec.letter)
+    Echo.PaintTileFace(b.icon, b.letter, spec)
     if spec.glyph then
         PaintGlyphFrame(b, spec.r, spec.g, spec.b)
         b.letter:SetTextColor(spec.r, spec.g, spec.b, 1)
@@ -202,6 +222,7 @@ function Tiles.Refresh()
         PaintGlyphFrame(overflowTile, View.ACCENT.r, View.ACCENT.g, View.ACCENT.b)
         overflowTile.letter:SetTextColor(0.85, 0.87, 0.95, 1)
         overflowTile.dot:Hide()
+        overflowTile.icon:Hide()
         overflowTile.count:SetText("")
         overflowTile:ClearAllPoints()
         overflowTile:SetPoint("BOTTOM", column, "BOTTOM", 0, slot * STEP)
@@ -321,15 +342,20 @@ function Tiles.ShowToast(convKey)
     if not toast then CreateToast() end
     local entry = toast.entry
     local spec = View.TileSpec(conv)
-    if spec.glyph then
+    if spec.icon then
+        entry.icon:SetTexture(spec.icon)
+        entry.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+        entry.letter:SetText("")
+    elseif spec.glyph then
         local bg = View.GLYPH_BG
         entry.icon:SetColorTexture(bg[1], bg[2], bg[3], 1)
         entry.letter:SetTextColor(spec.r, spec.g, spec.b, 1)
+        entry.letter:SetText(spec.letter)
     else
         entry.icon:SetColorTexture(spec.r, spec.g, spec.b, 1)
         entry.letter:SetTextColor(0.05, 0.05, 0.07, 1)
+        entry.letter:SetText(spec.letter)
     end
-    entry.letter:SetText(spec.letter)
     entry.title:SetText(View.DisplayName(conv))
     if msg.secret or Echo.IsSecret(msg.text) then
         entry.body:SetText(L["ECHO_NEW_MESSAGE"])
