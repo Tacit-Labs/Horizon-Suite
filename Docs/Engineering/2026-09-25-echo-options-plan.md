@@ -1649,6 +1649,7 @@ git commit -m "docs(echo): record plan 5 and carry the rest to plan 6"
 
 Full restart, because the TOC gained files. Then enable Echo from the dashboard's Modules list, or with `/h echo toggle`.
 
+- [ ] Taint check: `/console taintLog 1`, Hide whispers Echo has stored on. Get whispered outside an instance, then enter a dungeon and start a key or pull. Press R, type and send. **Expect:** no "blocked" popup, and no HorizonSuite lines for ChatEdit or SendChatMessage in `Logs/taint.log`. Also `/dump ChatFrameUtil.SetLastTellTarget, ChatEdit_SetLastTellTarget` on both clients.
 - [ ] Dashboard: Echo shows in the sidebar, the Modules toggles, the home cards and the module guide, in periwinkle with a Preview tag. Searching "whisper" finds Echo settings.
 - [ ] Screen edge Left: the tiles jump to the bottom left, and the stack, card and toasts open to their right. Right puts them back.
 - [ ] Unlock, drag, lock; change the scale from 100 to 140. The column's foot stays put, and the stack and card grow with it.
@@ -1656,9 +1657,9 @@ Full restart, because the TOC gained files. Then enable Echo from the dashboard'
 - [ ] Pop-up style and time change the next toast. Hold pop-ups off: a whisper in combat toasts at once.
 - [ ] Guild tier set to Loud: a guild line shows a dot and a toast. Muted: nothing.
 - [ ] Mention keyword "tank": a party line containing "Tank" toasts.
-- [ ] Loot feed off: the Loot tile closes and new loot doesn't bring it back; Blizzard chat still shows the loot. Turn it back on.
+- [ ] Loot feed off: the Loot tile closes and new loot doesn't bring it back; Blizzard chat still shows the loot. Turn it back on: new loot brings the tile back.
 - [ ] Save whisper history off, `/reload`: the tiles don't come back and no whisper is saved. Back on. Clear history asks first, and after Yes a relog shows no old whispers.
-- [ ] Hide whispers Echo has stored, on: a whisper shows in Echo and not in Blizzard's chat window. Pressing R replies to that person.
+- [ ] Hide whispers Echo has stored, on: a whisper shows in Echo and not in Blizzard's chat window. Pressing R replies to that person. **Expect** the whisper sound and a taskbar flash while tabbed out. With Whisper Mode "New Tab", a hidden whisper doesn't pop an empty tab.
 - [ ] Card width 480 and height 600: the card grows and bubbles use the width. Font: pick another font, and the tiles, stack and card change without a reload.
 - [ ] A group-loot roll or a busy Trade channel with the card open: no stutter.
 - [ ] `/h echo` prints the help from the locale table, ending with the dashboard hint.
