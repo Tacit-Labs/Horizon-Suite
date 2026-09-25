@@ -2467,6 +2467,40 @@ run(`
   S.Reset()
 `, 'icons-stack-feeds');
 
+// --- Card: feed lines and live links ---------------------------------------------------------
+run(`
+  local S, C = HorizonSuite.Echo.Store, HorizonSuite.Echo.Card
+  S.Reset()
+  CreateFrame = STUB_CREATE_FRAME
+  C.Enable()
+  local f = C._frames()
+  local savedDate = date
+  date = function() return "12:04" end
+  S.Add({ convKey = "loot", text = "You receive loot: [Cloak].", feed = true, chatType = "LOOT", time = 100 })
+  S.Add({ convKey = "loot", text = SECRET("You receive loot: [Hidden]."), secret = true, feed = true, chatType = "LOOT", time = 101 })
+  C.Open("loot")
+  check("a feed card is read-only", f.edit.shown == false and f.send.shown == false, tostring(f.edit.shown))
+  local newest, older = f.bubbles[1], f.bubbles[2]
+  check("the newest feed line is at the bottom", rawequal(newest.text.text, S.Get("loot").messages[2].text), "?")
+  check("a feed line carries its time", older.time and older.time.shown and older.time.text == "12:04", older.time and older.time.text)
+  check("a feed line spans the card", older.points[1][1] == "BOTTOMLEFT", older.points[1][1])
+  check("no status line on a feed", f.status.shown == false, tostring(f.status.shown))
+  check("a feed line's links are live", older.scripts.OnHyperlinkClick ~= nil, "not attached")
+
+  S.Add({ convKey = "w:Brisa-Horizon", text = "hi", sender = "Brisa-Horizon" })
+  C.Show("w:Brisa-Horizon")
+  check("a conversation card has its reply box", f.edit.shown == true and f.send.shown == true, tostring(f.edit.shown))
+  check("a bubble after a feed line hides its time", f.bubbles[1].time == nil or f.bubbles[1].time.shown == false, "shown")
+  date = savedDate
+
+  C.Open("w:Brisa-Horizon", true)
+  check("the reply box is focused on the conversation card", f.edit.focused == true, tostring(f.edit.focused))
+  C.Show("loot")
+  check("showing a feed clears the reply box's focus", f.edit.focused == false, tostring(f.edit.focused))
+  C.Disable()
+  S.Reset()
+`, 'card-feeds');
+
 // --- Summary -------------------------------------------------------------------
 run(`
   print(PASS .. " passed, " .. FAIL .. " failed")

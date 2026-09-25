@@ -35,6 +35,8 @@ Card.GAP = 3
 Card.GROUP_GAP = 10
 Card.SECRET_LINES = 3
 Card.LINE_HEIGHT = 14
+Card.FEED_TIME_WIDTH = 40
+Card.FEED_GAP = 2
 
 local root, nameText, metaText, area, edit, send, menuButton, chevron, statusLine
 local rowTiles, bubbles, labels = {}, {}, {}
@@ -267,6 +269,12 @@ local function Bubble(i)
     b.text:SetJustifyV("TOP")
     b.text:SetWordWrap(true)
     b.text:SetNonSpaceWrap(true)
+    b.time = Echo.NewText(b, 10, "")
+    b.time:SetPoint("TOPLEFT", b, "TOPLEFT", 2, -3)
+    b.time:SetTextColor(0.55, 0.60, 0.75, 1)
+    b.time:Hide()
+    b:EnableMouse(true)
+    if Echo.Links then Echo.Links.Attach(b) end
     bubbles[i] = b
     return b
 end
@@ -283,6 +291,9 @@ end
 -- Size a bubble to its text and return its height. Readable text is measured; a secret
 -- can't be, so it gets the widest bubble and a fixed number of lines.
 local function SizeBubble(b, text, secret)
+    b.time:Hide()
+    b.text:ClearAllPoints()
+    b.text:SetPoint("TOPLEFT", b, "TOPLEFT", Card.BUBBLE_PAD, -Card.BUBBLE_PAD)
     local inner = Card.BUBBLE_MAX - Card.BUBBLE_PAD * 2
     b.text:SetWidth(inner)
     b.text:SetMaxLines(secret and Card.SECRET_LINES or 0)
@@ -308,6 +319,29 @@ local function SizeBubble(b, text, secret)
     return height + Card.BUBBLE_PAD * 2
 end
 
+-- Lay out one feed line across the card: time, then text. Readable text is measured; a
+-- secret gets a fixed number of lines. Returns its height.
+local function SizeFeedLine(b, msg, secret)
+    local width = Card.WIDTH - Card.PAD * 2
+    b.time:SetText(Echo.View.FeedTime(msg.time))
+    b.time:Show()
+    b.text:ClearAllPoints()
+    b.text:SetPoint("TOPLEFT", b, "TOPLEFT", Card.FEED_TIME_WIDTH, -3)
+    b.text:SetWidth(width - Card.FEED_TIME_WIDTH - 4)
+    b.text:SetMaxLines(secret and Card.SECRET_LINES or 0)
+    b.text:SetText(msg.text)
+    local height
+    if secret then
+        height = Card.SECRET_LINES * Card.LINE_HEIGHT
+    else
+        local h = b.text:GetStringHeight()
+        if Echo.IsSecret(h) or type(h) ~= "number" or h <= 0 then h = Card.LINE_HEIGHT end
+        height = h
+    end
+    b:SetSize(width, height + 6)
+    return height + 6
+end
+
 local function RenderMessages(conv)
     local View = Echo.View
     local a = View.ACCENT
@@ -320,6 +354,26 @@ local function RenderMessages(conv)
     local used, usedLabels = 0, 0
     statusLine.retry = nil
     statusLine:Hide()
+    if View.IsFeed(conv.kind) then
+        for i = #messages - offset, 1, -1 do
+            if y > Card.AREA_HEIGHT then break end
+            local msg = messages[i]
+            used = used + 1
+            local line = Bubble(used)
+            local height = SizeFeedLine(line, msg, msg.secret or Echo.IsSecret(msg.text))
+            line:ClearAllPoints()
+            line:SetPoint("BOTTOMLEFT", area, "BOTTOMLEFT", 0, y)
+            line:SetBackdropColor(0, 0, 0, 0)
+            line:SetBackdropBorderColor(0, 0, 0, 0)
+            local lr, lg, lb = View.LineColor(conv, msg)
+            line.text:SetTextColor(lr, lg, lb, 1)
+            line:Show()
+            y = y + height + Card.FEED_GAP
+        end
+        for j = used + 1, #bubbles do bubbles[j]:Hide() end
+        for j = 1, #labels do labels[j]:Hide() end
+        return
+    end
     for i = #messages - offset, 1, -1 do
         if y > Card.AREA_HEIGHT then break end
         local msg = messages[i]
@@ -436,6 +490,12 @@ function Card.Render()
         edit.placeholder:SetText(L["ECHO_REPLY"])
     end
     edit.placeholder:SetShown(edit:GetText() == "" and not edit:HasFocus())
+
+    -- Feeds are read-only: no reply box or send button.
+    local feed = View.IsFeed(conv.kind)
+    if feed then edit:ClearFocus() end
+    edit:SetShown(not feed)
+    send:SetShown(not feed)
 
     RenderMessages(conv)
     Store.MarkRead(conv.key)
