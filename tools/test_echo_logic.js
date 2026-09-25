@@ -428,6 +428,12 @@ run(`
   check("own line in a group channel is outgoing", r.outgoing == true, r.outgoing)
   r = E.BuildRecord("CHAT_MSG_PARTY", payload("on my way", "Kaelis"))
   check("own line without a realm is outgoing", r.outgoing == true, r.outgoing)
+  r = E.BuildRecord("CHAT_MSG_CHANNEL", payload("wtb ore", "Kaelis-Horizon", "Trade"))
+  check("own line in a chat channel is outgoing",
+        r and r.outgoing == true and r.convKey == "ch:Trade" and r.sender == nil, r and r.outgoing)
+  r = E.BuildRecord("CHAT_MSG_BN_WHISPER_INFORM", payload("brb", "|Kq1|k", nil, nil, 77))
+  check("bnet inform is outgoing, keyed by the account id, with no sender",
+        r and r.outgoing == true and r.convKey == "bn:77" and r.sender == nil, r and r.convKey)
 
   -- Secret values: spec "Secret-value rules".
   r = E.BuildRecord("CHAT_MSG_WHISPER", payload(SECRET("boss plan"), "Brisa-Horizon"))
@@ -487,6 +493,10 @@ run(`
   check("dispatch files incoming", S.Get("w:Brisa-Horizon") and S.Get("w:Brisa-Horizon").unread == 1, "not filed")
   E.Dispatch("CHAT_MSG_WHISPER", payload("hi", SECRET("Who")))
   check("dispatch counts unrouted", S.GetUnroutedCount() == 1, S.GetUnroutedCount())
+  E.Dispatch("CHAT_MSG_WHISPER_INFORM", payload("sure", SECRET("Brisa-Horizon")))
+  check("a secret whisper recipient is counted as unrouted", S.GetUnroutedCount() == 2, S.GetUnroutedCount())
+  check("a secret whisper recipient files nothing",
+        #S.List() == 1 and #S.Get("w:Brisa-Horizon").messages == 1, #S.List())
   local p = S.AddPending("w:Brisa-Horizon", "sure")
   E.Dispatch("CHAT_MSG_WHISPER_INFORM", payload("sure", "Brisa-Horizon"))
   check("the inform echo confirms a pending reply", p.status == "sent", p.status)
