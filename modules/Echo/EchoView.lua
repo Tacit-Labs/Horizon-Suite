@@ -226,7 +226,9 @@ end
 -- @return string
 function View.MetaLine(conv, now)
     local parts = {}
-    local class = View.LastClass(conv)
+    -- Only a whisper is one person; a group or channel card's last speaker isn't who the
+    -- card is about, so it names no class (a Battle.net card keeps its relationship).
+    local class = conv.kind == "whisper" and View.LastClass(conv) or nil
     if class and not Echo.IsSecret(class) then
         local names = LOCALIZED_CLASS_NAMES_MALE
         parts[#parts + 1] = (names and names[class]) or class
@@ -364,12 +366,15 @@ function View.Relationship(conv)
     return nil, nil
 end
 
---- The card header's detail line: class, relationship and online status, readable parts only.
+--- The card header's detail line: class (whispers only), relationship and online status,
+-- readable parts only.
 -- @param conv table
 -- @return string
 function View.CardMeta(conv)
     local parts = {}
-    local class = View.LastClass(conv)
+    -- Only a whisper is one person; a group or channel card's last speaker isn't who the
+    -- card is about, so it names no class (a Battle.net card keeps its relationship).
+    local class = conv.kind == "whisper" and View.LastClass(conv) or nil
     if class and not Echo.IsSecret(class) then
         local names = LOCALIZED_CLASS_NAMES_MALE
         parts[#parts + 1] = (names and names[class]) or class

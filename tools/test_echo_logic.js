@@ -2091,6 +2091,25 @@ run(`
   S.Reset()
 `, 'final-g1');
 
+// --- Final fix G2: only a whisper card names a class -------------------------------------
+run(`
+  local S, V = HorizonSuite.Echo.Store, HorizonSuite.Echo.View
+  S.Reset()
+  local savedNames = LOCALIZED_CLASS_NAMES_MALE
+  LOCALIZED_CLASS_NAMES_MALE = { WARRIOR = "Warrior", DRUID = "Druid" }
+  S.Add({ convKey = "party", text = "pull", sender = "Tank-Horizon", class = "WARRIOR" })
+  local meta = V.CardMeta(S.Get("party"))
+  check("G2: a party card names no speaker's class", meta:find("Warrior", 1, true) == nil, meta)
+  S.Add({ convKey = "ch:Trade", text = "wts", sender = "Seller-Horizon", class = "WARRIOR" })
+  meta = V.CardMeta(S.Get("ch:Trade"))
+  check("G2: a channel card names no speaker's class", meta:find("Warrior", 1, true) == nil, meta)
+  S.Add({ convKey = "w:Brisa-Horizon", text = "hi", sender = "Brisa-Horizon", class = "DRUID" })
+  meta = V.CardMeta(S.Get("w:Brisa-Horizon"))
+  check("G2: a whisper card still names the class", meta:find("Druid", 1, true) ~= nil, meta)
+  LOCALIZED_CLASS_NAMES_MALE = savedNames
+  S.Reset()
+`, 'final-g2');
+
 // --- Summary -------------------------------------------------------------------
 run(`
   print(PASS .. " passed, " .. FAIL .. " failed")
