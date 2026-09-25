@@ -31,6 +31,7 @@ local currentKey            -- the card on top follows its conversation, not its
 local renderedKey           -- the conversation last drawn onto the shared reply box
 local drafts = {}           -- unsent reply text per conversation, while another card is on top
 local openTimer
+local hoverKey              -- the tile hovered last while the open delay runs
 local armed, away, pollAccum = false, 0, 0   -- hover-close poll state
 
 local function Paint(frame, alpha)
@@ -411,13 +412,31 @@ function Stack.CloseCurrent()
 end
 
 --- The mouse entered the column or the stack: open after the hover delay (not in combat).
-function Stack.HoverEnter()
-    if (root and root:IsShown()) or openTimer or InCombatLockdown() then return end
+--- Bring a conversation to the front of an open stack.
+-- @param convKey string
+function Stack.Select(convKey)
+    if not root or not root:IsShown() or not convKey or convKey == currentKey then return end
+    currentKey = convKey
+    Stack.Render()
+end
+
+--- The mouse entered a tile, the chat button or the stack. On a closed stack, open after
+-- the hover delay on the last tile hovered (the top card for the chat button); on an open
+-- stack, hovering a tile brings its conversation to the front at once. Not in combat.
+-- @param convKey string|nil  The hovered tile's conversation
+function Stack.HoverEnter(convKey)
+    if root and root:IsShown() then
+        Stack.Select(convKey)
+        return
+    end
+    if InCombatLockdown() then return end
+    hoverKey = convKey
+    if openTimer then return end
     local delay = tonumber(Echo.Setting("echoHoverDelay")) or 0.35
     openTimer = C_Timer.NewTimer(delay, function()
         openTimer = nil
         if root and root:IsShown() then return end
-        if MouseOverEcho() then Stack.Open(nil) end
+        if MouseOverEcho() then Stack.Open(hoverKey) end
     end)
 end
 

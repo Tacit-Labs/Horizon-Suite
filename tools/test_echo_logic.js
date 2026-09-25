@@ -1225,6 +1225,76 @@ run(`
   S.Reset()
 `, 'stack-hover-click');
 
+// --- Stack: hovering a tile brings that conversation to the front ------------------------
+run(`
+  local S, T, K = HorizonSuite.Echo.Store, HorizonSuite.Echo.Tiles, HorizonSuite.Echo.Stack
+  S.Reset()
+  CreateFrame = STUB_CREATE_FRAME
+  T.Enable()
+  K.Enable()
+  local f = K._frames()
+  local column = _G.HorizonSuiteEchoColumn
+  S.Add({ convKey = "w:Brisa-Horizon", text = "hi", class = "DRUID", sender = "Brisa-Horizon" })
+  S.Add({ convKey = "w:Vexa-Horizon", text = "gz", sender = "Vexa-Horizon" })
+  S.Add({ convKey = "w:Thorn-Horizon", text = "yo", sender = "Thorn-Horizon" })
+
+  local savedNewTimer = C_Timer.NewTimer
+  local fire
+  C_Timer.NewTimer = function(_, fn) fire = fn; return { Cancel = function() end } end
+  column.IsMouseOver = function() return true end
+
+  local brisaTile = T.TileFor("w:Brisa-Horizon")
+  brisaTile.scripts.OnEnter(brisaTile)
+  check("hovering a tile starts the open timer", type(fire) == "function", type(fire))
+  fire()
+  check("the stack opens on the hovered tile's conversation", f.root:IsShown() and f.card.name.text == "Brisa", f.card.name.text)
+
+  local vexaTile = T.TileFor("w:Vexa-Horizon")
+  vexaTile.scripts.OnEnter(vexaTile)
+  check("hovering another tile while open brings it to the front", f.card.name.text == "Vexa", f.card.name.text)
+  check("bringing a card forward marks it read", S.Get("w:Vexa-Horizon").unread == 0, S.Get("w:Vexa-Horizon").unread)
+  vexaTile.scripts.OnEnter(vexaTile)
+  check("hovering the front card's tile again changes nothing", f.card.name.text == "Vexa", f.card.name.text)
+
+  K.Hide()
+  fire = nil
+  local thornTile = T.TileFor("w:Thorn-Horizon")
+  thornTile.scripts.OnEnter(thornTile)
+  brisaTile.scripts.OnEnter(brisaTile)
+  fire()
+  check("moving across tiles during the delay opens on the last one hovered", f.card.name.text == "Brisa", f.card.name.text)
+
+  K.Hide()
+  fire = nil
+  local stackButton = T._stackButton()
+  stackButton.scripts.OnEnter(stackButton)
+  fire()
+  check("hovering the chat button opens on the top conversation", f.card.name.text == S.List()[1].key:sub(3):match("^([^-]+)"), f.card.name.text)
+
+  column.IsMouseOver = nil
+  C_Timer.NewTimer = savedNewTimer
+  K.Hide()
+  K.Disable()
+  T.Disable()
+  S.Reset()
+`, 'stack-hover-tile');
+
+// --- Events: a whisper to yourself stays unread --------------------------------------------
+run(`
+  local S, E = HorizonSuite.Echo.Store, HorizonSuite.Echo.Events
+  S.Reset()
+  local function p(text, who) return text, who, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil end
+  E.Dispatch("CHAT_MSG_WHISPER", p("note to self", "Kaelis-Horizon"))
+  E.Dispatch("CHAT_MSG_WHISPER_INFORM", p("note to self", "Kaelis-Horizon"))
+  local me = S.Get("w:Kaelis-Horizon")
+  check("the echo of a whisper to yourself does not mark it read", me.unread == 1, me.unread)
+  check("both halves of a self-whisper are kept", #me.messages == 2, #me.messages)
+  E.Dispatch("CHAT_MSG_WHISPER", p("hi", "Brisa-Horizon"))
+  E.Dispatch("CHAT_MSG_WHISPER_INFORM", p("hey", "Brisa-Horizon"))
+  check("replying to someone else still marks it read", S.Get("w:Brisa-Horizon").unread == 0, S.Get("w:Brisa-Horizon").unread)
+  S.Reset()
+`, 'self-whisper');
+
 // --- Tiles: no toast over an open stack (final review F2) --------------------------------
 run(`
   local S, T, K = HorizonSuite.Echo.Store, HorizonSuite.Echo.Tiles, HorizonSuite.Echo.Stack

@@ -126,6 +126,11 @@ function Events.BuildRecord(event, text, sender, _, _, _, _, zoneChannelID, chan
         class    = (not outgoing) and ClassFromGUID(guid) or nil,
         time     = Store.Now(),
     }
+    -- A whisper to yourself echoes back as an outgoing line; that echo is not a reply,
+    -- so it must not mark the conversation read.
+    if kind == "whisper" and outgoing and senderKey ~= nil and senderKey == Events.PlayerKey() then
+        record.keepUnread = true
+    end
     -- The joined slot this line arrived on; Send replies there (it follows you between zones).
     if kind == "channel" and not IsSecret(channelIndex) and type(channelIndex) == "number" and channelIndex > 0 then
         record.channelIndex = channelIndex
