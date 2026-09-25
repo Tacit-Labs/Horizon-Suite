@@ -41,6 +41,19 @@ local rowTiles, bubbles, labels = {}, {}, {}
 local currentKey, renderedKey
 local offset = 0  -- newest messages scrolled past
 
+-- Park the reply box's draft against the conversation it was drawn for, and clear it.
+-- Idempotent (renderedKey is nil after the first call), called from both root's OnHide
+-- (covers closes that bypass Card.Hide, e.g. Escape via UISpecialFrames calling
+-- root:Hide() directly) and Card.Hide itself (stand-in frames in tests don't fire OnHide
+-- on Hide()).
+local function ParkDraft()
+    if edit and renderedKey then
+        Echo.ParkDraft(renderedKey, edit:GetText())
+        edit:SetText("")
+        renderedKey = nil
+    end
+end
+
 local function FontPath()
     return (addon.GetDefaultFontPath and addon.GetDefaultFontPath()) or "Fonts\\FRIZQT__.TTF"
 end
@@ -93,6 +106,9 @@ local function Create()
     Paint(root, View.PANEL_BG, View.PANEL_BORDER)
     table.insert(UISpecialFrames, "HorizonSuiteEchoCard")
     root:SetScript("OnHide", function()
+        -- Covers closes that bypass Card.Hide entirely, e.g. Escape via UISpecialFrames
+        -- calling root:Hide() directly: leave no stale draft or stuck focus behind.
+        ParkDraft()
         if edit then edit:ClearFocus() end
     end)
 
@@ -232,6 +248,7 @@ local function Bubble(i)
     b.text:SetJustifyH("LEFT")
     b.text:SetJustifyV("TOP")
     b.text:SetWordWrap(true)
+    b.text:SetNonSpaceWrap(true)
     bubbles[i] = b
     return b
 end
@@ -259,7 +276,7 @@ local function SizeBubble(b, text, secret)
     else
         local measured
         if b.text.GetUnboundedStringWidth then measured = b.text:GetUnboundedStringWidth() end
-        if Echo.IsSecret(measured) or type(measured) ~= "number" then measured = nil end
+        if Echo.IsSecret(measured) or type(measured) ~= "number" or measured <= 0 then measured = nil end
         width = Echo.View.BubbleWidth(measured, Card.BUBBLE_MAX, Card.BUBBLE_PAD)
         b.text:SetWidth(width - Card.BUBBLE_PAD * 2)
         local h = b.text:GetStringHeight()
@@ -306,7 +323,8 @@ local function RenderMessages(conv)
         bubble:ClearAllPoints()
         if msg.outgoing then
             bubble:SetPoint("BOTTOMRIGHT", area, "BOTTOMRIGHT", 0, y)
-            bubble:SetBackdropColor(a.r, a.g, a.b, msg.status == "pending" and 0.14 or 0.24)
+            local dimmed = msg.status == "pending" or msg.status == "retried"
+            bubble:SetBackdropColor(a.r, a.g, a.b, dimmed and 0.14 or 0.24)
             bubble:SetBackdropBorderColor(a.r, a.g, a.b, 0.6)
             if msg.status == "failed" then
                 bubble.text:SetTextColor(1, 0.45, 0.45, 1)
@@ -435,11 +453,9 @@ end
 
 function Card.Hide()
     if not root then return end
-    if edit and renderedKey then
-        Echo.ParkDraft(renderedKey, edit:GetText())
-        edit:SetText("")
-        renderedKey = nil
-    end
+    -- root's OnHide does this too (real frames fire it from Hide()); calling it here as
+    -- well keeps the harness's stand-in frames, which don't fire OnHide on Hide(), correct.
+    ParkDraft()
     if edit then edit:ClearFocus() end
     root:Hide()
 end
@@ -470,8 +486,13 @@ end
 -- @param msg table  the failed record
 function Card.Retry(msg)
     if not currentKey or not msg or msg.status ~= "failed" then return end
-    msg.status = "retried"
-    Echo.Send.Send(currentKey, msg.text)
+    if Echo.Send.Send(currentKey, msg.text) then
+        -- Send.Send's own Store.AddPending already triggered a re-render (of the newly
+        -- filed part, still "failed" here); render again now that this message reads
+        -- "retried" so its bubble picks up the dimmed styling.
+        msg.status = "retried"
+        Card.Render()
+    end
 end
 
 function Card.OnStoreChange()

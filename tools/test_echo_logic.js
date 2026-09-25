@@ -88,6 +88,8 @@ run(`
       if k == "ClearAllPoints" then return function(self) self.points = {} end end
       if k == "SetFocus" then return function(self) self.focused = true end end
       if k == "ClearFocus" then return function(self) self.focused = false end end
+      if k == "SetBackdropColor" then return function(self, r, g, b, a) self.bg = { r, g, b, a }; self.alpha = a end end
+      if k == "SetSize" then return function(self, w, h) self.width = w; self.height = h end end
       if k == "CreateTexture" or k == "CreateFontString" then return function(self) return STUB_FRAME(self) end end
       if fixed[k] ~= nil then local v = fixed[k]; return function() return v end end
       return function() end
@@ -1875,6 +1877,129 @@ run(`
   C_ChatInfo = nil
   S.Reset()
 `, 'card');
+
+// --- Card: OnHide parks the draft (fix round 1, finding 1) --------------------------------
+run(`
+  local Echo = HorizonSuite.Echo
+  local S, T, K, C = Echo.Store, Echo.Tiles, Echo.Stack, Echo.Card
+  S.Reset()
+  CreateFrame = STUB_CREATE_FRAME
+  T.Enable()
+  K.Enable()
+  C.Enable()
+  local f = C._frames()
+
+  S.Add({ convKey = "w:Brisa-Horizon", text = "hi", class = "DRUID", sender = "Brisa-Horizon" })
+  C.Open("w:Brisa-Horizon")
+  f.edit:SetText("abc")
+  check("root registers an OnHide handler", type(f.root.scripts.OnHide) == "function", type(f.root.scripts.OnHide))
+  f.root:Hide()
+  f.root.scripts.OnHide(f.root)
+  check("escape's OnHide parks the draft", Echo.TakeDraft("w:Brisa-Horizon") == "abc", Echo.TakeDraft("w:Brisa-Horizon"))
+  check("the box is empty after the draft is parked", f.edit.text == "", f.edit.text)
+
+  Echo.ParkDraft("w:Brisa-Horizon", "xyz")
+  C.Open("w:Brisa-Horizon")
+  check("the draft comes back on reopen", f.edit.text == "xyz", f.edit.text)
+  C.Hide()
+  check("Card.Hide also parks (harness stubs don't fire OnHide on Hide())", Echo.TakeDraft("w:Brisa-Horizon") == "xyz", Echo.TakeDraft("w:Brisa-Horizon"))
+
+  C.Disable()
+  K.Disable()
+  T.Disable()
+  S.Reset()
+`, 'card-onhide');
+
+// --- Card: retry only marks resent, and dims a retried bubble (fix round 1, finding 2) ----
+run(`
+  local Echo = HorizonSuite.Echo
+  local S, T, K, C = Echo.Store, Echo.Tiles, Echo.Stack, Echo.Card
+  S.Reset()
+  CreateFrame = STUB_CREATE_FRAME
+  local sent = {}
+  C_ChatInfo = { SendChatMessage = function(msg, chatType, _, target) sent[#sent + 1] = chatType .. ":" .. tostring(target) .. ":" .. msg end }
+  T.Enable()
+  K.Enable()
+  C.Enable()
+  local f = C._frames()
+
+  S.Add({ convKey = "w:Brisa-Horizon", text = "hi", class = "DRUID", sender = "Brisa-Horizon" })
+  C.Open("w:Brisa-Horizon")
+  f.edit:SetText("first try")
+  f.edit.scripts.OnEnterPressed(f.edit)
+  S.MarkFailed("w:Brisa-Horizon")
+  local failedMsg = f.status.retry
+
+  local realSend = Echo.Send.Send
+  Echo.Send.Send = function() return false end
+  f.status.scripts.OnClick(f.status)
+  check("a failed retry that can't route leaves the message failed", failedMsg.status == "failed", failedMsg.status)
+  Echo.Send.Send = realSend
+
+  f.status.scripts.OnClick(f.status)
+  check("retry sends again once it can route", sent[1] == "WHISPER:Brisa-Horizon:first try", sent[1])
+  check("a successful retry marks the message retried", failedMsg.status == "retried", failedMsg.status)
+  check("a retried bubble is dimmed like a pending one", f.bubbles[2].alpha == 0.14, f.bubbles[2].alpha)
+
+  C.Disable()
+  K.Disable()
+  T.Disable()
+  C_ChatInfo = nil
+  S.Reset()
+`, 'card-retry');
+
+// --- Card: an unmeasurable-width bubble falls back to full width (fix round 1, finding 3) --
+run(`
+  local Echo = HorizonSuite.Echo
+  local S, T, K, C = Echo.Store, Echo.Tiles, Echo.Stack, Echo.Card
+  S.Reset()
+  CreateFrame = STUB_CREATE_FRAME
+  T.Enable()
+  K.Enable()
+  C.Enable()
+  local f = C._frames()
+
+  S.Add({ convKey = "w:Brisa-Horizon", text = "hi", class = "DRUID", sender = "Brisa-Horizon" })
+  C.Open("w:Brisa-Horizon")
+  local bubble = f.bubbles[1]
+  bubble.text.GetUnboundedStringWidth = function() return 0 end
+  S.Add({ convKey = "w:Brisa-Horizon", text = "zero-width report", sender = "Brisa-Horizon" })
+  check("a zero measured width is treated as unmeasured", f.bubbles[1].width == HorizonSuite.Echo.Card.BUBBLE_MAX, f.bubbles[1].width)
+
+  C.Disable()
+  K.Disable()
+  T.Disable()
+  S.Reset()
+`, 'card-width');
+
+// --- Stack: OnHide parks the draft (fix round 1, finding 1) -------------------------------
+run(`
+  local Echo = HorizonSuite.Echo
+  local S, T, K = Echo.Store, Echo.Tiles, Echo.Stack
+  S.Reset()
+  CreateFrame = STUB_CREATE_FRAME
+  T.Enable()
+  K.Enable()
+  local f = K._frames()
+
+  S.Add({ convKey = "w:Brisa-Horizon", text = "hi", class = "DRUID", sender = "Brisa-Horizon" })
+  K.Open("w:Brisa-Horizon")
+  f.edit:SetText("stack draft")
+  f.root:Hide()
+  f.root.scripts.OnHide(f.root)
+  check("escape's OnHide parks the stack draft", Echo.TakeDraft("w:Brisa-Horizon") == "stack draft", Echo.TakeDraft("w:Brisa-Horizon"))
+  check("the stack box is empty after the draft is parked", f.edit.text == "", f.edit.text)
+
+  Echo.ParkDraft("w:Brisa-Horizon", "another")
+  K.Open("w:Brisa-Horizon")
+  check("the draft comes back on reopen", f.edit.text == "another", f.edit.text)
+  K.Hide()
+  check("Stack.Hide also parks (harness stubs don't fire OnHide on Hide())", Echo.TakeDraft("w:Brisa-Horizon") == "another", Echo.TakeDraft("w:Brisa-Horizon"))
+
+  K.Disable()
+  T.Disable()
+  S.Reset()
+`, 'stack-onhide-park');
 
 // --- Summary -------------------------------------------------------------------
 run(`

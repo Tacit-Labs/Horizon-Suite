@@ -44,6 +44,19 @@ local function FontPath()
     return (addon.GetDefaultFontPath and addon.GetDefaultFontPath()) or "Fonts\\FRIZQT__.TTF"
 end
 
+-- Park the shared reply box's draft against the conversation it was drawn for, and clear
+-- it. Idempotent (renderedKey is nil after the first call), called from both root's OnHide
+-- (covers closes that bypass Stack.Hide, e.g. Escape via UISpecialFrames calling
+-- root:Hide() directly) and Stack.Hide itself (stand-in frames in tests don't fire OnHide
+-- on Hide()).
+local function ParkDraft()
+    if edit and renderedKey then
+        Echo.ParkDraft(renderedKey, edit:GetText())
+        edit:SetText("")
+        renderedKey = nil
+    end
+end
+
 -- Declared here (ahead of Create/Open) so root's OnUpdate poll and Open's arming check
 -- can see it as a lexical upvalue rather than a stale forward reference.
 local function MouseOverEcho()
@@ -130,11 +143,13 @@ local function Create()
     end)
     root:SetScript("OnHide", function()
         -- Covers closes that bypass Stack.Hide entirely, e.g. Escape via UISpecialFrames
-        -- calling root:Hide() directly: leave no pending open timer or stuck focus behind.
+        -- calling root:Hide() directly: leave no pending open timer, stuck focus, or a
+        -- stale draft behind.
         if openTimer then
             openTimer:Cancel()
             openTimer = nil
         end
+        ParkDraft()
         if edit then edit:ClearFocus() end
     end)
     table.insert(UISpecialFrames, "HorizonSuiteEchoStack")
@@ -395,12 +410,10 @@ function Stack.Hide()
     openTimer = nil
     armed = false
     away = 0
-    -- Park the draft so the card, or the stack when it reopens, can take it back.
-    if edit and renderedKey then
-        Echo.ParkDraft(renderedKey, edit:GetText())
-        edit:SetText("")
-        renderedKey = nil
-    end
+    -- Park the draft so the card, or the stack when it reopens, can take it back. root's
+    -- OnHide does this too (real frames fire it from Hide()); calling it here as well
+    -- keeps the harness's stand-in frames, which don't fire OnHide on Hide(), correct.
+    ParkDraft()
     if edit then edit:ClearFocus() end
     if root then root:Hide() end
 end
