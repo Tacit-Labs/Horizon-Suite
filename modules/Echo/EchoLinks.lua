@@ -56,3 +56,22 @@ function Links.Hook()
         Links.hooked = true
     end
 end
+
+local function ShowTooltip(frame, link)
+    if Echo.IsSecret(link) or type(link) ~= "string" or not GameTooltip then return end
+    GameTooltip:SetOwner(frame, "ANCHOR_CURSOR")
+    if pcall(GameTooltip.SetHyperlink, GameTooltip, link) then GameTooltip:Show() end
+end
+
+--- Make the links in a frame's text live: hover for the tooltip, click through the game's
+-- own handler (so shift-click links and ctrl-click previews work as in Blizzard's chat).
+-- @param frame Frame
+function Links.Attach(frame)
+    if frame.SetHyperlinksEnabled then frame:SetHyperlinksEnabled(true) end
+    frame:SetScript("OnHyperlinkEnter", function(self, link) ShowTooltip(self, link) end)
+    frame:SetScript("OnHyperlinkLeave", function() if GameTooltip then GameTooltip:Hide() end end)
+    frame:SetScript("OnHyperlinkClick", function(self, link, text, button)
+        if Echo.IsSecret(link) or type(link) ~= "string" or type(SetItemRef) ~= "function" then return end
+        pcall(SetItemRef, link, text, button, self)
+    end)
+end

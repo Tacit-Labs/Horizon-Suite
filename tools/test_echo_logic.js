@@ -2389,6 +2389,40 @@ run(`
   S.Reset()
 `, 'view-feeds');
 
+// --- Links: hover and click links in Echo's text -----------------------------------------
+run(`
+  local Links = HorizonSuite.Echo.Links
+  local savedTooltip, savedItemRef = GameTooltip, SetItemRef
+  local shown, hidden, ref = nil, false, nil
+  GameTooltip = {
+    SetOwner = function() end,
+    SetHyperlink = function(_, link) if link == "bad:1" then error("no tooltip") end shown = link end,
+    Show = function() end,
+    Hide = function() hidden = true end,
+  }
+  SetItemRef = function(link, text, button) ref = { link, text, button } end
+  CreateFrame = STUB_CREATE_FRAME
+  local f = CreateFrame("Frame")
+  f.SetHyperlinksEnabled = function(self, on) self.hyperlinks = on end
+  Links.Attach(f)
+  check("links are enabled on the frame", f.hyperlinks == true, tostring(f.hyperlinks))
+  f.scripts.OnHyperlinkEnter(f, "item:1")
+  check("hovering a link shows its tooltip", shown == "item:1", shown)
+  f.scripts.OnHyperlinkLeave(f)
+  check("leaving hides it", hidden == true, "?")
+  check("a link with no tooltip is survived", pcall(f.scripts.OnHyperlinkEnter, f, "bad:1"), "threw")
+  f.scripts.OnHyperlinkClick(f, "item:1", "[Cloak]", "LeftButton")
+  check("clicking goes through the game's own link handler", ref and ref[1] == "item:1" and ref[2] == "[Cloak]" and ref[3] == "LeftButton", "?")
+  ref, shown = nil, nil
+  f.scripts.OnHyperlinkEnter(f, SECRET("item:2"))
+  f.scripts.OnHyperlinkClick(f, SECRET("item:2"), "[x]", "LeftButton")
+  check("a secret link is ignored", shown == nil and ref == nil, "used")
+  SetItemRef = nil
+  check("no link handler, no error", pcall(f.scripts.OnHyperlinkClick, f, "item:1", "[Cloak]", "LeftButton"), "threw")
+  f.SetHyperlinksEnabled = nil
+  GameTooltip, SetItemRef = savedTooltip, savedItemRef
+`, 'links-live');
+
 // --- Summary -------------------------------------------------------------------
 run(`
   print(PASS .. " passed, " .. FAIL .. " failed")
