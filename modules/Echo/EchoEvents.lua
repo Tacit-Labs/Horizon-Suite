@@ -134,8 +134,50 @@ function Events.OnSystemMessage(text)
     if convKey then Store.MarkFailed(convKey) end
 end
 
+local PROBE_ARGS = { { 1, "text" }, { 2, "sender" }, { 9, "channelBaseName" }, { 12, "guid" }, { 13, "bnSenderID" } }
+
+--- One-line description of a chat payload for the verification probe.
+-- Reports only type and secrecy, never values, so it is safe to print mid-encounter.
+-- @return string
+function Events.DescribeArgs(event, ...)
+    local parts = { tostring(event) }
+    for _, arg in ipairs(PROBE_ARGS) do
+        local v = select(arg[1], ...)
+        local state
+        if v == nil then
+            state = "nil"
+        elseif IsSecret(v) then
+            state = "SECRET"
+        else
+            state = type(v)
+        end
+        parts[#parts + 1] = arg[2] .. "=" .. state
+    end
+    local record, reason = Events.BuildRecord(event, ...)
+    parts[#parts + 1] = "conv=" .. (record and record.convKey or ("none/" .. tostring(reason)))
+    if record and Echo.Send then
+        local route = Echo.Send.RouteFor(record.convKey)
+        parts[#parts + 1] = "route=" .. (route
+            and (route.chatType .. (route.target ~= nil and (":" .. tostring(route.target)) or ""))
+            or "none")
+    end
+    return table.concat(parts, " ")
+end
+
+--- Describe the next `count` chat messages through outFn (spec: Verification before code).
+-- @param count number
+-- @param outFn function(string)
+function Events.StartProbe(count, outFn)
+    Events.probeRemaining = count
+    Events.probeOut = outFn
+end
+
 --- Route one chat event. Exposed for tests and the probe.
 function Events.Dispatch(event, ...)
+    if (Events.probeRemaining or 0) > 0 and event ~= "CHAT_MSG_SYSTEM" and Events.probeOut then
+        Events.probeRemaining = Events.probeRemaining - 1
+        Events.probeOut(Events.DescribeArgs(event, ...))
+    end
     if event == "CHAT_MSG_SYSTEM" then
         Events.OnSystemMessage((...))
         return

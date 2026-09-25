@@ -58,6 +58,9 @@ local ABSENT_ON_FOREVER = {
 Platform.unverified = {
     worldQuests = true,
     scenarios   = true,
+    -- Echo (2026-09-25): settled by /h echo probe on each client.
+    bnetWhispers = true,
+    secretChat   = true,
 }
 
 local detected = {
@@ -74,6 +77,10 @@ local detected = {
     professions     = C_TradeSkillUI ~= nil,
     adventureGuide  = HasFunction(C_PerksActivities, "GetPerksActivitiesInfo"),  -- Traveler's Log
     contentTracking = C_ContentTracking ~= nil,
+    -- Echo: Battle.net whisper sending, and Midnight secret chat payloads. Both stay
+    -- in Platform.unverified until /h echo probe has been run on the Forever beta.
+    bnetWhispers    = type(BNSendWhisper) == "function" or HasFunction(C_BattleNet, "SendWhisper"),
+    secretChat      = type(issecretvalue) == "function",
 }
 
 Platform.has = {}

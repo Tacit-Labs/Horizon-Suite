@@ -76,6 +76,7 @@ const FILES = [
   'modules/Echo/EchoHistory.lua',
   'modules/Echo/EchoEvents.lua',
   'modules/Echo/EchoSend.lua',
+  'modules/Echo/EchoSlash.lua',
 ];
 for (const f of FILES) run(read(f), f);
 
@@ -477,6 +478,37 @@ run(`
   check("falls back to the global send function", sent[#sent] == "LEGACY:GUILD:hi", sent[#sent])
   S.Reset()
 `, 'send');
+
+// --- Probe and test data -------------------------------------------------------------
+run(`
+  local S, H, E = HorizonSuite.Echo.Store, HorizonSuite.Echo.History, HorizonSuite.Echo.Events
+  S.Reset()
+
+  local line = E.DescribeArgs("CHAT_MSG_WHISPER", "hi", SECRET("Brisa"), nil, nil, nil, nil, nil, nil, nil, nil, nil, "Player-1-DRUID", nil)
+  check("probe names the event", line:find("CHAT_MSG_WHISPER", 1, true) == 1, line)
+  check("probe reports a secret sender", line:find("sender=SECRET", 1, true) ~= nil, line)
+  check("probe reports readable text by type, never its value",
+        line:find("text=string", 1, true) ~= nil and line:find("hi", 1, true) == nil, line)
+  check("probe reports unrouted", line:find("conv=none/unrouted", 1, true) ~= nil, line)
+  line = E.DescribeArgs("CHAT_MSG_CHANNEL", "wts", "Seller-Horizon", nil, nil, nil, nil, nil, nil, "Trade", nil, nil, nil, nil)
+  check("probe shows the conversation and route", line:find("conv=ch:Trade route=CHANNEL:2", 1, true) ~= nil, line)
+
+  local out = {}
+  E.StartProbe(1, function(s) out[#out + 1] = s end)
+  E.Dispatch("CHAT_MSG_GUILD", "gz", "Friend-Horizon", nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+  E.Dispatch("CHAT_MSG_GUILD", "again", "Friend-Horizon", nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+  check("probe describes only the requested number of messages", #out == 1, #out)
+  check("probe does not stop messages being filed", S.Get("guild") and #S.Get("guild").messages == 2, "not filed")
+
+  S.Reset()
+  local db = {}
+  H.Bind(db, function() return "Kaelis-Horizon" end)
+  HorizonSuite.Echo.InjectTestConversations()
+  check("test data fills conversations", #S.List() >= 4, #S.List())
+  check("test data never reaches history", next(db.echoHistory.chars) == nil, "written")
+  H.Unbind()
+  S.Reset()
+`, 'probe');
 
 // --- Summary -------------------------------------------------------------------
 run(`
