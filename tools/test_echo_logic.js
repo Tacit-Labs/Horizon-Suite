@@ -3066,6 +3066,16 @@ run(`
   A.ECHO_DEFAULTS, A.ECHO_KEYS, A.ECHO_LIMITS = nil, nil, nil
 `, 'echo-options-page');
 
+// --- Slash output goes through the locale table -------------------------------
+run(`
+  local src = ${JSON.stringify(read('modules/Echo/EchoSlash.lua'))}
+  local literal = 0
+  for line in src:gmatch("[^\\n]+") do
+    if line:find("HSPrint%(") and line:find('HSPrint%(%(?"') then literal = literal + 1 end
+  end
+  check("no literal strings printed by /h echo", literal == 0, literal)
+`, 'echo-slash-locale');
+
 // --- Redraw: one repaint per frame -------------------------------------------
 run(`
   CreateFrame = STUB_CREATE_FRAME

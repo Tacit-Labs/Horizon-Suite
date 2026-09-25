@@ -8,6 +8,7 @@ if not addon then return end
 
 addon.Echo = addon.Echo or {}
 local Echo = addon.Echo
+local L = addon.L
 
 local HSPrint = addon.HSPrint or function(msg) print("|cFF00CCFFHorizon Suite:|r " .. tostring(msg or "")) end
 
@@ -32,11 +33,11 @@ end
 local function PrintStatus()
     local Store = Echo.Store
     local list = Store.List()
-    HSPrint(("Echo: %d conversations, %d messages left in Blizzard chat (unrouted)"):format(
-        #list, Store.GetUnroutedCount()))
+    HSPrint(L["ECHO_SLASH_STATUS"]:format(#list, Store.GetUnroutedCount()))
     for _, conv in ipairs(list) do
-        HSPrint(("  %s  tier=%s unread=%d messages=%d%s"):format(
-            conv.key, Store.TierOf(conv.key), conv.unread, #conv.messages, conv.pinned and " pinned" or ""))
+        HSPrint(L["ECHO_SLASH_STATUS_ROW"]:format(
+            conv.key, Store.TierOf(conv.key), conv.unread, #conv.messages,
+            conv.pinned and L["ECHO_SLASH_PINNED"] or ""))
     end
 end
 
@@ -44,11 +45,12 @@ local function StartProbe(rest)
     local count = tonumber(rest) or 10
     local sendChat, sendBN = Echo.Send.Resolve()
     local Platform = addon.Platform
-    HSPrint(("Echo probe: sendChat=%s sendBN=%s secretChat=%s bnetWhispers=%s"):format(
-        sendChat and "yes" or "no", sendBN and "yes" or "no",
+    HSPrint(L["ECHO_SLASH_PROBE"]:format(
+        sendChat and L["ECHO_SLASH_YES"] or L["ECHO_SLASH_NO"],
+        sendBN and L["ECHO_SLASH_YES"] or L["ECHO_SLASH_NO"],
         tostring(Platform and Platform.Has("secretChat")), tostring(Platform and Platform.Has("bnetWhispers"))))
     Echo.Events.StartProbe(count, HSPrint)
-    HSPrint(("Echo probe: describing the next %d chat messages (types only, never text)."):format(count))
+    HSPrint(L["ECHO_SLASH_PROBE_START"]:format(count))
 end
 
 local function HandleEchoSlash(msg)
@@ -57,7 +59,7 @@ local function HandleEchoSlash(msg)
 
     if cmd == "toggle" then
         if InCombatLockdown() then
-            HSPrint("Cannot toggle Echo during combat.")
+            HSPrint(L["ECHO_SLASH_NO_COMBAT"])
             return
         end
         addon:SetModuleEnabled("echo", not addon:IsModuleEnabled("echo"))
@@ -65,7 +67,7 @@ local function HandleEchoSlash(msg)
     end
 
     if not addon:IsModuleEnabled("echo") then
-        HSPrint("Horizon Echo is disabled. Use /h echo toggle to enable it.")
+        HSPrint(L["ECHO_SLASH_DISABLED"])
         return
     end
 
@@ -75,29 +77,29 @@ local function HandleEchoSlash(msg)
         StartProbe(rest)
     elseif cmd == "test" then
         Echo.InjectTestConversations()
-        HSPrint("Echo: added sample conversations. /h echo status lists them.")
+        HSPrint(L["ECHO_SLASH_TEST"])
     elseif cmd == "clearhistory" then
         Echo.History.Clear()
-        HSPrint("Echo: whisper history cleared for every character.")
+        HSPrint(L["ECHO_SLASH_CLEARED"])
     elseif cmd == "lock" or cmd == "unlock" then
         addon.SetDB("echoLockPosition", cmd == "lock")
-        HSPrint(cmd == "lock" and "Echo: column locked."
-            or "Echo: column unlocked. Drag the chat button at its foot to move it, then /h echo lock.")
+        HSPrint(cmd == "lock" and L["ECHO_SLASH_LOCKED"] or L["ECHO_SLASH_UNLOCKED"])
     elseif cmd == "reset" then
         Echo.Tiles.ResetPosition()
-        HSPrint("Echo: column moved back to the bottom right.")
+        HSPrint(L["ECHO_SLASH_RESET"])
     elseif cmd == "" or cmd == "help" then
-        HSPrint("Echo commands:")
-        HSPrint("  /h echo toggle       - Enable / disable Echo (reloads the UI)")
-        HSPrint("  /h echo status       - List conversations, tiers and unread counts")
-        HSPrint("  /h echo probe [n]    - Describe the next n chat messages (default 10)")
-        HSPrint("  /h echo unlock       - Let the column be dragged by its chat button")
-        HSPrint("  /h echo lock         - Lock the column in place")
-        HSPrint("  /h echo reset        - Move the column back to the bottom right")
-        HSPrint("  /h echo test         - Add sample conversations")
-        HSPrint("  /h echo clearhistory - Delete saved whisper history")
+        HSPrint(L["ECHO_SLASH_HELP"])
+        HSPrint(L["ECHO_SLASH_HELP_TOGGLE"])
+        HSPrint(L["ECHO_SLASH_HELP_STATUS"])
+        HSPrint(L["ECHO_SLASH_HELP_PROBE"])
+        HSPrint(L["ECHO_SLASH_HELP_UNLOCK"])
+        HSPrint(L["ECHO_SLASH_HELP_LOCK"])
+        HSPrint(L["ECHO_SLASH_HELP_RESET"])
+        HSPrint(L["ECHO_SLASH_HELP_TEST"])
+        HSPrint(L["ECHO_SLASH_HELP_CLEAR"])
+        HSPrint(L["ECHO_SLASH_HELP_OPTIONS"])
     else
-        HSPrint("Unknown command. Use /h echo for help.")
+        HSPrint(L["ECHO_SLASH_UNKNOWN"])
     end
 end
 
