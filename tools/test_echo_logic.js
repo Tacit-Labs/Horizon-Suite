@@ -936,6 +936,13 @@ run(`
         V.NewestIncomingLoud({ chatter, onlySent }).key == "sent", V.NewestIncomingLoud({ chatter, onlySent }).key)
   check("an empty list has no reply target", V.NewestIncomingLoud({}) == nil, "?")
 
+  local lootFeed = { key = "loot", kind = "loot", lastLoud = 9, messages = { { seq = 9 } } }
+  check("a list of only a feed has no reply target", V.NewestIncomingLoud({ lootFeed }) == nil, "?")
+  local whisper = { key = "w:Brisa-Horizon", kind = "whisper", lastLoud = 2, messages = { { seq = 2 } } }
+  check("a feed alongside a real conversation never wins the reply target",
+        V.NewestIncomingLoud({ lootFeed, whisper }).key == "w:Brisa-Horizon",
+        V.NewestIncomingLoud({ lootFeed, whisper }).key)
+
   local ten = {}
   for i = 1, 10 do ten[i] = { key = "k" .. i } end
   local visible, overflow = V.Column(ten, 8)
@@ -2500,6 +2507,36 @@ run(`
   C.Disable()
   S.Reset()
 `, 'card-feeds');
+
+// --- Card/Stack: never focus a hidden reply box, never reply to a feed ---------------------
+run(`
+  local S, C = HorizonSuite.Echo.Store, HorizonSuite.Echo.Card
+  S.Reset()
+  CreateFrame = STUB_CREATE_FRAME
+  C.Enable()
+  local f = C._frames()
+  S.Add({ convKey = "loot", text = "You receive loot: [Cloak].", feed = true, chatType = "LOOT", time = 100 })
+  C.Open("loot", true)
+  check("opening a feed focused never focuses its hidden reply box", f.edit.focused ~= true, tostring(f.edit.focused))
+  C.Disable()
+  S.Reset()
+`, 'card-focus-guard');
+
+run(`
+  local S, K, C = HorizonSuite.Echo.Store, HorizonSuite.Echo.Stack, HorizonSuite.Echo.Card
+  S.Reset()
+  CreateFrame = STUB_CREATE_FRAME
+  K.Enable()
+  C.Enable()
+  S.Add({ convKey = "loot", text = "You receive loot: [Cloak].", feed = true, chatType = "LOOT", time = 100 })
+  K.ReplyToNewest()
+  local kf, cf = K._frames(), C._frames()
+  check("reply-to-newest with only a feed open leaves the stack's box unfocused", kf.edit.focused ~= true, tostring(kf.edit.focused))
+  check("reply-to-newest with only a feed open leaves the card's box unfocused", cf.edit.focused ~= true, tostring(cf.edit.focused))
+  K.Disable()
+  C.Disable()
+  S.Reset()
+`, 'stack-reply-to-newest-feed-guard');
 
 // --- Summary -------------------------------------------------------------------
 run(`

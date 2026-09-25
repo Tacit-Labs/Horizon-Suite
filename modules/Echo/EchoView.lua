@@ -182,26 +182,35 @@ function View.Column(list, maxTiles)
     return visible, #list - (maxTiles - 1)
 end
 
---- The conversation with the most recent loud message, else the first one.
+--- The conversation with the most recent loud message, else the first one. A feed is never
+-- a reply target: skipped as a candidate and as the fallback.
 -- @param list table
 -- @return table|nil conv
 function View.NewestLoud(list)
     local best
     for _, conv in ipairs(list) do
-        if (conv.lastLoud or 0) > 0 and (not best or conv.lastLoud > best.lastLoud) then best = conv end
+        if not View.IsFeed(conv.kind) and (conv.lastLoud or 0) > 0
+            and (not best or conv.lastLoud > best.lastLoud) then
+            best = conv
+        end
     end
-    return best or list[1]
+    if best then return best end
+    for _, conv in ipairs(list) do
+        if not View.IsFeed(conv.kind) then return conv end
+    end
+    return nil
 end
 
 --- The conversation to reply to: the newest incoming message among loud conversations
 -- (a reply of your own moves a conversation up but does not make it the one waiting).
--- Falls back to NewestLoud when no loud conversation has an incoming message.
+-- Falls back to NewestLoud when no loud conversation has an incoming message. A feed is
+-- never a reply target.
 -- @param list table  Store.List()
 -- @return table|nil conversation
 function View.NewestIncomingLoud(list)
     local best, bestSeq
     for _, conv in ipairs(list) do
-        if (conv.lastLoud or 0) > 0 then
+        if not View.IsFeed(conv.kind) and (conv.lastLoud or 0) > 0 then
             local msg = View.LastIncoming(conv)
             if msg and msg.seq and (not bestSeq or msg.seq > bestSeq) then
                 best, bestSeq = conv, msg.seq

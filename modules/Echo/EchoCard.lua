@@ -533,6 +533,7 @@ end
 -- character, typed in the same frame, doesn't land in the box.
 function Card.Focus()
     if not root or not root:IsShown() then return end
+    if not edit or not edit:IsShown() then return end
     edit.beforeSwallow = edit:GetText()
     edit:SetFocus()
     edit.swallow = true

@@ -410,7 +410,7 @@ function Stack.Open(convKey, focus)
     away = 0
     pollAccum = 0
     Stack.Render()
-    if focus then
+    if focus and edit and edit:IsShown() then
         edit.beforeSwallow = edit:GetText()
         edit:SetFocus()
         edit.swallow = true
