@@ -42,6 +42,7 @@ local root, nameText, metaText, area, edit, send, menuButton, chevron, statusLin
 local rowTiles, bubbles, labels = {}, {}, {}
 local currentKey, renderedKey
 local offset = 0  -- newest messages scrolled past
+local areaHeight = Card.AREA_HEIGHT  -- the message area's height for the card now shown
 
 -- Park the reply box's draft against the conversation it was drawn for, and clear it.
 -- Idempotent (renderedKey is nil after the first call), called from both root's OnHide
@@ -100,6 +101,16 @@ end
 -- No MenuUtil (an older client), no ⋯ button: it would open nothing.
 local function MenuAvailable()
     return Echo.Menu ~= nil and Echo.Menu.Available()
+end
+
+-- The message area runs from under the header to the reply box, or, on a read-only feed
+-- card with no reply box, down to the card's bottom padding.
+local function AnchorArea(feed)
+    local bottom = feed and Card.PAD or Card.AREA_BOTTOM
+    area:ClearAllPoints()
+    area:SetPoint("TOPLEFT", root, "TOPLEFT", Card.PAD, -Card.AREA_TOP)
+    area:SetPoint("BOTTOMRIGHT", root, "BOTTOMRIGHT", -Card.PAD, bottom)
+    areaHeight = Card.HEIGHT - Card.AREA_TOP - bottom
 end
 
 local function Create()
@@ -186,8 +197,7 @@ local function Create()
     metaText:SetTextColor(0.55, 0.60, 0.75, 1)
 
     area = CreateFrame("Frame", nil, root)
-    area:SetPoint("TOPLEFT", root, "TOPLEFT", Card.PAD, -Card.AREA_TOP)
-    area:SetPoint("BOTTOMRIGHT", root, "BOTTOMRIGHT", -Card.PAD, Card.AREA_BOTTOM)
+    AnchorArea(false)
     area:SetClipsChildren(true)
     area:EnableMouseWheel(true)
     area:SetScript("OnMouseWheel", function(_, delta) Card.Scroll(delta) end)
@@ -356,7 +366,7 @@ local function RenderMessages(conv)
     statusLine:Hide()
     if View.IsFeed(conv.kind) then
         for i = #messages - offset, 1, -1 do
-            if y > Card.AREA_HEIGHT then break end
+            if y > areaHeight then break end
             local msg = messages[i]
             used = used + 1
             local line = Bubble(used)
@@ -375,7 +385,7 @@ local function RenderMessages(conv)
         return
     end
     for i = #messages - offset, 1, -1 do
-        if y > Card.AREA_HEIGHT then break end
+        if y > areaHeight then break end
         local msg = messages[i]
         if i == newestOut and not msg.fromHistory and (msg.status == "pending" or msg.status == "sent" or msg.status == "failed") then
             local failed = msg.status == "failed"
@@ -496,6 +506,7 @@ function Card.Render()
     if feed then edit:ClearFocus() end
     edit:SetShown(not feed)
     send:SetShown(not feed)
+    AnchorArea(feed)
 
     RenderMessages(conv)
     Store.MarkRead(conv.key)

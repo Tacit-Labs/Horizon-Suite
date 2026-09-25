@@ -2689,6 +2689,29 @@ run(`
   S.Reset()
 `, 'stack-feed-times');
 
+// --- Card: a feed's lines use the space the reply box leaves -------------------------------
+run(`
+  local S, C = HorizonSuite.Echo.Store, HorizonSuite.Echo.Card
+  S.Reset()
+  CreateFrame = STUB_CREATE_FRAME
+  C.Enable()
+  local f = C._frames()
+  local function bottomOffset()
+    for _, pt in ipairs(f.area.points) do if pt[1] == "BOTTOMRIGHT" then return pt[5] end end
+  end
+  S.Add({ convKey = "loot", text = "You receive loot: [Cloak].", feed = true, chatType = "LOOT", time = 100 })
+  S.Add({ convKey = "w:Brisa-Horizon", text = "hi", sender = "Brisa-Horizon" })
+  C.Open("loot")
+  local feedBottom = bottomOffset()
+  C.Show("w:Brisa-Horizon")
+  local convBottom = bottomOffset()
+  check("a feed card's area reaches down to the card's padding", feedBottom == C.PAD, tostring(feedBottom))
+  check("a conversation card's area stops above the reply box", convBottom == C.AREA_BOTTOM, tostring(convBottom))
+  C.Hide()
+  C.Disable()
+  S.Reset()
+`, 'card-feed-area');
+
 // --- Summary -------------------------------------------------------------------
 run(`
   print(PASS .. " passed, " .. FAIL .. " failed")
