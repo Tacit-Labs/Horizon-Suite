@@ -2177,6 +2177,71 @@ run(`
   S.Reset()
 `, 'final-g4');
 
+// --- Final fix G5: small safety fixes ------------------------------------------------------
+run(`
+  local Echo = HorizonSuite.Echo
+  local S, H, T, K, C, Links = Echo.Store, Echo.History, Echo.Tiles, Echo.Stack, Echo.Card, Echo.Links
+
+  -- (a) A secret never reaches the focused box, even one that answers type() with "string"
+  -- as game secrets do.
+  local box = { text = "" }
+  function box:Insert(t) self.text = self.text .. tostring(t) end
+  function box:HasFocus() return true end
+  Links.Focus(box)
+  local realType = type
+  type = function(v)
+    if realType(v) == "table" and v.__secret == true then return "string" end
+    return realType(v)
+  end
+  local ok, inserted = pcall(Links.Insert, SECRET("x"))
+  type = realType
+  check("G5a: a secret link is refused", ok and inserted == false and box.text == "", tostring(ok) .. "/" .. tostring(inserted) .. "/" .. box.text)
+  Links.Blur(box)
+
+  -- (b) No menu to open, no ⋯ button.
+  S.Reset()
+  CreateFrame = STUB_CREATE_FRAME
+  T.Enable()
+  K.Enable()
+  C.Enable()
+  local f = C._frames()
+  local savedMenuUtil = MenuUtil
+  MenuUtil = { CreateContextMenu = function() end }
+  S.Add({ convKey = "w:Brisa-Horizon", text = "hi", class = "DRUID", sender = "Brisa-Horizon" })
+  C.Open("w:Brisa-Horizon")
+  check("G5b: with MenuUtil the menu button shows", f.menu.shown, "hidden")
+  MenuUtil = nil
+  C.Render()
+  check("G5b: without MenuUtil the menu button is hidden", not f.menu.shown, "shown")
+  MenuUtil = savedMenuUtil
+
+  -- (c) A fitted bubble gets 2 px of slack, never past the widest bubble.
+  local measured = 40.2
+  f.bubbles[1].text.GetUnboundedStringWidth = function() return measured end
+  S.Add({ convKey = "w:Brisa-Horizon", text = "short", sender = "Brisa-Horizon" })
+  check("G5c: a fitted bubble gets 2 px of slack", f.bubbles[1].width == 59, f.bubbles[1].width)
+  measured = 233
+  S.Add({ convKey = "w:Brisa-Horizon", text = "nearly the widest", sender = "Brisa-Horizon" })
+  check("G5c: the slack stops at the widest bubble", f.bubbles[1].width == C.BUBBLE_MAX, f.bubbles[1].width)
+  f.bubbles[1].text.GetUnboundedStringWidth = nil
+  C.Disable()
+  K.Disable()
+  T.Disable()
+
+  -- (d) Closing keeps a tier override and drops the pin.
+  S.Reset()
+  local db = {}
+  H.Bind(db, function() return "Kaelis-Horizon" end)
+  S.Add({ convKey = "w:Brisa-Horizon", text = "hi" })
+  S.SetPinned("w:Brisa-Horizon", true)
+  S.SetTier("w:Brisa-Horizon", "quiet")
+  S.Close("w:Brisa-Horizon")
+  local pref = db.echoHistory.prefs["Kaelis-Horizon"]["w:Brisa-Horizon"]
+  check("G5d: closing keeps the saved tier and drops the pin", pref and pref.tier == "quiet" and pref.pinned == nil, pref and tostring(pref.pinned))
+  H.Unbind()
+  S.Reset()
+`, 'final-g5');
+
 // --- Summary -------------------------------------------------------------------
 run(`
   print(PASS .. " passed, " .. FAIL .. " failed")

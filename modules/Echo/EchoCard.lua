@@ -95,6 +95,11 @@ local function PaintTile(b, spec)
     end
 end
 
+-- No MenuUtil (an older client), no ⋯ button: it would open nothing.
+local function MenuAvailable()
+    return Echo.Menu ~= nil and Echo.Menu.Available()
+end
+
 local function Create()
     local View = Echo.View
     local a = View.ACCENT
@@ -138,6 +143,7 @@ local function Create()
     menuButton:SetScript("OnClick", function(self)
         if currentKey and Echo.Menu then Echo.Menu.Open(self, currentKey) end
     end)
+    menuButton:SetShown(MenuAvailable())
 
     for i = 1, Card.TILES do
         local b = CreateFrame("Button", nil, root, "BackdropTemplate")
@@ -278,6 +284,9 @@ local function SizeBubble(b, text, secret)
         if b.text.GetUnboundedStringWidth then measured = b.text:GetUnboundedStringWidth() end
         if Echo.IsSecret(measured) or type(measured) ~= "number" or measured <= 0 then measured = nil end
         width = Echo.View.BubbleWidth(measured, Card.BUBBLE_MAX, Card.BUBBLE_PAD)
+        -- A measured width can round a hair short at some UI scales and wrap the last
+        -- word; 2 px of slack keeps a fitted bubble on its lines.
+        if measured then width = math.min(Card.BUBBLE_MAX, width + 2) end
         b.text:SetWidth(width - Card.BUBBLE_PAD * 2)
         local h = b.text:GetStringHeight()
         if Echo.IsSecret(h) or type(h) ~= "number" or h <= 0 then h = Card.LINE_HEIGHT end
@@ -403,6 +412,7 @@ function Card.Render()
     currentKey = conv.key
 
     PaintRow(list, conv.key)
+    menuButton:SetShown(MenuAvailable())
 
     local spec = View.TileSpec(conv)
     nameText:SetText(View.DisplayName(conv))

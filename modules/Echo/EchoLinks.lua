@@ -34,6 +34,8 @@ end
 -- @param text string
 -- @return boolean inserted
 function Links.Insert(text)
+    -- A secret answers type() with "string" in game and can't be compared: refuse it first.
+    if Echo.IsSecret(text) then return false end
     if not focused or type(text) ~= "string" or text == "" then return false end
     if focused.HasFocus and not focused:HasFocus() then
         focused = nil

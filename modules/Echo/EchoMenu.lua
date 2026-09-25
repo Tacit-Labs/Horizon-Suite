@@ -53,12 +53,18 @@ function Menu.Build(rootDescription, convKey)
     end
 end
 
+--- Whether the game can show a context menu (MenuUtil).
+-- @return boolean
+function Menu.Available()
+    return MenuUtil ~= nil and type(MenuUtil.CreateContextMenu) == "function"
+end
+
 --- Open the menu for a conversation from a button.
 -- @param owner Frame
 -- @param convKey string
 -- @return boolean opened
 function Menu.Open(owner, convKey)
-    if not (MenuUtil and type(MenuUtil.CreateContextMenu) == "function") then return false end
+    if not Menu.Available() then return false end
     MenuUtil.CreateContextMenu(owner, function(_, rootDescription) Menu.Build(rootDescription, convKey) end)
     return true
 end
