@@ -3545,7 +3545,9 @@ run(`
   local classSpec = V.TileSpec(brisa)
   check("a resolved class gives a class face", classSpec.face == "class", classSpec.face)
   check("the class face carries the icon", classSpec.classIcon and classSpec.classIcon.path == "X", "?")
-  check("a whisper's label is its short name", classSpec.label == "Brisa", classSpec.label)
+  check("a whisper's label is its name", classSpec.label == "Brisa", classSpec.label)
+  check("the Services channel reads Serv", V.TileSpec({ key = "ch:Trade (Services)", kind = "channel", unread = 0, messages = {} }).letter == "Serv",
+    V.TileSpec({ key = "ch:Trade (Services)", kind = "channel", unread = 0, messages = {} }).letter)
   HorizonSuite.ResolveClassIconDisplay = function() return nil end
   local letterSpec = V.TileSpec(brisa)
   check("no resolved class gives a letter face", letterSpec.face == "letter", letterSpec.face)
@@ -3592,6 +3594,25 @@ run(`
   HorizonSuite.ResolveClassIconDisplay = nil
   S.Reset()
 `, 'view-tile-faces');
+
+// --- Tile names shrink to fit ------------------------------------------------
+run(`
+  CreateFrame = STUB_CREATE_FRAME
+  local Echo = HorizonSuite.Echo
+  local fs = STUB_FRAME()
+  -- 5px per character per 10pt of size.
+  fs.GetStringWidth = function(self) return #self.text * (self._echoFitSize or 10) / 2 end
+  check("a short name keeps the largest size", Echo.FitText(fs, "Brisa", 36, 10, 7, "OUTLINE") == 10 and fs.text == "Brisa", fs.text)
+  check("a long name shrinks to fit", Echo.FitText(fs, "Thornwick", 36, 10, 7, "OUTLINE") == 8 and fs.text == "Thornwick", fs._echoFitSize)
+  Echo.FitText(fs, "Thornwickshire", 36, 10, 7, "OUTLINE")
+  check("too long even at the smallest size loses letters", fs.text == "Thornwicks" and fs._echoFitSize == 7, fs.text)
+  local secret = SECRET("x")
+  Echo.FitText(fs, secret, 36, 10, 7, "OUTLINE")
+  check("a secret is set as-is, never measured", fs.text == secret, fs.text)
+  fs.GetStringWidth = nil
+  Echo.FitText(fs, "Thornwickshire", 36, 10, 7, "OUTLINE")
+  check("no measurement keeps the whole name", fs.text == "Thornwickshire", fs.text)
+`, 'echo-fit-text');
 
 // --- Redraw: one repaint per frame -------------------------------------------
 run(`

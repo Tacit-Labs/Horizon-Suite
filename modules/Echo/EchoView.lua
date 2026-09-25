@@ -54,6 +54,8 @@ View.BNET_LOGO = "Interface\\FriendsFrame\\Battlenet-Battleneticon"
 View.CHANNEL_SHORT = {
     General = "Gen", Trade = "Trade", LocalDefense = "Def", LookingForGroup = "LFG",
     Services = "Serv", WorldDefense = "WDef", NewcomerChat = "New",
+    -- Retail's city Services channel arrives as "Trade (Services)" (/h echo probe, 2026-09-25).
+    ["Trade(Services)"] = "Serv",
 }
 
 -- ChatTypeInfo keys, so each kind uses Blizzard's own chat colour.
@@ -237,7 +239,7 @@ function View.TileSpec(conv)
     elseif kind == "whisper" then
         local name = key:sub(3)
         name = name:match("^([^-]+)") or name
-        spec.label = View.ShortName(name, 5)
+        spec.label = name  -- whole; the column tile shrinks it to fit (Echo.FitText)
         local class = View.LastClass(conv)
         local classIcon = ClassIcon(class)
         local r, g, b = View.ClassColor(class)

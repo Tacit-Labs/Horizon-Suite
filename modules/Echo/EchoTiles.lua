@@ -18,6 +18,8 @@ Echo.Tiles = Tiles
 
 Tiles.TILE_SIZE = 40
 Tiles.GAP = 6
+Tiles.LABEL_MAX = 10  -- a whisper tile's name, shrunk from this size...
+Tiles.LABEL_MIN = 7   -- ...down to this before any letters are dropped
 Tiles.TOAST_WIDTH = 240
 Tiles.TOAST_HEIGHT = 48
 
@@ -96,9 +98,49 @@ function Echo.PaintTileFace(face, spec)
         end
     end
     if face.label then
-        face.label:SetText(spec.label or "")
+        if face.fitWidth then
+            Echo.FitText(face.label, spec.label or "", face.fitWidth, face.labelMax, face.labelMin, "OUTLINE")
+        else
+            face.label:SetText(spec.label or "")
+        end
         face.label:SetTextColor(0.95, 0.96, 1, 1)
     end
+end
+
+--- Set readable text in the largest size from maxSize down to minSize that fits width;
+-- still too wide at minSize, drop characters from the end until it fits. Only for text
+-- Echo owns (a whisper key's name): a secret is set as-is and never measured.
+-- @param fs FontString
+-- @param text string
+-- @param width number
+-- @param maxSize number
+-- @param minSize number
+-- @param flags string
+-- @return number size  the size used
+function Echo.FitText(fs, text, width, maxSize, minSize, flags)
+    if Echo.IsSecret(text) or type(text) ~= "string" then
+        Echo.TrackFont(fs, maxSize, flags)
+        fs:SetText(text)
+        return maxSize
+    end
+    local function Fits()
+        local w = fs:GetStringWidth()
+        -- No usable measurement (not laid out yet): accept rather than chop.
+        return type(w) ~= "number" or w <= width
+    end
+    for size = maxSize, minSize, -1 do
+        Echo.TrackFont(fs, size, flags)
+        fs._echoFitSize = size
+        fs:SetText(text)
+        if Fits() then return size end
+    end
+    local chars = {}
+    for c in text:gmatch("[\1-\127\194-\244][\128-\191]*") do chars[#chars + 1] = c end
+    for n = #chars - 1, 1, -1 do
+        fs:SetText(table.concat(chars, "", 1, n))
+        if Fits() then return minSize end
+    end
+    return minSize
 end
 
 -- A tile hovers its own conversation to the front; the chat button hovers none (top card).
@@ -163,7 +205,8 @@ local function PaintTile(b, conv)
     local View = Echo.View
     local spec = View.TileSpec(conv)
     b.convKey = conv.key
-    local face = { icon = b.icon, letter = b.letter, label = b.label, size = 16, smallSize = 10, flags = "" }
+    local face = { icon = b.icon, letter = b.letter, label = b.label, size = 16, smallSize = 10, flags = "",
+                   fitWidth = Tiles.TILE_SIZE - 4, labelMax = Tiles.LABEL_MAX, labelMin = Tiles.LABEL_MIN }
     Echo.PaintTileFace(face, spec)
     b:SetBackdropColor(View.FaceBackground(spec))
     if spec.face == "glyph" or spec.face == "icon" then
