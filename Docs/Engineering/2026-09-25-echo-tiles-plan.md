@@ -2025,3 +2025,12 @@ The director pulls with the PowerShell one-liner for `feature/echo-tiles` and **
 8. Log out, wait over 30 minutes (or check the next day), log in: the column starts empty; whisper a saved friend and their history returns.
 9. Start a fight with the stack open: it closes. Whisper yourself mid-fight: no toast. After the fight: the toast plays.
 10. `/h echo toggle` off: the column and toasts are gone.
+11. Hover a lower tile and click it before the stack opens: the card you clicked stays on top.
+12. With the stack open, whisper yourself from an alt: the tile shows a dot, the stack redraws, and no toast appears over it.
+13. In a capital city, whisper two friends, let General and Trade speak, then `/reload`: the whisper tiles come back above General and Trade, in the order they were in.
+14. With a Battle.net conversation open, log out and back in: its tile comes back in its saved place once the friends list loads.
+15. Type a `|` in the quick-reply box and send it: it goes out as typed, and the box and card show it without breaking.
+16. Get three long whispers that each wrap onto two lines: the card shows all three without running into the reply box.
+17. Open the stack by hovering, press Escape, then move the mouse away: nothing reopens and no stray focus is left.
+18. Bind *Echo: Reply to newest* to a letter key and press it: the box is focused and that letter is not typed.
+19. Repeat this list on Forever.

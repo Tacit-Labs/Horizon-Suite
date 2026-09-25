@@ -243,3 +243,11 @@ Each step can ship on its own:
 - Decide whether `Store.Close` should clear `pinned`.
 - Add `Store.Unsubscribe` if views are rebuilt at runtime.
 - Slash command strings move to `addon.L` in plan 3.
+
+**Carried into plan 3.** Found while building the tiles and stack, left for options and polish:
+
+- The column-edge option also flips which side the toast and stack open on.
+- A scale change re-derives the saved position, so the column doesn't jump.
+- Channel glyphs collide (General and Guild are both "G"); give them distinct glyphs.
+- Coalesce redraws on busy channels instead of redrawing on every line.
+- Clamp `echoMaxTiles` to at least 2 in the options.
