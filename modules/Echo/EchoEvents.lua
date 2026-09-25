@@ -264,7 +264,9 @@ end
 
 --- Route one chat event. Exposed for tests and the probe.
 function Events.Dispatch(event, ...)
-    if (Events.probeRemaining or 0) > 0 and event ~= "CHAT_MSG_SYSTEM" and Events.probeOut then
+    -- The probe is for conversations; feed lines (loot, progress, system) never spend it.
+    if (Events.probeRemaining or 0) > 0 and Events.probeOut
+        and not Store.FEED_KINDS[Store.EVENT_KIND[event]] then
         Events.probeRemaining = Events.probeRemaining - 1
         Events.probeOut(Events.DescribeArgs(event, ...))
     end
@@ -302,7 +304,8 @@ function Events.Enable()
     end
     local hasBnet = addon.Platform and addon.Platform.Has("bnetWhispers")
     for event in pairs(Store.EVENT_KIND) do
-        if not BNET_EVENTS[event] or hasBnet then frame:RegisterEvent(event) end
+        -- One client may lack an event (Forever): skip it rather than abort the loop.
+        if not BNET_EVENTS[event] or hasBnet then pcall(frame.RegisterEvent, frame, event) end
     end
 end
 

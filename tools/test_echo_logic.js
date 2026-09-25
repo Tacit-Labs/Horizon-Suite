@@ -2368,6 +2368,34 @@ run(`
   S.Reset()
 `, 'feeds-events');
 
+// --- Events: robust registration; the probe skips feed lines -----------------------------
+run(`
+  local S, E = HorizonSuite.Echo.Store, HorizonSuite.Echo.Events
+  S.Reset()
+  local registered = {}
+  E.Enable()
+  local fr = E._frame()
+  local savedRegister, savedUnregister = fr.RegisterEvent, fr.UnregisterAllEvents
+  fr.RegisterEvent = function(_, e)
+    if e == "CHAT_MSG_SKILL" then error("unknown event") end
+    registered[e] = true
+  end
+  fr.UnregisterAllEvents = function() registered = {} end
+  E.Disable()
+  check("an event this client lacks does not stop enabling", pcall(E.Enable), "threw")
+  check("and every other event still registers", registered.CHAT_MSG_WHISPER == true and registered.CHAT_MSG_LOOT == true, "missing")
+  E.Disable()
+  fr.RegisterEvent, fr.UnregisterAllEvents = savedRegister, savedUnregister
+
+  local out = {}
+  E.StartProbe(1, function(line) out[#out + 1] = line end)
+  E.Dispatch("CHAT_MSG_LOOT", "You receive loot: [Cloak].", "Kaelis-Horizon", nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+  E.Dispatch("CHAT_MSG_WHISPER", "hi", "Brisa-Horizon", nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+  check("the probe spends its count on conversations, not feeds", #out == 1 and out[1]:find("CHAT_MSG_WHISPER", 1, true) == 1, out[1])
+  E.StartProbe(0, nil)
+  S.Reset()
+`, 'events-robust');
+
 // --- View: feed helpers ------------------------------------------------------------------
 run(`
   local S, V = HorizonSuite.Echo.Store, HorizonSuite.Echo.View

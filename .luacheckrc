@@ -195,7 +195,6 @@ read_globals = {
     "AddonCompartmentFrame",
     "ItemRefTooltip",
     "SetItemRef",
-    "BN_INLINE_TOAST_FRIEND_ONLINE",
     "ShoppingTooltip1",
     "ShoppingTooltip2",
     "EmbeddedItemTooltip",
