@@ -83,6 +83,7 @@ end
 --- Push every setting into the running module.
 function Echo.ApplyOptions()
     Echo.History.SetEnabledCheck(function() return Echo.Setting("echoSaveHistory") ~= false end)
+    Echo.History.SetMaxAge(Echo.Setting("echoHistoryDays"))
     local Store = Echo.Store
     for kind in pairs(Store.DEFAULT_TIERS) do
         local tier = Echo.Setting(Echo.TierKey(kind))

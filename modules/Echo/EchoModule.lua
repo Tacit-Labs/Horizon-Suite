@@ -91,6 +91,10 @@ function Echo.Init()
     -- The key function resolves lazily: Forever only knows the realm after PLAYER_LOGIN,
     -- and History writes nothing for whispers until it does.
     Echo.History.Bind(_G[addon.DATABASE], addon._GetCurrentCharacterProfileKey)
+    -- The "Keep history for" setting must be in place before the one-time prune below, so
+    -- it is read directly here rather than waiting for Echo.ApplyOptions further down.
+    Echo.History.SetMaxAge(Echo.Setting("echoHistoryDays"))
+    Echo.History.Prune(Echo.Store.Now())
     Echo.Events.Enable()
     Echo.Class.Enable()
     Echo.Tiles.Enable()

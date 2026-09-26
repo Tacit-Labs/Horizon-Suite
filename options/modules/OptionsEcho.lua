@@ -34,6 +34,13 @@ local TIER_OPTIONS = {
     { L["ECHO_TIER_MUTED"], "muted" },
 }
 
+local HISTORY_DAYS_OPTIONS = {
+    { L["ECHO_HISTORY_DAYS_7"],  7  },
+    { L["ECHO_HISTORY_DAYS_30"], 30 },
+    { L["ECHO_HISTORY_DAYS_90"], 90 },
+    { L["ECHO_HISTORY_FOREVER"], 0  },
+}
+
 local function TierDropdown(kind, label)
     local key = addon.Echo.TierKey(kind)
     return { type = "dropdown", name = label, desc = L["ECHO_TIER_DESC"], dbKey = key,
@@ -275,6 +282,10 @@ end
 local tail = {
     Section(L["ECHO_SECTION_HISTORY"]),
     Toggle(L["ECHO_SAVE_HISTORY"], L["ECHO_SAVE_HISTORY_DESC"], "echoSaveHistory", D.echoSaveHistory),
+    { type = "dropdown", name = L["ECHO_HISTORY_DAYS"], desc = L["ECHO_HISTORY_DAYS_DESC"], dbKey = "echoHistoryDays",
+      options = HISTORY_DAYS_OPTIONS, preserveOrder = true,
+      get = function() return getDB("echoHistoryDays", D.echoHistoryDays) end,
+      set = function(v) setDB("echoHistoryDays", v) end },
     Button(L["ECHO_CLEAR_HISTORY"], L["ECHO_CLEAR_HISTORY_DESC"], function()
         local E = Echo()
         if E and E.ConfirmClearHistory then E.ConfirmClearHistory() end

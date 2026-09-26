@@ -42,6 +42,7 @@ addon.ECHO_DEFAULTS = {
     echoFeedProgress       = true,
     echoFeedSystem         = true,
     echoSaveHistory        = true,
+    echoHistoryDays        = 30,
     echoHideStoredWhispers = false,
     echoCardWidth          = 360,
     echoCardHeight         = 440,

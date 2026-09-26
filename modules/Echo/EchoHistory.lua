@@ -5,6 +5,8 @@
     keyed by the friend's BattleTag ("bt:Name#1234"); when the BattleTag cannot be read
     (no API, no friend, secret) nothing is written or loaded for that conversation.
     Never writes secret, pending, failed or demo messages. Channels are never persisted.
+    Old conversations are dropped by History.Prune, on a timer the player sets
+    (echoHistoryDays); a pinned conversation is always kept.
     Blizzard: C_BattleNet.GetAccountInfoByID.
 ]]
 
@@ -18,10 +20,12 @@ local History = {}
 Echo.History = History
 
 History.CAP = 100
+History.DEFAULT_MAX_AGE = 30  -- days; matches echoHistoryDays' default. 0 means Forever.
 
 local root
 local characterKey = function() return nil end
 local enabledCheck = function() return true end
+local maxAgeDays = History.DEFAULT_MAX_AGE
 
 --- Attach to the SavedVariables root.
 -- @param db table  HorizonDB
@@ -43,6 +47,12 @@ end
 -- @param fn function  Returns true when history may be written
 function History.SetEnabledCheck(fn)
     if type(fn) == "function" then enabledCheck = fn end
+end
+
+--- Options (plan 10) supplies the "Keep history for" setting through this.
+-- @param days number  0 means Forever; an unreadable value is ignored
+function History.SetMaxAge(days)
+    if type(days) == "number" and days >= 0 then maxAgeDays = days end
 end
 
 --- The friend's BattleTag for a "bn:<accountID>" conversation.
@@ -262,4 +272,58 @@ function History.Clear()
     target.chars = {}
     target.bnet = {}
     target.session = {}
+end
+
+-- True when some character has pinned this conversation key. Pins (root.prefs) are keyed
+-- the same way conversations are (PrefKey), so a whisper or Battle.net list checks the
+-- matching entry across every character's saved prefs.
+local function AnyCharPinned(key)
+    if type(root.prefs) ~= "table" then return false end
+    for _, bucket in pairs(root.prefs) do
+        local pref = type(bucket) == "table" and bucket[key]
+        if type(pref) == "table" and pref.pinned == true then return true end
+    end
+    return false
+end
+
+-- now - the t of a list's newest (last-appended) entry; huge (always stale) with no
+-- readable t, including an empty list.
+local function ListAge(list, now)
+    local newest = list[#list]
+    local t = newest and newest.t
+    if type(t) ~= "number" then return math.huge end
+    return now - t
+end
+
+--- Age-based cleanup: drop a whisper or Battle.net list whose newest entry is older than
+-- echoHistoryDays (History.SetMaxAge). A list any character has pinned is always kept.
+-- Forever (days == 0) removes nothing. Runs once when Echo enables.
+-- @param now number
+-- @return number removed
+function History.Prune(now)
+    if not root then return 0 end
+    if not maxAgeDays or maxAgeDays <= 0 then return 0 end
+    local cutoff = maxAgeDays * 86400
+    local removed = 0
+
+    local function pruneList(parent, key)
+        local list = parent[key]
+        if type(list) ~= "table" then return end
+        if AnyCharPinned(key) then return end
+        if ListAge(list, now) >= cutoff then
+            parent[key] = nil
+            removed = removed + 1
+        end
+    end
+
+    for charKey, bucket in pairs(root.chars) do
+        if type(bucket) == "table" then
+            for convKey in pairs(bucket) do pruneList(bucket, convKey) end
+            if next(bucket) == nil then root.chars[charKey] = nil end
+        end
+    end
+
+    for key in pairs(root.bnet) do pruneList(root.bnet, key) end
+
+    return removed
 end

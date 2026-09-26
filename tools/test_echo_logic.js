@@ -878,6 +878,53 @@ run(`
   S.Reset()
 `, 'history-session');
 
+// --- History: pruning stale conversations (plan 10, Task 1) ------------------------------
+run(`
+  local S, H = HorizonSuite.Echo.Store, HorizonSuite.Echo.History
+  S.Reset()
+  local db = {}
+  local charKey = "Kaelis-Horizon"
+  H.Bind(db, function() return charKey end)
+  local savedBattleNet = C_BattleNet
+  C_BattleNet = { GetAccountInfoByID = function(id) if id == 77 then return { battleTag = "Vexa#1234" } end end }
+
+  H.SetMaxAge(30)
+  local now = 40 * 86400 + 1000
+  H.Append("w:Old-Horizon", { text = "old", time = now - 40 * 86400 })
+  H.Append("w:Recent-Horizon", { text = "recent", time = now - 10 * 86400 })
+  H.Append("w:PinnedStale-Horizon", { text = "pinned", time = now - 40 * 86400 })
+  H.SavePref("w:PinnedStale-Horizon", nil, true)
+  H.Append("bn:77", { text = "bnet old", time = now - 40 * 86400 })
+
+  local removed = H.Prune(now)
+  local mine = db.echoHistory.chars["Kaelis-Horizon"]
+  check("a 40-day-old whisper list is removed at 30 days", mine["w:Old-Horizon"] == nil, "kept")
+  check("a 10-day-old whisper list is kept", mine["w:Recent-Horizon"] ~= nil, "removed")
+  check("a pinned stale list is kept", mine["w:PinnedStale-Horizon"] ~= nil, "removed")
+  check("a stale battle.net list is pruned by its bt: key", db.echoHistory.bnet["bt:Vexa#1234"] == nil, "kept")
+  check("prune returns the number of lists removed", removed == 2, removed)
+
+  -- An empty character bucket is removed once its only list goes stale.
+  S.Reset()
+  charKey = "Solo-Horizon"
+  H.Append("w:Gone-Horizon", { text = "bye", time = now - 40 * 86400 })
+  H.Prune(now)
+  check("an emptied character bucket is dropped", db.echoHistory.chars["Solo-Horizon"] == nil, "kept")
+
+  -- Nothing is removed at 0 (Forever).
+  charKey = "Kaelis-Horizon"
+  H.SetMaxAge(0)
+  H.Append("w:AnotherOld-Horizon", { text = "ancient", time = now - 400 * 86400 })
+  local removedAtZero = H.Prune(now)
+  check("nothing is removed at 0 (Forever)", removedAtZero == 0, removedAtZero)
+  check("the list survives Forever", mine["w:AnotherOld-Horizon"] ~= nil, "removed")
+
+  H.SetMaxAge(30)
+  check("no root, nothing pruned", (function() H.Unbind(); return H.Prune(now) end)() == 0, "pruned")
+  C_BattleNet = savedBattleNet
+  S.Reset()
+`, 'history-prune');
+
 // --- View: tiles, names, lines, layout, toast queue ------------------------------------
 run(`
   local S, V = HorizonSuite.Echo.Store, HorizonSuite.Echo.View
@@ -3519,6 +3566,7 @@ run(`
   check("at least two tiles", A.ECHO_LIMITS.echoMaxTiles.min == 2, A.ECHO_LIMITS.echoMaxTiles.min)
   check("tier key", A.Echo.TierKey("bnet") == "echoTierBnet", A.Echo.TierKey("bnet"))
   check("feed key", A.Echo.FeedKey("loot") == "echoFeedLoot", A.Echo.FeedKey("loot"))
+  check("history days default is 30", A.ECHO_DEFAULTS.echoHistoryDays == 30, A.ECHO_DEFAULTS.echoHistoryDays)
   -- Later sections run without defaults, as before this plan.
   A.ECHO_DEFAULTS, A.ECHO_KEYS, A.ECHO_LIMITS = nil, nil, nil
 `, 'echo-defaults-check');
@@ -3607,6 +3655,15 @@ run(`
   db.echoSaveHistory = nil
   Echo.ApplyOptions()
   check("history on writes", H.Append("w:Brisa-Horizon", { time = 1, text = "hi" }) == true, "did not write")
+
+  -- The "Keep history for" setting reaches History.Prune's cutoff.
+  db.echoHistoryDays = 7
+  Echo.ApplyOptions()
+  H.Append("w:OldOne-Horizon", { time = 1, text = "old" })
+  -- w:Brisa-Horizon (appended above, at time 1) is stale by the same cutoff and is removed too.
+  local removedShort = H.Prune(1 + 10 * 86400)
+  check("ApplyOptions pushes echoHistoryDays into Prune's cutoff", removedShort == 2, removedShort)
+  db.echoHistoryDays = nil
   H.Unbind()
 
   -- Clear falls back to the raw SavedVariables table when History is unbound (Echo disabled).
@@ -3989,6 +4046,11 @@ run(`
   for _, o in ipairs(keys.echoColumnEdge.options) do edgeValues[#edgeValues + 1] = o[2] end
   check("edge dropdown lists auto, right and left", edgeValues[1] == "auto" and edgeValues[2] == "right"
       and edgeValues[3] == "left", table.concat(edgeValues, ","))
+
+  local historyDaysValues = {}
+  for _, o in ipairs(keys.echoHistoryDays.options) do historyDaysValues[#historyDaysValues + 1] = o[2] end
+  check("history days dropdown lists 7, 30, 90 and Forever", table.concat(historyDaysValues, ",") == "7,30,90,0",
+      table.concat(historyDaysValues, ","))
 
   A.OptionsData_SetDB("echoX", 800)
   A.OptionsData_SetDB("echoY", 300)
