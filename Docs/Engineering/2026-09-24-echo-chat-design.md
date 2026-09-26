@@ -12,21 +12,21 @@ In simple terms: chat works like a messenger app sitting beside the normal chat 
 
 Blizzard's chat frames stay underneath as the source of truth. They still show everything, including combat log, system messages, loot, and any message Echo cannot safely read. If Echo is disabled or breaks, chat still works.
 
-**Direction (decided with the director, 2026-09-26):** Echo is to replace Blizzard's chat windows entirely, as an option, over plans 11–14. The combat log is the one part Blizzard keeps. See "Towards replacing Blizzard chat" below.
+**Direction (decided with the director, 2026-09-26):** Echo is to replace Blizzard's chat windows entirely, as an option. Plan 12 built that option, **Hide Blizzard's chat windows**, off by default. The combat log is the one part Blizzard keeps. See "Towards replacing Blizzard chat" and "Replacing Blizzard chat (plan 12, 2026-09-26)" below.
 
 ## Locked decisions
 
 | Decision | Choice |
 |----------|--------|
-| Shape | Custom conversation layer (tiles, stack, card) beside Blizzard's chat, not a reskin. From plan 14 it can replace Blizzard's chat windows (see "Towards replacing Blizzard chat") |
+| Shape | Custom conversation layer (tiles, stack, card) beside Blizzard's chat, not a reskin. Since plan 12 it can replace Blizzard's chat windows, as an option (see "Towards replacing Blizzard chat") |
 | Conversations | Character whispers, Battle.net whispers, and group channels (party, raid, instance, guild, officer, custom channels) |
 | Layout | One tile column on one screen edge; channels use glyph tiles |
 | Notification tiers | Whispers: loud (reorder, toast, dot). Party/raid/instance: count, with a toast on mentions and raid warnings. Guild/officer/custom: quiet count. Each can be overridden per conversation |
 | History | Whispers and BNet whispers persist (last 100 per conversation); channels are session-only; saving can be turned off |
 | Combat | Stack and card collapse; tiles and counts stay live; loud toasts are held until combat ends |
 | Clients | Retail and Forever, gated through `addon.Platform` capability keys |
-| Intake | Echo registers its own `CHAT_MSG_*` events; it does not hook Blizzard's chat frames |
-| Blizzard chat | Mirrored by default; an option hides whispers Echo has stored |
+| Intake | Echo registers its own `CHAT_MSG_*` events. Since plan 12 it also observes the main chat window's `AddMessage` through a post-hook, for the All view, and never replaces Blizzard's chat code |
+| Blizzard chat | Mirrored by default; an option hides whispers Echo has stored, and another (plan 12) hides Blizzard's chat windows |
 
 ## Architecture
 
@@ -310,24 +310,55 @@ HorizonDB.echoHistory = {
 - Choosing an entry calls `Store.Start`, then opens the card on it with the reply box focused, growing from its tile or its group's tile.
 - Every Blizzard call is protected with `pcall` and every value checked with `IsSecret`. Opening a menu is protected too: a refused `MenuUtil.CreateContextMenu` makes `Compose.Open`, `Menu.Open` and `Menu.OpenMessage` return false instead of raising.
 
-## Towards replacing Blizzard chat (roadmap, decided 2026-09-26)
+### Replacing Blizzard chat (plan 12, 2026-09-26)
 
-The director wants Echo to be able to replace Blizzard's chat windows entirely. Four gaps stand in the way; each has a planned answer.
+Plan 12 built the three pieces the roadmap below set out: Blizzard's own input line docked under Echo, the All view with other addons' filters, and an option that hides Blizzard's chat windows.
 
-| Gap | Answer | Plan |
-|---|---|---|
-| **Protected slash commands** (`/cast`, `/target`, macros) run only from Blizzard's own input box | Keep Blizzard's edit box, restyled and docked to the Echo column. Enter opens it there; commands and messages both work, and messages land in their Echo tiles | 12 |
-| **Lines Echo can't sort**: secret-sender lines during encounters, other addons' `print` output, red error text | An **All** view mirroring everything the default chat frame receives, through `hooksecurefunc` on its `AddMessage`, which is taint-safe. Secret text is displayed with `SetText` and never inspected | 13 |
-| **Other addons' chat filters** (spam blockers, formatters) change messages on their way into Blizzard's frames | Run incoming lines through the registered `ChatFrame` message event filters before filing, so blocked spam stays blocked | 13 |
-| **The combat log** is largely closed to addons in Midnight | Blizzard keeps it, as its own window the player can show or hide | 14 |
+**The pattern.** We learned it from Chattynator's source (the `hippuli/Chattynator` mirror, version 224, Interface 120100 and 16001), read on 2026-09-26. Credit for the approach goes to Chattynator's authors. We copied none of its code: Echo's implementation is its own, written against the same Blizzard APIs.
+- Blizzard's chat windows move onto a hidden parent and their events are switched off, with one exception on `ChatFrame1` (below).
+- Blizzard's own input line, `ChatFrame1EditBox`, is kept, restyled and re-anchored. Enter, `/`, **R** and Blizzard's **Whisper** keep working because they are still the game's own code.
+- Blizzard's chat code is only observed, through post-hooks. Echo never calls it, never replaces it, never focuses the input line, and never changes where typing goes.
+- Other addons' `print` output is caught by a post-hook on `DEFAULT_CHAT_FRAME.AddMessage`, and `debugstack` tells a print apart from Blizzard's own event handler adding a line.
 
-The rest is ordinary work, in order:
-- **Plan 11:** start a chat from Echo, a **Nearby** conversation (say, yell, emotes, NPC speech), and chat shortcuts in the reply box.
-- **Plan 12:** the docked Blizzard input line.
-- **Plan 13:** the All view and filters.
-- **Plan 14:** the **Hide Blizzard chat** option (off by default; Blizzard's chat returns whenever Echo is disabled or errors), joining and leaving channels from Echo, and the combat log's own window.
+**Allowed and forbidden calls.**
 
-Once it has proved itself, hiding Blizzard chat may become the default.
+| | Calls |
+|---|---|
+| Allowed | `hooksecurefunc` post-hooks on `ChatFrameUtil.*`, `ChatEdit_*`, `ChatFrame1EditBox` methods (its `SetPoint` included), `DEFAULT_CHAT_FRAME.AddMessage` and `FCF_OpenTemporaryWindow`; `HookScript` for the input line's `OnShow` and `OnHide`; reading the input line's attributes (`GetAttribute`); widget methods that position and style it (`ClearAllPoints`, `SetPoint`, `SetScale`, `SetFrameStrata`, `SetFont`, `SetFontObject`, `SetAlpha` on its textures, and `Show` and `Hide` from inside the activate and deactivate post-hooks); `ChatFrame1EditBox:SetParent(UIParent)`, only while its parent is one of the hidden windows |
+| Forbidden | Calling `ChatEdit_*`, `ChatFrameUtil.*` or `ChatFrame_OpenChat`; replacing any Blizzard global or method; `SetFocus` on the input line; `SetAttribute` on it, except in the probe; writing Lua fields on it |
+
+The allowed list grew twice during the plan. The first widening added `HookScript` on the line's `OnShow` and `OnHide`, the post-hook on its `SetPoint`, and `SetFrameStrata` and `SetFont`. Post-hooks only observe, and styling a widget runs none of Blizzard's chat code; Echo records each value it changes and puts it back when docking goes off. The second widening added `SetParent(UIParent)` for the input line. The line is a child of `ChatFrame1`, so hiding that window hid the line with it, and nobody could type. Echo moves it only when its parent is one of the windows it hid, records the old parent, and puts it back when docking or Echo is disabled. `/h echo status` names the line's parent, so a tester can see which case applies. If either widening turns out to taint, the probe and `taint.log` will show it.
+
+**`ChatFrame1` keeps three events.** Every hidden window keeps `UPDATE_CHAT_COLOR`. `ChatFrame1` also keeps `CHAT_MSG_WHISPER`, `CHAT_MSG_BN_WHISPER` and `CAUTIONARY_CHAT_MESSAGE`, each only where the client has it. The game remembers who **R** replies to inside Blizzard's own whisper handler on the chat window, so without these events **R** would stop working. For the same reason, **Hide whispers Echo has stored** stays off while hiding is applied, so that Blizzard's own code on the hidden `ChatFrame1` sets the reply target, rather than Echo's filter setting it in its place. A post-hook on each hidden window's `RegisterEvent` unregisters anything else Blizzard adds back later. `whisperMode` is set to `inline` while hiding is on, so whispers never open a popout window; the CVar is account-wide, so its old value is saved account-wide and restored on the next character that doesn't hide chat.
+
+**The All view.** One read-only, quiet feed with the key `"all"`, never saved, capped at 500 lines, switched by `echoAllView` and always on while Blizzard's chat is hidden. Its lines come from four sources:
+1. **Every record Echo files**, through a Store listener. Each line carries its chat's short name and the sender in a prefix drawn on its own, so a secret text is never joined to anything. A line keeps the record's `outgoing` flag and its source; its menu pins the source message in its own chat, since All keeps no pins.
+2. **Text printed to the main chat window that no chat event produced**: addon prints, `/dump`, Blizzard system text. A call from Blizzard's chat event handlers, from Echo, or with a secret stack is skipped. `debugstack` runs on every `AddMessage` while All collects; its cost is an in-game check.
+3. **Chat types Echo has no tile for**, which Echo registers itself while All collects: each `CHAT_MSG_*` in `ChatTypeGroup` that Echo doesn't route, in the message groups the player gives `ChatFrame1` (`GetChatWindowMessages(1)`), plus `CHAT_MSG_COMMUNITIES_CHANNEL`. Trade skills, openings, pet info, target icons and channel joins and leaves are left out unless the player's groups name them, and combat types are left out except honour gains. While Blizzard's chat is shown it prints these lines too, and source 2's stack check keeps them from arriving twice. A type whose text is a code (channel notices, ignored, filtered and trial notices) is formatted from Blizzard's own template, or skipped; away and busy lines take Blizzard's "is Away" prefix. `%s` is filled in with the speaker only for NPC and boss speech.
+4. **System events that aren't chat, only while Blizzard's chat is hidden**, since `ChatFrame1` prints them otherwise: `TIME_PLAYED_MSG`, `GUILD_MOTD`, the chat server and Battle.net connection notices, and `CHAT_REGIONAL_SEND_FAILED`. Each registers only where the client has the event and the string Blizzard formats it with.
+
+The All tile uses the generic feed-tile path in `EchoTiles.lua`, which needed no change.
+
+**What All still doesn't show.** The combat log. Lines another chat window prints for itself, since only `DEFAULT_CHAT_FRAME` is hooked. System events such as `/played` while Blizzard's chat is shown, because only `ChatFrame1`'s event handler prints them then, and that path is skipped. Channel joins and leaves, trade skills, openings, pet info, target icons and most combat types, as above. A print whose stack is secret. Events Chattynator also handles and Echo doesn't yet, such as `CHAT_REGIONAL_STATUS_CHANGED`, `NOTIFY_CHAT_SUPPRESSED` and removing a reported player's lines (`PLAYER_REPORT_SUBMITTED`).
+
+**Filters.** Before Echo files a chat line, anywhere, it runs other addons' message filters over it as Blizzard does for each window: `ChatFrameUtil.ProcessMessageEventFilters` where it exists, else a loop over `ChatFrame_GetMessageEventFilters`, with `ChatFrame1` as the frame. A blocked line is dropped and counted; a rewritten one is filed as rewritten. Each filter call is protected, so a broken filter keeps the arguments it was given. Echo's own "Hide whispers Echo has stored" filter stands aside meanwhile (`Filter.passing`), because it hides lines from Blizzard's windows, never from Echo; `Events.RunFilters` always resets that flag, even after an error of its own.
+
+**The probe.** `/h echo probe input <guild|say|Name-Realm|reset>` points Blizzard's input line at a chat by setting its attributes, the one place Echo calls `SetAttribute` on it. It finds out in game whether an addon may do that without tainting the box, by sending a message and then a `/cast` in combat from it. If it can, a later plan lets clicking a tile aim the line at that chat, and the card's own reply box can go. The reset line tells the tester to `/reload` afterwards, to clear any taint the test left.
+
+**Hiding Blizzard's chat** (`echoHideBlizzardChat`, off by default) applies one frame after `PLAYER_ENTERING_WORLD`, never in combat, and needs the docked input line, so it turns docking on. It moves every window in `CHAT_FRAMES` and its tab onto a hidden frame Echo owns, except the combat log while `echoKeepCombatLog` is on, and moves Blizzard's chat buttons there too. A post-hook on `FCF_OpenTemporaryWindow` hides a window that opens later, such as a pet battle's log. Applying again only touches what isn't hidden yet. Nothing is un-hidden live: turning it off, or disabling Echo after it applied, asks for a reload. Everything runs from Echo's module code, so a disabled or broken Echo hides nothing.
+
+## Towards replacing Blizzard chat (decided 2026-09-26, built in plan 12)
+
+The director wants Echo to be able to replace Blizzard's chat windows entirely. The roadmap named four gaps; plan 12 built the answers to three, and the combat log stays Blizzard's. The detail is in "Replacing Blizzard chat (plan 12, 2026-09-26)" above.
+
+| Gap | What was built |
+|---|---|
+| **Protected slash commands** (`/cast`, `/target`, macros) run only from Blizzard's own input box | Blizzard's `ChatFrame1EditBox`, restyled and docked under the open card or beside the Echo icon (`echoDockInput`). Enter, `/`, **R** and **Whisper** stay Blizzard's own. While the line is typed in, the card follows the chat it is aimed at, and a card whose chat the line covers hides its own reply box |
+| **Lines Echo can't sort**: other addons' `print` output, system text, chat types Echo has no tile for | The **All** view (`echoAllView`): every record Echo files, plus the main chat window's other prints through a post-hook on `AddMessage`, plus the chat and system events Echo registers for it. Secret text is shown with `SetText` and never inspected |
+| **Other addons' chat filters** (spam blockers, formatters) | `Events.RunFilters` runs the registered message filters over every line before Echo files it, so blocked spam stays blocked |
+| **The combat log** is largely closed to addons in Midnight | Blizzard keeps it. With **Keep the combat log** on (`echoKeepCombatLog`, the default), hiding Blizzard's chat leaves `ChatFrame2` and its tab alone |
+
+**Hide Blizzard's chat windows** (`echoHideBlizzardChat`) is off by default, and Blizzard's chat returns after a reload whenever it is turned off or Echo is disabled. Still to come: joining and leaving channels from Echo, the probe's verdict on aiming the input line from Echo, and, once the option has proved itself, perhaps making it the default.
 
 ## Storage
 

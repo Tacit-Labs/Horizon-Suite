@@ -227,3 +227,25 @@ A secret or unreadable attribute gives nil.
   - [ ] Turn it off: the reload prompt appears, and after reloading Blizzard chat is back.
   - [ ] Run `/h echo probe input guild`, follow its steps, and report whether `/cast` in combat was blocked. This decides the follow-up plan.
 - **Commit:** `docs(echo): record replacing Blizzard chat`.
+
+---
+
+## In-game checklist (plan 12, 2026-09-26)
+
+Echo gains a file, `EchoHideChat.lua`, so restart the game rather than reloading. Run it on Retail and the Forever beta.
+
+- [ ] Press Enter: the restyled input line opens under the open card, or beside the Echo icon. `/cast` and a macro work from it, including in combat.
+- [ ] Right-click a name in Echo or on a unit frame, choose Blizzard's **Whisper**: the line opens aimed at them, and their Echo card opens above it.
+- [ ] Press **R** after a whisper: the same happens for the sender.
+- [ ] `/g`, `/1` and `/y` typed in the line switch the card to match.
+- [ ] With the line aimed at the shown card's chat, the card's own reply box is hidden, so there is only one box.
+- [ ] The All tile shows chat, addon messages and system text in order. `/dump 1` appears in All.
+- [ ] A spam-filter addon's blocked lines don't appear in Echo.
+- [ ] Turn on **Hide Blizzard chat** and reload: no Blizzard chat window or tab is visible, whispers still arrive in Echo, **R** still replies, and the combat log is still available.
+- [ ] With it on, `/h echo status` shows the input line's parent as `UIParent`, and Enter still opens the line.
+- [ ] With it on, start a pet battle: its log window doesn't appear.
+- [ ] With it on, a Battle.net friend coming online appears in the System tile. `/played` and the guild's message of the day appear in All.
+- [ ] Turn it off: the reload prompt appears, and after reloading Blizzard chat is back.
+- [ ] Set **whisperMode** to pop out, turn hiding on on one character, then log in to an alt with hiding off: whispers pop out again there.
+- [ ] Watch the frame rate in a busy city with All on: `debugstack` runs on every line printed to the main chat window.
+- [ ] Run `/h echo probe input guild`, follow its steps, and report whether `/cast` in combat was blocked. This decides the follow-up plan.
