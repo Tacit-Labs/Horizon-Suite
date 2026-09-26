@@ -53,9 +53,27 @@ function Echo.PaintTileFace(face, spec)
     if face.icon then
         if spec.face == "tabard" then
             local t = spec.tabard
-            face.icon:SetTexture(t.emblem)
-            face.icon:SetTexCoord(0, 1, 0, 1)
-            face.icon:SetVertexColor(t.er, t.eg, t.eb, 1)
+            -- Blizzard's own tabard painter knows where the emblem sits in its texture
+            -- (the raw file isn't centred). It also wants background and border textures;
+            -- give it hidden spares so only the emblem shows on Echo's rounded tile.
+            local drawn = false
+            if type(SetSmallGuildTabardTextures) == "function" and face.icon.GetParent then
+                local icon = face.icon
+                local parent = icon:GetParent()
+                if parent and parent.CreateTexture then
+                    -- rawget: test stand-ins answer unknown fields with a function.
+                    icon._tabardBg = rawget(icon, "_tabardBg") or parent:CreateTexture(nil, "BACKGROUND")
+                    icon._tabardBorder = rawget(icon, "_tabardBorder") or parent:CreateTexture(nil, "BACKGROUND")
+                    drawn = pcall(SetSmallGuildTabardTextures, "player", icon, icon._tabardBg, icon._tabardBorder)
+                    icon._tabardBg:Hide()
+                    icon._tabardBorder:Hide()
+                end
+            end
+            if not drawn then
+                face.icon:SetTexture(t.emblem)
+                face.icon:SetTexCoord(0, 1, 0, 1)
+                face.icon:SetVertexColor(t.er, t.eg, t.eb, 1)
+            end
             face.icon:Show()
         elseif spec.face == "icon" then
             face.icon:SetTexture(spec.icon)
@@ -234,6 +252,15 @@ local function PaintTile(b, conv)
     b.convKey = conv.key
     local face = { icon = b.icon, letter = b.letter, label = b.label, size = 16, smallSize = 10, flags = "",
                    fitWidth = Tiles.TILE_SIZE - 4, labelMax = Tiles.LABEL_MAX, labelMin = Tiles.LABEL_MIN }
+    -- A guild emblem sits in a centred square above the name; every other icon fills the tile.
+    b.icon:ClearAllPoints()
+    if spec.face == "tabard" then
+        b.icon:SetPoint("TOPLEFT", b, "TOPLEFT", 8, -3)
+        b.icon:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", -8, 13)
+    else
+        b.icon:SetPoint("TOPLEFT", b, "TOPLEFT", 3, -3)
+        b.icon:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", -3, 3)
+    end
     Echo.PaintTileFace(face, spec)
     Echo.Round.SetColor(b, View.FaceBackground(spec))
     if spec.face == "glyph" or spec.face == "icon" then

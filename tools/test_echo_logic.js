@@ -5405,6 +5405,28 @@ run(`
   `, 'echo-dashboard-icon-path');
 }
 
+// --- Guild emblem: Blizzard's painter, centred above the name ---------------------------
+run(`
+  CreateFrame = STUB_CREATE_FRAME
+  local Echo = HorizonSuite.Echo
+  local host = STUB_FRAME()
+  local icon = host:CreateTexture()
+  icon.GetParent = function() return host end
+  local spec = { face = "tabard", tabard = { emblem = 123, er = 1, eg = 0, eb = 0, br = 0, bg = 0, bb = 1 }, label = "Guild", r = 0, g = 0, b = 1 }
+  local called
+  SetSmallGuildTabardTextures = function(unit, emblem, bgTex, borderTex) called = { unit, emblem, bgTex, borderTex } end
+  Echo.PaintTileFace({ icon = icon, letter = STUB_FRAME(), size = 16, smallSize = 10, flags = "" }, spec)
+  check("Blizzard's tabard painter draws the emblem", called and called[1] == "player" and called[2] == icon, "not called")
+  check("its spare textures stay hidden", called and not called[3].shown and not called[4].shown, "shown")
+  SetSmallGuildTabardTextures = function() error("boom") end
+  local tex
+  icon.SetTexture = function(self, t) tex = t end
+  Echo.PaintTileFace({ icon = icon, letter = STUB_FRAME(), size = 16, smallSize = 10, flags = "" }, spec)
+  check("a failing Blizzard painter falls back to the raw emblem", tex == 123, tex)
+  icon.SetTexture = nil
+  SetSmallGuildTabardTextures = nil
+`, 'guild-emblem-painter');
+
 // --- Redraw: one repaint per frame -------------------------------------------
 run(`
   CreateFrame = STUB_CREATE_FRAME
