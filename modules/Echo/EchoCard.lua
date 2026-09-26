@@ -42,7 +42,7 @@ Card.FEED_GAP = 2
 local root, nameText, metaText, area, edit, send, menuButton, chevron, statusLine, hint
 local rowTiles, bubbles, labels = {}, {}, {}
 -- Forward-declared: Create()'s OnHide handler (defined further down) needs to stop the
--- genie and the fade, which are defined later in the file.
+-- genie, which is defined later in the file.
 local StopEffects
 local currentKey, renderedKey
 local offset = 0  -- newest messages scrolled past
@@ -146,7 +146,7 @@ local function Create()
     root:SetScript("OnHide", function()
         -- Covers closes that bypass Card.Hide entirely, e.g. Escape via UISpecialFrames
         -- calling root:Hide() directly: leave no stale draft or stuck focus behind, and
-        -- don't let a genie or fade keep running against a hidden card.
+        -- don't let a genie keep running against a hidden card.
         ParkDraft()
         if edit then edit:ClearFocus() end
         StopEffects()
@@ -568,49 +568,15 @@ end
 
 function Card.Reanchor() Anchor() end
 
-Card.GENIE_OPEN = 0.22
-Card.GENIE_CLOSE = 0.2
-Card.FADE_DURATION = 0.15
-
 -- The open and close effect: Echo.Genie pours a sheet out of the clicked tile (or back
--- into it), and the card's contents fade in once the sheet has filled its rect.
-local fader, fadeT
+-- into it); the genie itself fades the card in over the sheet's last stretch.
 local closing = false      -- a close genie is running; a second click on the tile waits
 local genieHiding = false  -- the close genie's own onDone is hiding the card
 
-local function StopFade()
-    fadeT = nil
-    if fader then fader:Hide() end
-end
-
-local function FadeUpdate(_, elapsed)
-    if not fadeT or not root then return end
-    fadeT = fadeT + (elapsed or 0)
-    local a = fadeT / Card.FADE_DURATION
-    if a >= 1 then
-        root:SetAlpha(1)
-        StopFade()
-    else
-        root:SetAlpha(a)
-    end
-end
-
-local function FadeIn()
-    if not fader then
-        fader = CreateFrame("Frame", nil, UIParent)
-        fader:Hide()
-        fader:SetScript("OnUpdate", FadeUpdate)
-    end
-    fadeT = 0
-    root:SetAlpha(0)
-    fader:Show()
-end
-
--- Stops any genie (unless the close genie is the one hiding the card, so its flash can
--- finish) and fade, and leaves the card at full alpha for the next open.
+-- Stops any genie (unless the close genie is the one hiding the card) and leaves the card
+-- at full alpha for the next open.
 function StopEffects()
     if Echo.Genie and not genieHiding then Echo.Genie.Stop() end
-    StopFade()
     closing = false
     if root then root:SetAlpha(1) end
 end
@@ -650,21 +616,22 @@ end
 
 local HideNow
 
+-- The column's chat button: where the sheet starts when the tile has no rect yet.
+local function StackButton()
+    return Echo.Tiles and Echo.Tiles._stackButton and Echo.Tiles._stackButton() or nil
+end
+
 local function PlayOpen(fromTile)
     Echo.Genie.Play({
-        from = fromTile, to = root, color = GenieColor(renderedKey), edge = Echo.View.Edge(),
-        duration = Card.GENIE_OPEN,
-        onDone = function() if root and root:IsShown() then FadeIn() end end,
+        from = fromTile, fallback = StackButton(), to = root, color = GenieColor(renderedKey),
     })
 end
 
 local function PlayClose(tile)
     closing = true
-    StopFade()
-    root:SetAlpha(0)
     Echo.Genie.Play({
-        from = tile, to = root, reverse = true, color = GenieColor(renderedKey),
-        edge = Echo.View.Edge(), duration = Card.GENIE_CLOSE,
+        from = tile, fallback = StackButton(), to = root, reverse = true,
+        color = GenieColor(renderedKey),
         onDone = function()
             genieHiding = true
             HideNow()
@@ -751,7 +718,7 @@ function HideNow()
 end
 
 --- Close the card at once: Escape, the chevron and combat all need it immediate, so this
--- also cuts short any genie or fade.
+-- also cuts short any genie.
 function Card.Hide()
     HideNow()
 end
@@ -897,6 +864,6 @@ function Card._frames()
     return {
         root = root, rowTiles = rowTiles, name = nameText, meta = metaText, area = area,
         edit = edit, send = send, menu = menuButton, chevron = chevron,
-        bubbles = bubbles, labels = labels, status = statusLine, hint = hint, fader = fader,
+        bubbles = bubbles, labels = labels, status = statusLine, hint = hint,
     }
 end

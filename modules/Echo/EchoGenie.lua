@@ -1,15 +1,19 @@
 --[[
     Horizon Suite - Echo - Genie
-    The card's open and close effect: a solid sheet pours out of the clicked tile and
-    fills the card's rect, or collapses back into the tile on close. The sheet is a stack
-    of horizontal strips. Each strip covers one band of the card and moves from the tile
-    to that band with its own progress: the far end leads, the neck by the tile lags, so
-    the side away from the column bows in a curve. Height leads width, so the sheet
-    reaches the card's far edge before it fills its width.
-    The geometry (Slices, StripProgress) and colour (StripColor) are pure; Play drives one
-    lazily built overlay of strip textures from OnUpdate.
-    Blizzard: CreateFrame, UIParent, Frame:GetLeft/GetRight/GetBottom/GetTop,
-    GetEffectiveScale, Texture:SetColorTexture.
+    Genie technique adapted from Whisper Stack by Devin, who gave the director his code to integrate.
+    The card's open and close effect, like a macOS window pouring out of its Dock icon.
+    The sheet is sampled at boundaries from the card's bottom to its top. Each boundary
+    travels from its spot on the tile to its spot on the card on its own delay: the side
+    away from the tile leads and the tile side goes last, which makes the funnel. Between
+    two boundaries sits one piece. Where textures take SetVertexOffset, a piece is a
+    trapezoid whose corners are pinned to both boundaries, so neighbours share edges
+    exactly; elsewhere many hair-thin strips read as one shape. Colour runs as a vertical
+    gradient from the tile's colour to the panel's, matching at every shared edge. The real
+    card fades in over the sheet only at the very end.
+    Grow runs 0 (folded into the tile) .. 1 (the card). A close started mid-open, or an
+    open started mid-close, carries on from where the sheet is.
+    Blizzard: CreateFrame, UIParent, CreateColor, Texture:SetVertexOffset, SetGradient,
+    UPPER_LEFT_VERTEX/LOWER_LEFT_VERTEX/UPPER_RIGHT_VERTEX/LOWER_RIGHT_VERTEX.
 ]]
 
 local addon = _G.HorizonSuite
@@ -21,89 +25,101 @@ local Echo = addon.Echo
 local Genie = {}
 Echo.Genie = Genie
 
-Genie.STRIPS = 32
-Genie.DURATION = 0.22
-Genie.FLASH = 0.15      -- the tile's bright flash at the end of a close
-Genie.LAG = 2           -- how far the neck lags the far end (an exponent on progress)
-Genie.Y_EXP = 0.5       -- vertical placement leads...
-Genie.X_EXP = 1.6       -- ...the side away from the column, which fills last
-Genie.ANCHOR_EXP = 1    -- the column side follows progress directly
+Genie.WARP_PIECES = 16   -- trapezoids with pinned corners: smooth, shared edges
+Genie.THIN_PIECES = 64   -- fallback: hair-thin strips
+Genie.THIN_OVERLAP = 0.6 -- each thin strip is this much taller, to close seams
+Genie.STAGGER = 0.45     -- how far behind the far side the tile side runs
+Genie.SHOW_AT = 0.84     -- the real card starts to appear here
+Genie.OPEN = 0.55        -- seconds for a full open
+Genie.CLOSE = 0.45       -- seconds for a full close
+Genie.EDGE = 2           -- the accent line riding the top boundary
 
-local function Clamp01(x)
+local function Clamp(x)
     if x < 0 then return 0 elseif x > 1 then return 1 end
     return x
 end
 
-local function Lerp(a, b, t) return a + (b - a) * t end
+local function Smooth(t) return t * t * (3 - 2 * t) end
 
--- How far a point at destination height y sits from the tile's vertical centre, as a
--- fraction of the farthest the card reaches from it: 0 at the neck, 1 at the far end.
-local function Distance(from, to, y)
-    local centre = (from.bottom + from.top) / 2
-    local reach = math.max(math.abs(to.bottom - centre), math.abs(to.top - centre), 1e-6)
-    return Clamp01(math.abs(y - centre) / reach)
+--- One boundary's own progress.
+-- @param v number  overall grow, 0..1
+-- @param f number  the boundary's height in the card, 0 (bottom) .. 1 (top)
+-- @param tileBelow boolean  the tile sits below the card's centre
+-- @return number  0..1
+function Genie.BoundaryProgress(v, f, tileBelow)
+    local farness = tileBelow and f or (1 - f)
+    return Smooth(Clamp((v - (1 - farness) * Genie.STAGGER) / (1 - Genie.STAGGER)))
 end
 
---- A strip's own progress. The far end runs at p; the neck lags as p^(1 + LAG), so every
--- strip still reaches 1 exactly when p does.
--- @param from table  tile rect { left, right, bottom, top }
--- @param to table  card rect
--- @param p number  overall progress, 0..1
--- @param v number  the strip's vertical fraction of the card, 0 (bottom) .. 1 (top)
--- @return number q, number d  its progress, and its distance from the neck (0..1)
-function Genie.StripProgress(from, to, p, v)
-    p = Clamp01(p)
-    local d = Distance(from, to, Lerp(to.bottom, to.top, v))
-    return p ^ (1 + Genie.LAG * (1 - d)), d
+--- The card's alpha at grow v; the sheet's is 1 minus this.
+-- @param v number
+-- @return number
+function Genie.CardAlpha(v)
+    return Clamp((v - Genie.SHOW_AT) / (1 - Genie.SHOW_AT))
 end
 
---- The strips of the sheet at progress p.
--- Boundaries are placed once and shared by neighbouring strips, so strips never gap or
--- overlap; they are kept in order when a tile sits mid-card.
--- @param from table  tile rect { left, right, bottom, top } in UIParent units
+--- Boundaries 0 (bottom) .. n (top), each lerped from the tile rect to the card rect by
+-- its own progress.
+-- @param from table  tile rect { x, y, w, h } in UIParent units
 -- @param to table  card rect
--- @param p number  0 = exactly the tile, 1 = exactly the card
--- @param n number  strip count
--- @param edge string  "left" | "right": the column's side, which stays anchored
--- @return table  { { left, right, bottom, top, d }, ... } bottom to top; d is the
---   strip's distance from the neck, 0..1
-function Genie.Slices(from, to, p, n, edge)
-    p = Clamp01(p)
-    local ys = {}
+-- @param v number  grow, 0..1
+-- @param n number  pieces
+-- @return table  { x = {}, w = {}, y = {}, e = {} }, each indexed 0..n
+function Genie.Boundaries(from, to, v, n)
+    v = Clamp(v)
+    local tileBelow = from.y + from.h / 2 <= to.y + to.h / 2
+    local b = { x = {}, w = {}, y = {}, e = {} }
     for j = 0, n do
-        local u = j / n
-        local q = Genie.StripProgress(from, to, p, u)
-        local y = Lerp(Lerp(from.bottom, from.top, u), Lerp(to.bottom, to.top, u), q ^ Genie.Y_EXP)
-        if j > 0 and y < ys[j - 1] then y = ys[j - 1] end
-        ys[j] = y
+        local f = j / n
+        local e = Genie.BoundaryProgress(v, f, tileBelow)
+        local ya, yb = from.y + f * from.h, to.y + f * to.h
+        b.e[j] = e
+        b.x[j] = from.x + (to.x - from.x) * e
+        b.w[j] = math.max(1, from.w + (to.w - from.w) * e)
+        b.y[j] = ya + (yb - ya) * e
     end
-    local anchor, far = "left", "right"
-    if edge == "right" then anchor, far = "right", "left" end
+    return b
+end
+
+--- The pieces between boundaries.
+-- A warped piece is its bounding box plus the horizontal offset of each corner; a thin
+-- strip averages its two boundaries and runs a hair taller.
+-- @param b table  from Genie.Boundaries
+-- @param n number
+-- @param warp boolean
+-- @return table  { { left, bottom, width, height, e0, e1, ul, ll, ur, lr }, ... }
+function Genie.Pieces(b, n, warp)
     local out = {}
     for i = 1, n do
-        local q, d = Genie.StripProgress(from, to, p, (i - 0.5) / n)
-        local s = { bottom = ys[i - 1], top = ys[i], d = d }
-        s[anchor] = Lerp(from[anchor], to[anchor], q ^ Genie.ANCHOR_EXP)
-        s[far] = Lerp(from[far], to[far], q ^ Genie.X_EXP)
-        out[i] = s
+        local j0, j1 = i - 1, i
+        local bottom = b.y[j0]
+        local height = math.max(0.5, b.y[j1] - bottom)
+        local p = { bottom = bottom, e0 = b.e[j0], e1 = b.e[j1] }
+        if warp then
+            local left = math.min(b.x[j0], b.x[j1])
+            local right = math.max(b.x[j0] + b.w[j0], b.x[j1] + b.w[j1])
+            p.left, p.width, p.height = left, right - left, height
+            p.ul = b.x[j1] - left
+            p.ll = b.x[j0] - left
+            p.ur = (b.x[j1] + b.w[j1]) - right
+            p.lr = (b.x[j0] + b.w[j0]) - right
+        else
+            p.left = (b.x[j0] + b.x[j1]) / 2
+            p.width = (b.w[j0] + b.w[j1]) / 2
+            p.height = height + Genie.THIN_OVERLAP
+        end
+        out[i] = p
     end
     return out
 end
 
---- A strip's colour: the tile's colour at the neck, the panel background at the far end.
--- The whole sheet starts as the tile's colour and ends as the background.
--- @param tileRGB table  { r, g, b }
--- @param bgRGBA table  { r, g, b, a }
--- @param v number  distance from the neck, 0..1
--- @param p number  overall progress, 0..1
--- @return number r, number g, number b, number a
-function Genie.StripColor(tileRGB, bgRGBA, v, p)
-    p = Clamp01(p)
-    local base = Clamp01(v) * math.min(1, 4 * p)
-    local late = Clamp01((p - 0.6) / 0.4)
-    local w = base + (1 - base) * late * late
-    return Lerp(tileRGB[1], bgRGBA[1], w), Lerp(tileRGB[2], bgRGBA[2], w),
-        Lerp(tileRGB[3], bgRGBA[3], w), Lerp(1, bgRGBA[4] or 1, w)
+--- The tile's colour mixed toward the panel background by e.
+-- @param rgb table  { r, g, b }
+-- @param bg table  { r, g, b[, a] }
+-- @param e number  0..1
+-- @return number r, number g, number b
+function Genie.Mix(rgb, bg, e)
+    return rgb[1] + (bg[1] - rgb[1]) * e, rgb[2] + (bg[2] - rgb[2]) * e, rgb[3] + (bg[3] - rgb[3]) * e
 end
 
 local function Scale(frame)
@@ -112,149 +128,163 @@ local function Scale(frame)
     return s
 end
 
---- A frame's rect in UIParent units, or nil when it can't be measured.
+--- A frame's rect in UIParent units, or nil when the client hasn't placed it yet.
 -- @param frame Frame|nil
--- @return table|nil  { left, right, bottom, top }
+-- @return table|nil  { x, y, w, h }
 function Genie.ReadRect(frame)
-    if not frame or not frame.GetLeft or not frame.GetRight or not frame.GetBottom or not frame.GetTop then
+    if not frame or not frame.GetLeft or not frame.GetBottom or not frame.GetWidth or not frame.GetHeight then
         return nil
     end
-    local l, r, b, t = frame:GetLeft(), frame:GetRight(), frame:GetBottom(), frame:GetTop()
-    if type(l) ~= "number" or type(r) ~= "number" or type(b) ~= "number" or type(t) ~= "number" then
+    local l, b, w, h = frame:GetLeft(), frame:GetBottom(), frame:GetWidth(), frame:GetHeight()
+    if type(l) ~= "number" or type(b) ~= "number" or type(w) ~= "number" or type(h) ~= "number" then
         return nil
     end
-    if r <= l or t <= b then return nil end
+    if w <= 0 or h <= 0 then return nil end
     local k = Scale(frame) / Scale(UIParent)
-    return { left = l * k, right = r * k, bottom = b * k, top = t * k }
+    return { x = l * k, y = b * k, w = w * k, h = h * k }
 end
 
 local overlay
-local state  -- { opts, t, duration, p, phase = "sheet" | "flash" }
+local state  -- { opts, from, to, v, start, target, t, duration }
+local grow   -- the sheet's current grow, kept after a stop so a reversal can continue
 
-local function Smooth(f) return f * f * (3 - 2 * f) end
+local function Build()
+    overlay = CreateFrame("Frame", nil, UIParent)
+    overlay:SetFrameStrata("DIALOG")
+    overlay:SetAllPoints(UIParent)
+    if overlay.EnableMouse then overlay:EnableMouse(false) end
+    overlay:Hide()
+    local probe = overlay:CreateTexture(nil, "ARTWORK")
+    overlay.warp = type(probe.SetVertexOffset) == "function"
+    overlay.n = overlay.warp and Genie.WARP_PIECES or Genie.THIN_PIECES
+    overlay.pieces = { probe }
+    for i = 2, overlay.n do overlay.pieces[i] = overlay:CreateTexture(nil, "ARTWORK") end
+    local a = Echo.View and Echo.View.ACCENT or { r = 0.56, g = 0.64, b = 0.91 }
+    overlay.edge = overlay:CreateTexture(nil, "OVERLAY")
+    overlay.edge:SetColorTexture(a.r, a.g, a.b, 1)
+    overlay.edge:SetHeight(Genie.EDGE)
+end
+
+-- Draws the sheet at grow v over the fixed rects.
+local function Apply(s, v)
+    local target = s.opts.to
+    local cardA = Genie.CardAlpha(v)
+    if target and target.SetAlpha then target:SetAlpha(cardA) end
+    overlay:SetAlpha(1 - cardA)
+    overlay:Show()
+
+    local n = overlay.n
+    local b = Genie.Boundaries(s.from, s.to, v, n)
+    local pieces = Genie.Pieces(b, n, overlay.warp)
+    local rgb = s.opts.color or { 0.56, 0.64, 0.91 }
+    local bg = Echo.View and Echo.View.PANEL_BG or { 0.06, 0.06, 0.09 }
+    local gradients = type(CreateColor) == "function"
+    local UL, LL = UPPER_LEFT_VERTEX or 1, LOWER_LEFT_VERTEX or 2
+    local UR, LR = UPPER_RIGHT_VERTEX or 3, LOWER_RIGHT_VERTEX or 4
+    for i, p in ipairs(pieces) do
+        local t = overlay.pieces[i]
+        t:ClearAllPoints()
+        t:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", p.left, p.bottom)
+        t:SetSize(p.width, p.height)
+        if overlay.warp then
+            t:SetVertexOffset(UL, p.ul, 0)
+            t:SetVertexOffset(LL, p.ll, 0)
+            t:SetVertexOffset(UR, p.ur, 0)
+            t:SetVertexOffset(LR, p.lr, 0)
+        end
+        local r1, g1, b1 = Genie.Mix(rgb, bg, p.e0)
+        local r2, g2, b2 = Genie.Mix(rgb, bg, p.e1)
+        if gradients then
+            t:SetColorTexture(1, 1, 1, 1)
+            t:SetGradient("VERTICAL", CreateColor(r1, g1, b1, 1), CreateColor(r2, g2, b2, 1))
+        else
+            t:SetColorTexture((r1 + r2) / 2, (g1 + g2) / 2, (b1 + b2) / 2, 1)
+        end
+        t:Show()
+    end
+
+    -- The accent line rides the top boundary, where the card's own top rule will be.
+    overlay.edge:ClearAllPoints()
+    overlay.edge:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", b.x[n], b.y[n])
+    overlay.edge:SetWidth(b.w[n])
+    overlay.edge:Show()
+end
 
 local function Finish()
     if overlay then overlay:Hide() end
     state = nil
 end
 
-local function Layout(from, to, p, opts)
-    local bg = Echo.View and Echo.View.PANEL_BG or { 0.06, 0.06, 0.09, 0.94 }
-    local color = opts.color or { 0.56, 0.64, 0.91 }
-    local slices = Genie.Slices(from, to, p, Genie.STRIPS, opts.edge)
-    for i, s in ipairs(slices) do
-        local tex = overlay.strips[i]
-        local w, h = s.right - s.left, s.top - s.bottom
-        if w > 0.01 and h > 0.01 then
-            tex:ClearAllPoints()
-            tex:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", s.left, s.bottom)
-            tex:SetSize(w, h)
-            tex:SetColorTexture(Genie.StripColor(color, bg, s.d, p))
-            tex:Show()
-        else
-            tex:Hide()
-        end
+local function Step(s, v)
+    grow = v
+    s.v = v
+    -- Done only on reaching the target: an open starts at 0 and a close at 1.
+    if v == s.target then
+        local done = s.opts.onDone
+        s.opts.onDone = nil
+        Finish()
+        if v >= 1 and s.opts.to and s.opts.to.SetAlpha then s.opts.to:SetAlpha(1) end
+        if done then done() end
+        return
     end
-end
-
--- The close's last beat: the tile flashes bright, then fades.
-local function LayoutFlash(tile, f, opts)
-    local c = opts.color or { 0.56, 0.64, 0.91 }
-    for i = 2, #overlay.strips do overlay.strips[i]:Hide() end
-    local tex = overlay.strips[1]
-    tex:ClearAllPoints()
-    tex:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", tile.left, tile.bottom)
-    tex:SetSize(tile.right - tile.left, tile.top - tile.bottom)
-    tex:SetColorTexture(Lerp(c[1], 1, 0.6), Lerp(c[2], 1, 0.6), Lerp(c[3], 1, 0.6), 0.9 * (1 - f))
-    tex:Show()
+    Apply(s, v)
 end
 
 local function Tick(_, elapsed)
     local s = state
     if not s then return end
     s.t = s.t + (elapsed or 0)
-    local from = Genie.ReadRect(s.opts.from)
-    if s.phase == "flash" then
-        local f = Clamp01(s.t / Genie.FLASH)
-        if not from or f >= 1 then Finish() return end
-        LayoutFlash(from, f, s.opts)
-        return
-    end
-    local to = Genie.ReadRect(s.opts.to)
-    local f = Clamp01(s.t / s.duration)
-    local e = Smooth(f)
-    s.p = s.opts.reverse and 1 - e or e
-    if not from or not to then f = 1 end
-    if f < 1 then
-        Layout(from, to, s.p, s.opts)
-        return
-    end
-    local done = s.opts.onDone
-    s.opts.onDone = nil
-    if s.opts.reverse and from then
-        s.phase, s.t = "flash", 0
-        LayoutFlash(from, 0, s.opts)
-    else
-        Finish()
-    end
-    if done then done() end
+    local f = s.duration > 0 and Clamp(s.t / s.duration) or 1
+    Step(s, f >= 1 and s.target or (s.start + (s.target - s.start) * f))
 end
 
-local function EnsureOverlay()
-    if overlay then return end
-    overlay = CreateFrame("Frame", nil, UIParent)
-    overlay:Hide()
-    if overlay.EnableMouse then overlay:EnableMouse(false) end
-    overlay.strips = {}
-    for i = 1, Genie.STRIPS do
-        local tex = overlay:CreateTexture(nil, "ARTWORK")
-        tex:Hide()
-        overlay.strips[i] = tex
-    end
-    overlay:SetScript("OnUpdate", Tick)
-end
-
---- Play the sheet from a tile to a frame (or back, with reverse).
--- When either rect can't be read, onDone runs at once and nothing is drawn.
--- @param opts table  { from = Frame, to = Frame, reverse = bool, color = {r,g,b},
---   edge = "left"|"right" (the column's side), duration = 0.22, onDone = fn }
+--- Grow the card out of a tile (or, with reverse, back into it). Starts from wherever a
+-- running or just-stopped sheet is, so reversing mid-way carries on from there.
+-- When neither the tile nor the fallback has a rect, or the card has none, onDone runs
+-- at once.
+-- @param opts table  { from = Frame, fallback = Frame|nil, to = Frame, reverse = bool,
+--   color = {r,g,b}, onDone = fn }
 function Genie.Play(opts)
-    Genie.Stop()
-    local from, to = Genie.ReadRect(opts.from), Genie.ReadRect(opts.to)
+    local start = state and state.v or grow
+    if state then state.opts.onDone = nil end
+    Finish()
+    local target = opts.reverse and 0 or 1
+    if start == nil then start = opts.reverse and 1 or 0 end
+    local from = Genie.ReadRect(opts.from) or Genie.ReadRect(opts.fallback)
+    local to = Genie.ReadRect(opts.to)
     if not from or not to then
+        grow = nil
+        if opts.to and opts.to.SetAlpha then opts.to:SetAlpha(1) end
         if opts.onDone then opts.onDone() end
         return
     end
-    EnsureOverlay()
-    local strata = opts.to.GetFrameStrata and opts.to:GetFrameStrata()
-    if type(strata) == "string" then overlay:SetFrameStrata(strata) end
-    local level = opts.to.GetFrameLevel and opts.to:GetFrameLevel()
-    overlay:SetFrameLevel((type(level) == "number" and level or 1) + 100)
-    opts.edge = opts.edge == "left" and "left" or "right"
-    state = { opts = opts, t = 0, duration = opts.duration or Genie.DURATION, phase = "sheet" }
-    state.p = opts.reverse and 1 or 0
-    Layout(from, to, state.p, opts)
-    overlay:Show()
+    if not overlay then Build() end
+    local duration = opts.reverse and Genie.CLOSE * start or Genie.OPEN * (1 - start)
+    state = { opts = opts, from = from, to = to, v = start, start = start, target = target, t = 0,
+              duration = duration }
+    overlay:SetScript("OnUpdate", Tick)
+    Step(state, start)
 end
 
---- Hide the overlay at once and drop any pending onDone.
+--- Hide the sheet at once, drop any pending onDone, and forget where it was.
 function Genie.Stop()
     if state then state.opts.onDone = nil end
     Finish()
+    grow = nil
 end
 
---- True while the sheet itself is moving (not during the close's closing flash).
--- @return boolean
+--- @return boolean
 function Genie.IsPlaying()
-    return state ~= nil and state.phase == "sheet"
+    return state ~= nil
 end
 
---- The current overall progress, or nil when idle.
+--- The current grow, or nil when idle.
 -- @return number|nil
 function Genie.Progress()
-    return state and state.p
+    return state and state.v
 end
 
 -- Test and debug handles.
 function Genie._overlay() return overlay end
 function Genie._current() return state and state.opts end
+function Genie._reset() Genie.Stop(); overlay = nil end

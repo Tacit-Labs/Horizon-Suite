@@ -2046,193 +2046,153 @@ run(`
   S.Reset()
 `, 'card-onhide');
 
-// --- Genie: slice geometry ---------------------------------------------------------------
+// --- Genie: boundaries, pieces, colour and card alpha -------------------------------------
 run(`
   local G = HorizonSuite.Echo.Genie
-  local EPS = 1e-6
-  local function near(a, b) return math.abs(a - b) < EPS end
-  -- A column on the left: a 30x30 tile low in it, the card to its right.
-  local tile = { left = 100, right = 130, bottom = 120, top = 150 }
-  local card = { left = 138, right = 498, bottom = 100, top = 540 }
-  local N = 32
+  local tile = { x = 870, y = 120, w = 30, h = 30 }
+  local card = { x = 500, y = 100, w = 360, h = 440 }
+  local n = 16
 
-  for _, edge in ipairs({ "left", "right" }) do
-    local from, to = tile, card
-    if edge == "right" then
-      -- Mirror: column on the right, card to its left.
-      from = { left = 900, right = 930, bottom = 120, top = 150 }
-      to = { left = 532, right = 892, bottom = 100, top = 540 }
-    end
-    local s0 = G.Slices(from, to, 0, N, edge)
-    check(edge .. ": one slice per strip", #s0 == N, #s0)
-    local inside = true
-    for _, s in ipairs(s0) do
-      if s.left < from.left - EPS or s.right > from.right + EPS or s.bottom < from.bottom - EPS or s.top > from.top + EPS then inside = false end
-    end
-    check(edge .. ": p=0 keeps every strip inside the tile", inside, inside)
-    check(edge .. ": p=0 spans the tile exactly", near(s0[1].bottom, from.bottom) and near(s0[N].top, from.top)
-      and near(s0[1].left, from.left) and near(s0[1].right, from.right), s0[N].top)
-
-    local s1 = G.Slices(from, to, 1, N, edge)
-    local tiles = near(s1[1].bottom, to.bottom) and near(s1[N].top, to.top)
-    for i, s in ipairs(s1) do
-      if not (near(s.left, to.left) and near(s.right, to.right)) then tiles = false end
-      if i > 1 and not near(s.bottom, s1[i - 1].top) then tiles = false end
-      if s.top < s.bottom then tiles = false end
-    end
-    check(edge .. ": p=1 tiles the card exactly, contiguous", tiles, tiles)
-
-    local sh = G.Slices(from, to, 0.5, N, edge)
-    local mono, contiguous = true, true
-    for i = 2, N do
-      if sh[i].bottom < sh[i - 1].bottom - EPS then mono = false end
-      if not near(sh[i].bottom, sh[i - 1].top) then contiguous = false end
-    end
-    check(edge .. ": p=0.5 strips are monotonic in v", mono, mono)
-    check(edge .. ": p=0.5 strips have no gaps", contiguous, contiguous)
-    check(edge .. ": p=0.5 is between the tile and the card", sh[N].top > from.top and sh[N].top < to.top, sh[N].top)
-
-    -- The side away from the column bows: it moves far more across the strips than the
-    -- column side, and it widens away from the tile (the neck stays narrow).
-    local farKey, anchorKey = "right", "left"
-    if edge == "right" then farKey, anchorKey = "left", "right" end
-    local function range(key)
-      local lo, hi = math.huge, -math.huge
-      for _, s in ipairs(sh) do lo = math.min(lo, s[key]); hi = math.max(hi, s[key]) end
-      return hi - lo
-    end
-    check(edge .. ": the far side bows, the column side stays put", range(farKey) > 3 * range(anchorKey),
-      range(farKey) .. " vs " .. range(anchorKey))
-    local neckW = sh[1].right - sh[1].left
-    local farW = sh[N].right - sh[N].left
-    check(edge .. ": narrow at the neck, wide at the far end", farW > neckW * 2, neckW .. " / " .. farW)
-    local widening = true
-    for i = 5, N do
-      local w, pw = sh[i].right - sh[i].left, sh[i - 1].right - sh[i - 1].left
-      if w < pw - EPS then widening = false end
-    end
-    check(edge .. ": the sheet widens steadily away from the tile", widening, widening)
-    -- The bowed edge is a curve, not a straight line: its midpoint sits off the chord.
-    local a, b, m = sh[1][farKey], sh[N][farKey], sh[N / 2][farKey]
-    check(edge .. ": the bowed edge curves", math.abs(m - (a + b) / 2) > 5, m - (a + b) / 2)
-
-    -- Per-strip progress: the far end leads (it reaches the window's top first, as in the
-    -- reference frames); the neck by the tile lags and stays pinned to the tile's width.
-    local qNear, qFar = G.StripProgress(from, to, 0.5, 1 / (2 * N)), G.StripProgress(from, to, 0.5, 1 - 1 / (2 * N))
-    check(edge .. ": the far end is further along than the neck", qFar > qNear, qNear .. " / " .. qFar)
-    check(edge .. ": strip progress reaches 1 at p=1", G.StripProgress(from, to, 1, 0) == 1 and G.StripProgress(from, to, 1, 1) == 1, "")
-    check(edge .. ": the neck is still near the tile's width early on",
-      (G.Slices(from, to, 0.2, N, edge)[1].right - G.Slices(from, to, 0.2, N, edge)[1].left) < 40, "")
+  local b0 = G.Boundaries(tile, card, 0, n)
+  local folded = true
+  for j = 0, n do
+    local f = j / n
+    if math.abs(b0.x[j] - tile.x) > 1e-9 or math.abs(b0.w[j] - tile.w) > 1e-9
+      or math.abs(b0.y[j] - (tile.y + f * tile.h)) > 1e-9 then folded = false end
   end
+  check("at grow 0 every boundary sits on the tile", folded, "")
 
-  -- Vertical leads horizontal: by mid-way the sheet is most of its height but not its width.
-  local sh = G.Slices(tile, card, 0.5, N, "left")
-  local hFrac = (sh[N].top - tile.top) / (card.top - tile.top)
-  local wFrac = (sh[N].right - tile.right) / (card.right - tile.right)
-  check("height leads width", hFrac > wFrac + 0.2, hFrac .. " / " .. wFrac)
+  local b1 = G.Boundaries(tile, card, 1, n)
+  local open = true
+  for j = 0, n do
+    local f = j / n
+    if math.abs(b1.x[j] - card.x) > 1e-9 or math.abs(b1.w[j] - card.w) > 1e-9
+      or math.abs(b1.y[j] - (card.y + f * card.h)) > 1e-9 then open = false end
+  end
+  check("at grow 1 every boundary sits on the card", open, "")
 
-  -- A tile above the card's middle still gives monotonic, contiguous strips.
-  local high = { left = 100, right = 130, bottom = 500, top = 530 }
-  local sm = G.Slices(high, card, 0.4, N, "left")
-  local ok = true
-  for i = 2, N do if sm[i].bottom < sm[i - 1].bottom - EPS or not near(sm[i].bottom, sm[i - 1].top) then ok = false end end
-  check("a high tile still gives ordered, contiguous strips", ok, ok)
-  check("p outside 0..1 is clamped", near(G.Slices(tile, card, 2, N, "left")[N].top, card.top)
-    and near(G.Slices(tile, card, -1, N, "left")[N].top, tile.top), "")
-`, 'genie-slices');
+  -- The tile is below the card's centre: the far (top) side leads, the tile side goes last.
+  local bm = G.Boundaries(tile, card, 0.5, n)
+  check("the far side leads", bm.e[n] > bm.e[0], tostring(bm.e[n]) .. " vs " .. tostring(bm.e[0]))
+  local mono = true
+  for j = 1, n do if bm.e[j] < bm.e[j - 1] then mono = false end end
+  check("progress rises steadily away from the tile", mono, "")
+  local high = { x = 870, y = 600, w = 30, h = 30 }
+  local bh = G.Boundaries(high, card, 0.5, n)
+  check("a tile above the card flips which side leads", bh.e[0] > bh.e[n], tostring(bh.e[0]))
+  check("the tile side is still folded at the stagger point", G.BoundaryProgress(0.45, 0, true) == 0, G.BoundaryProgress(0.45, 0, true))
+  check("the far side is done before the end", G.BoundaryProgress(0.55, 1, true) == 1, G.BoundaryProgress(0.55, 1, true))
 
-// --- Genie: strip colour -------------------------------------------------------------------
-run(`
-  local G = HorizonSuite.Echo.Genie
-  local tileRGB, bg = { 0.2, 0.7, 0.9 }, { 0.06, 0.06, 0.09, 0.94 }
-  local function eq(a, b) return math.abs(a - b) < 1e-6 end
-  local r, g, b, a = G.StripColor(tileRGB, bg, 0, 0.5)
-  check("the neck is the tile's colour", eq(r, 0.2) and eq(g, 0.7) and eq(b, 0.9) and eq(a, 1), r)
-  r, g, b, a = G.StripColor(tileRGB, bg, 1, 0.5)
-  check("the far end is the panel background", eq(r, 0.06) and eq(g, 0.06) and eq(b, 0.09) and eq(a, 0.94), r)
-  r, g, b = G.StripColor(tileRGB, bg, 1, 0)
-  check("at p=0 the whole sheet is the tile's colour", eq(r, 0.2) and eq(b, 0.9), r)
-  r, g, b = G.StripColor(tileRGB, bg, 0, 1)
-  check("at p=1 the whole sheet is the panel background", eq(r, 0.06) and eq(b, 0.09), r)
-  local rm = G.StripColor(tileRGB, bg, 0.5, 0.5)
-  check("between the ends it blends", rm < 0.2 and rm > 0.06, rm)
-`, 'genie-color');
+  -- Warped pieces share edges exactly with their neighbours.
+  local pw = G.Pieces(bm, n, true)
+  check("16 warped pieces", #pw == n, #pw)
+  local shared = true
+  for i = 1, n do
+    local pc = pw[i]
+    if math.abs((pc.left + pc.ul) - bm.x[i]) > 1e-9 then shared = false end
+    if math.abs((pc.left + pc.ll) - bm.x[i - 1]) > 1e-9 then shared = false end
+    if math.abs((pc.left + pc.width + pc.ur) - (bm.x[i] + bm.w[i])) > 1e-9 then shared = false end
+    if math.abs((pc.left + pc.width + pc.lr) - (bm.x[i - 1] + bm.w[i - 1])) > 1e-9 then shared = false end
+    if i > 1 and math.abs(pc.bottom - (pw[i - 1].bottom + pw[i - 1].height)) > 1e-6
+      and pw[i - 1].height > 0.5 then shared = false end
+  end
+  check("warped corners are pinned to both boundaries", shared, "")
+  local bt = G.Boundaries(tile, card, 0.5, 64)
+  local pt = G.Pieces(bt, 64, false)
+  check("thin strips run a hair taller", math.abs(pt[10].height - (math.max(0.5, bt.y[10] - bt.y[9]) + G.THIN_OVERLAP)) < 1e-9, pt[10].height)
+
+  local r, g, b = G.Mix({ 1, 0, 0 }, { 0, 0, 1 }, 0)
+  check("colour starts as the tile's", r == 1 and b == 0, r)
+  r, g, b = G.Mix({ 1, 0, 0 }, { 0, 0, 1 }, 1)
+  check("colour ends as the panel's", r == 0 and b == 1, b)
+
+  check("the card is hidden until the end", G.CardAlpha(0.84) == 0 and G.CardAlpha(0.5) == 0, G.CardAlpha(0.84))
+  check("the card fades in over the last stretch", math.abs(G.CardAlpha(0.92) - 0.5) < 1e-9, G.CardAlpha(0.92))
+  check("the card is solid at the end", G.CardAlpha(1) == 1, G.CardAlpha(1))
+`, 'genie-geometry');
 
 // --- Genie: Play drives the overlay and calls onDone -----------------------------------------
 run(`
   local G = HorizonSuite.Echo.Genie
+  G._reset()
   local savedCreateFrame = CreateFrame
   CreateFrame = STUB_CREATE_FRAME
-  local function Rect(l, r, b, t)
+  local function Rect(l, b, w, h, scale)
     local f = STUB_FRAME()
     f.GetLeft = function() return l end
-    f.GetRight = function() return r end
     f.GetBottom = function() return b end
-    f.GetTop = function() return t end
-    f.GetEffectiveScale = function() return 1 end
+    f.GetWidth = function() return w end
+    f.GetHeight = function() return h end
+    f.GetEffectiveScale = function() return scale or 1 end
+    f.SetAlpha = function(self, a) self.alphaValue = a end
     return f
   end
-  local tile, card = Rect(100, 130, 120, 150), Rect(138, 498, 100, 540)
+  local tile, card = Rect(870, 120, 30, 30), Rect(500, 100, 360, 440)
 
-  -- No geometry (the harness's own stand-ins): straight to onDone.
   local done = 0
   G.Play({ from = STUB_FRAME(), to = STUB_FRAME(), onDone = function() done = done + 1 end })
   check("an unreadable rect goes straight to onDone", done == 1, done)
   check("an unreadable rect leaves nothing playing", not G.IsPlaying(), "playing")
 
   done = 0
-  G.Play({ from = tile, to = card, color = { 0.2, 0.7, 0.9 }, edge = "left", onDone = function() done = done + 1 end })
+  G.Play({ from = STUB_FRAME(), fallback = tile, to = card, onDone = function() done = done + 1 end })
+  check("a tile without a rect falls back", G.IsPlaying(), "idle")
+  G.Stop()
+
+  done = 0
+  G.Play({ from = tile, to = card, color = { 0.2, 0.7, 0.9 }, onDone = function() done = done + 1 end })
   local ov = G._overlay()
-  check("Play builds the overlay", ov ~= nil, "nil")
-  check("the overlay shows", ov.shown, ov.shown)
-  check("the overlay has 32 strips", #ov.strips == 32, #ov.strips)
-  check("Play is playing", G.IsPlaying(), "idle")
-  check("onDone not called yet", done == 0, done)
+  check("Play builds the overlay", ov ~= nil and ov.shown, "")
+  check("warped pieces where textures take vertex offsets", #ov.pieces == G.WARP_PIECES, #ov.pieces)
+  check("an open starts folded, not finished", G.IsPlaying() and G.Progress() == 0 and done == 0, G.Progress())
+  check("the card starts hidden", card.alphaValue == 0, card.alphaValue)
   local tick = ov.scripts.OnUpdate
-  tick(ov, 0.05)
+  tick(ov, 0.1)
   local p1 = G.Progress()
   check("the open runs forward", p1 > 0 and p1 < 1, p1)
-  check("strips are laid against UIParent", ov.strips[1].points[1] and ov.strips[1].points[1][2] == UIParent, "")
-  check("strips get a colour", ov.strips[1].colorTexture ~= nil, "nil")
-  tick(ov, 0.05)
+  check("pieces are laid against UIParent", ov.pieces[1].points[1] and ov.pieces[1].points[1][2] == UIParent, "")
+  tick(ov, 0.1)
   check("progress keeps climbing", G.Progress() > p1, G.Progress())
   tick(ov, 1)
   check("onDone runs once at the end", done == 1, done)
   check("the overlay hides at the end", not ov.shown, ov.shown)
-  check("nothing plays after the end", not G.IsPlaying(), "playing")
+  check("the card is solid at the end", card.alphaValue == 1, card.alphaValue)
   tick(ov, 0.1)
   check("a stray tick after the end does nothing", done == 1, done)
 
-  -- Reverse runs p from 1 down to 0.
+  -- A close carries on from the finished open (grow 1) and runs down to 0.
   done = 0
-  G.Play({ from = tile, to = card, reverse = true, edge = "left", onDone = function() done = done + 1 end })
-  tick(ov, 0.05)
+  G.Play({ from = tile, to = card, reverse = true, onDone = function() done = done + 1 end })
+  check("a close starts open, not finished", G.IsPlaying() and G.Progress() == 1 and done == 0, G.Progress())
+  tick(ov, 0.1)
   local r1 = G.Progress()
-  check("reverse starts near 1", r1 < 1 and r1 > 0.5, r1)
-  tick(ov, 0.05)
-  check("reverse runs backward", G.Progress() < r1, G.Progress())
+  check("the close runs backward", r1 < 1 and r1 > 0, r1)
   tick(ov, 1)
-  check("reverse calls onDone at the end", done == 1, done)
-  -- The close ends with a short bright flash on the tile, then hides.
-  check("the flash keeps the overlay up", ov.shown, ov.shown)
-  tick(ov, 1)
-  check("the flash ends and the overlay hides", not ov.shown, ov.shown)
+  check("the close calls onDone at the end", done == 1, done)
+  check("the close hides the overlay", not ov.shown, ov.shown)
+
+  -- Reversing mid-open carries on from where the sheet is.
+  G.Stop()
+  G.Play({ from = tile, to = card })
+  tick(ov, 0.275)
+  local mid = G.Progress()
+  G.Play({ from = tile, to = card, reverse = true })
+  check("a close mid-open starts where the open was", math.abs(G.Progress() - mid) < 1e-9, G.Progress())
+  tick(ov, G.CLOSE * mid + 0.01)
+  check("and takes only the time left", not G.IsPlaying(), G.Progress())
 
   -- Stop drops onDone.
   done = 0
-  G.Play({ from = tile, to = card, edge = "left", onDone = function() done = done + 1 end })
+  G.Play({ from = tile, to = card, onDone = function() done = done + 1 end })
   tick(ov, 0.05)
   G.Stop()
   check("Stop hides the overlay", not ov.shown, ov.shown)
   tick(ov, 1)
   check("Stop drops onDone", done == 0, done)
 
-  -- Frames rescaled away from UIParent are measured in UIParent units.
-  local scaled = Rect(50, 65, 60, 75)
-  scaled.GetEffectiveScale = function() return 2 end
-  local rect = G.ReadRect(scaled)
-  check("a rect is read in UIParent units", rect and rect.left == 100 and rect.top == 150, rect and rect.left)
-  G.Stop()
+  local rect = G.ReadRect(Rect(50, 60, 15, 15, 2))
+  check("a rect is read in UIParent units", rect and rect.x == 100 and rect.y == 120 and rect.w == 30, rect and rect.x)
+  G._reset()
   CreateFrame = savedCreateFrame
 `, 'genie-play');
 
@@ -2241,6 +2201,7 @@ run(`
   local Echo = HorizonSuite.Echo
   local S, T, K, C, G, V = Echo.Store, Echo.Tiles, Echo.Stack, Echo.Card, Echo.Genie, Echo.View
   S.Reset()
+  G._reset()
   local savedCreateFrame = CreateFrame
   CreateFrame = STUB_CREATE_FRAME
   local db = {}
@@ -2251,27 +2212,27 @@ run(`
   C.Enable()
   local f = C._frames()
 
-  local function Geometry(frame, l, r, b, t)
+  local function Geometry(frame, l, b, w, h)
     frame.GetLeft = function() return l end
-    frame.GetRight = function() return r end
     frame.GetBottom = function() return b end
-    frame.GetTop = function() return t end
+    frame.GetWidth = function() return w end
+    frame.GetHeight = function() return h end
+    frame.GetEffectiveScale = function() return 1 end
   end
-  local alphas = {}
-  f.root.SetAlpha = function(self, a) self.alphaValue = a; alphas[#alphas + 1] = a end
+  f.root.SetAlpha = function(self, a) self.alphaValue = a end
   f.root.GetAlpha = function(self) return rawget(self, "alphaValue") or 1 end
-  Geometry(f.root, 500, 860, 100, 540)
+  Geometry(f.root, 500, 100, 360, 440)
 
   S.Add({ convKey = "w:Brisa-Horizon", text = "hi", sender = "Brisa-Horizon" })
   S.Add({ convKey = "w:Vexa-Horizon", text = "gz", sender = "Vexa-Horizon" })
   local vexa = T.TileFor("w:Vexa-Horizon")
   local brisa = T.TileFor("w:Brisa-Horizon")
   check("the column has tiles", vexa ~= nil and brisa ~= nil, "nil")
-  Geometry(vexa, 870, 900, 120, 150)
-  Geometry(brisa, 870, 900, 160, 190)
+  Geometry(vexa, 870, 120, 30, 30)
+  Geometry(brisa, 870, 160, 30, 30)
 
-  -- Open from a tile: the card is shown at alpha 0 and a genie pours out of the tile.
   vexa.scripts.OnClick(vexa)
+  local ov = G._overlay()
   check("a tile open shows the card", f.root:IsShown(), "hidden")
   check("a tile open starts at alpha 0", f.root:GetAlpha() == 0, f.root:GetAlpha())
   check("a tile open starts a genie", G.IsPlaying(), "idle")
@@ -2280,54 +2241,30 @@ run(`
   local r, g, b = V.FaceBackground(V.TileSpec(S.Get("w:Vexa-Horizon")))
   local col = G._current().color
   check("the genie is the tile's face colour", col[1] == r and col[2] == g and col[3] == b, col[1])
-  check("the genie opens away from the column", G._current().edge == "right", G._current().edge)
-  local ov = G._overlay()
   ov.scripts.OnUpdate(ov, 1)
   check("the genie ends", not G.IsPlaying(), "playing")
-  check("the contents are still hidden when the sheet ends", f.root:GetAlpha() < 0.05, f.root:GetAlpha())
-  local fader = C._frames().fader
-  check("a fader is running", fader ~= nil and fader.shown, "")
-  fader.scripts.OnUpdate(fader, 0.075)
-  local mid = f.root:GetAlpha()
-  check("the contents fade in", mid > 0 and mid < 1, mid)
-  fader.scripts.OnUpdate(fader, 0.2)
-  check("the fade ends at alpha 1", f.root:GetAlpha() == 1, f.root:GetAlpha())
-  check("the fader stops", not fader.shown, fader.shown)
+  check("the card is solid when the sheet ends", f.root:GetAlpha() == 1, f.root:GetAlpha())
 
-  -- Close by clicking the shown conversation's tile: a reverse genie, then the hide.
   vexa.scripts.OnClick(vexa)
   check("a toggle close keeps the card up during the genie", f.root:IsShown(), "hidden")
-  check("a toggle close hides the contents at once", f.root:GetAlpha() == 0, f.root:GetAlpha())
   check("a toggle close runs a reverse genie", G.IsPlaying() and G._current().reverse, "")
   vexa.scripts.OnClick(vexa)
   check("a second click during the close is ignored", f.root:IsShown() and G.IsPlaying() and G._current().reverse, "")
+  ov.scripts.OnUpdate(ov, 0.1)
+  check("the card fades as the sheet folds", f.root:GetAlpha() < 1, f.root:GetAlpha())
   ov.scripts.OnUpdate(ov, 1)
   check("the close hides the card at the end", not f.root:IsShown(), "shown")
   check("the close restores alpha for the next open", f.root:GetAlpha() == 1, f.root:GetAlpha())
-  ov.scripts.OnUpdate(ov, 1)
-  check("the tile flash ends", not ov.shown, ov.shown)
 
-  -- Escape (Card.Hide) is instant, mid-open, and restores alpha.
   vexa.scripts.OnClick(vexa)
-  check("reopened with a genie", G.IsPlaying(), "idle")
+  check("reopened with a genie", G.IsPlaying() and G.Progress() == 0, G.Progress())
   C.Hide()
   check("Hide is instant", not f.root:IsShown(), "shown")
   check("Hide stops the genie", not G.IsPlaying(), "playing")
   check("Hide restores alpha", f.root:GetAlpha() == 1, f.root:GetAlpha())
-  ov.scripts.OnUpdate(ov, 1)
-  check("a stopped open never fades in", C._frames().fader == nil or not C._frames().fader.shown, "")
 
-  -- Hide mid-fade stops the fade too.
   vexa.scripts.OnClick(vexa)
   ov.scripts.OnUpdate(ov, 1)
-  C.Hide()
-  check("Hide stops the fade", not C._frames().fader.shown, "")
-  check("Hide after a fade restores alpha", f.root:GetAlpha() == 1, f.root:GetAlpha())
-
-  -- Escape during a close: instant too.
-  vexa.scripts.OnClick(vexa)
-  ov.scripts.OnUpdate(ov, 1)
-  C._frames().fader.scripts.OnUpdate(C._frames().fader, 1)
   vexa.scripts.OnClick(vexa)
   check("closing", G.IsPlaying() and G._current().reverse, "")
   f.root:Hide()
@@ -2338,10 +2275,8 @@ run(`
   check("a click after an interrupted close opens again", f.root:IsShown() and G.IsPlaying() and not G._current().reverse, "")
   C.Hide()
 
-  -- Opening another conversation while a close genie runs stops it and opens normally.
   vexa.scripts.OnClick(vexa)
   ov.scripts.OnUpdate(ov, 1)
-  C._frames().fader.scripts.OnUpdate(C._frames().fader, 1)
   vexa.scripts.OnClick(vexa)
   check("closing again", G.IsPlaying() and G._current().reverse, "")
   brisa.scripts.OnClick(brisa)
@@ -2351,17 +2286,14 @@ run(`
   ov.scripts.OnUpdate(ov, 1)
   check("the cancelled close never hides the card", f.root:IsShown(), "hidden")
 
-  -- The card's own row tile closes into the column tile, when it is visible.
   local rowTile
   for _, t in ipairs(f.rowTiles) do if t.convKey == "w:Brisa-Horizon" then rowTile = t end end
   rowTile.scripts.OnClick(rowTile)
   check("a row tile close runs a reverse genie", G.IsPlaying() and G._current().reverse, "")
   check("into the column tile", G._current().from == brisa, "")
   ov.scripts.OnUpdate(ov, 1)
-  ov.scripts.OnUpdate(ov, 1)
   check("and hides", not f.root:IsShown(), "shown")
 
-  -- No tile, or the setting off: shown at alpha 1, no genie.
   C.Open("w:Vexa-Horizon")
   check("no tile opens at alpha 1", f.root:GetAlpha() == 1 and not G.IsPlaying(), f.root:GetAlpha())
   C.Hide()
@@ -2373,16 +2305,15 @@ run(`
   check("the setting off closes at once", not f.root:IsShown(), "shown")
   db.echoAnimateCard = nil
 
-  -- A tile with no geometry (the harness's stand-ins) still opens, straight to the fade.
   vexa.GetLeft = nil
   vexa.scripts.OnClick(vexa)
-  check("an unmeasurable tile still opens", f.root:IsShown() and not G.IsPlaying(), "")
+  check("an unmeasurable tile still opens, at full alpha", f.root:IsShown() and not G.IsPlaying() and f.root:GetAlpha() == 1, f.root:GetAlpha())
   C.Hide()
 
   C.Disable()
   K.Disable()
   T.Disable()
-  G.Stop()
+  G._reset()
   CreateFrame = savedCreateFrame
   HorizonSuite.ECHO_DEFAULTS, HorizonSuite.GetDB = nil, nil
   S.Reset()

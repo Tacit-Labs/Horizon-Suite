@@ -271,9 +271,11 @@ constraints:
 - **An Auto screen edge.** The column can follow whichever half of the screen it
   sits on, rather than a fixed left or right, so the stack and card open away
   from the column instead of over it.
-- **The card growing out of the clicked tile.** Opening the card animates it
-  scaling and fading in from the tile that was clicked, rather than simply
-  appearing.
+- **The card pours out of the clicked tile (a genie).** A sheet in the tile's
+  colour pours out of the tile and bends as it widens into the card, the far side
+  leading and the tile side last; the card fades in over the sheet's last stretch.
+  Clicking the tile again runs it in reverse, back into the tile. Escape, the
+  chevron and combat still close at once. "Animate the card" turns it off.
 
 Two points worth keeping in mind when working on any of this:
 
@@ -283,8 +285,10 @@ Two points worth keeping in mind when working on any of this:
   function. This keeps Echo out of the taint rules that govern Blizzard's own
   frames.
 - **Whisper Stack carried no licence.** Its ideas were reimplemented from a
-  plain-English description of what it does, not from its source, which Echo
-  never read or copied.
+  plain-English description of what it does, not from its source. The one
+  exception is the genie: Devin gave the director his code to help integrate it
+  (2026-09-26), so `EchoGenie.lua` adapts his technique (warped pieces with shared
+  edges, a matching vertical gradient, the far side leading) and credits him.
 
 ## Testing
 
