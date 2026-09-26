@@ -50,6 +50,19 @@ function addon.DashboardHomeWelcome_Init(env)
         echo     = { 0.56, 0.64, 0.91 },
     }
 
+    -- A "pure" function, tested by extracting the exact source slice below
+    -- (tools/test_echo_logic.js), since this file isn't loaded in the logic harness. A
+    -- module icon that already names a full path (it has a backslash, as the Echo tile art
+    -- does) is used as-is; anything else resolves under Interface\Icons\ as before.
+    -- ECHO_ICON_PATH_HELPER_START
+    local function ModuleIconPath(icon)
+        if type(icon) == "string" and icon:find("\\", 1, true) then return icon end
+        return "Interface\\Icons\\" .. (icon or "INV_Misc_Question_01")
+    end
+    -- ECHO_ICON_PATH_HELPER_END
+
+    local echoAddonName = (addon and addon.ADDON_NAME) or (envAddon and envAddon.ADDON_NAME) or "HorizonSuite"
+
     local MODULE_ICONS = {
         focus    = "achievement_quests_completed_05",
         presence = "vas_guildnamechange",
@@ -57,7 +70,7 @@ function addon.DashboardHomeWelcome_Init(env)
         insight  = "ui_profession_inscription",
         augment    = "Spell_holy_powerinfusion",
         essence  = "achievement_character_human_male",
-        echo     = "inv_letter_15",
+        echo     = "Interface\\AddOns\\" .. echoAddonName .. "\\media\\echo\\echo_icon.tga",
     }
 
     local MODULE_DESCS = {
@@ -203,7 +216,7 @@ function addon.DashboardHomeWelcome_Init(env)
         local iconTex = card:CreateTexture(nil, "ARTWORK")
         iconTex:SetSize(ICON_SIZE, ICON_SIZE)
         iconTex:SetPoint("TOPLEFT", card, "TOPLEFT", 18, -topInset)
-        iconTex:SetTexture("Interface\\Icons\\" .. (MODULE_ICONS[moduleKey] or "INV_Misc_Question_01"))
+        iconTex:SetTexture(ModuleIconPath(MODULE_ICONS[moduleKey]))
         card.iconTex = iconTex
 
         local modName = (moduleLabels and moduleLabels[moduleKey]) or (moduleKey:sub(1, 1):upper() .. moduleKey:sub(2))
