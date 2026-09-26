@@ -114,7 +114,7 @@ local function GuildClass(targetName)
         return nil, nil
     end
     local okIn, inGuild = pcall(IsInGuild)
-    if not okIn or inGuild ~= true then return nil, nil end
+    if not okIn or IsSecret(inGuild) or not inGuild then return nil, nil end
     local okNum, num = pcall(GetNumGuildMembers)
     if not okNum or IsSecret(num) or type(num) ~= "number" then return nil, nil end
     for i = 1, num do
@@ -279,6 +279,10 @@ end
 local function OnRosterEvent(_, event)
     if event == GUILD_TABARD_EVENT or event == "GUILD_ROSTER_UPDATE" then
         if Echo.View and Echo.View.ClearGuildTabardCache then Echo.View.ClearGuildTabardCache() end
+        -- The guild tile's face may have just changed (a new tabard, or none at all): mark
+        -- it unconditionally, not only when a classless whisper happens to be open too.
+        Echo.Redraw.Mark("tiles")
+        Echo.Redraw.Mark("cardRow")
     end
     if event == BNET_EVENT then
         HandleRosterEvent(BnetConversations())
@@ -293,7 +297,7 @@ end
 local function RequestGuildRoster()
     if type(IsInGuild) ~= "function" then return end
     local ok, inGuild = pcall(IsInGuild)
-    if not ok or IsSecret(inGuild) or inGuild ~= true then return end
+    if not ok or IsSecret(inGuild) or not inGuild then return end
     if type(C_GuildInfo) == "table" and type(C_GuildInfo.GuildRoster) == "function" then
         pcall(C_GuildInfo.GuildRoster)
     elseif type(GuildRoster) == "function" then

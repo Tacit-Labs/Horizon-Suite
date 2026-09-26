@@ -152,6 +152,13 @@ local GROUP_MEMBERS = {
     { id = "system",                  label = L["ECHO_KIND_SYSTEM"] },
 }
 
+-- A member id starting "ch:" but not the "ch:*" wildcard: an exact channel entry. For these,
+-- "None" must write `false` (not remove the entry), so a per-channel None beats a grouped
+-- "Other channels" (ch:*) fallback. Every other member id just clears its entry.
+local function IsExactChannel(id)
+    return type(id) == "string" and id:sub(1, 3) == "ch:" and id ~= "ch:*"
+end
+
 -- A fresh copy of a 4-entry group-names table, defaulting missing/invalid entries to "".
 local function GroupNamesCopy()
     local names = getDB("echoGroupNames", D.echoGroupNames)
@@ -203,34 +210,34 @@ for i, member in ipairs(GROUP_MEMBERS) do
         preserveOrder = true,
         options = function()
             local names = getDB("echoGroupNames", D.echoGroupNames)
-            local of = getDB("echoGroupOf", D.echoGroupOf)
+            -- Only named groups are offered; a blank-named group groups nothing, so it isn't
+            -- worth choosing even when something is still (stale) assigned to it.
             local opts = { { L["ECHO_GROUP_NONE"], "none" } }
             for gi = 1, 4 do
                 local name = (type(names) == "table") and names[gi] or nil
-                local label
                 if type(name) == "string" and name:find("%S") then
-                    label = name
-                elseif type(of) == "table" then
-                    for _, v in pairs(of) do
-                        if v == gi then
-                            label = L["ECHO_GROUP_FALLBACK"]:format(gi)
-                            break
-                        end
-                    end
+                    opts[#opts + 1] = { name, gi }
                 end
-                if label then opts[#opts + 1] = { label, gi } end
             end
             return opts
         end,
+        -- nil and false both read as "None": false is the explicit "not grouped, no
+        -- ch:* fallback" marker an exact channel writes below.
         get = function()
             local of = getDB("echoGroupOf", D.echoGroupOf)
             local v = (type(of) == "table") and of[id] or nil
-            if v == nil then return "none" end
+            if v == nil or v == false then return "none" end
             return v
         end,
         set = function(v)
             local copy = GroupOfCopy()
-            if v == "none" then copy[id] = nil else copy[id] = v end
+            if v == "none" then
+                -- Lua's `and/or` idiom can't choose `false` here (it would fall through to
+                -- the `or` branch), so this stays an explicit if.
+                if IsExactChannel(id) then copy[id] = false else copy[id] = nil end
+            else
+                copy[id] = v
+            end
             setDB("echoGroupOf", copy)
         end,
     }

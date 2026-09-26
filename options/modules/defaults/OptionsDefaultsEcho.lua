@@ -6,6 +6,11 @@
 ]]
 local addon = _G.HorizonSuite
 if not addon then return end
+local L = addon.L
+
+-- Group 1's default name, localised. enUS.lua loads before this file in the TOC, so L is
+-- normally populated; the literal is a defensive fallback for a load order that isn't.
+local DEFAULT_GROUP_1_NAME = (L and L["ECHO_GROUP_CHANNELS"]) or "Channels"
 
 addon.ECHO_DEFAULTS = {
     echoColumnEdge         = "auto",
@@ -47,7 +52,7 @@ addon.ECHO_DEFAULTS = {
     -- echoGroupOf maps a member id to its group index. Read through Echo.Setting; never
     -- mutate these tables in place.
     echoGroupsEnabled      = true,
-    echoGroupNames         = { "Channels", "", "", "" },
+    echoGroupNames         = { DEFAULT_GROUP_1_NAME, "", "", "" },
     echoGroupOf            = {
         ["ch:General"] = 1, ["ch:Trade"] = 1, ["ch:Trade (Services)"] = 1,
         ["ch:LocalDefense"] = 1, ["ch:LookingForGroup"] = 1,

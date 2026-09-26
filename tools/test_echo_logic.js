@@ -1004,11 +1004,19 @@ run(`
   check("the column exists and is shown", column and column:IsShown(), "missing")
   check("WoW's layout cache never saves the column's position", column.dontSave == true, tostring(column.dontSave))
   check("the default anchor is bottom right", column.points[1] and column.points[1][1] == "BOTTOMRIGHT", column.points[1] and column.points[1][1])
-  -- Final fix 6: the chat/stack button is rounded with the SMALL radius and a border,
-  -- replacing its old backdrop.
+  -- Plan 9: the stack button shows the Echo icon filling it (inset 1px), with no rounded
+  -- panel fill or border behind it (the icon is already a rounded tile).
   local stackButtonRR = rawget(T._stackButton(), "_echoRound")
-  check("the stack button is rounded with the SMALL radius and a border",
-    stackButtonRR ~= nil and stackButtonRR.corners.tl == HorizonSuite.Echo.Round.SMALL and stackButtonRR.border ~= nil, "?")
+  check("the stack button has no rounded panel behind the icon", stackButtonRR == nil, "?")
+  local sb = T._stackButton()
+  check("the stack button's icon is the Echo icon", sb.icon.texture == HorizonSuite.Echo.View.ECHO_ICON, tostring(sb.icon.texture))
+  check("the icon is inset 1px", sb.icon.points[1] and sb.icon.points[1][1] == "TOPLEFT"
+    and sb.icon.points[1][4] == 1 and sb.icon.points[1][5] == -1, "?")
+  check("the highlight starts hidden", not sb.highlight:IsShown(), "shown")
+  sb.scripts.OnEnter(sb)
+  check("hover shows the highlight", sb.highlight:IsShown(), "hidden")
+  sb.scripts.OnLeave(sb)
+  check("leaving hides the highlight", not sb.highlight:IsShown(), "shown")
 
   S.Add({ convKey = "w:Brisa-Horizon", text = "got the leather", class = "DRUID", sender = "Brisa-Horizon" })
   local tile = T.TileFor("w:Brisa-Horizon")
@@ -4013,7 +4021,7 @@ run(`
   local defaultLabels = {}
   for _, o in ipairs(defaultOpts) do defaultLabels[#defaultLabels + 1] = o[1] end
   check("dropdown lists None then the one named default group",
-    #defaultLabels == 2 and defaultLabels[1] == A.L["ECHO_GROUP_NONE"] and defaultLabels[2] == "Channels",
+    #defaultLabels == 2 and defaultLabels[1] == A.L["ECHO_GROUP_NONE"] and defaultLabels[2] == A.L["ECHO_GROUP_CHANNELS"],
     table.concat(defaultLabels, ","))
 
   lootOpt.set(2)
@@ -4029,23 +4037,49 @@ run(`
     ofAfterClear ~= ofAfterAssign and ofAfterClear.loot == nil, tostring(ofAfterClear and ofAfterClear.loot))
   check("loot back at None", lootOpt.get() == "none", tostring(lootOpt.get()))
 
-  local partyOpt = findOpt("dropdown", A.L["ECHO_KIND_PARTY"])
-  partyOpt.set(3)
-  local partyOpts = partyOpt.options()
-  local partyLabels = {}
-  for _, o in ipairs(partyOpts) do partyLabels[#partyLabels + 1] = o[1] end
-  check("a blank but referenced group falls back to Group N",
-    partyLabels[3] == A.L["ECHO_GROUP_FALLBACK"]:format(3), table.concat(partyLabels, ","))
-  partyOpt.set("none")
-
   local group2NameOpt = findOpt("editbox", A.L["ECHO_GROUP_NAME"]:format(2), 2)
   check("group 2 name editbox exists", group2NameOpt ~= nil, "?")
   check("group 2 name starts blank", group2NameOpt.get() == "", tostring(group2NameOpt.get()))
   group2NameOpt.set("Crew")
   local namesAfter = A.OptionsData_GetDB("echoGroupNames")
   check("renaming group 2 writes a copy",
-    namesAfter ~= A.ECHO_DEFAULTS.echoGroupNames and namesAfter[1] == "Channels" and namesAfter[2] == "Crew", namesAfter and namesAfter[2])
+    namesAfter ~= A.ECHO_DEFAULTS.echoGroupNames and namesAfter[1] == A.L["ECHO_GROUP_CHANNELS"] and namesAfter[2] == "Crew", namesAfter and namesAfter[2])
   check("default echoGroupNames is not mutated", A.ECHO_DEFAULTS.echoGroupNames[2] == "", A.ECHO_DEFAULTS.echoGroupNames[2])
+
+  -- Blank groups aren't offered (final fix 2): a blank-named group groups nothing, so even
+  -- when something is (stale-)assigned to it, the dropdown doesn't list it, "Group N" or not.
+  local partyOpt = findOpt("dropdown", A.L["ECHO_KIND_PARTY"])
+  partyOpt.set(3)
+  local partyOpts = partyOpt.options()
+  -- None, group 1 ("Channels") and group 2 ("Crew", just renamed above); group 3 stays
+  -- blank and unlisted even though party now points at it.
+  check("a blank but referenced group isn't offered", #partyOpts == 3, #partyOpts)
+  for _, o in ipairs(partyOpts) do
+    check("no option names an unnamed group", o[2] ~= 3, o[1])
+  end
+  partyOpt.set("none")
+
+  -- None beats "Other channels" (final fix 1): for an exact channel id, None writes false
+  -- (not a removed entry), so it is not shadowed by a grouped ch:* fallback.
+  local tradeOpt = findOpt("dropdown", A.L["ECHO_GROUP_MEMBER_TRADE"])
+  local otherOpt = findOpt("dropdown", A.L["ECHO_GROUP_MEMBER_OTHER_CHANNELS"])
+  check("trade and other-channels dropdowns exist", tradeOpt ~= nil and otherOpt ~= nil, "?")
+  otherOpt.set(2)
+  tradeOpt.set("none")
+  local ofChannelNone = A.OptionsData_GetDB("echoGroupOf")
+  check("None on an exact channel writes false, not a removed entry",
+    ofChannelNone["ch:Trade"] == false, tostring(ofChannelNone["ch:Trade"]))
+  check("the dropdown still reads None for a false entry", tradeOpt.get() == "none", tostring(tradeOpt.get()))
+
+  A.GetDB = A.OptionsData_GetDB
+  check("Groups.Of honours the exact-channel None over the ch:* group",
+    A.Echo.Groups.Of("ch:Trade") == nil, tostring(A.Echo.Groups.Of("ch:Trade")))
+  check("an unlisted channel still falls back to Other channels' group",
+    A.Echo.Groups.Of("ch:SomeCustom") == 2, tostring(A.Echo.Groups.Of("ch:SomeCustom")))
+  A.GetDB = nil
+
+  otherOpt.set("none")
+  tradeOpt.set("none")
 
   A.OptionCategories, A.OptionsData_GetDB, A.OptionsData_SetDB = nil, nil, nil
   A.Section, A.Button, A.Toggle, A.GetPerElementFontDropdownOptions = nil, nil, nil, nil
@@ -4270,6 +4304,19 @@ run(`
   class, source = Echo.Class.Resolve(thornwick)
   check("a guild member resolves", class == "ROGUE" and source == "guild", tostring(class) .. "/" .. tostring(source))
 
+  -- Final fix 7: IsInGuild's truthiness accepts any truthy readable value, not only true.
+  UnitName = function() return "Someoneelse2", "" end
+  IsInGuild = function() return 1 end
+  S.Add({ convKey = "w:Thornwick2-Horizon", text = "hi" })
+  local thornwick2 = S.Get("w:Thornwick2-Horizon")
+  GetGuildRosterInfo = function(i)
+    if i == 1 then return "Thornwick2-Horizon", "Officer", 1, 60, "Rogue", "Zone", "", "", true, 1, "ROGUE" end
+    return nil
+  end
+  class, source = Echo.Class.Resolve(thornwick2)
+  check("a truthy non-boolean IsInGuild still resolves a guild member",
+    class == "ROGUE" and source == "guild", tostring(class) .. "/" .. tostring(source))
+
   -- A friend resolves when nobody in the group or guild matches.
   IsInGuild = function() return false end
   C_FriendList = {
@@ -4387,11 +4434,19 @@ run(`
   Echo.Class.Enable()
   local frame = Echo.Class._frame()
 
-  -- With no classless open whisper conversation, a guild event marks nothing.
+  -- Final fix 3: a guild roster event always marks tiles and cardRow, even with nothing a
+  -- classless whisper could resolve, since the guild tile's own tabard may have changed.
   S.Reset()
   ResetMarks()
   frame.scripts.OnEvent(frame, "GUILD_ROSTER_UPDATE")
-  check("no classless whisper: a guild event marks nothing", next(marks) == nil, "marked something")
+  check("no classless whisper: a guild event still marks tiles for the tabard", marks.tiles == true, "?")
+  check("no classless whisper: a guild event still marks cardRow for the tabard", marks.cardRow == true, "?")
+  check("no classless whisper: a guild event marks nothing else", marks.stack == nil and marks.card == nil, "marked something else")
+
+  ResetMarks()
+  frame.scripts.OnEvent(frame, "PLAYER_GUILD_UPDATE")
+  check("PLAYER_GUILD_UPDATE also marks tiles for the tabard", marks.tiles == true, "?")
+  check("PLAYER_GUILD_UPDATE also marks cardRow for the tabard", marks.cardRow == true, "?")
 
   -- With one classless whisper conversation, a guild event marks tiles and stack; a
   -- different shown conversation gets only its row marked, not the full card.
@@ -4414,7 +4469,10 @@ run(`
   Echo.Card.ShownKey = function() return "w:Retry-Horizon" end
   ResetMarks()
   frame.scripts.OnEvent(frame, "GUILD_ROSTER_UPDATE")
-  check("the shown conversation marks the full card", marks.card == true and marks.cardRow == nil, "?")
+  -- cardRow is also marked here (final fix 3's unconditional tabard mark), alongside the
+  -- full card the affected-conversation branch marks.
+  check("the shown conversation marks the full card", marks.card == true, "?")
+  check("and cardRow too, unconditionally for the tabard", marks.cardRow == true, "?")
   Echo.Card.ShownKey = savedShownKey
 
   -- Past the throttle, the event clears the miss.
@@ -4775,7 +4833,7 @@ run(`
   check("groups on by default", A.ECHO_DEFAULTS.echoGroupsEnabled == true, tostring(A.ECHO_DEFAULTS.echoGroupsEnabled))
   local names = A.ECHO_DEFAULTS.echoGroupNames
   check("four group names, the first is Channels",
-    type(names) == "table" and #names == 4 and names[1] == "Channels" and names[2] == "" and names[4] == "", "?")
+    type(names) == "table" and #names == 4 and names[1] == A.L["ECHO_GROUP_CHANNELS"] and names[2] == "" and names[4] == "", "?")
   local of = A.ECHO_DEFAULTS.echoGroupOf
   check("default group holds the five public channels",
     of["ch:General"] == 1 and of["ch:Trade"] == 1 and of["ch:Trade (Services)"] == 1
@@ -4857,11 +4915,12 @@ run(`
   check("group face is the group icon", spec.face == "icon" and spec.icon == V.GROUP_ICON and spec.glyph == true, spec.face)
   check("group label is its short name", spec.label == V.ShortName("Channels", 6), spec.label)
   check("group accent colour", spec.r == V.ACCENT.r and spec.g == V.ACCENT.g and spec.b == V.ACCENT.b, spec.r)
-  check("group count sums its members", spec.count == 6, spec.count)
-  check("quiet members give no badge", spec.badge == nil, tostring(spec.badge))
+  -- Final fix 4: quiet (and muted) members don't inflate the group's count, only ones with
+  -- their own badge do.
+  check("quiet members give no badge and don't inflate the count", spec.badge == nil and spec.count == 0, spec.count)
   S.SetTier("loot", "count")
   spec = V.TileSpec(g1)
-  check("a count member gives a count badge", spec.badge == "count", tostring(spec.badge))
+  check("a count member gives a count badge and joins the sum", spec.badge == "count" and spec.count == 4, spec.count)
   guild.unread = 1
   S.SetTier("loot", nil)
   S.SetTier("ch:Trade", "count")
@@ -4876,7 +4935,7 @@ run(`
   local dnames, dof = A.ECHO_DEFAULTS.echoGroupNames, A.ECHO_DEFAULTS.echoGroupOf
   local n = 0
   for _ in pairs(dof) do n = n + 1 end
-  check("default tables are not mutated", #dnames == 4 and dnames[1] == "Channels" and n == 5, n)
+  check("default tables are not mutated", #dnames == 4 and dnames[1] == A.L["ECHO_GROUP_CHANNELS"] and n == 5, n)
 
   A.GetDB = nil
   A.ECHO_DEFAULTS, A.ECHO_KEYS, A.ECHO_LIMITS = nil, nil, nil
@@ -4951,7 +5010,7 @@ run(`
   G._overlay().scripts.OnUpdate(G._overlay(), 1)
   check("the card shows the newest member", C.ShownKey() == "ch:General", tostring(C.ShownKey()))
   check("the title names the group and the member",
-    f.name.text == L_FMT("ECHO_GROUP_TITLE", "Channels", V.DisplayName(S.Get("ch:General"))), f.name.text)
+    f.name.text == L_FMT("ECHO_GROUP_TITLE", A.L["ECHO_GROUP_CHANNELS"], V.DisplayName(S.Get("ch:General"))), f.name.text)
   local tabs = {}
   for _, t in ipairs(f.tabs) do if t:IsShown() then tabs[#tabs + 1] = t end end
   check("a tab per open member", #tabs == 2, #tabs)
@@ -4989,7 +5048,7 @@ run(`
   tradeTab.scripts.OnClick(tradeTab)
   check("a tab click switches member", C.ShownKey() == "ch:Trade", tostring(C.ShownKey()))
   check("the new member's box starts empty", f.edit:GetText() == "", f.edit:GetText())
-  check("the title follows the member", f.name.text == L_FMT("ECHO_GROUP_TITLE", "Channels", V.DisplayName(S.Get("ch:Trade"))), f.name.text)
+  check("the title follows the member", f.name.text == L_FMT("ECHO_GROUP_TITLE", A.L["ECHO_GROUP_CHANNELS"], V.DisplayName(S.Get("ch:Trade"))), f.name.text)
   check("the tab reads Trade as read", S.Get("ch:Trade").unread == 0, S.Get("ch:Trade").unread)
   f.edit:SetText("trade draft")
   for _, t in ipairs(f.tabs) do if t.convKey == "ch:General" then generalTab = t end end
@@ -5013,7 +5072,7 @@ run(`
   -- A member key opens its group with that tab selected.
   C.Open("ch:General")
   check("a member opens as its group", C.ShownKey() == "ch:General" and f.tabStrip:IsShown(), tostring(C.ShownKey()))
-  check("with the group title", f.name.text == L_FMT("ECHO_GROUP_TITLE", "Channels", V.DisplayName(S.Get("ch:General"))), f.name.text)
+  check("with the group title", f.name.text == L_FMT("ECHO_GROUP_TITLE", A.L["ECHO_GROUP_CHANNELS"], V.DisplayName(S.Get("ch:General"))), f.name.text)
 
   -- An ungrouped chat has no tabs and the normal area.
   C.Show("w:Brisa-Horizon")
@@ -5029,6 +5088,78 @@ run(`
   check("closing a member moves to the other", f.root:IsShown() and left ~= nil and S.Get(left).open and Gr.Of(left) == 1, tostring(left))
   S.Close(left)
   check("closing the last member hides the card", not f.root:IsShown(), "shown")
+
+  -- Final fix 5: tabs never shrink below the 24px floor. (No GetStringWidth stub here, so
+  -- every tab measures at Tab()'s 30px stand-in width, same as the earlier tabs above.)
+  -- Twelve members share the strip evenly at exactly the 24px floor: all twelve fit, no
+  -- overflow tab needed.
+  S.Reset()
+  db.echoGroupOf = {}
+  local twelveIds = {
+    "ch:General", "ch:Trade", "ch:Trade (Services)", "ch:LocalDefense", "ch:LookingForGroup",
+    "ch:WorldDefense", "ch:NewcomerChat", "ch:*", "guild", "officer", "party", "raid",
+  }
+  for _, id in ipairs(twelveIds) do
+    db.echoGroupOf[id] = 1
+    S.Add({ convKey = id, text = "hi" })
+  end
+  C.Open("grp:1")
+  local twelveShown, twelvePlus = 0, false
+  for _, t in ipairs(f.tabs) do
+    if t:IsShown() then
+      if t.text.text:find("^%+%d+$") then twelvePlus = true else twelveShown = twelveShown + 1 end
+    end
+  end
+  check("twelve members share the strip at exactly the 24px floor", twelveShown == 12 and not twelvePlus, twelveShown)
+
+  -- Past the floor, only as many as fit are shown, plus a trailing "+N" tab for the rest.
+  S.Reset()
+  db.echoGroupOf = {}
+  local manyIds = {
+    "ch:General", "ch:Trade", "ch:Trade (Services)", "ch:LocalDefense", "ch:LookingForGroup",
+    "ch:WorldDefense", "ch:NewcomerChat", "ch:*", "guild", "officer", "party", "raid",
+    "instance", "loot", "progress", "system",
+  }
+  for _, id in ipairs(manyIds) do
+    db.echoGroupOf[id] = 1
+    S.Add({ convKey = id, text = "hi" })
+  end
+  C.Open("grp:1")
+  local function VisibleTabs()
+    local vshown, plus = {}, nil
+    for _, t in ipairs(f.tabs) do
+      if t:IsShown() then
+        if t.text.text:find("^%+%d+$") then plus = t else vshown[#vshown + 1] = t end
+      end
+    end
+    return vshown, plus
+  end
+  local mShown, mPlus = VisibleTabs()
+  check("past the floor, only as many tabs fit as the strip allows", #mShown == 11, #mShown)
+  check("the rest fold into a trailing +N tab", mPlus ~= nil and mPlus.text.text == "+5", mPlus and mPlus.text.text)
+  local selectedShown = false
+  for _, t in ipairs(mShown) do if t.convKey == C.ShownKey() then selectedShown = true end end
+  check("the selected member is among the shown tabs", selectedShown, tostring(C.ShownKey()))
+
+  -- Select a member folded into the overflow: it must be pulled back into the shown tabs.
+  local hiddenKey
+  for _, id in ipairs(manyIds) do
+    local isShown = false
+    for _, t in ipairs(mShown) do if t.convKey == id then isShown = true end end
+    if not isShown then hiddenKey = id break end
+  end
+  check("there is a hidden member to select", hiddenKey ~= nil, "?")
+  C.Show(hiddenKey)
+  mShown, mPlus = VisibleTabs()
+  local hiddenNowShown = false
+  for _, t in ipairs(mShown) do if t.convKey == hiddenKey then hiddenNowShown = true end end
+  check("selecting a folded member keeps it visible", hiddenNowShown, tostring(C.ShownKey()))
+  check("still exactly one +N tab for the rest", mPlus ~= nil and mPlus.text.text == "+5", mPlus and mPlus.text.text)
+
+  -- Clicking "+N" selects the first member it is folding in.
+  local targetKey = mPlus.convKey
+  mPlus.scripts.OnClick(mPlus)
+  check("clicking +N selects the next hidden member", C.ShownKey() == targetKey, tostring(C.ShownKey()))
 
   C.Disable()
   K.Disable()
@@ -5151,6 +5282,19 @@ run(`
   V.ClearGuildTabardCache()
   check("missing emblemFileID reads nil", V.GuildTabard() == nil, "?")
 
+  -- Final fix 7: IsInGuild's truthiness accepts any truthy readable value, not only true.
+  IsInGuild = function() return 1 end
+  C_GuildInfo = {
+    GetGuildTabardInfo = function(unit)
+      if unit ~= "player" then return nil end
+      local function ColorObj2(r, g, b) return { GetRGB = function(self) return self.r, self.g, self.b end, r = r, g = g, b = b } end
+      return { emblemFileID = 777, emblemColor = ColorObj2(1, 1, 1), backgroundColor = ColorObj2(0, 0, 0) }
+    end,
+  }
+  V.ClearGuildTabardCache()
+  local truthyTabard = V.GuildTabard()
+  check("a truthy non-boolean IsInGuild still reads the tabard", truthyTabard and truthyTabard.emblem == 777, truthyTabard)
+
   IsInGuild, C_GuildInfo, GetTime = saved.IsInGuild, saved.C_GuildInfo, saved.GetTime
   V.ClearGuildTabardCache()
 `, 'echo-guild-tabard');
@@ -5235,6 +5379,31 @@ run(`
         and icon.vertexColor[1] == 1 and icon.vertexColor[2] == 1 and icon.vertexColor[3] == 1
         and icon.vertexColor[4] == 1, icon.vertexColor)
 `, 'echo-tabard-painter');
+
+// --- Dashboard: the module icon path helper (a pure function, since the dashboard file
+// itself needs a full DashboardHomeWelcome_Init env this harness doesn't build) ------------
+{
+  const dashSrc = read('options/dashboard/DashboardHomeWelcome.lua');
+  const startMarker = '-- ECHO_ICON_PATH_HELPER_START';
+  const endMarker = '-- ECHO_ICON_PATH_HELPER_END';
+  const startIdx = dashSrc.indexOf(startMarker);
+  const endIdx = dashSrc.indexOf(endMarker);
+  if (startIdx === -1 || endIdx === -1 || endIdx < startIdx) {
+    console.error('echo-dashboard-icon-path: could not find the ModuleIconPath helper markers');
+    process.exit(1);
+  }
+  const helperSrc = dashSrc.slice(startIdx + startMarker.length, endIdx);
+  run(`
+    ${helperSrc}
+    check("a path with a backslash is used as-is",
+      ModuleIconPath("Interface\\\\AddOns\\\\HorizonSuite\\\\media\\\\echo\\\\echo_icon.tga")
+        == "Interface\\\\AddOns\\\\HorizonSuite\\\\media\\\\echo\\\\echo_icon.tga", "?")
+    check("a bare icon name is prefixed with Interface\\\\Icons\\\\",
+      ModuleIconPath("inv_letter_15") == "Interface\\\\Icons\\\\inv_letter_15", "?")
+    check("a nil icon falls back to the question-mark icon",
+      ModuleIconPath(nil) == "Interface\\\\Icons\\\\INV_Misc_Question_01", "?")
+  `, 'echo-dashboard-icon-path');
+}
 
 // --- Redraw: one repaint per frame -------------------------------------------
 run(`

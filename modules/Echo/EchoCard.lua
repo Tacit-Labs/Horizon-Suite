@@ -44,6 +44,7 @@ Card.FEED_GAP = 2
 Card.TAB_HEIGHT = 18
 Card.TAB_GAP = 4
 Card.TAB_STRIP = Card.TAB_HEIGHT + Card.TAB_GAP  -- how far a group card's area moves down
+Card.TAB_MIN_WIDTH = 24  -- a tab never shrinks below this; below it, tabs overflow into "+N"
 
 local root, nameText, metaText, area, edit, send, menuButton, chevron, statusLine, hint, rule
 local rowTiles, bubbles, labels, tabs = {}, {}, {}, {}
@@ -588,9 +589,18 @@ local function TabLabel(conv)
     return label
 end
 
+-- The dim, unselected tab look, shared by a member tab and the "+N" overflow tab.
+local function DimTab(t)
+    Echo.Round.SetColor(t, 0.11, 0.11, 0.15, 0.95)
+    t.text:SetTextColor(0.55, 0.60, 0.75, 1)
+end
+
 -- The tab strip for a group card: a small rounded tab per open member, the selected one
 -- filled with the accent, the others dim, an unread one dotted. Tabs share the strip's
--- width when their names don't fit side by side. Hidden for a lone conversation.
+-- width when their names don't fit side by side, never shrinking below Card.TAB_MIN_WIDTH;
+-- past that floor, as many as fit are shown (the selected one always among them) and the
+-- rest fold into a trailing "+N" tab that selects the first hidden member. Hidden for a
+-- lone conversation.
 local function PaintTabs(members)
     if not members then
         tabStrip:Hide()
@@ -600,7 +610,7 @@ local function PaintTabs(members)
         end
         return
     end
-    local a = Echo.View.ACCENT
+    local minW = Card.TAB_MIN_WIDTH
     local widths, total = {}, 0
     for i, conv in ipairs(members) do
         local t = Tab(i)
@@ -611,15 +621,61 @@ local function PaintTabs(members)
         widths[i] = math.ceil(w) + 14
         total = total + widths[i] + (i > 1 and Card.TAB_GAP or 0)
     end
+
     local avail = Card.WIDTH - Card.PAD * 2
-    local even
+    local shown, finalWidths = members, widths
+    local overflowKey, overflowCount
+
     if total > avail then
-        even = math.floor((avail - Card.TAB_GAP * (#members - 1)) / #members)
+        local even = math.floor((avail - Card.TAB_GAP * (#members - 1)) / #members)
+        if even >= minW then
+            finalWidths = {}
+            for i = 1, #members do finalWidths[i] = even end
+        else
+            -- Even the floor width doesn't fit everyone: show as many as fit at the floor,
+            -- keeping the selected member visible, plus a trailing "+N" tab for the rest.
+            local budget = avail - minW - Card.TAB_GAP
+            local fit = math.floor((budget + Card.TAB_GAP) / (minW + Card.TAB_GAP))
+            fit = math.max(1, math.min(#members - 1, fit))
+
+            shown = {}
+            for i = 1, fit do shown[i] = members[i] end
+            local haveSelected = false
+            for i = 1, fit do
+                if shown[i].key == renderedKey then haveSelected = true break end
+            end
+            if not haveSelected then
+                for i = fit + 1, #members do
+                    if members[i].key == renderedKey then
+                        shown[fit] = members[i]
+                        break
+                    end
+                end
+            end
+
+            local shownKeys = {}
+            for _, conv in ipairs(shown) do shownKeys[conv.key] = true end
+            overflowCount = 0
+            for _, conv in ipairs(members) do
+                if not shownKeys[conv.key] then
+                    overflowCount = overflowCount + 1
+                    if not overflowKey then overflowKey = conv.key end
+                end
+            end
+
+            finalWidths = {}
+            for i = 1, #shown do finalWidths[i] = minW end
+        end
     end
-    local x = 0
-    for i, conv in ipairs(members) do
-        local t = tabs[i]
-        local w = even or widths[i]
+
+    local a = Echo.View.ACCENT
+    local x, count = 0, #shown
+    for i = 1, count do
+        local conv = shown[i]
+        local t = tabs[i] or Tab(i)
+        t.convKey = conv.key
+        t.text:SetText(TabLabel(conv))
+        local w = finalWidths[i]
         t:SetWidth(w)
         t:ClearAllPoints()
         t:SetPoint("TOPLEFT", tabStrip, "TOPLEFT", x, 0)
@@ -630,13 +686,27 @@ local function PaintTabs(members)
             Echo.Round.SetColor(t, a.r, a.g, a.b, 0.9)
             t.text:SetTextColor(0.05, 0.05, 0.07, 1)
         else
-            Echo.Round.SetColor(t, 0.11, 0.11, 0.15, 0.95)
-            t.text:SetTextColor(0.55, 0.60, 0.75, 1)
+            DimTab(t)
         end
         t.dot:SetShown((conv.unread or 0) > 0 and not isSelected)
         t:Show()
     end
-    for i = #members + 1, #tabs do
+
+    if overflowKey then
+        count = count + 1
+        local t = tabs[count] or Tab(count)
+        t.convKey = overflowKey
+        t.text:SetText("+" .. overflowCount)
+        t:SetWidth(minW)
+        t:ClearAllPoints()
+        t:SetPoint("TOPLEFT", tabStrip, "TOPLEFT", x, 0)
+        Echo.Round.Layout(t)
+        DimTab(t)
+        t.dot:Hide()
+        t:Show()
+    end
+
+    for i = count + 1, #tabs do
         tabs[i].convKey = nil
         tabs[i]:Hide()
     end

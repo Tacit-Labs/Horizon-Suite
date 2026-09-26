@@ -91,6 +91,9 @@ View.CHANNEL_ICONS = {
 -- The icon a group tile shows (Task 3).
 View.GROUP_ICON = "Interface\\Icons\\Spell_Holy_PrayerOfSpirit"
 
+-- The Echo icon itself (plan 9): the column button and the dashboard tile share this path.
+View.ECHO_ICON = "Interface\\AddOns\\" .. (addon.ADDON_NAME or "HorizonSuite") .. "\\media\\echo\\echo_icon.tga"
+
 -- ---------------------------------------------------------------------------
 -- Guild tabard: your own guild emblem on the Guild tile
 -- ---------------------------------------------------------------------------
@@ -142,7 +145,7 @@ function View.GuildTabard()
 
     if type(IsInGuild) ~= "function" then return nil end
     local ok, inGuild = pcall(IsInGuild)
-    if not ok or Echo.IsSecret(inGuild) or inGuild ~= true then return nil end
+    if not ok or Echo.IsSecret(inGuild) or not inGuild then return nil end
 
     local api = type(C_GuildInfo) == "table" and C_GuildInfo.GetGuildTabardInfo
     if type(api) ~= "function" then return nil end
@@ -361,11 +364,15 @@ function View.GroupTileSpec(entry)
     }
     local rank = 0
     for _, conv in ipairs(entry.members or {}) do
-        spec.count = spec.count + (conv.unread or 0)
+        -- Only a member with its own badge (loud or count tier, something unread) joins the
+        -- sum; a quiet or muted member's unread would otherwise inflate the group's badge.
         local badge = View.Badge(conv)
-        if badge and BADGE_RANK[badge] > rank then
-            rank = BADGE_RANK[badge]
-            spec.badge = badge
+        if badge then
+            spec.count = spec.count + (conv.unread or 0)
+            if BADGE_RANK[badge] > rank then
+                rank = BADGE_RANK[badge]
+                spec.badge = badge
+            end
         end
     end
     return spec
