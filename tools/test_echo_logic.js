@@ -10875,6 +10875,227 @@ run(`
   S.Reset()
 `, 'icon-group-open');
 
+// --- Tiles: right-click for the tile's menu, middle-click to close -----------------------
+{
+  const tiles = read('modules/Echo/EchoTiles.lua');
+  const clicks = /b:RegisterForClicks\("LeftButtonUp", "RightButtonUp", "MiddleButtonUp"\)/.test(tiles);
+  run(`check("tile clicks: a tile takes left, right and middle clicks", ${clicks}, "left only")`, 'tile-clicks-source');
+  const enUS = read('locales/horizon/enUS.lua');
+  const str = /L\["ECHO_CLOSE_GROUP"\]\s*= "Close group"/.test(enUS);
+  run(`check("tile clicks: Close group is worded", ${str}, "missing")`, 'tile-close-group-string');
+}
+run(`
+  local A = HorizonSuite
+  local Echo = A.Echo
+  local S, T, K, C, M, V = Echo.Store, Echo.Tiles, Echo.Stack, Echo.Card, Echo.Menu, Echo.View
+  S.Reset()
+  Echo.ClearDrafts()
+  CreateFrame = STUB_CREATE_FRAME
+  local saved = { getDB = A.GetDB, combat = InCombatLockdown, menu = MenuUtil, newTimer = C_Timer.NewTimer }
+  local db = { echoAnimateCard = false, echoColumnEdge = "right", echoAllView = false, echoMaxTiles = 3,
+               echoGroupsEnabled = true, echoGroupNames = { "Channels" }, echoGroupOf = { ["ch:*"] = 1 } }
+  A.GetDB = function(k, d) if db[k] ~= nil then return db[k] end return d end
+  InCombatLockdown = function() return false end
+  local menus = {}
+  MenuUtil = { CreateContextMenu = function(owner, gen) menus[#menus + 1] = { owner = owner, gen = gen } end }
+  check("tile clicks: Menu.OpenTile, BuildGroup and CloseGroup exist", type(M.OpenTile) == "function"
+    and type(M.BuildGroup) == "function" and type(M.CloseGroup) == "function", type(M.OpenTile))
+  check("tile clicks: Stack.CancelHover exists", type(K.CancelHover) == "function", type(K.CancelHover))
+  if type(M.OpenTile) ~= "function" or type(M.BuildGroup) ~= "function" or type(M.CloseGroup) ~= "function"
+    or type(K.CancelHover) ~= "function" then
+    A.GetDB, InCombatLockdown, MenuUtil = saved.getDB, saved.combat, saved.menu
+    S.Reset()
+    return
+  end
+  T.Enable()
+  K.Enable()
+  C.Enable()
+  local stack = K._frames().root
+  local function FakeRoot()
+    local r = { items = {} }
+    local function add(e) r.items[#r.items + 1] = e; return e end
+    function r:CreateButton(label, fn) local b = FakeRoot(); b.kind, b.label, b.fn = "button", label, fn; return add(b) end
+    function r:CreateTitle(label) return add({ kind = "title", label = label }) end
+    function r:CreateDivider() return add({ kind = "divider" }) end
+    function r:CreateRadio(label, isSel, setSel, data) return add({ kind = "radio", label = label, isSel = isSel, setSel = setSel }) end
+    return r
+  end
+  local function Kinds(root)
+    local out = {}
+    for _, it in ipairs(root.items) do out[#out + 1] = it.kind .. ":" .. tostring(it.label) end
+    return table.concat(out, ", ")
+  end
+  local function Hide() local t = T._toast(); if t then t:Hide() end end
+  local L = A.L
+
+  S.Add({ convKey = "w:Brisa-Horizon", text = "hi", sender = "Brisa-Horizon" })
+  S.Add({ convKey = "w:Vexa-Horizon", text = "gz", sender = "Vexa-Horizon" })
+  S.Add({ convKey = "ch:General", text = "anyone?", sender = "Thorn-Horizon" })
+  S.Add({ convKey = "ch:Trade", text = "wts", sender = "Vexa-Horizon" })
+  Hide()
+
+  -- Right-click a whisper tile: its menu with Close first.
+  local brisa = T.TileFor("w:Brisa-Horizon")
+  brisa.scripts.OnClick(brisa, "RightButton")
+  check("tile clicks: right-click opens a menu from the tile", #menus == 1 and menus[1].owner == brisa, #menus)
+  check("tile clicks: and never the card", not C.IsShown(), "card shown")
+  check("tile clicks: or the stack", not stack:IsShown(), "stack shown")
+  local root = FakeRoot()
+  if menus[1] then menus[1].gen(brisa, root) end
+  local base = V.MenuSpec(S.Get("w:Brisa-Horizon"))
+  local want = { { "button", L["ECHO_CLOSE_CONVERSATION"] }, { "divider" } }
+  for i = 1, #base - 2 do want[#want + 1] = { base[i].kind, base[i].label } end
+  local order = #root.items == #want
+  for i, w in ipairs(want) do
+    local it = root.items[i]
+    if not it or it.kind ~= w[1] or (w[2] and it.label ~= w[2]) then order = false end
+  end
+  check("tile clicks: Close, a divider, then pin, invite and the tiers", order, Kinds(root))
+  check("tile clicks: pin and invite follow the divider", root.items[3] and root.items[3].label == L["ECHO_PIN"]
+    and root.items[4] and root.items[4].label == L["ECHO_INVITE"], Kinds(root))
+  local closes = 0
+  for _, it in ipairs(root.items) do if it.label == L["ECHO_CLOSE_CONVERSATION"] then closes = closes + 1 end end
+  check("tile clicks: Close is listed once", closes == 1, closes)
+  local cardSpec = V.MenuSpec(S.Get("w:Brisa-Horizon"))
+  check("tile clicks: the card's menu still starts with pin and ends with close", cardSpec[1].action == "pin"
+    and cardSpec[#cardSpec].action == "close" and cardSpec[#cardSpec - 1].kind == "divider", cardSpec[1].action)
+  local cardRoot = FakeRoot()
+  M.Build(cardRoot, "w:Brisa-Horizon")
+  check("tile clicks: and so does the built ⋯ menu", cardRoot.items[1].label == L["ECHO_PIN"]
+    and cardRoot.items[#cardRoot.items].label == L["ECHO_CLOSE_CONVERSATION"], Kinds(cardRoot))
+  if root.items[1] and root.items[1].fn then root.items[1].fn() end
+  check("tile clicks: Close closes the conversation", S.Get("w:Brisa-Horizon").open == false, tostring(S.Get("w:Brisa-Horizon").open))
+  Hide()
+
+  -- Right-click a group tile: its name, Close group, and a submenu per member.
+  local gtile = T.TileFor("grp:1")
+  check("tile clicks: the channels share a group tile", gtile ~= nil and gtile.convKey == "grp:1", "no group tile")
+  menus = {}
+  gtile.scripts.OnClick(gtile, "RightButton")
+  check("tile clicks: a group tile opens its menu", #menus == 1 and menus[1].owner == gtile, #menus)
+  check("tile clicks: not the card", not C.IsShown(), "card shown")
+  local groot = FakeRoot()
+  if menus[1] then menus[1].gen(gtile, groot) end
+  local gi = groot.items
+  check("tile clicks: the group menu is titled with its name", gi[1] and gi[1].kind == "title" and gi[1].label == "Channels", Kinds(groot))
+  check("tile clicks: then Close group", gi[2] and gi[2].kind == "button" and gi[2].label == L["ECHO_CLOSE_GROUP"], Kinds(groot))
+  check("tile clicks: then a divider and one submenu per member", gi[3] and gi[3].kind == "divider" and #gi == 5, Kinds(groot))
+  local names = {}
+  for i = 4, #gi do names[gi[i].label] = gi[i] end
+  local general = names[V.DisplayName(S.Get("ch:General"))]
+  local trade = names[V.DisplayName(S.Get("ch:Trade"))]
+  check("tile clicks: the submenus are named by View.DisplayName", general ~= nil and trade ~= nil, Kinds(groot))
+  check("tile clicks: each holds that member's menu, Close first", trade and trade.items[1]
+    and trade.items[1].label == L["ECHO_CLOSE_CONVERSATION"] and trade.items[2].kind == "divider"
+    and trade.items[3].label == L["ECHO_PIN"], trade and Kinds(trade))
+  if trade and trade.items[1] and trade.items[1].fn then trade.items[1].fn() end
+  check("tile clicks: a member's Close closes only it", S.Get("ch:Trade").open == false and S.Get("ch:General").open == true, "?")
+  S.Add({ convKey = "ch:Trade", text = "wts again", sender = "Vexa-Horizon" })
+  Hide()
+  if gi[2] and gi[2].fn then gi[2].fn() end
+  check("tile clicks: Close group closes every member", S.Get("ch:Trade").open == false and S.Get("ch:General").open == false, "?")
+  Hide()
+
+  -- Middle-click closes a tile; on a group tile, every member.
+  S.Add({ convKey = "ch:General", text = "back", sender = "Thorn-Horizon" })
+  S.Add({ convKey = "ch:Trade", text = "wts", sender = "Vexa-Horizon" })
+  Hide()
+  menus = {}
+  local vexa = T.TileFor("w:Vexa-Horizon")
+  vexa.scripts.OnClick(vexa, "MiddleButton")
+  check("tile clicks: middle-click closes the conversation", S.Get("w:Vexa-Horizon").open == false, "open")
+  check("tile clicks: without a menu or the card", #menus == 0 and not C.IsShown() and not stack:IsShown(), #menus)
+  gtile = T.TileFor("grp:1")
+  gtile.scripts.OnClick(gtile, "MiddleButton")
+  check("tile clicks: middle-click on a group closes every member",
+    S.Get("ch:Trade").open == false and S.Get("ch:General").open == false, "?")
+  Hide()
+
+  -- The overflow tile ignores right and middle clicks.
+  for _, key in ipairs({ "w:A-Horizon", "w:B-Horizon", "w:C-Horizon", "w:D-Horizon" }) do
+    S.Add({ convKey = key, text = "hey", sender = key:sub(3) })
+  end
+  Hide()
+  local over = T._overflow()
+  check("tile clicks: the overflow tile is shown", over:IsShown() and over.convKey ~= nil, tostring(over.convKey))
+  local hiddenKey = over.convKey
+  menus = {}
+  over.scripts.OnClick(over, "RightButton")
+  over.scripts.OnClick(over, "MiddleButton")
+  check("tile clicks: the overflow tile opens no menu", #menus == 0, #menus)
+  check("tile clicks: and closes nothing", S.Get(hiddenKey).open == true, hiddenKey)
+  check("tile clicks: nor opens the card", not C.IsShown(), "card shown")
+
+  -- A right-click cancels a pending hover open of the stack.
+  local fire, cancelled = nil, 0
+  C_Timer.NewTimer = function(_, fn) fire = fn; return { Cancel = function() cancelled = cancelled + 1 end } end
+  local shown = {}
+  for _, t in ipairs(T._tiles()) do if t:IsShown() and t.convKey then shown[#shown + 1] = t end end
+  check("tile clicks: two tiles beside the overflow", #shown >= 2, #shown)
+  local a = shown[1]
+  a.scripts.OnEnter(a)
+  check("tile clicks: hovering a tile starts the stack's open delay", fire ~= nil, "no timer")
+  menus = {}
+  a.scripts.OnClick(a, "RightButton")
+  check("tile clicks: a right-click cancels it", cancelled == 1, cancelled)
+  a.scripts.OnEnter(a)
+  check("tile clicks: and a fresh hover starts it again", cancelled == 1 and fire ~= nil, cancelled)
+  a.scripts.OnClick(a, "MiddleButton")
+  check("tile clicks: a middle-click cancels it too", cancelled == 2, cancelled)
+  a.scripts.OnLeave(a)
+  C_Timer.NewTimer = saved.newTimer
+  check("tile clicks: the stack never opened", not stack:IsShown(), "stack shown")
+
+  -- Left-click is unchanged: it toggles the card.
+  local bKey, cKey = shown[1].convKey, shown[2].convKey
+  local b = T.TileFor(bKey)
+  b.scripts.OnClick(b, "LeftButton")
+  check("tile clicks: left-click still opens the card", C.IsShown() and C.ShownKey() == bKey, tostring(C.ShownKey()))
+  -- A right-click on the shown tile leaves the card as it is, and its menu counts as Echo's.
+  local menuShown = true
+  MenuUtil = { CreateContextMenu = function(owner, gen) menus[#menus + 1] = { owner = owner, gen = gen }
+    return { IsShown = function() return menuShown end } end }
+  menus = {}
+  b = T.TileFor(bKey)
+  b.scripts.OnClick(b, "RightButton")
+  check("tile clicks: right-click on the shown tile keeps the card", C.IsShown() and C.ShownKey() == bKey, tostring(C.ShownKey()))
+  check("tile clicks: its menu counts as an open Echo menu", M.IsOpen() == true, tostring(M.IsOpen()))
+  menuShown = false
+
+  -- Closing the shown conversation from the tile menu does what the ⋯ Close does.
+  local viaTile = FakeRoot()
+  if menus[1] then menus[1].gen(b, viaTile) end
+  if viaTile.items[1] and viaTile.items[1].fn then viaTile.items[1].fn() end
+  local tileShown, tileKey = C.IsShown(), C.ShownKey()
+  C.Hide()
+  local c = T.TileFor(cKey)
+  c.scripts.OnClick(c, "LeftButton")
+  check("tile clicks: the card opens on another", C.ShownKey() == cKey, tostring(C.ShownKey()))
+  local viaCard = FakeRoot()
+  M.Build(viaCard, cKey)
+  if viaCard.items[#viaCard.items].fn then viaCard.items[#viaCard.items].fn() end
+  local cardShown, cardKey = C.IsShown(), C.ShownKey()
+  check("tile clicks: the tile menu's Close leaves the card as the ⋯ Close does", tileShown == cardShown,
+    tostring(tileShown) .. "/" .. tostring(cardShown))
+  check("tile clicks: neither leaves the closed conversation on the card", tileKey ~= bKey and cardKey ~= cKey,
+    tostring(tileKey) .. "/" .. tostring(cardKey))
+
+  -- A refused menu is reported, never raised.
+  MenuUtil = { CreateContextMenu = function() error("protected") end }
+  local ok, res = pcall(M.OpenTile, b, cKey)
+  check("tile clicks: a throwing menu reports false", ok and res == false, tostring(ok) .. "/" .. tostring(res))
+  MenuUtil = nil
+  check("tile clicks: no MenuUtil, no menu", M.OpenTile(b, cKey) == false, "opened")
+
+  C.Hide()
+  C.Disable()
+  K.Disable()
+  T.Disable()
+  A.GetDB, InCombatLockdown, MenuUtil = saved.getDB, saved.combat, saved.menu
+  C_Timer.NewTimer = saved.newTimer
+  S.Reset()
+`, 'tile-right-middle-clicks');
+
 // --- Redraw: one repaint per frame -------------------------------------------
 run(`
   CreateFrame = STUB_CREATE_FRAME

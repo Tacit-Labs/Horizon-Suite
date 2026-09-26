@@ -2,6 +2,8 @@
     Horizon Suite - Echo - Menu
     The ⋯ menu on the card: pin, notification tier, close conversation. Its contents come
     from View.MenuSpec; this file turns them into Blizzard's context menu and runs the choice.
+    A column tile's right-click menu (Menu.OpenTile) is the same menu with Close first, or
+    for a group tile its name, Close group and a submenu per member.
     Also the right-click menu on one message: pin or unpin it, or say why it can't be pinned,
     and whisper or invite the player who wrote it. Menu.IsOpen tells the card's idle close
     whether either is still open. And the Echo icon's right-click menu (Menu.OpenIcon):
@@ -120,10 +122,11 @@ end
 --- Fill a MenuUtil root description for a conversation.
 -- @param rootDescription table
 -- @param convKey string
-function Menu.Build(rootDescription, convKey)
+-- @param opts table|nil  View.MenuSpec's options ({ closeFirst = true } for a tile's menu)
+function Menu.Build(rootDescription, convKey, opts)
     local conv = Echo.Store.Get(convKey)
     if not conv then return end
-    for _, entry in ipairs(Echo.View.MenuSpec(conv)) do
+    for _, entry in ipairs(Echo.View.MenuSpec(conv, opts)) do
         if entry.kind == "button" then
             local action = entry.action
             rootDescription:CreateButton(entry.label, function() Menu.Run(convKey, action) end)
@@ -155,6 +158,62 @@ function Menu.Open(owner, convKey)
     -- pcall: a refused menu is reported as not opened, never raised.
     local ok, menu = pcall(MenuUtil.CreateContextMenu, owner, function(_, rootDescription)
         Menu.Build(rootDescription, convKey)
+    end)
+    Opened(ok, menu)
+    return ok
+end
+
+-- A tile's right-click menu (Menu.OpenTile) -------------------------------------------------
+
+local CLOSE_FIRST = { closeFirst = true }
+
+--- Close every open member of a group (a group tile's Close group, or its middle-click).
+-- Each close goes through Store.Close, so the card follows it as from the ⋯ menu.
+-- @param index number  the group's index
+function Menu.CloseGroup(index)
+    local Groups = Echo.Groups
+    if not Groups then return end
+    -- The keys first: each close changes who Groups.Members counts.
+    local keys = {}
+    for _, conv in ipairs(Groups.Members(index)) do keys[#keys + 1] = conv.key end
+    for _, key in ipairs(keys) do Echo.Store.Close(key) end
+end
+
+--- Fill a MenuUtil root description for a group tile: the group's name, Close group, then
+-- a submenu per open member (View.DisplayName) holding that member's own tile menu.
+-- @param rootDescription table
+-- @param index number
+function Menu.BuildGroup(rootDescription, index)
+    local Groups = Echo.Groups
+    if not Groups then return end
+    local L = addon.L
+    local name = Groups.Name(index)
+    if name ~= "" then rootDescription:CreateTitle(name) end
+    rootDescription:CreateButton(L["ECHO_CLOSE_GROUP"], function() Menu.CloseGroup(index) end)
+    local members = Groups.Members(index)
+    if #members == 0 then return end
+    rootDescription:CreateDivider()
+    for _, conv in ipairs(members) do
+        local key = conv.key
+        local sub = rootDescription:CreateButton(Echo.View.DisplayName(conv))
+        if sub and type(sub.CreateButton) == "function" then Menu.Build(sub, key, CLOSE_FIRST) end
+    end
+end
+
+--- Open a column tile's right-click menu: a conversation's menu with Close first, or a
+-- group's menu for a group tile.
+-- @param owner Frame  the tile
+-- @param key string  the tile's conversation or group key
+-- @return boolean opened
+function Menu.OpenTile(owner, key)
+    if not Menu.Available() then return false end
+    local index = Echo.Groups and Echo.Groups.IndexOf(key)
+    local ok, menu = pcall(MenuUtil.CreateContextMenu, owner, function(_, rootDescription)
+        if index then
+            Menu.BuildGroup(rootDescription, index)
+        else
+            Menu.Build(rootDescription, key, CLOSE_FIRST)
+        end
     end)
     Opened(ok, menu)
     return ok

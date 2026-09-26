@@ -613,6 +613,14 @@ function Stack.HoverLeave()
     end
 end
 
+--- Drop a pending hover open, wherever the mouse is: a tile's right or middle click wins
+-- over the hover that was counting down on it.
+function Stack.CancelHover()
+    CancelTimer(openTimer)
+    openTimer = nil
+    hoverKey = nil
+end
+
 -- A close discards that conversation's draft regardless of whether the stack is shown, and
 -- clears the shared box when it was showing that conversation's card.
 -- @param convKey string|nil

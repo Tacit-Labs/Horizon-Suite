@@ -1,10 +1,11 @@
 --[[
     Horizon Suite - Echo - Tiles
     The collapsed column: a tile per open conversation or group (Echo.Groups) on a screen
-    edge (top entry highest), a +N overflow tile, the Echo icon at the foot (the drag handle
-    when unlocked; a left-click opens the card on what needs you, Tiles.OpenInbox, and a
-    right-click opens its quick menu, Echo.Menu.OpenIcon), the "n in chat" marker for
-    messages Echo could not file, and the preview toast. Collapse mode (EchoCollapse.lua)
+    edge (top entry highest; a left-click toggles the card on it, a right-click opens its
+    menu, Echo.Menu.OpenTile, and a middle-click closes it), a +N overflow tile, the Echo
+    icon at the foot (the drag handle when unlocked; a left-click opens the card on what
+    needs you, Tiles.OpenInbox, and a right-click opens its quick menu, Echo.Menu.OpenIcon),
+    the "n in chat" marker for messages Echo could not file, and the preview toast. Collapse mode (EchoCollapse.lua)
     places the column's frames when it is on.
     Blizzard: CreateFrame, FCF_SelectDockFrame. Shared: Augment toast chrome and motion.
 ]]
@@ -321,6 +322,18 @@ function Tiles.PaintBadge(b, badge, count, countTop)
     end
 end
 
+--- Close what a tile stands for (its middle-click): the conversation, or every open member
+-- of a group tile. Through Store.Close, so the card follows as from the ⋯ menu's Close.
+-- @param key string  a conversation key or a group key
+function Tiles.CloseTile(key)
+    local index = Echo.Groups and Echo.Groups.IndexOf(key)
+    if index then
+        if Echo.Menu then Echo.Menu.CloseGroup(index) end
+    else
+        Echo.Store.Close(key)
+    end
+end
+
 local function CreateTile()
     local b = CreateFrame("Button", nil, column)
     b:SetSize(Tiles.TILE_SIZE, Tiles.TILE_SIZE)
@@ -349,9 +362,20 @@ local function CreateTile()
     b.label:SetPoint("BOTTOM", b, "BOTTOM", 0, 2)
     b.label:SetWordWrap(false)
     Tiles.AddBadges(b)
-    b:RegisterForClicks("LeftButtonUp")
-    b:SetScript("OnClick", function(self)
+    b:RegisterForClicks("LeftButtonUp", "RightButtonUp", "MiddleButtonUp")
+    b:SetScript("OnClick", function(self, button)
         if not self.convKey then return end
+        if button == "RightButton" or button == "MiddleButton" then
+            -- Neither opens the card or the stack; the +N tile ignores both.
+            if self == overflowTile then return end
+            if Echo.Stack and Echo.Stack.CancelHover then Echo.Stack.CancelHover() end
+            if button == "RightButton" then
+                if Echo.Menu then Echo.Menu.OpenTile(self, self.convKey) end
+            else
+                Tiles.CloseTile(self.convKey)
+            end
+            return
+        end
         if Echo.Card then
             Echo.Card.Toggle(self.convKey, self)
         elseif Echo.Stack then

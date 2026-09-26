@@ -933,15 +933,23 @@ end
 
 View.TIER_CHOICES = { "default", "loud", "count", "quiet", "muted" }
 
---- The ⋯ menu for a conversation, as data (EchoMenu builds the real menu from it).
+--- The ⋯ menu for a conversation, as data (EchoMenu builds the real menu from it). A tile's
+-- right-click menu asks for Close first (opts.closeFirst): Close, a divider, then the rest in
+-- the same order, with Close listed once.
 -- @param conv table
+-- @param opts table|nil  { closeFirst = boolean }
 -- @return table entries
-function View.MenuSpec(conv)
+function View.MenuSpec(conv, opts)
+    local closeFirst = type(opts) == "table" and opts.closeFirst == true
     local override = Echo.Store.OverrideOf(conv.key) or "default"
     local defaultTier = Echo.Store.KindTier(conv.kind)
-    local entries = {
-        { kind = "button", label = conv.pinned and L["ECHO_UNPIN"] or L["ECHO_PIN"], action = "pin" },
-    }
+    local close = { kind = "button", label = L["ECHO_CLOSE_CONVERSATION"], action = "close" }
+    local entries = {}
+    if closeFirst then
+        entries[1] = close
+        entries[2] = { kind = "divider" }
+    end
+    entries[#entries + 1] = { kind = "button", label = conv.pinned and L["ECHO_UNPIN"] or L["ECHO_PIN"], action = "pin" }
     if View.InviteTarget(conv) then
         entries[#entries + 1] = { kind = "button", label = L["ECHO_INVITE"], action = "invite" }
     end
@@ -957,8 +965,10 @@ function View.MenuSpec(conv)
         entries[#entries + 1] = { kind = "radio", label = label, action = "tier", value = value,
                                   selected = (value == override) }
     end
-    entries[#entries + 1] = { kind = "divider" }
-    entries[#entries + 1] = { kind = "button", label = L["ECHO_CLOSE_CONVERSATION"], action = "close" }
+    if not closeFirst then
+        entries[#entries + 1] = { kind = "divider" }
+        entries[#entries + 1] = close
+    end
     return entries
 end
 

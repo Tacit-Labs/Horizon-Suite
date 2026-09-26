@@ -122,6 +122,8 @@ When `Platform.Has("secretChat")` is false, only the first case applies.
 - The bottom button, the Echo icon, is the drag handle when the column is unlocked. Since plan 14 a left-click opens the card on what needs you and a right-click opens a quick menu; clicking it no longer opens the stack.
 - The preview toast slides out beside the tile for loud messages only, using the shared toast chrome. Clicking it opens that card.
 
+**Tile clicks (2026-09-26).** A left-click on a tile toggles the card on it, and hovering peeks the stack, as before. A right-click opens the tile's menu: for a conversation, the card's ⋯ menu with **Close conversation** first and a divider after it (`View.MenuSpec(conv, { closeFirst = true })`); for a group tile, the group's name, **Close group**, and a submenu per open member holding that member's own menu. A middle-click closes the conversation, or every open member of a group tile. Neither right nor middle click opens the card or the stack, and either cancels a hover open that is still counting down. Every close goes through `Store.Close`, so the card hides or moves on exactly as after the ⋯ menu's Close. The **+N** tile ignores right and middle clicks. The tile menu counts as an Echo menu for the card's idle close. In collapse mode the same clicks work on the tiles that are shown.
+
 ### Peek: stack
 
 - Opens on hover after a short delay (over a tile, or over the Echo icon while collapse is off), or from the **Echo: Reply to newest** keybind. The keybind focuses the newest loud conversation's quick-reply input.
