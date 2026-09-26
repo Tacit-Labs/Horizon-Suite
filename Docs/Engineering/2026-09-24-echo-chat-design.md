@@ -177,6 +177,15 @@ Blizzard's own Reply binding is left alone.
 
 On `PLAYER_REGEN_DISABLED`, the stack and card collapse. Tiles and counts keep updating. Loud toasts queue, and on `PLAYER_REGEN_ENABLED` the held toasts play, newest first, collapsed to one per conversation. Clicking a tile in combat still opens its card.
 
+### Rounded look (plan 8, 2026-09-26)
+
+Echo's square boxes became rounded squares and chat-app bubbles, drawn by one helper, `Echo.Round`, from two bundled textures rather than any newer client API.
+
+- **Radii:** `Echo.Round.PANEL = 10` (the card, the stack card and its behind-cards), `Echo.Round.BUBBLE = 10` with `Echo.Round.TIGHT = 3` for a bubble's sender corner, `Echo.Round.TILE = 8` (column tiles and the card's row tiles), `Echo.Round.SMALL = 6` (the reply box, the send button, and the stack's and column's Open/chat buttons). Unread badges and the dot are fully round (radius half their size). A radius never exceeds half the frame's shorter side; `Echo.Round.Layout` clamps it whenever the frame is laid out, including on resize.
+- **Bubble corner rule:** a bubble is fully rounded on three corners, with a tight (`TIGHT`) corner on the bottom nearest the next speaker — bottom-left for an incoming bubble, bottom-right for an outgoing one — but only on the **last bubble of a run** (the newest message overall, or the one where the next message starts a new group). Earlier bubbles in the same consecutive-sender run use full radii on all four corners.
+- **How rounding is drawn:** `media/echo/circle.tga` (a filled circle) and `media/echo/ring.tga` (a circle outline), both 128×128 and pre-generated. Each corner is a texture quadrant sized to that corner's radius; edges and the middle are plain colour textures; a border (where Echo already drew one — panels, and tiles whose face is a glyph or icon) adds ring quarters plus 1px lines along the edges. This is a manual 9-slice: `Echo.Round.Apply` builds the pieces once per frame, `Echo.Round.Layout` re-lays them out for the frame's current size (hooked onto `OnSizeChanged` via `HookScript`, so a host's own resize handler still runs), and `Echo.Round.SetColor`/`SetBorderColor` tint them. Fill draws at draw-layer sublevel -8 and the border at -7, so the border always sits above the fill and a host's own child textures (left at the default sublevel) sit above both — otherwise a child (the unread count, a tile's name label) would draw under its own tile's fill regardless of layer, since a child always draws over its parent's regions. The unread dot uses `Echo.Round.Dot`, a single full-circle texture, instead of the full 9-slice, since a dot has no straight edges to fill.
+- **Toast:** unchanged for now — it keeps Augment's own toast chrome (`BackdropTemplate` plus `AugmentToastStyles.ApplyChrome`), not `Echo.Round`.
+
 ## Storage
 
 Settings live in the profile through `OptionsDefaultsEcho.lua`.

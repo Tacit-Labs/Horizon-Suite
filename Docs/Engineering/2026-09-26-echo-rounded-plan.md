@@ -120,3 +120,16 @@ This is a manual 9-slice, so it needs no newer client API and works on Retail an
   - [ ] The card, the stack, the reply box and the badges are all rounded.
   - [ ] There are no seams where the corner pieces meet the edges.
 - **Commit:** `docs(echo): record the rounded look`.
+
+## In-game checklist (final-review fix wave, 2026-09-26)
+
+For the director on Windows. Echo gains files, so restart the game.
+
+- [ ] Tiles are rounded squares, and class icons don't poke past the corners.
+- [ ] Bubbles look like a chat app: your bubbles have their tight corner at the bottom right, theirs at the bottom left.
+- [ ] Corners look smooth, with no jagged or blurry edges at scale 100% or 140%.
+- [ ] The card, the stack, the reply box and the badges are all rounded.
+- [ ] There are no seams where the corner pieces meet the edges.
+- [ ] Unread counts are readable on their pill.
+- [ ] Names on whisper tiles are readable, not darkened.
+- [ ] Corners look clean at UI scale 0.64 and 1.4. Look for a dotted border, or a shimmering edge.
