@@ -8041,6 +8041,12 @@ run(`
   local header, headerSuffix = Region("FontString", 1), Region("FontString", 1)
   header.parentKey, headerSuffix.parentKey = "header", "headerSuffix"
   header.text, header.width, header.color = "Say:", 30, { 1, 1, 1, 1 }
+  -- Blizzard anchors the header 15px in from the box's left edge.
+  header.points = { { "LEFT", box, "LEFT", 15, 0 } }
+  function header:GetNumPoints() return #self.points end
+  function header:GetPoint(i) local p = self.points[i]; return p[1], p[2], p[3], p[4], p[5] end
+  function header:ClearAllPoints() self.points = {} end
+  function header:SetPoint(a, b, c, x, y) self.points[#self.points + 1] = { a, b, c, x, y } end
   headerSuffix.color = { 0.5, 0.5, 0.5, 1 }
   box.header, box.headerSuffix = header, headerSuffix
   box.text = ""
@@ -8546,6 +8552,10 @@ run(`
   header.width = 50
   fire("UpdateHeader", box)
   check("look: the chip follows the header's width", chip.width == 60, chip.width)
+  check("look: the header sits 6px left of Blizzard's spot, clearing the typed text", #header.points == 1 and header.points[1][4] == 9,
+    tostring(header.points[1] and header.points[1][4]))
+  Echo.Input.PaintChip()
+  check("look: repainting doesn't move it further", #header.points == 1 and header.points[1][4] == 9, tostring(header.points[1] and header.points[1][4]))
   header.width = SECRET(50)
   fire("UpdateHeader", box)
   check("look: a secret width gives a 48px chip", chip.width == 48, chip.width)
@@ -8613,6 +8623,7 @@ run(`
   check("input: off restores the typed text's font", box.font[1] == "Fonts\\\\ARIALN.TTF" and box.font[2] == 14, box.font[1])
   check("look: off restores the header's colour", header.color[1] == 1 and header.color[2] == 1 and header.color[3] == 1, table.concat(header.color, ","))
   check("look: and its suffix's", headerSuffix.color[1] == 0.5 and headerSuffix.color[4] == 1, table.concat(headerSuffix.color, ","))
+  check("look: off puts the header back at Blizzard's spot", #header.points == 1 and header.points[1][4] == 15, tostring(header.points[1] and header.points[1][4]))
   check("look: off restores the header's font", header.font[1] == "Fonts\\\\ARIALN.TTF" and header.font[2] == 14 and header.font[3] == "OUTLINE",
     tostring(header.font[1]) .. " " .. tostring(header.font[2]))
   check("look: off hides the chip and the hint", chip and chip.shown == false and hintText and hintText.shown == false, "shown")

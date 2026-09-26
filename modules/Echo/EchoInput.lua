@@ -42,6 +42,8 @@ Input.FONT_SIZE = 12  -- for a FontString whose own size can't be read
 Input.HEADER_SIZE = 10  -- the header's font size, as the card's mode chip label
 Input.CHIP_PAD = 8      -- the chip reaches this far before the header
 Input.CHIP_PAD_RIGHT = 2  -- and only this far after it: Blizzard starts the typed text right after the header
+Input.HEADER_SHIFT = 6   -- the header (and its chip) sit this far left of Blizzard's spot, so the typed
+                          -- text, still inset by Blizzard for the header's width, clears the chip
 Input.CHIP_HEIGHT = 22
 Input.CHIP_WIDTH = 48   -- for a header whose width is secret or unreadable
 Input.CHIP_ALPHA = 0.22
@@ -198,6 +200,15 @@ function Input.PaintChip()
     if not header then
         chip:Hide()
         return
+    end
+    -- Move the header left of Blizzard's spot; Blizzard still insets the typed text from
+    -- the header's width at its own spot, which leaves a gap between the chip and the text.
+    local points = saved and saved.headerPoints
+    if points and #points > 0 and type(header.ClearAllPoints) == "function" then
+        header:ClearAllPoints()
+        for _, p in ipairs(points) do
+            header:SetPoint(p[1], p[2], p[3], (tonumber(p[4]) or 0) - Input.HEADER_SHIFT, p[5])
+        end
     end
     local w = HeaderWidth(header)
     local width = w and (w + Input.CHIP_PAD + Input.CHIP_PAD_RIGHT) or Input.CHIP_WIDTH
@@ -474,6 +485,13 @@ local function Record(box)
         local fs = Keyed(box, key)
         if fs then
             s.headers[fs] = true
+            if key == "header" and type(fs.GetNumPoints) == "function" and type(fs.GetPoint) == "function" then
+                s.headerPoints = {}
+                for i = 1, fs:GetNumPoints() or 0 do
+                    local point, rel, relPoint, x, y = fs:GetPoint(i)
+                    s.headerPoints[i] = { point, rel, relPoint, x, y }
+                end
+            end
             if type(fs.GetTextColor) == "function" then
                 local r, g, b, a = fs:GetTextColor()
                 s.colors[fs] = { r, g, b, a }
@@ -512,6 +530,11 @@ local function Restore(box)
     end
     for fs, c in pairs(saved.colors) do
         if type(c[1]) == "number" then fs:SetTextColor(c[1], c[2], c[3], c[4]) end
+    end
+    local header = Keyed(box, "header")
+    if header and saved.headerPoints and #saved.headerPoints > 0 then
+        header:ClearAllPoints()
+        for _, p in ipairs(saved.headerPoints) do header:SetPoint(p[1], p[2], p[3], p[4], p[5]) end
     end
     if lifted and type(saved.level) == "number" then box:SetFrameLevel(saved.level) end
     lifted = false
