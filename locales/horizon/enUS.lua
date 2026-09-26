@@ -2952,6 +2952,8 @@ L["ECHO_SLASH_STATUS"]                                        = "Echo: %d conver
 L["ECHO_SLASH_STATUS_ROW"]                                    = "  %s  tier=%s unread=%d messages=%d%s%s"
 L["ECHO_SLASH_STATUS_CLASS"]                                  = " class=%s(%s)"
 L["ECHO_SLASH_PINNED"]                                        = " pinned"
+L["ECHO_SLASH_STATUS_INPUT"]                                  = "  input line: parent %s"
+L["ECHO_SLASH_UNNAMED"]                                       = "unnamed"
 L["ECHO_SLASH_PROBE"]                                         = "Echo probe: sendChat=%s sendBN=%s secretChat=%s bnetWhispers=%s"
 L["ECHO_SLASH_PROBE_START"]                                   = "Echo probe: describing the next %d chat messages (types only, never text)."
 L["ECHO_SLASH_YES"]                                           = "yes"
@@ -2983,7 +2985,7 @@ L["ECHO_ALL"]                                                 = "All chat"
 L["ECHO_ALL_SHORT"]                                           = "All"
 L["ECHO_ALL_TO"]                                              = "To %s"  -- an outgoing whisper's prefix in the All view
 L["ECHO_ALL_VIEW"]                                            = "Show the All view"
-L["ECHO_ALL_VIEW_DESC"]                                       = "One tile with every chat line Echo collects, plus addon messages and other text printed to the main chat window."
+L["ECHO_ALL_VIEW_DESC"]                                       = "One tile with every chat line Echo collects, plus addon messages and other text printed to the main chat window. While Blizzard's chat windows are hidden, it's always on."
 L["ECHO_GROUP_TITLE"]                                         = "%s · %s"  -- group name · member name
 L["ECHO_GROUP_CHANNELS"]                                      = "Channels"  -- default name of group 1
 L["ECHO_SECTION_GROUPS"]                                      = "Groups"

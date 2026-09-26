@@ -30,11 +30,13 @@ function Echo.FeedKey(kind)
     return "echoFeed" .. Capitalise(kind)
 end
 
---- False only for a feed the player has switched off.
+--- False only for a feed the player has switched off. The All view is always on while
+-- Blizzard's chat windows are hidden: chat Echo has no tile for goes only there.
 -- @param kind string
 -- @return boolean
 function Echo.FeedEnabled(kind)
     if not Echo.Store.FEED_KINDS[kind] then return true end
+    if kind == "all" and Echo.HideChat and Echo.HideChat.IsApplied() then return true end
     return Echo.Setting(Echo.FeedKey(kind)) ~= false
 end
 
@@ -121,7 +123,10 @@ function Echo.ApplyOptions()
     local card = _G.HorizonSuiteEchoCard
     if card and card:IsShown() and Echo.Card.Reanchor then Echo.Card.Reanchor() end
     if Echo.Redraw then Echo.Redraw.Mark("tiles") end
-    local filterOn = Echo.Setting("echoHideStoredWhispers") == true
+    -- Inert while Blizzard's chat is hidden: ChatFrame1 keeps its whisper events so that
+    -- Blizzard's own code sets R's target, which a hidden line would skip.
+    local hiding = Echo.HideChat and Echo.HideChat.IsApplied()
+    local filterOn = Echo.Setting("echoHideStoredWhispers") == true and not hiding
     if filterOn ~= Echo.Filter.active then Echo.Filter.Apply(filterOn) end
     -- Hide Blizzard's chat windows, or ask for a reload to bring them back. First, as hiding
     -- turns docking on.

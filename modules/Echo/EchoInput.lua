@@ -16,7 +16,7 @@
     its OnShow and OnHide. Echo never calls them, never focuses the box and never
     sets its attributes (Task 1's probe in EchoSlash.lua is the one exception).
     Blizzard: ChatFrame1EditBox (GetPoint, GetNumPoints, GetScale, GetRegions, GetAttribute,
-    GetFrameLevel, GetFrameStrata, GetFont, HasFocus, ClearAllPoints, SetPoint, SetScale,
+    GetFrameLevel, GetFrameStrata, GetFont, HasFocus, IsVisible, ClearAllPoints, SetPoint, SetScale,
     SetFrameStrata, SetFont, HookScript; Show, SetShown and SetAlpha from the activate and
     deactivate post-hooks and at enable; Hide at disable), hooksecurefunc,
     ChatFrameUtil.ActivateChat / DeactivateChat / UpdateHeader or the ChatEdit_ equivalents,
@@ -113,7 +113,8 @@ end
 function Input.Covers(convKey)
     if not active or convKey == nil then return false end
     local box = Box()
-    if not box or not box:IsShown() then return false end
+    -- IsVisible, not IsShown: a box shown under a hidden parent isn't on screen.
+    if not box or not box:IsVisible() then return false end
     return Input.TargetKey() == convKey
 end
 
@@ -254,7 +255,7 @@ end
 -- Say, Yell and Emote set Nearby's mode each time, since switching among them keeps the
 -- same conversation.
 local function Follow(box)
-    if not box:IsShown() or not Focused(box) then return end
+    if not box:IsVisible() or not Focused(box) then return end
     local Card = Echo.Card
     if Card.IsClosing and Card.IsClosing() then return end
     local key = Input.TargetKey()
@@ -421,6 +422,8 @@ end
 
 --- Put the line back where Blizzard had it, as it was, and stop re-anchoring it.
 function Input.Disable()
+    -- Blizzard's chat hiding may have moved the box onto UIParent; that goes back too.
+    if Echo.HideChat and Echo.HideChat.RestoreBoxParent then Echo.HideChat.RestoreBoxParent() end
     if not active then return end
     active = false
     local box = Box()

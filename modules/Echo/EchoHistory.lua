@@ -10,7 +10,8 @@
     Old conversations are dropped by History.Prune, on a timer the player sets
     (echoHistoryDays); a pinned conversation is always kept.
     A game setting Echo changes (whisperMode, while Blizzard's chat is hidden) keeps its
-    earlier value per character in echoHistory.cvars, which History.Clear leaves alone.
+    earlier value in echoHistory.cvars, which History.Clear leaves alone: account-wide
+    (cvars.account) for an account-wide setting such as whisperMode, else per character.
     Blizzard: C_BattleNet.GetAccountInfoByID, GetGuildInfo, GetNormalizedRealmName.
 ]]
 
@@ -278,6 +279,39 @@ local function PinKey(convKey)
         return guildKey and ("g:" .. guildKey .. ":" .. kind) or nil
     end
     return PrefKey(convKey)
+end
+
+-- The bucket account-wide CVars are saved in: root.cvars.account. Character keys are
+-- always "Name-Realm", so "account" never collides with one.
+local ACCOUNT = "account"
+
+--- An account-wide game setting (CVar) Echo changed, saved so it can be put back on any
+-- character (plan 12: whisperMode is account-wide, so a per-character copy misrestores).
+-- @param name string
+-- @return string|nil
+function History.SavedAccountCVar(name)
+    local bucket = root and type(root.cvars) == "table" and root.cvars[ACCOUNT]
+    local value = type(bucket) == "table" and bucket[name]
+    if type(value) ~= "string" then return nil end
+    return value
+end
+
+--- Save an account-wide CVar's earlier value; nil forgets it.
+-- @param name string
+-- @param value string|nil
+-- @return boolean saved  false while unbound
+function History.SaveAccountCVar(name, value)
+    if not root then return false end
+    if type(root.cvars) ~= "table" then root.cvars = {} end
+    local bucket = root.cvars[ACCOUNT]
+    if type(bucket) ~= "table" then
+        if value == nil then return true end
+        bucket = {}
+        root.cvars[ACCOUNT] = bucket
+    end
+    bucket[name] = value
+    if next(bucket) == nil then root.cvars[ACCOUNT] = nil end
+    return true
 end
 
 -- Where a character's pins are saved: root.pins[charKey][PinKey(convKey)] = list, the same

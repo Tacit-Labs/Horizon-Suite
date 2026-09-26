@@ -52,6 +52,14 @@ local function PrintStatus()
             conv.key, Store.TierOf(conv.key), conv.unread, #conv.messages,
             conv.pinned and L["ECHO_SLASH_PINNED"] or "", ClassSuffix(conv)))
     end
+    -- Where Blizzard's input line lives: hiding Blizzard's chat moves it off a hidden window.
+    local box = _G.ChatFrame1EditBox
+    if type(box) == "table" and type(box.GetParent) == "function" then
+        local parent = box:GetParent()
+        local name = parent and type(parent.GetName) == "function" and parent:GetName() or nil
+        if Echo.IsSecret(name) or type(name) ~= "string" or name == "" then name = L["ECHO_SLASH_UNNAMED"] end
+        HSPrint(L["ECHO_SLASH_STATUS_INPUT"]:format(name))
+    end
 end
 
 local function StartProbe(rest)

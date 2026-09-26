@@ -10,8 +10,21 @@
         ChatFrame1 the whisper events the game needs for R (each only where the client
         has it). A post-hook on RegisterEvent unregisters anything else again.
       - Blizzard's chat buttons move onto the hidden frame too.
-      - whisperMode is set to inline; its earlier value is saved per character
-        (History.SaveCVar) and put back when the setting goes off or Echo is disabled.
+      - Applying again (a settings change, a temporary window) only handles windows and
+        buttons not yet hidden. A post-hook on FCF_OpenTemporaryWindow hides a new window
+        (a pet battle's log, a whisper popout) as it opens.
+      - Blizzard's input line is a child of ChatFrame1: when its parent is one of the hidden
+        windows, it moves onto UIParent (recorded, and put back when Echo or docking is
+        disabled), or it would vanish with the window.
+      - whisperMode is set to inline, once per apply. whisperMode is account-wide, so its
+        earlier value is saved account-wide (History.SaveAccountCVar), only when none is
+        saved yet. Once the world is loaded with the setting off (turned off, or another
+        character that doesn't hide chat), a saved value is put back while whisperMode is
+        still inline, then forgotten; a whisperMode the player changed meanwhile is kept.
+      - While hiding is applied, "Hide whispers Echo has stored" stays off: ChatFrame1 keeps
+        its whisper events so Blizzard's own code sets R's target (Echo.ApplyOptions).
+      - While hiding is applied, the All view collects even when echoAllView is off
+        (Echo.FeedEnabled), since chat Echo has no tile for goes only there.
       - With ChatFrame1's events off, chat types Echo doesn't route would vanish, so Echo's
         own frame here registers every CHAT_MSG_* in ChatTypeGroup that Echo doesn't
         route, runs other addons' filters over it, and files it into the All view.
@@ -19,8 +32,9 @@
     applied, asks for a reload through the dashboard's reload prompt. Everything runs from
     Echo's module code, so a disabled or broken Echo hides nothing.
     Needs the docked input line: while the setting is on, echoDockInput is kept on.
-    Blizzard: CHAT_FRAMES, ChatFrameN / ChatFrameNTab (SetParent, UnregisterAllEvents,
-    RegisterEvent, UnregisterEvent), the chat buttons (SetParent), hooksecurefunc,
+    Blizzard: CHAT_FRAMES, ChatFrameN / ChatFrameNTab (SetParent, GetParent,
+    UnregisterAllEvents, RegisterEvent, UnregisterEvent), the chat buttons (SetParent),
+    ChatFrame1EditBox (GetParent, SetParent), FCF_OpenTemporaryWindow (post-hook), hooksecurefunc,
     C_EventUtils.IsEventValid, C_CVar.GetCVar / SetCVar (or the GetCVar / SetCVar
     globals), InCombatLockdown, IsLoggedIn, ChatTypeGroup, ChatTypeInfo.
 ]]
@@ -59,6 +73,10 @@ local hookedTabs = setmetatable({}, { __mode = "k" })
 local hookedWindows = setmetatable({}, { __mode = "k" })
 local extra = {}          -- extra chat events registered on frame
 local combatLogHidden = false
+local handledButtons = setmetatable({}, { __mode = "k" })  -- chat buttons already moved
+local whispersSet = false  -- whisperMode has been set this apply-session
+local boxParent           -- the input line's parent before Echo moved it onto UIParent
+local tempHooked = false   -- FCF_OpenTemporaryWindow is post-hooked
 
 local function Valid(event)
     local utils = _G.C_EventUtils
@@ -129,6 +147,8 @@ local function HideWindow(name)
     local window = _G[name]
     if type(window) ~= "table" then return end
     local parent = HiddenParent()
+    -- Already handled: its events and tab are Echo's already, and its hooks stay.
+    if hidden[window] and (type(window.GetParent) ~= "function" or window:GetParent() == parent) then return end
     hidden[window] = true
     window:SetParent(parent)
     local tab = _G[name .. "Tab"]
@@ -206,27 +226,64 @@ function HideChat.OnChatEvent(event, ...)
     if Echo.All and Echo.All.AddLine then Echo.All.AddLine(text, r, g, b, prefix) end
 end
 
+-- Once per apply-session: a whisperMode the player changes while hiding is on is kept.
 local function SetWhispersInline()
+    if whispersSet then return end
     local current = GetCVarValue("whisperMode")
     if not current then return end
     local History = Echo.History
-    if History.SavedCVar("whisperMode") == nil then
-        -- Nowhere to keep the old value (the character isn't known yet): leave it alone
-        -- rather than change it for good.
-        if not History.SaveCVar("whisperMode", current) then return end
+    if History.SavedAccountCVar("whisperMode") == nil then
+        -- Nowhere to keep the old value (not bound yet): leave it alone rather than
+        -- change it for good.
+        if not History.SaveAccountCVar("whisperMode", current) then return end
     end
+    whispersSet = true
     if current ~= "inline" then SetCVarValue("whisperMode", "inline") end
 end
 
---- Put whisperMode back to the value saved when hiding was applied, and forget it.
+--- Put whisperMode back to the value saved when hiding was applied, and forget it. Only
+-- while it still reads inline: a value the player chose meanwhile is theirs. An unreadable
+-- whisperMode keeps the saved value for next time.
 -- @return boolean restored
 function HideChat.RestoreWhisperMode()
+    whispersSet = false
     local History = Echo.History
-    local previous = History.SavedCVar("whisperMode")
+    local previous = History.SavedAccountCVar("whisperMode")
+    -- Task 5 saved it per character; take that one too, once.
+    local legacy = History.SavedCVar and History.SavedCVar("whisperMode")
+    if previous == nil then previous = legacy end
     if previous == nil then return false end
-    SetCVarValue("whisperMode", previous)
-    History.SaveCVar("whisperMode", nil)
-    return true
+    local current = GetCVarValue("whisperMode")
+    if current == nil then return false end
+    local restored = false
+    if current == "inline" and previous ~= "inline" then
+        SetCVarValue("whisperMode", previous)
+        restored = true
+    end
+    History.SaveAccountCVar("whisperMode", nil)
+    if legacy ~= nil then History.SaveCVar("whisperMode", nil) end
+    return restored
+end
+
+--- Put Blizzard's input line back on the parent it had before Apply moved it onto
+-- UIParent. Input.Disable and HideChat.Disable call this; it does nothing otherwise.
+function HideChat.RestoreBoxParent()
+    local previous = boxParent
+    boxParent = nil
+    local box = _G.ChatFrame1EditBox
+    if previous and type(box) == "table" and type(box.SetParent) == "function" then box:SetParent(previous) end
+end
+
+--- The input line's parent was one of the windows just hidden: move it onto UIParent, so
+-- it stays on screen, and re-anchor it there.
+local function RescueBox()
+    local box = _G.ChatFrame1EditBox
+    if type(box) ~= "table" or type(box.GetParent) ~= "function" or type(box.SetParent) ~= "function" then return end
+    local parent = box:GetParent()
+    if parent == nil or not hidden[parent] then return end
+    boxParent = parent
+    box:SetParent(UIParent)
+    if Echo.Input and Echo.Input.Reanchor then Echo.Input.Reanchor() end
 end
 
 local function On()
@@ -239,7 +296,9 @@ function HideChat.IsApplied()
 end
 
 --- Hide the windows, their events and the buttons now. Callers keep it out of combat.
+-- Safe to call again: only what isn't handled yet is touched.
 function HideChat.Apply()
+    local first = not HideChat.IsApplied()
     local keepCombatLog = Echo.Setting("echoKeepCombatLog") ~= false
     local names = _G.CHAT_FRAMES
     if type(names) == "table" then
@@ -250,10 +309,21 @@ function HideChat.Apply()
     local parent = HiddenParent()
     for _, name in ipairs(HideChat.BUTTONS) do
         local button = _G[name]
-        if type(button) == "table" and type(button.SetParent) == "function" then button:SetParent(parent) end
+        if type(button) == "table" and type(button.SetParent) == "function" and not handledButtons[button] then
+            handledButtons[button] = true
+            button:SetParent(parent)
+        end
     end
+    RescueBox()
     SetWhispersInline()
     RegisterExtra()
+    if not HideChat.IsApplied() then return end
+    -- ChatFrame1 keeps its whisper events so Blizzard sets R's target: the whisper filter
+    -- goes off (Echo.ApplyOptions keeps it off from now on).
+    if Echo.Filter and Echo.Filter.active then Echo.Filter.Apply(false) end
+    -- The All view collects from now on even with echoAllView off (Echo.FeedEnabled), so a
+    -- tile switched off earlier comes back for its next line.
+    if first and Echo.Setting("echoAllView") == false then Echo.Store.Undismiss(Echo.All and Echo.All.KEY or "all") end
 end
 
 -- The frame after it was asked for: still wanted, and out of combat, else after combat.
@@ -275,11 +345,22 @@ local function Schedule()
     end)
 end
 
+-- Post-hook on FCF_OpenTemporaryWindow: a new window (a pet battle's log, a whisper
+-- popout) joins CHAT_FRAMES; while hiding is applied, it goes too (out of combat).
+local function OnTemporaryWindow()
+    if active and On() and HideChat.IsApplied() then TryApply() end
+end
+
 local function OnEvent(_, event, ...)
     if event == "PLAYER_ENTERING_WORLD" then
         worldReady = true
         frame:UnregisterEvent("PLAYER_ENTERING_WORLD")
-        if On() then Schedule() end
+        if On() then
+            Schedule()
+        else
+            -- Another character hid chat and set whisperMode inline account-wide.
+            HideChat.RestoreWhisperMode()
+        end
     elseif event == "PLAYER_REGEN_ENABLED" then
         frame:UnregisterEvent("PLAYER_REGEN_ENABLED")
         TryApply()
@@ -303,7 +384,8 @@ function HideChat.Refresh()
         if worldReady then Schedule() end
         return
     end
-    HideChat.RestoreWhisperMode()
+    -- Before the world is loaded, PLAYER_ENTERING_WORLD does this, with CVars in place.
+    if worldReady then HideChat.RestoreWhisperMode() end
     if HideChat.IsApplied() then HideChat.AskReload() end
 end
 
@@ -314,6 +396,10 @@ function HideChat.Enable()
         frame = CreateFrame("Frame")
         frame:SetScript("OnEvent", OnEvent)
     end
+    if not tempHooked and type(_G.FCF_OpenTemporaryWindow) == "function" and type(hooksecurefunc) == "function" then
+        tempHooked = true
+        hooksecurefunc("FCF_OpenTemporaryWindow", OnTemporaryWindow)
+    end
     if type(IsLoggedIn) == "function" and IsLoggedIn() then
         worldReady = true
     else
@@ -321,9 +407,9 @@ function HideChat.Enable()
     end
 end
 
---- Stop: drop the extra chat events, put whisperMode back, and ask for a reload if
--- anything was hidden. The post-hooks stay (they can't be removed) and keep the windows
--- hidden until the reload.
+--- Stop: drop the extra chat events, put whisperMode and the input line's parent back,
+-- and ask for a reload if anything was hidden. The post-hooks stay (they can't be
+-- removed) and keep the windows hidden until the reload.
 function HideChat.Disable()
     active = false
     worldReady = false
@@ -332,8 +418,15 @@ function HideChat.Disable()
         extra = {}
     end
     HideChat.RestoreWhisperMode()
+    HideChat.RestoreBoxParent()
     if HideChat.IsApplied() then HideChat.AskReload() end
 end
 
--- Test and debug handle.
+-- Test and debug handles. _reset forgets what was hidden, as a reload would.
 function HideChat._frame() return frame end
+function HideChat._reset()
+    for k in pairs(hidden) do hidden[k] = nil end
+    for k in pairs(kept) do kept[k] = nil end
+    for k in pairs(handledButtons) do handledButtons[k] = nil end
+    combatLogHidden, whispersSet, boxParent = false, false, nil
+end

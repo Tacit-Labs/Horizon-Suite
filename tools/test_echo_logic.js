@@ -7950,6 +7950,22 @@ run(`
   PROBE_HANDLER("help")
   check("probe input: listed in the help", printed("ECHO_SLASH_HELP_PROBE_INPUT"), table.concat(PROBE_OUT, " | "))
 
+  -- /h echo status names the input line's parent, or says it has none with a name.
+  rawset(A.L, "ECHO_SLASH_STATUS_INPUT", "input parent %s")
+  rawset(A.L, "ECHO_SLASH_UNNAMED", "(unnamed)")
+  local parent = { GetName = function() return "ChatFrame1" end }
+  ChatFrame1EditBox = { GetParent = function() return parent end }
+  PROBE_OUT = {}
+  PROBE_HANDLER("status")
+  check("status: names the input line's parent", printed("input parent ChatFrame1"), table.concat(PROBE_OUT, " | "))
+  parent = { GetName = function() return nil end }
+  PROBE_OUT = {}
+  PROBE_HANDLER("status")
+  check("status: an unnamed parent says so", printed("input parent (unnamed)"), table.concat(PROBE_OUT, " | "))
+  ChatFrame1EditBox = nil
+  rawset(A.L, "ECHO_SLASH_STATUS_INPUT", nil)
+  rawset(A.L, "ECHO_SLASH_UNNAMED", nil)
+
   A.RegisterSlashHandler, A.HSPrint, A.IsModuleEnabled = PROBE_SAVED.reg, PROBE_SAVED.print, PROBE_SAVED.enabled
   strtrim, ChatFrame1EditBox, InCombatLockdown = PROBE_SAVED.strtrim, PROBE_SAVED.box, PROBE_SAVED.combat
   PROBE_SAVED, PROBE_OUT, PROBE_HANDLER = nil, nil, nil
@@ -8014,6 +8030,7 @@ run(`
   function box:Hide() self.shown = false end
   function box:SetShown(v) self.shown = v and true or false end
   function box:IsShown() return self.shown end
+  function box:IsVisible() return self.shown and not self.parentHidden end
   function box:GetRegions() return regions[1], regions[2], regions[3] end
   function box:GetAttribute(k) return self.attrs[k] end
   function box:SetAttribute() self.calls.attribute = self.calls.attribute + 1 end
@@ -8247,6 +8264,10 @@ run(`
   box.shown = true
   box.hookScripts.OnShow(box)
   check("review: and showing again hides it", not fc.edit:IsShown(), "shown")
+  box.parentHidden = true
+  check("final: a line shown under a hidden parent covers nothing", I.Covers("w:Brisa-Horizon") == false, "covers")
+  box.parentHidden = nil
+  check("final: on screen again, it covers", I.Covers("w:Brisa-Horizon") == true, "doesn't")
   C.Hide()
 
   local realEdge, realHandler = V.PanelEdge, geterrorhandler
@@ -8374,6 +8395,10 @@ run(`
   box.attrs = { chatType = "OFFICER" }
   fire("UpdateHeader", box)
   check("follow: a hidden line opens nothing", C.ShownKey() == "guild", C.ShownKey())
+  box.shown, box.parentHidden = true, true
+  fire("UpdateHeader", box)
+  check("final: a line under a hidden parent opens nothing", C.ShownKey() == "guild", C.ShownKey())
+  box.parentHidden = nil
   box.shown = true
   db.echoDockInput = false
   Echo.ApplyOptions()
@@ -8868,16 +8893,17 @@ run(`
   check("hide: a tab put back is moved away again", tab1.parent == hidden, tostring(tab1.parent))
   check("hide: the chat buttons move away", menu.parent == hidden and channel.parent == hidden and quick.parent == hidden, "left")
 
-  -- whisperMode: saved per character, then set to inline.
+  -- whisperMode: saved account-wide (the CVar is), then set to inline.
   check("hide: whispers go inline", cvars.whisperMode == "inline", cvars.whisperMode)
-  check("hide: the old whisperMode is saved", H.SavedCVar("whisperMode") == "popout", tostring(H.SavedCVar("whisperMode")))
-  check("hide: saved for this character", hideDB.echoHistory.cvars and hideDB.echoHistory.cvars["Kaelis-Horizon"]
-      and hideDB.echoHistory.cvars["Kaelis-Horizon"].whisperMode == "popout", "not in the character's settings")
+  check("hide: the old whisperMode is saved", H.SavedAccountCVar("whisperMode") == "popout", tostring(H.SavedAccountCVar("whisperMode")))
+  check("hide: saved account-wide", hideDB.echoHistory.cvars and hideDB.echoHistory.cvars.account
+      and hideDB.echoHistory.cvars.account.whisperMode == "popout" and hideDB.echoHistory.cvars["Kaelis-Horizon"] == nil,
+      "not in the account's settings")
   H.Clear()
-  check("hide: clearing history keeps the saved whisperMode", H.SavedCVar("whisperMode") == "popout", tostring(H.SavedCVar("whisperMode")))
+  check("hide: clearing history keeps the saved whisperMode", H.SavedAccountCVar("whisperMode") == "popout", tostring(H.SavedAccountCVar("whisperMode")))
   HC.Refresh()
   RunTimers()
-  check("hide: applying again never saves inline over it", H.SavedCVar("whisperMode") == "popout", tostring(H.SavedCVar("whisperMode")))
+  check("hide: applying again never saves inline over it", H.SavedAccountCVar("whisperMode") == "popout", tostring(H.SavedAccountCVar("whisperMode")))
 
   -- Chat types Echo doesn't route come to Echo's own frame instead.
   check("hide: unrouted chat types are registered",
@@ -8934,7 +8960,7 @@ run(`
   HC.Refresh()
   RunTimers()
   check("hide: off restores whisperMode", cvars.whisperMode == "popout", cvars.whisperMode)
-  check("hide: and forgets the saved value", H.SavedCVar("whisperMode") == nil, tostring(H.SavedCVar("whisperMode")))
+  check("hide: and forgets the saved value", H.SavedAccountCVar("whisperMode") == nil, tostring(H.SavedAccountCVar("whisperMode")))
   check("hide: turning it off asks for a reload", A._moduleReloadRecommended == true and refreshes >= 1, refreshes)
   check("hide: nothing is un-hidden live", cf1.parent == hidden and tab1.parent == hidden, "put back")
 
@@ -8982,6 +9008,226 @@ run(`
   ChatFrameMenuButton, ChatFrameChannelButton, QuickJoinToastButton = nil, nil, nil
   S.Reset()
 `, 'echo-hide-chat');
+
+// --- Hide Blizzard chat: the input line, re-applying, temporary windows (plan 12, final fixes) --
+run(`
+  local A, Echo = HorizonSuite, HorizonSuite.Echo
+  local S, H, All, I, F = Echo.Store, Echo.History, Echo.All, Echo.Input, Echo.Filter
+  local HC = Echo.HideChat
+  HC._reset()  -- a fresh session: the last section's windows are forgotten, as after a reload
+  local saved = { hook = hooksecurefunc, frames = CHAT_FRAMES, create = CreateFrame, getDB = A.GetDB,
+    setDB = A.SetDB, defaults = A.ECHO_DEFAULTS, combat = InCombatLockdown, after = C_Timer.After,
+    util = C_EventUtils, cvar = C_CVar, logged = IsLoggedIn, group = ChatTypeGroup, info = ChatTypeInfo,
+    cfu = ChatFrameUtil, getf = ChatFrame_GetMessageEventFilters, refresh = A.Dashboard_Refresh,
+    flag = A._moduleReloadRecommended, box = ChatFrame1EditBox, temp = FCF_OpenTemporaryWindow,
+    stack = debugstack, add = ChatFrame_AddMessageEventFilter, remove = ChatFrame_RemoveMessageEventFilter,
+    inputEnable = I.Enable, reanchor = I.Reanchor }
+  S.Reset()
+  local db = {}
+  A.GetDB = function(k, d) if db[k] ~= nil then return db[k] end return d end
+  A.SetDB = function(k, v) db[k] = v end
+  A.ECHO_DEFAULTS = { echoHideBlizzardChat = false, echoKeepCombatLog = true, echoDockInput = true, echoAllView = true }
+  hooksecurefunc = function(t, name, fn)
+    if type(t) == "string" then
+      local orig = _G[t]
+      _G[t] = function(...) local r = orig(...); name(...); return r end
+      return
+    end
+    local orig = t[name]
+    t[name] = function(...) orig(...); fn(...) end
+  end
+  CreateFrame = function(...)
+    local f = STUB_CREATE_FRAME(...)
+    f.events = {}
+    f.RegisterEvent = function(self, e) self.events[e] = true end
+    f.UnregisterEvent = function(self, e) self.events[e] = nil end
+    f.UnregisterAllEvents = function(self) self.events = {} end
+    return f
+  end
+  local moves = 0
+  local function Reparentable(t)
+    t.parent = UIParent
+    function t:SetParent(p) moves = moves + 1; self.parent = p end
+    function t:GetParent() return self.parent end
+    return t
+  end
+  local function Window(name)
+    local w = Reparentable({ name = name, events = { CHAT_MSG_SAY = true } })
+    function w:RegisterEvent(e) self.events[e] = true end
+    function w:UnregisterEvent(e) self.events[e] = nil end
+    function w:UnregisterAllEvents() self.events = {} end
+    function w:GetName() return self.name end
+    _G[name] = w
+    _G[name .. "Tab"] = Reparentable({})
+    return w, _G[name .. "Tab"]
+  end
+  CHAT_FRAMES = { "ChatFrame1", "ChatFrame2" }
+  local cf1, tab1 = Window("ChatFrame1")
+  local cf2 = Window("ChatFrame2")
+  local menu = Reparentable({})
+  ChatFrameMenuButton, ChatFrameChannelButton, QuickJoinToastButton = menu, nil, nil
+  -- Blizzard's input line is a child of ChatFrame1.
+  local box = Reparentable({})
+  box.parent = cf1
+  ChatFrame1EditBox = box
+  C_EventUtils = { IsEventValid = function() return true end }
+  local cvars = { whisperMode = "popout" }
+  C_CVar = { GetCVar = function(n) return cvars[n] end, SetCVar = function(n, v) cvars[n] = v end }
+  local inCombat = false
+  InCombatLockdown = function() return inCombat end
+  local timers = {}
+  C_Timer.After = function(_, fn) timers[#timers + 1] = fn end
+  local function RunTimers() local t = timers; timers = {}; for _, fn in ipairs(t) do fn() end end
+  IsLoggedIn = function() return true end
+  ChatTypeGroup, ChatTypeInfo = {}, {}
+  ChatFrameUtil, ChatFrame_GetMessageEventFilters = nil, nil
+  ChatFrame_AddMessageEventFilter = function() end
+  ChatFrame_RemoveMessageEventFilter = function() end
+  local nextTemp = 11
+  FCF_OpenTemporaryWindow = function()
+    local name = "ChatFrame" .. nextTemp
+    nextTemp = nextTemp + 1
+    local w = Window(name)
+    CHAT_FRAMES[#CHAT_FRAMES + 1] = name
+    return w
+  end
+  local originalTemp = FCF_OpenTemporaryWindow
+  local hideDB = {}
+  local charKey = "Kaelis-Horizon"
+  H.Bind(hideDB, function() return charKey end)
+  A.Dashboard_Refresh = function() end
+  I.Enable = function() end
+  local reanchors = 0
+  I.Reanchor = function() reanchors = reanchors + 1 end
+  debugstack = function() return "Interface/AddOns/SomeAddon/Core.lua:1: in main chunk" end
+
+  -- The All tile was switched off and dismissed before hiding.
+  db.echoAllView = false
+  S.Add({ convKey = "all", text = "old", feed = true })
+  S.Close("all")
+  All.Enable()
+
+  HC.Enable()
+  check("final hide: a new temporary window is post-hooked", FCF_OpenTemporaryWindow ~= originalTemp, "not hooked")
+
+  -- Hide stored whispers is on, then hiding is turned on.
+  db.echoHideStoredWhispers = true
+  Echo.ApplyOptions()
+  check("final hide: the whisper filter is on before hiding", F.active == true, tostring(F.active))
+  db.echoHideBlizzardChat = true
+  Echo.ApplyOptions()
+  RunTimers()
+  local hidden = cf1.parent
+  check("final hide: applied", hidden ~= UIParent and tab1.parent == hidden, tostring(hidden))
+  check("final hide: the whisper filter goes off once hiding applies", F.active == false, tostring(F.active))
+  Echo.ApplyOptions()
+  RunTimers()
+  check("final hide: and stays off while hiding is applied", F.active == false, tostring(F.active))
+
+  -- The input line moves off the hidden window onto UIParent, and is re-anchored there.
+  check("final hide: the input line leaves the hidden window", box.parent == UIParent, tostring(box.parent))
+  check("final hide: and is re-anchored", reanchors >= 1, reanchors)
+
+  -- Applying again touches nothing already handled, and doesn't set whisperMode again.
+  check("final hide: whispers go inline", cvars.whisperMode == "inline", cvars.whisperMode)
+  cvars.whisperMode = "newtab"
+  local before = moves
+  Echo.ApplyOptions()
+  RunTimers()
+  HC.Apply()
+  check("final hide: re-applying moves nothing again", moves == before, moves - before)
+  check("final hide: re-applying leaves the player's whisperMode", cvars.whisperMode == "newtab", cvars.whisperMode)
+  check("final hide: the first saved value is kept", H.SavedAccountCVar("whisperMode") == "popout", tostring(H.SavedAccountCVar("whisperMode")))
+
+  -- The All view collects while hiding is applied, with echoAllView off.
+  check("final hide: All counts as on while hiding", Echo.FeedEnabled("all") == true, "off")
+  All.OnAddMessage(nil, "an addon line")
+  local all = S.Get("all")
+  check("final hide: All collects with its setting off", all and all.messages[#all.messages].text == "an addon line", all and #all.messages)
+  check("final hide: and its tile shows again", all and all.open == true and not all.dismissed, all and tostring(all.open))
+  Echo.ApplyOptions()
+  check("final hide: applying options leaves the tile open", all and all.open == true, all and tostring(all.open))
+
+  -- A temporary window opened while applied goes too; in combat, once combat ends.
+  local pet = FCF_OpenTemporaryWindow("PET_BATTLE_COMBAT_LOG")
+  check("final hide: a temporary window is hidden as it opens", pet.parent == hidden and _G[pet.name .. "Tab"].parent == hidden, tostring(pet.parent))
+  check("final hide: and silenced", pet.events.CHAT_MSG_SAY == nil, "still registered")
+  inCombat = true
+  local popout = FCF_OpenTemporaryWindow("WHISPER")
+  check("final hide: not in combat", popout.parent == UIParent, tostring(popout.parent))
+  inCombat = false
+  HC._frame().scripts.OnEvent(HC._frame(), "PLAYER_REGEN_ENABLED")
+  check("final hide: but once combat ends", popout.parent == hidden, tostring(popout.parent))
+
+  -- Turning it off: a whisperMode the player changed stays, and the saved one is forgotten.
+  db.echoHideBlizzardChat = false
+  Echo.ApplyOptions()
+  check("final hide: off keeps a whisperMode the player chose", cvars.whisperMode == "newtab", cvars.whisperMode)
+  check("final hide: and forgets the saved one", H.SavedAccountCVar("whisperMode") == nil, tostring(H.SavedAccountCVar("whisperMode")))
+  local late = FCF_OpenTemporaryWindow("WHISPER")
+  check("final hide: once off, a temporary window stays", late.parent == UIParent, tostring(late.parent))
+
+  -- Disabling puts the input line back on its old parent.
+  HC.Disable()
+  check("final hide: disabling puts the input line back", box.parent == cf1, tostring(box.parent))
+  HC.RestoreBoxParent()
+  check("final hide: with nothing recorded, restoring moves nothing", box.parent == cf1, tostring(box.parent))
+  -- Input.Disable does the same.
+  db.echoHideBlizzardChat = true
+  HC.Enable()
+  HC.Refresh()
+  RunTimers()
+  check("final hide: moved again on the next apply", box.parent == UIParent, tostring(box.parent))
+  I.Disable()
+  check("final hide: undocking puts the input line back", box.parent == cf1, tostring(box.parent))
+  HC.Disable()
+
+  -- whisperMode is account-wide: another character with hiding off puts it back at login.
+  db.echoHideBlizzardChat = false
+  cvars.whisperMode = "inline"
+  H.SaveAccountCVar("whisperMode", "popout")
+  charKey = "Brisa-Horizon"
+  check("final hide: the saved value is the account's", H.SavedAccountCVar("whisperMode") == "popout", tostring(H.SavedAccountCVar("whisperMode")))
+  IsLoggedIn = function() return false end
+  HC.Enable()
+  HC.Refresh()
+  check("final hide: nothing before the world is loaded", cvars.whisperMode == "inline", cvars.whisperMode)
+  HC._frame().scripts.OnEvent(HC._frame(), "PLAYER_ENTERING_WORLD")
+  check("final hide: an alt with hiding off restores it at login", cvars.whisperMode == "popout", cvars.whisperMode)
+  check("final hide: and clears it", H.SavedAccountCVar("whisperMode") == nil, tostring(H.SavedAccountCVar("whisperMode")))
+  HC.Disable()
+  cvars.whisperMode = "newtab"
+  H.SaveAccountCVar("whisperMode", "popout")
+  HC.Enable()
+  HC._frame().scripts.OnEvent(HC._frame(), "PLAYER_ENTERING_WORLD")
+  check("final hide: a whisperMode that isn't inline is left alone", cvars.whisperMode == "newtab", cvars.whisperMode)
+  check("final hide: and the stale saved value is dropped", H.SavedAccountCVar("whisperMode") == nil, tostring(H.SavedAccountCVar("whisperMode")))
+  HC.Disable()
+  -- A value Task 5 saved per character is taken once too.
+  cvars.whisperMode = "inline"
+  H.SaveCVar("whisperMode", "popout")
+  HC.Enable()
+  HC._frame().scripts.OnEvent(HC._frame(), "PLAYER_ENTERING_WORLD")
+  check("final hide: a per-character value from before is restored", cvars.whisperMode == "popout" and H.SavedCVar("whisperMode") == nil,
+    cvars.whisperMode)
+  HC.Disable()
+
+  All.Disable()
+  H.Unbind()
+  I.Enable, I.Reanchor = saved.inputEnable, saved.reanchor
+  hooksecurefunc, CHAT_FRAMES, CreateFrame = saved.hook, saved.frames, saved.create
+  A.GetDB, A.SetDB, A.ECHO_DEFAULTS = saved.getDB, saved.setDB, saved.defaults
+  InCombatLockdown, C_Timer.After, C_EventUtils, C_CVar = saved.combat, saved.after, saved.util, saved.cvar
+  IsLoggedIn, ChatTypeGroup, ChatTypeInfo = saved.logged, saved.group, saved.info
+  ChatFrameUtil, ChatFrame_GetMessageEventFilters = saved.cfu, saved.getf
+  ChatFrame_AddMessageEventFilter, ChatFrame_RemoveMessageEventFilter = saved.add, saved.remove
+  A.Dashboard_Refresh, A._moduleReloadRecommended = saved.refresh, saved.flag
+  ChatFrame1EditBox, FCF_OpenTemporaryWindow, debugstack = saved.box, saved.temp, saved.stack
+  for i = 1, 20 do _G["ChatFrame" .. i], _G["ChatFrame" .. i .. "Tab"] = nil, nil end
+  ChatFrameMenuButton = nil
+  HC._reset()
+  S.Reset()
+`, 'echo-hide-chat-final');
 
 // --- Redraw: one repaint per frame -------------------------------------------
 run(`
