@@ -6307,6 +6307,73 @@ run(`
   S.Reset()
 `, 'card-pins-group');
 
+// --- Pins and history: safety (plan 10, final fix wave) ----------------------------------
+run(`
+  local A = HorizonSuite
+  local Echo = A.Echo
+  local S, H, M = Echo.Store, Echo.History, Echo.Menu
+  S.Reset()
+  local db = {}
+  H.Bind(db, function() return "Kaelis-Horizon" end)
+  local function Items(key, record)
+    local items = {}
+    local r = {}
+    function r:CreateButton(label, fn)
+      local b = { label = label, enabled = true }
+      function b:SetEnabled(v) self.enabled = v end
+      items[#items + 1] = b
+      return b
+    end
+    M.BuildMessage(r, key, record)
+    return items
+  end
+
+  -- A |K string (a Battle.net friend's protected name) is never pinned or saved.
+  local kline = { text = "|Kq12|k has come online.", time = 10 }
+  check("a System line with |K is blocked as hidden", S.PinBlockReason("system", kline) == "secret", tostring(S.PinBlockReason("system", kline)))
+  local ok, reason = S.PinMessage("system", kline)
+  check("a System line with |K can't be pinned", ok == false and reason == "secret" and #S.Pins("system") == 0, tostring(reason))
+  local items = Items("system", kline)
+  check("the menu says a |K line is hidden", items[1] and items[1].label == "ECHO_PIN_BLOCKED_SECRET" and items[1].enabled == false, items[1] and items[1].label)
+  check("Append rejects |K text", H.Append("w:Brisa-Horizon", { text = "ask |Kq3|k about it", time = 11 }) == false, "appended")
+  check("nothing was written for the |K line", db.echoHistory.chars["Kaelis-Horizon"] == nil
+    or db.echoHistory.chars["Kaelis-Horizon"]["w:Brisa-Horizon"] == nil, "written")
+  check("Append still takes plain text", H.Append("w:Brisa-Horizon", { text = "plain", time = 12 }) == true, "rejected")
+
+  -- A demo, pending or failed message isn't real yet: it can't be pinned.
+  for _, rec in ipairs({
+    { text = "demo line", time = 20, demo = true },
+    { text = "on its way", time = 21, outgoing = true, status = "pending" },
+    { text = "never sent", time = 22, outgoing = true, status = "failed" },
+  }) do
+    local label = rec.demo and "demo" or rec.status
+    check("a " .. label .. " message is unsaved", S.PinBlockReason("w:Brisa-Horizon", rec) == "unsaved", tostring(S.PinBlockReason("w:Brisa-Horizon", rec)))
+    local okPin, why = S.PinMessage("w:Brisa-Horizon", rec)
+    check("a " .. label .. " message can't be pinned", okPin == false and why == "unsaved", tostring(why))
+    local its = Items("w:Brisa-Horizon", rec)
+    check("the menu shows the unsaved reason for a " .. label .. " message", its[1] and its[1].label == "ECHO_PIN_BLOCKED_UNSAVED" and its[1].enabled == false, its[1] and its[1].label)
+  end
+  check("a sent message can still be pinned", S.PinBlockReason("w:Brisa-Horizon", { text = "arrived", time = 23, outgoing = true, status = "sent" }) == nil, "blocked")
+
+  -- Malformed saved lists don't break the clean-up.
+  H.SetMaxAge(30)
+  local now = 40 * 86400
+  db.echoHistory.chars["Kaelis-Horizon"] = { ["w:Junk-Horizon"] = { 5 }, ["w:Fresh-Horizon"] = { { t = now - 10, text = "hi" } } }
+  db.echoHistory.chars["Broken-Horizon"] = "not a table"
+  db.echoHistory.bnet["bt:Odd#1"] = { "junk" }
+  local okPrune, removed = pcall(H.Prune, now)
+  check("a malformed list doesn't break the clean-up", okPrune, tostring(removed))
+  check("a list with a non-table newest entry counts as stale", okPrune and db.echoHistory.chars["Kaelis-Horizon"]["w:Junk-Horizon"] == nil
+    and db.echoHistory.bnet["bt:Odd#1"] == nil, "kept")
+  check("a readable list is kept", db.echoHistory.chars["Kaelis-Horizon"]["w:Fresh-Horizon"] ~= nil, "removed")
+  db.echoHistory.bnet = "oops"
+  check("a malformed bnet root doesn't break the clean-up", (pcall(H.Prune, now)), "threw")
+
+  H.SetMaxAge(30)
+  H.Unbind()
+  S.Reset()
+`, 'pins-safety');
+
 // --- Redraw: one repaint per frame -------------------------------------------
 run(`
   CreateFrame = STUB_CREATE_FRAME

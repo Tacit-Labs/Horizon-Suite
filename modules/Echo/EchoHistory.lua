@@ -294,6 +294,12 @@ local function CheckPin(convKey, record, create)
     if record.secret or Echo.IsSecret(record.text) or type(record.text) ~= "string" then
         return "secret"
     end
+    -- A |K string is a Battle.net friend's protected name: it may be shown, never saved.
+    if record.text:find("|K", 1, true) then return "secret" end
+    -- A demo line, or one of yours not yet sent (or never sent), isn't a real message.
+    if record.demo or record.status == "pending" or record.status == "failed" then
+        return "unsaved"
+    end
     local key = PrefKey(convKey)
     if not key or not root or not characterKey() then return "unsaved" end
     local bucket = PinsBucket(create)
@@ -408,6 +414,8 @@ function History.Append(convKey, record)
     if record.secret or record.demo then return false end
     if record.status == "pending" or record.status == "failed" then return false end
     if Echo.IsSecret(record.text) or type(record.text) ~= "string" then return false end
+    -- A |K string is a Battle.net friend's protected name: it may be shown, never saved.
+    if record.text:find("|K", 1, true) then return false end
     local kind = Echo.Store.KindOf(convKey)
     local list = Bucket(convKey, true)
     if not list then return false end
@@ -480,7 +488,7 @@ end
 -- readable t, including an empty list.
 local function ListAge(list, now)
     local newest = list[#list]
-    local t = newest and newest.t
+    local t = type(newest) == "table" and newest.t
     if type(t) ~= "number" then return math.huge end
     return now - t
 end
@@ -509,14 +517,19 @@ function History.Prune(now)
         end
     end
 
-    for charKey, bucket in pairs(root.chars) do
-        if type(bucket) == "table" then
-            for convKey in pairs(bucket) do pruneList(bucket, convKey, true) end
-            if next(bucket) == nil then root.chars[charKey] = nil end
+    -- SavedVariables can hold anything: skip whatever isn't the shape Echo writes.
+    if type(root.chars) == "table" then
+        for charKey, bucket in pairs(root.chars) do
+            if type(bucket) == "table" then
+                for convKey in pairs(bucket) do pruneList(bucket, convKey, true) end
+                if next(bucket) == nil then root.chars[charKey] = nil end
+            end
         end
     end
 
-    for key in pairs(root.bnet) do pruneList(root.bnet, key, true) end
+    if type(root.bnet) == "table" then
+        for key in pairs(root.bnet) do pruneList(root.bnet, key, true) end
+    end
 
     if type(root.guilds) == "table" then
         local currentGuildKey = History.GuildKey()
