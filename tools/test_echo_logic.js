@@ -73,10 +73,11 @@ run(`
   -- Stand-in frames for smoke tests: every method exists and does nothing, except the
   -- handful whose results the Echo frames read back.
   function STUB_FRAME(parent)
-    local o = { scripts = {}, shown = false, parent = parent, text = "", points = {} }
+    local o = { scripts = {}, hookScripts = {}, shown = false, parent = parent, text = "", points = {} }
     local fixed = { GetFrameLevel = 1, GetScale = 1, GetFrameStrata = "MEDIUM", IsMouseOver = false, HasFocus = false }
     return setmetatable(o, { __index = function(_, k)
       if k == "SetScript" then return function(self, n, fn) self.scripts[n] = fn end end
+      if k == "HookScript" then return function(self, n, fn) self.hookScripts[n] = fn end end
       if k == "GetScript" then return function(self, n) return self.scripts[n] end end
       if k == "Show" then return function(self) self.shown = true end end
       if k == "Hide" then return function(self) self.shown = false end end
@@ -1002,13 +1003,23 @@ run(`
   check("the column exists and is shown", column and column:IsShown(), "missing")
   check("WoW's layout cache never saves the column's position", column.dontSave == true, tostring(column.dontSave))
   check("the default anchor is bottom right", column.points[1] and column.points[1][1] == "BOTTOMRIGHT", column.points[1] and column.points[1][1])
+  -- Final fix 6: the chat/stack button is rounded with the SMALL radius and a border,
+  -- replacing its old backdrop.
+  local stackButtonRR = rawget(T._stackButton(), "_echoRound")
+  check("the stack button is rounded with the SMALL radius and a border",
+    stackButtonRR ~= nil and stackButtonRR.corners.tl == HorizonSuite.Echo.Round.SMALL and stackButtonRR.border ~= nil, "?")
 
   S.Add({ convKey = "w:Brisa-Horizon", text = "got the leather", class = "DRUID", sender = "Brisa-Horizon" })
   local tile = T.TileFor("w:Brisa-Horizon")
   check("a whisper gets a tile with its initial", tile and tile.convKey == "w:Brisa-Horizon" and tile.letter.text == "B", tile and tile.letter.text)
   check("a loud unread shows the dot", tile.dot.shown == true, tile.dot.shown)
-  local dotRR = rawget(tile.dot, "_echoRound")
-  check("the unread dot is a fully round 8x8 Echo.Round", dotRR ~= nil and dotRR.corners.tl == 4 and tile.dot.width == 8 and tile.dot.height == 8, "?")
+  -- Final fix 7: the unread dot is one Echo.Round.Dot texture, not a 15-texture Round.
+  check("the unread dot has no _echoRound handle (one-texture Dot, not a 9-slice)",
+    rawget(tile.dot, "_echoRound") == nil, "?")
+  check("the unread dot is sized 8x8", tile.dot.width == 8 and tile.dot.height == 8, "?")
+  check("the unread dot uses the whole circle texture",
+    tile.dot.texCoord and tile.dot.texCoord[1] == 0 and tile.dot.texCoord[2] == 1
+      and tile.dot.texCoord[3] == 0 and tile.dot.texCoord[4] == 1, "?")
   local tileRR = rawget(tile, "_echoRound")
   check("a column tile is rounded with the TILE radius and a border", tileRR ~= nil and tileRR.corners.tl == HorizonSuite.Echo.Round.TILE and tileRR.border ~= nil, "?")
   local V = HorizonSuite.Echo.View
@@ -1017,6 +1028,9 @@ run(`
   check("the tile's fill colour matches FaceBackground", mb and mb[1] == fr and mb[2] == fg and mb[3] == fb and mb[4] == fa, mb and table.concat(mb, ","))
   local shadeRR = rawget(tile.labelShade, "_echoRound")
   check("the label shade rounds only its bottom corners", shadeRR ~= nil and shadeRR.corners.tl == 0 and shadeRR.corners.tr == 0 and shadeRR.corners.bl == HorizonSuite.Echo.Round.TILE and shadeRR.corners.br == HorizonSuite.Echo.Round.TILE, "?")
+  -- Final fix 3: the label is parented to its shade, so the shade (drawn first) never
+  -- paints over it regardless of layer.
+  check("the column tile's label is parented to the shade", tile.label.parent == tile.labelShade, "?")
   local toast = T._toast()
   check("a loud message shows the toast", toast and toast.shown and toast.convKey == "w:Brisa-Horizon", toast and toast.convKey)
   check("the toast body is the message", toast.entry.body.text == "got the leather", toast.entry.body.text)
@@ -1029,6 +1043,9 @@ run(`
   local countPill = rawget(ptile, "countPill")
   local pillRR = countPill and rawget(countPill, "_echoRound")
   check("a count badge gets a small rounded pill behind it", countPill ~= nil and countPill.shown == true and pillRR ~= nil and pillRR.corners.tl == 6 and countPill.height == 12, "?")
+  -- Final fix 2: the count is parented to its pill, so the pill's own fill never paints
+  -- over the number regardless of layer.
+  check("the column tile's count is parented to its pill", ptile.count.parent == countPill, "?")
   local pv = pillRR and pillRR.fill.middleBand.vertexColor
   check("the count pill is tinted the accent colour", pv and pv[1] == V.ACCENT.r and pv[2] == V.ACCENT.g and pv[3] == V.ACCENT.b, pv and table.concat(pv, ","))
   local tileCountPill = rawget(tile, "countPill")
@@ -1098,6 +1115,11 @@ run(`
   check("the stack's Open button is rounded with the SMALL radius, no border", openRR ~= nil and openRR.corners.tl == Round.SMALL and openRR.border == nil, "?")
   local editRR = rawget(f.edit, "_echoRound")
   check("the stack's reply box is rounded with the SMALL radius", editRR ~= nil and editRR.corners.tl == Round.SMALL, "?")
+  -- Final fix 5: the top accent rule is inset by the panel radius on both sides.
+  check("the stack card's accent rule is inset by the panel radius on the left",
+    f.rule.points[1] and f.rule.points[1][1] == "TOPLEFT" and f.rule.points[1][4] == Round.PANEL, "?")
+  check("the stack card's accent rule is inset by the panel radius on the right",
+    f.rule.points[2] and f.rule.points[2][1] == "TOPRIGHT" and f.rule.points[2][4] == -Round.PANEL, "?")
 
   f.edit:SetText("sure, mail them")
   f.edit.scripts.OnEnterPressed(f.edit)
@@ -1982,6 +2004,12 @@ run(`
   check("the card's reply box is rounded with the SMALL radius", editRR ~= nil and editRR.corners.tl == Round.SMALL, "?")
   local sendRR = rawget(f.send, "_echoRound")
   check("the send button is rounded with the SMALL radius", sendRR ~= nil and sendRR.corners.tl == Round.SMALL, "?")
+  -- Final fix 5: the top accent rule is inset by the panel radius on both sides so it
+  -- stays inside the rounded top corners.
+  check("the card's accent rule is inset by the panel radius on the left",
+    f.rule.points[1] and f.rule.points[1][1] == "TOPLEFT" and f.rule.points[1][4] == Round.PANEL, "?")
+  check("the card's accent rule is inset by the panel radius on the right",
+    f.rule.points[2] and f.rule.points[2][1] == "TOPRIGHT" and f.rule.points[2][4] == -Round.PANEL, "?")
   check("the card shows the chosen conversation", f.name.text == "Brisa", f.name.text)
   check("the meta line names the class", f.meta.text:find("DRUID", 1, true) ~= nil, f.meta.text)
   check("opening marks it read", S.Get("w:Brisa-Horizon").unread == 0, S.Get("w:Brisa-Horizon").unread)
@@ -2005,6 +2033,11 @@ run(`
     elseif b.convKey == "w:Vexa-Horizon" then otherRing = rawget(b, "_echoRound").border.ring.tl.vertexColor end
   end
   check("the shown conversation's row tile outline is the accent colour", shownRing and shownRing[1] == a.r and shownRing[2] == a.g and shownRing[3] == a.b, shownRing and table.concat(shownRing, ","))
+  -- Final fix 7: the row tile's unread dot is one Echo.Round.Dot texture, fully round,
+  -- not a 9-slice Round.
+  check("a card row tile's unread dot has no _echoRound handle (one-texture Dot)",
+    rawget(f.rowTiles[1].dot, "_echoRound") == nil, "?")
+  check("a card row tile's unread dot is sized 6x6", f.rowTiles[1].dot.width == 6 and f.rowTiles[1].dot.height == 6, "?")
   check("another row tile's outline is dark", otherRing and otherRing[1] == 0 and otherRing[2] == 0 and otherRing[3] == 0, otherRing and table.concat(otherRing, ","))
   check("both row tiles are rounded", ring1 ~= nil and ring2 ~= nil, "?")
 
@@ -4569,6 +4602,89 @@ run(`
       if h.border.ring[c].shown ~= true then shown = false end
     end
     check("SetBorderColor with alpha restores visibility", shown, "shown")
+  end
+
+  -- Final fix 1: HookScript'd OnSizeChanged re-lays out to the frame's new size.
+  do
+    local frame = STUB_FRAME()
+    local h = Round.Apply(frame, { radius = 10, border = true })
+    check("Apply hooks OnSizeChanged when the frame supports HookScript",
+      type(frame.hookScripts.OnSizeChanged) == "function", "?")
+    frame.GetWidth = function() return 100 end
+    frame.GetHeight = function() return 60 end
+    frame.hookScripts.OnSizeChanged(frame)
+    check("a resize re-lays out the top/bottom bands to the new width (w - 2R)",
+      h.fill.topBand.width == 80 and h.fill.bottomBand.width == 80, h.fill.topBand.width)
+    check("a resize re-lays out the middle band's height to the new height (h - 2R)",
+      h.fill.middleBand.height == 40, h.fill.middleBand.height)
+  end
+
+  -- Final fix 1: a sized-frame band geometry test (not the resize hook, the initial Apply).
+  do
+    local frame = STUB_FRAME()
+    frame.GetWidth = function() return 120 end
+    frame.GetHeight = function() return 50 end
+    local h = Round.Apply(frame, { radius = 10 })
+    check("a sized frame's top band width is w - 2R", h.fill.topBand.width == 100, h.fill.topBand.width)
+    check("a sized frame's middle band height is h - 2R", h.fill.middleBand.height == 30, h.fill.middleBand.height)
+    check("a sized frame's middle band width is the full width", h.fill.middleBand.width == 120, h.fill.middleBand.width)
+  end
+
+  -- Final fix 4: fill draws below the border, both below a host's own (default) sublevel.
+  do
+    local frame = STUB_FRAME()
+    local h = Round.Apply(frame, { radius = 10, border = true })
+    for _, c in ipairs({ "tl", "tr", "bl", "br" }) do
+      check("fill quarter " .. c .. " draws at sublevel -8", h.fill.circle[c].drawSublevel == -8, tostring(h.fill.circle[c].drawSublevel))
+      check("border ring " .. c .. " draws at sublevel -7", h.border.ring[c].drawSublevel == -7, tostring(h.border.ring[c].drawSublevel))
+    end
+    check("the middle band draws at sublevel -8", h.fill.middleBand.drawSublevel == -8, tostring(h.fill.middleBand.drawSublevel))
+    for _, side in ipairs({ "top", "bottom", "left", "right" }) do
+      check("border line " .. side .. " draws at sublevel -7", h.border.lines[side].drawSublevel == -7, tostring(h.border.lines[side].drawSublevel))
+    end
+  end
+
+  -- Final fix 7: Round.Dot is a single circle texture, not a 9-slice handle.
+  do
+    local parent = STUB_FRAME()
+    local dot = Round.Dot(parent, 8, "OVERLAY")
+    check("Dot is sized to the requested diameter", dot.width == 8 and dot.height == 8, "?")
+    check("Dot uses the whole circle texture (texcoords 0-1)",
+      dot.texCoord[1] == 0 and dot.texCoord[2] == 1 and dot.texCoord[3] == 0 and dot.texCoord[4] == 1, "?")
+    check("Dot's texture is the bundled circle", dot.texture and dot.texture:find("circle.tga", 1, true) ~= nil, tostring(dot.texture))
+    dot:SetVertexColor(0.5, 0.6, 0.7, 1)
+    check("Dot tints via SetVertexColor", dot.vertexColor[1] == 0.5 and dot.vertexColor[3] == 0.7, "?")
+  end
+
+  -- Final fix 8: borderVisible gates rings/lines, and a zero-length line stays hidden even
+  -- when the border is visible.
+  do
+    local frame = STUB_FRAME()
+    frame.GetWidth = function() return 40 end
+    frame.GetHeight = function() return 40 end
+    local h = Round.Apply(frame, { radius = 10, border = true })
+    check("borderVisible defaults true", h.borderVisible == true, tostring(h.borderVisible))
+    check("a sized frame's border ring shows", h.border.ring.tl.shown == true, "?")
+    check("a sized frame's border line shows (non-zero length)", h.border.lines.top.shown == true, "?")
+
+    Round.SetBorderColor(frame, 1, 1, 1, 0)
+    check("alpha 0 clears borderVisible", h.borderVisible == false, tostring(h.borderVisible))
+    check("alpha 0 hides the ring", h.border.ring.tl.shown == false, "?")
+    check("alpha 0 hides the line", h.border.lines.top.shown == false, "?")
+
+    Round.SetBorderColor(frame, 1, 1, 1, 1)
+    check("alpha 1 restores borderVisible", h.borderVisible == true, tostring(h.borderVisible))
+    check("alpha 1 re-shows the ring", h.border.ring.tl.shown == true, "?")
+    check("alpha 1 re-shows the line", h.border.lines.top.shown == true, "?")
+
+    -- A frame exactly R tall/wide on one axis has zero-length top/bottom lines even though
+    -- the border is visible: Layout must hide them rather than show a zero-length seam.
+    local square = STUB_FRAME()
+    square.GetWidth = function() return 20 end
+    square.GetHeight = function() return 20 end
+    local hs = Round.Apply(square, { radius = 10, border = true })
+    check("a zero-length top border line stays hidden even though the border is visible",
+      hs.borderVisible == true and hs.border.lines.top.shown == false, "?")
   end
 
   -- The texture path uses the addon folder.

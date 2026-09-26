@@ -25,12 +25,6 @@ Tiles.TOAST_HEIGHT = 48
 
 local STEP = Tiles.TILE_SIZE + Tiles.GAP
 
-Echo.FLAT = {
-    bgFile = "Interface\\Buttons\\WHITE8X8",
-    edgeFile = "Interface\\Buttons\\WHITE8X8",
-    edgeSize = 1,
-}
-
 local column, stackButton, overflowTile, marker, toast
 local tiles = {}
 local pending = {}          -- keys to toast after combat, newest first
@@ -159,7 +153,7 @@ local function PaintGlyphFrame(frame, r, g, b)
 end
 
 local function CreateTile()
-    local b = CreateFrame("Button", nil, column, "BackdropTemplate")
+    local b = CreateFrame("Button", nil, column)
     b:SetSize(Tiles.TILE_SIZE, Tiles.TILE_SIZE)
     Echo.Round.Apply(b, { radius = Echo.Round.TILE, border = true })
     b.letter = Echo.NewText(b, 16, "")
@@ -180,24 +174,26 @@ local function CreateTile()
     })
     Echo.Round.SetColor(b.labelShade, 0, 0, 0, 0.55)
     b.labelShade:Hide()
-    b.label = Echo.NewText(b, 9, "OUTLINE")
+    -- Parented to the shade, not the tile: a child draws over its parent's own regions
+    -- regardless of layer, so a label parented to the tile would sit under the shade.
+    b.label = Echo.NewText(b.labelShade, 9, "OUTLINE")
     b.label:SetPoint("BOTTOM", b, "BOTTOM", 0, 2)
     b.label:SetWordWrap(false)
     local a = Echo.View.ACCENT
-    -- The unread dot: a fully round Echo.Round (radius half its size).
-    b.dot = CreateFrame("Frame", nil, b)
-    b.dot:SetSize(8, 8)
+    -- The unread dot: one fully round texture (Echo.Round.Dot), not a full 9-slice.
+    b.dot = Echo.Round.Dot(b, 8, "OVERLAY")
     b.dot:SetPoint("TOPRIGHT", b, "TOPRIGHT", 3, 3)
-    Echo.Round.Apply(b.dot, { radius = 4, layer = "OVERLAY" })
-    Echo.Round.SetColor(b.dot, a.r, a.g, a.b, 1)
-    b.count = Echo.NewText(b, 10)
-    b.count:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", -2, 2)
+    b.dot:SetVertexColor(a.r, a.g, a.b, 1)
     -- A small rounded pill behind the count, in the accent colour, sized to fit the text.
     b.countPill = CreateFrame("Frame", nil, b)
     b.countPill:SetHeight(12)
     Echo.Round.Apply(b.countPill, { radius = 6, layer = "ARTWORK" })
     Echo.Round.SetColor(b.countPill, a.r, a.g, a.b, 1)
     b.countPill:Hide()
+    -- Parented to the pill, same reason as the label above: otherwise the pill's own fill
+    -- draws over the number.
+    b.count = Echo.NewText(b.countPill, 10)
+    b.count:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", -2, 2)
     b:RegisterForClicks("LeftButtonUp")
     b:SetScript("OnClick", function(self)
         if not self.convKey then return end
@@ -309,12 +305,12 @@ local function CreateColumn()
     -- ApplyPosition owns the anchor; WoW's layout cache restoring a stale one would fight it.
     if column.SetDontSavePosition then column:SetDontSavePosition(true) end
 
-    stackButton = CreateFrame("Button", nil, column, "BackdropTemplate")
+    stackButton = CreateFrame("Button", nil, column)
     stackButton:SetSize(Tiles.TILE_SIZE, Tiles.TILE_SIZE)
     stackButton:SetPoint("BOTTOM", column, "BOTTOM", 0, 0)
-    stackButton:SetBackdrop(Echo.FLAT)
-    stackButton:SetBackdropColor(View.PANEL_BG[1], View.PANEL_BG[2], View.PANEL_BG[3], View.PANEL_BG[4])
-    stackButton:SetBackdropBorderColor(View.PANEL_BORDER[1], View.PANEL_BORDER[2], View.PANEL_BORDER[3], View.PANEL_BORDER[4])
+    Echo.Round.Apply(stackButton, { radius = Echo.Round.SMALL, border = true })
+    Echo.Round.SetColor(stackButton, View.PANEL_BG[1], View.PANEL_BG[2], View.PANEL_BG[3], View.PANEL_BG[4])
+    Echo.Round.SetBorderColor(stackButton, View.PANEL_BORDER[1], View.PANEL_BORDER[2], View.PANEL_BORDER[3], View.PANEL_BORDER[4])
     local icon = stackButton:CreateTexture(nil, "ARTWORK")
     icon:SetSize(20, 20)
     icon:SetPoint("CENTER", stackButton, "CENTER", 0, 0)

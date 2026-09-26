@@ -39,7 +39,7 @@ Card.TEXT_SIZE = 11  -- message text; echoCardTextSize
 Card.FEED_TIME_WIDTH = 40
 Card.FEED_GAP = 2
 
-local root, nameText, metaText, area, edit, send, menuButton, chevron, statusLine, hint
+local root, nameText, metaText, area, edit, send, menuButton, chevron, statusLine, hint, rule
 local rowTiles, bubbles, labels = {}, {}, {}
 -- Forward-declared: Create()'s OnHide handler (defined further down) needs to stop the
 -- genie, which is defined later in the file.
@@ -139,7 +139,7 @@ end
 local function Create()
     local View = Echo.View
     local a = View.ACCENT
-    root = CreateFrame("Frame", "HorizonSuiteEchoCard", UIParent, "BackdropTemplate")
+    root = CreateFrame("Frame", "HorizonSuiteEchoCard", UIParent)
     root:SetSize(Card.WIDTH, Card.HEIGHT)
     root:SetClampedToScreen(true)
     root:EnableMouse(true)
@@ -155,11 +155,13 @@ local function Create()
         StopEffects()
     end)
 
-    local rule = root:CreateTexture(nil, "OVERLAY")
+    rule = root:CreateTexture(nil, "OVERLAY")
     rule:SetColorTexture(a.r, a.g, a.b, 1)
     rule:SetHeight(2)
-    rule:SetPoint("TOPLEFT", root, "TOPLEFT", 0, 0)
-    rule:SetPoint("TOPRIGHT", root, "TOPRIGHT", 0, 0)
+    -- Inset by the panel radius on both sides so the rule stays inside the rounded top
+    -- corners instead of poking past them.
+    rule:SetPoint("TOPLEFT", root, "TOPLEFT", Echo.Round.PANEL, 0)
+    rule:SetPoint("TOPRIGHT", root, "TOPRIGHT", -Echo.Round.PANEL, 0)
 
     chevron = CreateFrame("Button", nil, root)
     chevron:SetSize(22, 22)
@@ -184,7 +186,7 @@ local function Create()
     menuButton:SetShown(MenuAvailable())
 
     for i = 1, Card.TILES do
-        local b = CreateFrame("Button", nil, root, "BackdropTemplate")
+        local b = CreateFrame("Button", nil, root)
         b:SetSize(Card.TILE, Card.TILE)
         b:SetPoint("TOPLEFT", root, "TOPLEFT", Card.PAD + (i - 1) * (Card.TILE + 6), -10)
         Echo.Round.Apply(b, { radius = Echo.Round.TILE, border = true })
@@ -194,10 +196,10 @@ local function Create()
         b.icon:SetPoint("TOPLEFT", b, "TOPLEFT", 3, -3)
         b.icon:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", -3, 3)
         b.icon:Hide()
-        b.dot = b:CreateTexture(nil, "OVERLAY")
-        b.dot:SetSize(6, 6)
+        -- The unread dot: one fully round texture (Echo.Round.Dot), not a full 9-slice.
+        b.dot = Echo.Round.Dot(b, 6, "OVERLAY")
         b.dot:SetPoint("TOPRIGHT", b, "TOPRIGHT", 2, 2)
-        b.dot:SetColorTexture(a.r, a.g, a.b, 1)
+        b.dot:SetVertexColor(a.r, a.g, a.b, 1)
         b:RegisterForClicks("LeftButtonUp")
         b:SetScript("OnClick", function(self)
             if self.convKey then Card.Toggle(self.convKey, self) end
@@ -237,7 +239,7 @@ local function Create()
     end)
     statusLine:Hide()
 
-    hint = CreateFrame("Button", nil, area, "BackdropTemplate")
+    hint = CreateFrame("Button", nil, area)
     hint:SetSize(90, 20)
     Paint(hint, View.PANEL_BG, View.PANEL_BORDER, Echo.Round.PANEL, true)
     hint:SetPoint("BOTTOM", area, "BOTTOM", 0, 4)
@@ -253,7 +255,7 @@ local function Create()
     end)
     hint:Hide()
 
-    send = CreateFrame("Button", nil, root, "BackdropTemplate")
+    send = CreateFrame("Button", nil, root)
     send:SetSize(30, 30)
     send:SetPoint("BOTTOMRIGHT", root, "BOTTOMRIGHT", -Card.PAD, 12)
     Paint(send, { a.r, a.g, a.b, 0.9 }, nil, Echo.Round.SMALL, false)
@@ -264,7 +266,7 @@ local function Create()
     send:RegisterForClicks("LeftButtonUp")
     send:SetScript("OnClick", function() Card.Submit() end)
 
-    edit = CreateFrame("EditBox", nil, root, "BackdropTemplate")
+    edit = CreateFrame("EditBox", nil, root)
     edit:SetHeight(30)
     edit:SetPoint("BOTTOMLEFT", root, "BOTTOMLEFT", Card.PAD, 12)
     edit:SetPoint("BOTTOMRIGHT", send, "BOTTOMLEFT", -6, 0)
@@ -312,7 +314,7 @@ end
 local function Bubble(i)
     local b = bubbles[i]
     if b then return b end
-    b = CreateFrame("Frame", nil, area, "BackdropTemplate")
+    b = CreateFrame("Frame", nil, area)
     Echo.Round.Apply(b, { radius = Echo.Round.BUBBLE })
     b.text = Echo.NewText(b, Card.TEXT_SIZE, "")
     b.text:SetPoint("TOPLEFT", b, "TOPLEFT", Card.BUBBLE_PAD, -Card.BUBBLE_PAD)
@@ -886,6 +888,6 @@ function Card._frames()
     return {
         root = root, rowTiles = rowTiles, name = nameText, meta = metaText, area = area,
         edit = edit, send = send, menu = menuButton, chevron = chevron,
-        bubbles = bubbles, labels = labels, status = statusLine, hint = hint,
+        bubbles = bubbles, labels = labels, status = statusLine, hint = hint, rule = rule,
     }
 end

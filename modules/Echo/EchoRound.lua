@@ -70,34 +70,47 @@ function Round.Apply(frame, opts)
         fill = { circle = {}, rect1 = {}, rect2 = {} },
     }
 
+    -- Fill draws at -8 and border at -7 within the layer, so the border always draws above
+    -- the fill and a host's own textures (left at the default sublevel 0) draw above both.
+    local FILL_SUB = -8
+    local BORDER_SUB = -7
+
     for _, c in ipairs(CORNERS) do
         local circle = frame:CreateTexture(nil, layer)
         circle:SetTexture(CIRCLE_TEXTURE)
+        circle:SetDrawLayer(layer, FILL_SUB)
         local q = QUAD[c]
         circle:SetTexCoord(q[1], q[2], q[3], q[4])
         handle.fill.circle[c] = circle
 
         local rect1 = frame:CreateTexture(nil, layer)
         rect1:SetColorTexture(1, 1, 1, 1)
+        rect1:SetDrawLayer(layer, FILL_SUB)
         handle.fill.rect1[c] = rect1
 
         local rect2 = frame:CreateTexture(nil, layer)
         rect2:SetColorTexture(1, 1, 1, 1)
+        rect2:SetDrawLayer(layer, FILL_SUB)
         handle.fill.rect2[c] = rect2
     end
 
     handle.fill.topBand = frame:CreateTexture(nil, layer)
     handle.fill.topBand:SetColorTexture(1, 1, 1, 1)
+    handle.fill.topBand:SetDrawLayer(layer, FILL_SUB)
     handle.fill.bottomBand = frame:CreateTexture(nil, layer)
     handle.fill.bottomBand:SetColorTexture(1, 1, 1, 1)
+    handle.fill.bottomBand:SetDrawLayer(layer, FILL_SUB)
     handle.fill.middleBand = frame:CreateTexture(nil, layer)
     handle.fill.middleBand:SetColorTexture(1, 1, 1, 1)
+    handle.fill.middleBand:SetDrawLayer(layer, FILL_SUB)
 
     if opts.border then
         handle.border = { ring = {}, lines = {} }
+        handle.borderVisible = true
         for _, c in ipairs(CORNERS) do
             local ring = frame:CreateTexture(nil, layer)
             ring:SetTexture(RING_TEXTURE)
+            ring:SetDrawLayer(layer, BORDER_SUB)
             local q = QUAD[c]
             ring:SetTexCoord(q[1], q[2], q[3], q[4])
             handle.border.ring[c] = ring
@@ -105,12 +118,19 @@ function Round.Apply(frame, opts)
         for _, side in ipairs(SIDES) do
             local line = frame:CreateTexture(nil, layer)
             line:SetColorTexture(1, 1, 1, 1)
+            line:SetDrawLayer(layer, BORDER_SUB)
             handle.border.lines[side] = line
         end
     end
 
     frame._echoRound = handle
     Round.Layout(frame)
+    -- HookScript, not SetScript, so a host's own OnSizeChanged handler survives: a resize
+    -- (the card's width/height settings, a bubble sized to its text) re-lays out the fill
+    -- and border to the new size without every caller having to remember to call Layout.
+    if frame.HookScript then
+        frame:HookScript("OnSizeChanged", function(f) Round.Layout(f) end)
+    end
     return handle
 end
 
@@ -183,30 +203,38 @@ function Round.Layout(frame)
     handle.fill.middleBand:SetShown(fullW > 0 and bandH > 0)
 
     if handle.border then
+        -- Rings and lines show only when the border is turned on (borderVisible, set by
+        -- SetBorderColor's alpha) and they'd actually have something to draw; a zero-length
+        -- line stays hidden rather than showing as a 1px dot or seam.
+        local visible = handle.borderVisible ~= false
         for _, c in ipairs(CORNERS) do
             local anchor = ANCHOR[c]
             local ring = handle.border.ring[c]
             ring:ClearAllPoints()
             ring:SetPoint(anchor, frame, anchor, 0, 0)
             ring:SetSize(R, R)
-            ring:SetShown(R > 0)
+            ring:SetShown(visible and R > 0)
         end
 
         handle.border.lines.top:ClearAllPoints()
         handle.border.lines.top:SetPoint("TOPLEFT", frame, "TOPLEFT", R, 0)
         handle.border.lines.top:SetSize(bandW, 1)
+        handle.border.lines.top:SetShown(visible and bandW > 0)
 
         handle.border.lines.bottom:ClearAllPoints()
         handle.border.lines.bottom:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", R, 0)
         handle.border.lines.bottom:SetSize(bandW, 1)
+        handle.border.lines.bottom:SetShown(visible and bandW > 0)
 
         handle.border.lines.left:ClearAllPoints()
         handle.border.lines.left:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, -R)
         handle.border.lines.left:SetSize(1, bandH)
+        handle.border.lines.left:SetShown(visible and bandH > 0)
 
         handle.border.lines.right:ClearAllPoints()
         handle.border.lines.right:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, -R)
         handle.border.lines.right:SetSize(1, bandH)
+        handle.border.lines.right:SetShown(visible and bandH > 0)
     end
 end
 
@@ -232,15 +260,32 @@ function Round.SetBorderColor(frame, r, g, b, a)
     local handle = rawget(frame, "_echoRound")
     if not handle or not handle.border then return end
 
-    local visible = (a or 1) > 0
+    -- borderVisible is Layout's source of truth for whether to show rings/lines at all;
+    -- Layout also hides a piece that has nothing to draw (R == 0, or a zero-length line)
+    -- regardless of this flag.
+    handle.borderVisible = (a or 1) > 0
     for _, c in ipairs(CORNERS) do
         handle.border.ring[c]:SetVertexColor(r, g, b, a)
-        handle.border.ring[c]:SetShown(visible)
     end
     for _, side in ipairs(SIDES) do
         handle.border.lines[side]:SetVertexColor(r, g, b, a)
-        handle.border.lines[side]:SetShown(visible)
     end
+    Round.Layout(frame)
+end
+
+--- A fully round dot from one texture: the whole circle (texcoords 0-1), tinted with
+-- SetVertexColor. Cheap alternative to Apply's 9-slice for a badge with no border and no
+-- rectangular part, e.g. the unread dot.
+-- @param parent Frame
+-- @param size number
+-- @param layer string|nil  default "OVERLAY"
+-- @return Texture
+function Round.Dot(parent, size, layer)
+    local tex = parent:CreateTexture(nil, layer or "OVERLAY")
+    tex:SetTexture(CIRCLE_TEXTURE)
+    tex:SetTexCoord(0, 1, 0, 1)
+    tex:SetSize(size, size)
+    return tex
 end
 
 --- Changes the per-corner radii and re-lays out. Bubbles use this when a bubble

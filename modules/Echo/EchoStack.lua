@@ -25,7 +25,7 @@ Stack.LINES = 3         -- messages on the top card
 Stack.FEED_TIME_WIDTH = 36  -- a feed line's time column, left of its text
 Stack.HOVER_CLOSE = 0.4
 
-local root, card, edit, more
+local root, card, edit, more, rule
 local behind = {}
 local list, cursor = {}, 1
 local currentKey            -- the card on top follows its conversation, not its position
@@ -65,7 +65,7 @@ local function MouseOverEcho()
 end
 
 local function CreateEdit()
-    edit = CreateFrame("EditBox", nil, card, "BackdropTemplate")
+    edit = CreateFrame("EditBox", nil, card)
     edit:SetHeight(26)
     edit:SetPoint("BOTTOMLEFT", card, "BOTTOMLEFT", 12, 12)
     Echo.Round.Apply(edit, { radius = Echo.Round.SMALL })
@@ -153,9 +153,9 @@ local function Create()
     table.insert(UISpecialFrames, "HorizonSuiteEchoStack")
 
     for i = 1, Stack.BEHIND do
-        local b = CreateFrame("Frame", nil, root, "BackdropTemplate")
-        Paint(b, 0.9, Echo.Round.PANEL, true)
+        local b = CreateFrame("Frame", nil, root)
         b:SetSize(Stack.WIDTH - 16 * i, Stack.HEIGHT)
+        Paint(b, 0.9, Echo.Round.PANEL, true)
         b:SetPoint("BOTTOM", root, "BOTTOM", 0, Stack.FAN * i)
         b:SetFrameLevel(root:GetFrameLevel() + Stack.BEHIND - i + 1)
         b.name = Echo.NewText(b, 10)
@@ -163,20 +163,22 @@ local function Create()
         behind[i] = b
     end
 
-    card = CreateFrame("Frame", nil, root, "BackdropTemplate")
-    Paint(card, nil, Echo.Round.PANEL, true)
+    card = CreateFrame("Frame", nil, root)
     card:SetSize(Stack.WIDTH, Stack.HEIGHT)
+    Paint(card, nil, Echo.Round.PANEL, true)
     card:SetPoint("BOTTOM", root, "BOTTOM", 0, 0)
     card:SetFrameLevel(root:GetFrameLevel() + Stack.BEHIND + 1)
     card:EnableMouse(true)
     if Echo.Links then Echo.Links.Attach(card) end
 
     local a = Echo.View.ACCENT
-    local rule = card:CreateTexture(nil, "OVERLAY")
+    rule = card:CreateTexture(nil, "OVERLAY")
     rule:SetColorTexture(a.r, a.g, a.b, 1)
     rule:SetHeight(2)
-    rule:SetPoint("TOPLEFT", card, "TOPLEFT", 0, 0)
-    rule:SetPoint("TOPRIGHT", card, "TOPRIGHT", 0, 0)
+    -- Inset by the panel radius on both sides so the rule stays inside the rounded top
+    -- corners instead of poking past them.
+    rule:SetPoint("TOPLEFT", card, "TOPLEFT", Echo.Round.PANEL, 0)
+    rule:SetPoint("TOPRIGHT", card, "TOPRIGHT", -Echo.Round.PANEL, 0)
 
     card.tile = card:CreateTexture(nil, "ARTWORK")
     card.tile:SetSize(28, 28)
@@ -239,7 +241,7 @@ local function Create()
 
     CreateEdit()
 
-    card.open = CreateFrame("Button", nil, card, "BackdropTemplate")
+    card.open = CreateFrame("Button", nil, card)
     card.open:SetSize(60, 26)
     card.open:SetPoint("BOTTOMRIGHT", card, "BOTTOMRIGHT", -12, 12)
     Paint(card.open, nil, Echo.Round.SMALL, false)
@@ -558,5 +560,5 @@ end
 
 -- Test and debug handle.
 function Stack._frames()
-    return { root = root, card = card, edit = edit, more = more, behind = behind }
+    return { root = root, card = card, edit = edit, more = more, behind = behind, rule = rule }
 end
