@@ -70,6 +70,7 @@ function Card.ApplySize()
     end
     if root then
         root:SetSize(Card.WIDTH, Card.HEIGHT)
+        Echo.Round.Layout(root)
         if root:IsShown() then Card.Render() end
     end
 end
@@ -87,10 +88,12 @@ local function ParkDraft()
     end
 end
 
-local function Paint(frame, bg, border)
-    frame:SetBackdrop(Echo.FLAT)
-    frame:SetBackdropColor(bg[1], bg[2], bg[3], bg[4])
-    frame:SetBackdropBorderColor(border[1], border[2], border[3], border[4])
+local function Paint(frame, bg, border, radius, withBorder)
+    Echo.Round.Apply(frame, { radius = radius, border = withBorder })
+    Echo.Round.SetColor(frame, bg[1], bg[2], bg[3], bg[4])
+    if withBorder then
+        Echo.Round.SetBorderColor(frame, border[1], border[2], border[3], border[4])
+    end
 end
 
 -- A flat glyph drawn from thin bars; returns them so hover can tint them.
@@ -115,7 +118,7 @@ local function PaintTile(b, spec)
     local View = Echo.View
     local face = { icon = b.icon, letter = b.letter, size = 12, smallSize = 8, flags = "" }
     Echo.PaintTileFace(face, spec)
-    b:SetBackdropColor(View.FaceBackground(spec))
+    Echo.Round.SetColor(b, View.FaceBackground(spec))
 end
 
 -- No MenuUtil (an older client), no ⋯ button: it would open nothing.
@@ -141,7 +144,7 @@ local function Create()
     root:SetClampedToScreen(true)
     root:EnableMouse(true)
     root:Hide()
-    Paint(root, View.PANEL_BG, View.PANEL_BORDER)
+    Paint(root, View.PANEL_BG, View.PANEL_BORDER, Echo.Round.PANEL, true)
     table.insert(UISpecialFrames, "HorizonSuiteEchoCard")
     root:SetScript("OnHide", function()
         -- Covers closes that bypass Card.Hide entirely, e.g. Escape via UISpecialFrames
@@ -184,7 +187,7 @@ local function Create()
         local b = CreateFrame("Button", nil, root, "BackdropTemplate")
         b:SetSize(Card.TILE, Card.TILE)
         b:SetPoint("TOPLEFT", root, "TOPLEFT", Card.PAD + (i - 1) * (Card.TILE + 6), -10)
-        b:SetBackdrop(Echo.FLAT)
+        Echo.Round.Apply(b, { radius = Echo.Round.TILE, border = true })
         b.letter = Echo.NewText(b, 12, "")
         b.letter:SetPoint("CENTER", b, "CENTER", 0, 0)
         b.icon = b:CreateTexture(nil, "ARTWORK")
@@ -236,7 +239,7 @@ local function Create()
 
     hint = CreateFrame("Button", nil, area, "BackdropTemplate")
     hint:SetSize(90, 20)
-    Paint(hint, View.PANEL_BG, View.PANEL_BORDER)
+    Paint(hint, View.PANEL_BG, View.PANEL_BORDER, Echo.Round.PANEL, true)
     hint:SetPoint("BOTTOM", area, "BOTTOM", 0, 4)
     hint.text = Echo.NewText(hint, 11, "")
     hint.text:SetPoint("CENTER", hint, "CENTER", 0, 0)
@@ -253,7 +256,7 @@ local function Create()
     send = CreateFrame("Button", nil, root, "BackdropTemplate")
     send:SetSize(30, 30)
     send:SetPoint("BOTTOMRIGHT", root, "BOTTOMRIGHT", -Card.PAD, 12)
-    Paint(send, { a.r, a.g, a.b, 0.9 }, { a.r, a.g, a.b, 1 })
+    Paint(send, { a.r, a.g, a.b, 0.9 }, nil, Echo.Round.SMALL, false)
     send.text = Echo.NewText(send, 14, "")
     send.text:SetPoint("CENTER", send, "CENTER", 1, 0)
     send.text:SetText(">")
@@ -265,7 +268,7 @@ local function Create()
     edit:SetHeight(30)
     edit:SetPoint("BOTTOMLEFT", root, "BOTTOMLEFT", Card.PAD, 12)
     edit:SetPoint("BOTTOMRIGHT", send, "BOTTOMLEFT", -6, 0)
-    Paint(edit, { 0.03, 0.03, 0.05, 0.95 }, View.PANEL_BORDER)
+    Paint(edit, { 0.03, 0.03, 0.05, 0.95 }, nil, Echo.Round.SMALL, false)
     Echo.TrackFont(edit, 12, "")
     edit:SetTextInsets(8, 8, 0, 0)
     edit:SetAutoFocus(false)
@@ -310,7 +313,7 @@ local function Bubble(i)
     local b = bubbles[i]
     if b then return b end
     b = CreateFrame("Frame", nil, area, "BackdropTemplate")
-    b:SetBackdrop(Echo.FLAT)
+    Echo.Round.Apply(b, { radius = Echo.Round.BUBBLE })
     b.text = Echo.NewText(b, Card.TEXT_SIZE, "")
     b.text:SetPoint("TOPLEFT", b, "TOPLEFT", Card.BUBBLE_PAD, -Card.BUBBLE_PAD)
     b.text:SetJustifyH("LEFT")
@@ -364,6 +367,7 @@ local function SizeBubble(b, text, secret)
         height = h
     end
     b:SetSize(width, height + Card.BUBBLE_PAD * 2)
+    Echo.Round.Layout(b)
     return height + Card.BUBBLE_PAD * 2
 end
 
@@ -387,7 +391,16 @@ local function SizeFeedLine(b, msg, secret)
         height = h
     end
     b:SetSize(width, height + 6)
+    Echo.Round.Layout(b)
     return height + 6
+end
+
+-- Whether message i is the last (most recent) of its consecutive-same-sender run: either
+-- the newest message overall, or the next one starts a new group. That bubble keeps the
+-- tight corner nearest the next speaker; earlier bubbles in the run use full radii.
+local function EndsGroup(messages, i)
+    if i == #messages then return true end
+    return Echo.View.StartsGroup(messages, i + 1)
 end
 
 local function RenderMessages(conv)
@@ -411,8 +424,7 @@ local function RenderMessages(conv)
             local height = SizeFeedLine(line, msg, msg.secret or Echo.IsSecret(msg.text))
             line:ClearAllPoints()
             line:SetPoint("BOTTOMLEFT", area, "BOTTOMLEFT", 0, y)
-            line:SetBackdropColor(0, 0, 0, 0)
-            line:SetBackdropBorderColor(0, 0, 0, 0)
+            Echo.Round.SetColor(line, 0, 0, 0, 0)
             local lr, lg, lb = View.LineColor(conv, msg)
             line.text:SetTextColor(lr, lg, lb, 1)
             line:Show()
@@ -444,11 +456,17 @@ local function RenderMessages(conv)
         local secret = msg.secret or Echo.IsSecret(msg.text)
         local height = SizeBubble(bubble, msg.text, secret)
         bubble:ClearAllPoints()
+        local Round = Echo.Round
+        local ends = EndsGroup(messages, i)
         if msg.outgoing then
             bubble:SetPoint("BOTTOMRIGHT", area, "BOTTOMRIGHT", 0, y)
             local dimmed = msg.status == "pending" or msg.status == "retried"
-            bubble:SetBackdropColor(a.r, a.g, a.b, dimmed and 0.14 or 0.24)
-            bubble:SetBackdropBorderColor(a.r, a.g, a.b, 0.6)
+            Echo.Round.SetColor(bubble, a.r, a.g, a.b, dimmed and 0.14 or 0.24)
+            if ends then
+                Round.SetCorners(bubble, Round.BUBBLE, Round.BUBBLE, Round.BUBBLE, Round.TIGHT)
+            else
+                Round.SetCorners(bubble, Round.BUBBLE, Round.BUBBLE, Round.BUBBLE, Round.BUBBLE)
+            end
             if msg.status == "failed" then
                 bubble.text:SetTextColor(1, 0.45, 0.45, 1)
             else
@@ -456,8 +474,12 @@ local function RenderMessages(conv)
             end
         else
             bubble:SetPoint("BOTTOMLEFT", area, "BOTTOMLEFT", 0, y)
-            bubble:SetBackdropColor(0.11, 0.11, 0.15, 0.95)
-            bubble:SetBackdropBorderColor(0.28, 0.30, 0.38, 0.5)
+            Echo.Round.SetColor(bubble, 0.11, 0.11, 0.15, 0.95)
+            if ends then
+                Round.SetCorners(bubble, Round.BUBBLE, Round.BUBBLE, Round.TIGHT, Round.BUBBLE)
+            else
+                Round.SetCorners(bubble, Round.BUBBLE, Round.BUBBLE, Round.BUBBLE, Round.BUBBLE)
+            end
             bubble.text:SetTextColor(r, g, b, 1)
         end
         bubble:Show()
@@ -493,9 +515,9 @@ local function PaintRow(list, shownKey)
             b.convKey = other.key
             PaintTile(b, spec)
             if other.key == shownKey then
-                b:SetBackdropBorderColor(a.r, a.g, a.b, 1)
+                Echo.Round.SetBorderColor(b, a.r, a.g, a.b, 1)
             else
-                b:SetBackdropBorderColor(0, 0, 0, 0.7)
+                Echo.Round.SetBorderColor(b, 0, 0, 0, 0.7)
             end
             b.dot:SetShown(spec.badge ~= nil and other.key ~= shownKey)
             b:Show()

@@ -34,11 +34,13 @@ local openTimer
 local hoverKey              -- the tile hovered last while the open delay runs
 local armed, away, pollAccum = false, 0, 0   -- hover-close poll state
 
-local function Paint(frame, alpha)
+local function Paint(frame, alpha, radius, withBorder)
     local bg, border = Echo.View.PANEL_BG, Echo.View.PANEL_BORDER
-    frame:SetBackdrop(Echo.FLAT)
-    frame:SetBackdropColor(bg[1], bg[2], bg[3], alpha or bg[4])
-    frame:SetBackdropBorderColor(border[1], border[2], border[3], border[4])
+    Echo.Round.Apply(frame, { radius = radius, border = withBorder })
+    Echo.Round.SetColor(frame, bg[1], bg[2], bg[3], alpha or bg[4])
+    if withBorder then
+        Echo.Round.SetBorderColor(frame, border[1], border[2], border[3], border[4])
+    end
 end
 
 -- Park the shared reply box's draft against the conversation it was drawn for, and clear
@@ -66,9 +68,8 @@ local function CreateEdit()
     edit = CreateFrame("EditBox", nil, card, "BackdropTemplate")
     edit:SetHeight(26)
     edit:SetPoint("BOTTOMLEFT", card, "BOTTOMLEFT", 12, 12)
-    edit:SetBackdrop(Echo.FLAT)
-    edit:SetBackdropColor(0.03, 0.03, 0.05, 0.95)
-    edit:SetBackdropBorderColor(0.28, 0.30, 0.38, 0.65)
+    Echo.Round.Apply(edit, { radius = Echo.Round.SMALL })
+    Echo.Round.SetColor(edit, 0.03, 0.03, 0.05, 0.95)
     Echo.TrackFont(edit, 12, "")
     edit:SetTextInsets(8, 8, 0, 0)
     edit:SetAutoFocus(false)
@@ -153,7 +154,7 @@ local function Create()
 
     for i = 1, Stack.BEHIND do
         local b = CreateFrame("Frame", nil, root, "BackdropTemplate")
-        Paint(b, 0.9)
+        Paint(b, 0.9, Echo.Round.PANEL, true)
         b:SetSize(Stack.WIDTH - 16 * i, Stack.HEIGHT)
         b:SetPoint("BOTTOM", root, "BOTTOM", 0, Stack.FAN * i)
         b:SetFrameLevel(root:GetFrameLevel() + Stack.BEHIND - i + 1)
@@ -163,7 +164,7 @@ local function Create()
     end
 
     card = CreateFrame("Frame", nil, root, "BackdropTemplate")
-    Paint(card)
+    Paint(card, nil, Echo.Round.PANEL, true)
     card:SetSize(Stack.WIDTH, Stack.HEIGHT)
     card:SetPoint("BOTTOM", root, "BOTTOM", 0, 0)
     card:SetFrameLevel(root:GetFrameLevel() + Stack.BEHIND + 1)
@@ -241,7 +242,7 @@ local function Create()
     card.open = CreateFrame("Button", nil, card, "BackdropTemplate")
     card.open:SetSize(60, 26)
     card.open:SetPoint("BOTTOMRIGHT", card, "BOTTOMRIGHT", -12, 12)
-    Paint(card.open)
+    Paint(card.open, nil, Echo.Round.SMALL, false)
     card.open.text = Echo.NewText(card.open, 12, "")
     card.open.text:SetPoint("CENTER", card.open, "CENTER", 0, 0)
     card.open.text:SetText(L["ECHO_OPEN"])
@@ -335,6 +336,7 @@ function Stack.Render()
     local canOpen = Echo.Card ~= nil
     card.open:SetShown(canOpen)
     edit:SetWidth(Stack.WIDTH - 24 - (canOpen and 68 or 0))
+    Echo.Round.Layout(edit)
     edit.placeholder:SetText(L["ECHO_QUICK_REPLY"])
     edit.placeholder:SetShown(edit:GetText() == "" and not edit:HasFocus())
 

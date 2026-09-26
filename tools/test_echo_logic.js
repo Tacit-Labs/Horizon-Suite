@@ -1007,6 +1007,16 @@ run(`
   local tile = T.TileFor("w:Brisa-Horizon")
   check("a whisper gets a tile with its initial", tile and tile.convKey == "w:Brisa-Horizon" and tile.letter.text == "B", tile and tile.letter.text)
   check("a loud unread shows the dot", tile.dot.shown == true, tile.dot.shown)
+  local dotRR = rawget(tile.dot, "_echoRound")
+  check("the unread dot is a fully round 8x8 Echo.Round", dotRR ~= nil and dotRR.corners.tl == 4 and tile.dot.width == 8 and tile.dot.height == 8, "?")
+  local tileRR = rawget(tile, "_echoRound")
+  check("a column tile is rounded with the TILE radius and a border", tileRR ~= nil and tileRR.corners.tl == HorizonSuite.Echo.Round.TILE and tileRR.border ~= nil, "?")
+  local V = HorizonSuite.Echo.View
+  local fr, fg, fb, fa = V.FaceBackground(V.TileSpec(S.Get("w:Brisa-Horizon")))
+  local mb = tileRR and tileRR.fill.middleBand.vertexColor
+  check("the tile's fill colour matches FaceBackground", mb and mb[1] == fr and mb[2] == fg and mb[3] == fb and mb[4] == fa, mb and table.concat(mb, ","))
+  local shadeRR = rawget(tile.labelShade, "_echoRound")
+  check("the label shade rounds only its bottom corners", shadeRR ~= nil and shadeRR.corners.tl == 0 and shadeRR.corners.tr == 0 and shadeRR.corners.bl == HorizonSuite.Echo.Round.TILE and shadeRR.corners.br == HorizonSuite.Echo.Round.TILE, "?")
   local toast = T._toast()
   check("a loud message shows the toast", toast and toast.shown and toast.convKey == "w:Brisa-Horizon", toast and toast.convKey)
   check("the toast body is the message", toast.entry.body.text == "got the leather", toast.entry.body.text)
@@ -1016,6 +1026,13 @@ run(`
   S.Add({ convKey = "party", text = "go", sender = "Tank-Horizon" })
   local ptile = T.TileFor("party")
   check("a party tile shows its count", ptile and ptile.count.text == "2" and not ptile.dot.shown, ptile and ptile.count.text)
+  local countPill = rawget(ptile, "countPill")
+  local pillRR = countPill and rawget(countPill, "_echoRound")
+  check("a count badge gets a small rounded pill behind it", countPill ~= nil and countPill.shown == true and pillRR ~= nil and pillRR.corners.tl == 6 and countPill.height == 12, "?")
+  local pv = pillRR and pillRR.fill.middleBand.vertexColor
+  check("the count pill is tinted the accent colour", pv and pv[1] == V.ACCENT.r and pv[2] == V.ACCENT.g and pv[3] == V.ACCENT.b, pv and table.concat(pv, ","))
+  local tileCountPill = rawget(tile, "countPill")
+  check("a dot badge shows no count pill", tileCountPill ~= nil and tileCountPill.shown == false, tostring(tileCountPill and tileCountPill.shown))
   check("a count message does not toast", toast.convKey == "w:Brisa-Horizon", toast.convKey)
 
   S.Add({ convKey = "w:Secret-Horizon", text = SECRET("boss"), secret = true, sender = "Secret-Horizon" })
@@ -1031,6 +1048,8 @@ run(`
   for i = 1, 10 do S.Add({ convKey = "w:Many" .. i .. "-Horizon", text = "hi" }) end
   local overflow = T._overflow()
   check("past the cap an overflow tile shows the rest", overflow.shown and overflow.letter.text:sub(1, 1) == "+", overflow.letter.text)
+  local ovRR = rawget(overflow, "_echoRound")
+  check("the overflow tile is rounded like a tile, with a border", ovRR ~= nil and ovRR.corners.tl == HorizonSuite.Echo.Round.TILE and ovRR.border ~= nil, "?")
 
   S.CountUnrouted(); S.CountUnrouted()
   local marker = T._marker()
@@ -1072,6 +1091,13 @@ run(`
   check("the top card shows the newest message last", f.card.lines[2].text == "can you craft it?", f.card.lines[2].text)
   check("showing a card marks it read", S.Get("w:Brisa-Horizon").unread == 0, S.Get("w:Brisa-Horizon").unread)
   check("nothing peeks out behind the last card", f.behind[1].shown == false, tostring(f.behind[1].shown))
+  local Round = HorizonSuite.Echo.Round
+  local cardRR = rawget(f.card, "_echoRound")
+  check("the stack's top card is rounded with the PANEL radius and a border", cardRR ~= nil and cardRR.corners.tl == Round.PANEL and cardRR.border ~= nil, "?")
+  local openRR = rawget(f.card.open, "_echoRound")
+  check("the stack's Open button is rounded with the SMALL radius, no border", openRR ~= nil and openRR.corners.tl == Round.SMALL and openRR.border == nil, "?")
+  local editRR = rawget(f.edit, "_echoRound")
+  check("the stack's reply box is rounded with the SMALL radius", editRR ~= nil and editRR.corners.tl == Round.SMALL, "?")
 
   f.edit:SetText("sure, mail them")
   f.edit.scripts.OnEnterPressed(f.edit)
@@ -1084,6 +1110,8 @@ run(`
   check("enter on an empty box only leaves it", f.edit.focused == false and #sent == 1, #sent)
 
   check("the other card peeks out behind", f.behind[1].shown and f.behind[1].name.text == "Vexa", f.behind[1].name.text)
+  local behindRR = rawget(f.behind[1], "_echoRound")
+  check("a behind-card is rounded with the PANEL radius and a border", behindRR ~= nil and behindRR.corners.tl == Round.PANEL and behindRR.border ~= nil, "?")
   K.Flip(1)
   check("the wheel flips to the next card", f.card.name.text == "Vexa", f.card.name.text)
   K.Flip(5)
@@ -1947,19 +1975,46 @@ run(`
   S.Add({ convKey = "w:Vexa-Horizon", text = "gz", sender = "Vexa-Horizon" })
   C.Open("w:Brisa-Horizon")
   check("open shows the card", f.root:IsShown(), "hidden")
+  local Round = HorizonSuite.Echo.Round
+  local rootRR = rawget(f.root, "_echoRound")
+  check("the card root is rounded with the PANEL radius and a border", rootRR ~= nil and rootRR.corners.tl == Round.PANEL and rootRR.border ~= nil, "?")
+  local editRR = rawget(f.edit, "_echoRound")
+  check("the card's reply box is rounded with the SMALL radius", editRR ~= nil and editRR.corners.tl == Round.SMALL, "?")
+  local sendRR = rawget(f.send, "_echoRound")
+  check("the send button is rounded with the SMALL radius", sendRR ~= nil and sendRR.corners.tl == Round.SMALL, "?")
   check("the card shows the chosen conversation", f.name.text == "Brisa", f.name.text)
   check("the meta line names the class", f.meta.text:find("DRUID", 1, true) ~= nil, f.meta.text)
   check("opening marks it read", S.Get("w:Brisa-Horizon").unread == 0, S.Get("w:Brisa-Horizon").unread)
   check("the newest message is the bottom bubble", f.bubbles[1].text.text == "can you craft the cloak?" and f.bubbles[1].shown, f.bubbles[1].text.text)
   check("their bubble sits on the left", f.bubbles[1].points[1][1] == "BOTTOMLEFT", f.bubbles[1].points[1][1])
   check("the older message sits above it", f.bubbles[2].text.text == "got the leather" and f.bubbles[2].points[1][5] > f.bubbles[1].points[1][5], "?")
+  local b1RR = rawget(f.bubbles[1], "_echoRound")
+  check("the newest incoming bubble has a tight bottom-left corner (last of its group)", b1RR ~= nil and b1RR.corners.bl == Round.TIGHT and b1RR.corners.tl == Round.BUBBLE and b1RR.border == nil, "?")
+  local b2RR = rawget(f.bubbles[2], "_echoRound")
+  check("an earlier bubble in the same group uses full radii", b2RR ~= nil and b2RR.corners.bl == Round.BUBBLE and b2RR.corners.tl == Round.BUBBLE, "?")
   check("the tile row shows both conversations", f.rowTiles[1].shown and f.rowTiles[2].shown and not f.rowTiles[3].shown, "?")
+  local a = HorizonSuite.Echo.View.ACCENT
+  local rt1RR = rawget(f.rowTiles[1], "_echoRound")
+  check("the card's row tiles are rounded with the TILE radius and a border", rt1RR ~= nil and rt1RR.corners.tl == Round.TILE and rt1RR.border ~= nil, "?")
+  local rt2RR = rawget(f.rowTiles[2], "_echoRound")
+  local ring1 = rt1RR and rt1RR.border.ring.tl.vertexColor
+  local ring2 = rt2RR and rt2RR.border.ring.tl.vertexColor
+  local shownRing, otherRing
+  for _, b in ipairs(f.rowTiles) do
+    if b.convKey == "w:Brisa-Horizon" then shownRing = rawget(b, "_echoRound").border.ring.tl.vertexColor
+    elseif b.convKey == "w:Vexa-Horizon" then otherRing = rawget(b, "_echoRound").border.ring.tl.vertexColor end
+  end
+  check("the shown conversation's row tile outline is the accent colour", shownRing and shownRing[1] == a.r and shownRing[2] == a.g and shownRing[3] == a.b, shownRing and table.concat(shownRing, ","))
+  check("another row tile's outline is dark", otherRing and otherRing[1] == 0 and otherRing[2] == 0 and otherRing[3] == 0, otherRing and table.concat(otherRing, ","))
+  check("both row tiles are rounded", ring1 ~= nil and ring2 ~= nil, "?")
 
   f.edit:SetText("sure, mail them")
   f.edit.scripts.OnEnterPressed(f.edit)
   check("enter sends to the card's conversation", sent[1] == "WHISPER:Brisa-Horizon:sure, mail them", sent[1])
   check("the box empties after sending", f.edit.text == "", f.edit.text)
   check("your bubble sits on the right", f.bubbles[1].text.text == "sure, mail them" and f.bubbles[1].points[1][1] == "BOTTOMRIGHT", f.bubbles[1].points[1][1])
+  local outRR = rawget(f.bubbles[1], "_echoRound")
+  check("an outgoing bubble has a tight bottom-right corner (last of its group)", outRR ~= nil and outRR.corners.br == Round.TIGHT and outRR.corners.bl == Round.BUBBLE, "?")
   check("the status line shows under your newest message", f.status.shown and f.status.text.text == "ECHO_STATUS_PENDING", f.status.text.text)
   check("the card stays on the conversation after it moves up the list", f.name.text == "Brisa", f.name.text)
 
@@ -2350,7 +2405,9 @@ run(`
   f.status.scripts.OnClick(f.status)
   check("retry sends again once it can route", sent[1] == "WHISPER:Brisa-Horizon:first try", sent[1])
   check("a successful retry marks the message retried", failedMsg.status == "retried", failedMsg.status)
-  check("a retried bubble is dimmed like a pending one", f.bubbles[2].alpha == 0.14, f.bubbles[2].alpha)
+  local rr2 = rawget(f.bubbles[2], "_echoRound")
+  local alpha2 = rr2 and rr2.fill.middleBand.vertexColor and rr2.fill.middleBand.vertexColor[4]
+  check("a retried bubble is dimmed like a pending one", alpha2 == 0.14, alpha2)
 
   C.Disable()
   K.Disable()
@@ -2377,15 +2434,19 @@ run(`
   f.edit.scripts.OnEnterPressed(f.edit)
   S.MarkFailed("w:Brisa-Horizon")
   local failedMsg = f.status.retry
-  check("a failed bubble is not dimmed", f.bubbles[1].alpha == 0.24, f.bubbles[1].alpha)
+  local function fillAlpha(b)
+    local rr = rawget(b, "_echoRound")
+    return rr and rr.fill.middleBand.vertexColor and rr.fill.middleBand.vertexColor[4]
+  end
+  check("a failed bubble is not dimmed", fillAlpha(f.bubbles[1]) == 0.24, fillAlpha(f.bubbles[1]))
 
   R.sync = false
   f.status.scripts.OnClick(f.status)
   check("retry still marks the record retried", failedMsg.status == "retried", failedMsg.status)
   check("the card is pending a repaint, not rendered inline", R.Pending("card") == true, R.Pending("card"))
-  check("the dimmed styling has not landed yet", f.bubbles[1].alpha == 0.24, f.bubbles[1].alpha)
+  check("the dimmed styling has not landed yet", fillAlpha(f.bubbles[1]) == 0.24, fillAlpha(f.bubbles[1]))
   R.Flush()
-  check("the dimmed styling lands once the deferred repaint runs", f.bubbles[2].alpha == 0.14, f.bubbles[2].alpha)
+  check("the dimmed styling lands once the deferred repaint runs", fillAlpha(f.bubbles[2]) == 0.14, fillAlpha(f.bubbles[2]))
   R.sync = true
 
   C.Disable()
@@ -4759,7 +4820,8 @@ run(`
 
   S.Add({ convKey = "w:Brisa-Horizon", text = "hi", sender = "Brisa-Horizon" })
   local tile = T.TileFor("w:Brisa-Horizon")
-  check("H5: the label shade draws in ARTWORK, under the OVERLAY label text", tile.labelShade.drawLayer == "ARTWORK" and tile.labelShade.drawSublevel == 7, tostring(tile.labelShade.drawLayer) .. "/" .. tostring(tile.labelShade.drawSublevel))
+  local shadeRR = rawget(tile.labelShade, "_echoRound")
+  check("H5: the label shade draws in ARTWORK, above the tile's BACKGROUND fill", shadeRR ~= nil and shadeRR.layer == "ARTWORK", shadeRR and shadeRR.layer)
   check("H5: a labelled tile moves its count off the bottom name", tile.count.points[#tile.count.points][1] == "TOPLEFT", tile.count.points[#tile.count.points][1])
 
   S.Add({ convKey = "party", text = "pull", sender = "Tank-Horizon" })

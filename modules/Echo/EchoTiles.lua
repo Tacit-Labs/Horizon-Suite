@@ -154,37 +154,50 @@ end
 
 local function PaintGlyphFrame(frame, r, g, b)
     local bg = Echo.View.GLYPH_BG
-    frame:SetBackdropColor(bg[1], bg[2], bg[3], bg[4])
-    frame:SetBackdropBorderColor(r, g, b, 0.8)
+    Echo.Round.SetColor(frame, bg[1], bg[2], bg[3], bg[4])
+    Echo.Round.SetBorderColor(frame, r, g, b, 0.8)
 end
 
 local function CreateTile()
     local b = CreateFrame("Button", nil, column, "BackdropTemplate")
     b:SetSize(Tiles.TILE_SIZE, Tiles.TILE_SIZE)
-    b:SetBackdrop(Echo.FLAT)
+    Echo.Round.Apply(b, { radius = Echo.Round.TILE, border = true })
     b.letter = Echo.NewText(b, 16, "")
     b.letter:SetPoint("CENTER", b, "CENTER", 0, 0)
     b.icon = b:CreateTexture(nil, "ARTWORK")
     b.icon:SetPoint("TOPLEFT", b, "TOPLEFT", 3, -3)
     b.icon:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", -3, 3)
     b.icon:Hide()
-    b.labelShade = b:CreateTexture(nil, "ARTWORK")
-    b.labelShade:SetDrawLayer("ARTWORK", 7)
+    -- The label shade is its own small frame so it can be rounded only at the bottom,
+    -- matching the tile's own bottom corners.
+    b.labelShade = CreateFrame("Frame", nil, b)
     b.labelShade:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT", 0, 0)
     b.labelShade:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", 0, 0)
     b.labelShade:SetHeight(12)
-    b.labelShade:SetColorTexture(0, 0, 0, 0.55)
+    Echo.Round.Apply(b.labelShade, {
+        corners = { tl = 0, tr = 0, bl = Echo.Round.TILE, br = Echo.Round.TILE },
+        layer = "ARTWORK",
+    })
+    Echo.Round.SetColor(b.labelShade, 0, 0, 0, 0.55)
     b.labelShade:Hide()
     b.label = Echo.NewText(b, 9, "OUTLINE")
     b.label:SetPoint("BOTTOM", b, "BOTTOM", 0, 2)
     b.label:SetWordWrap(false)
     local a = Echo.View.ACCENT
-    b.dot = b:CreateTexture(nil, "OVERLAY")
+    -- The unread dot: a fully round Echo.Round (radius half its size).
+    b.dot = CreateFrame("Frame", nil, b)
     b.dot:SetSize(8, 8)
     b.dot:SetPoint("TOPRIGHT", b, "TOPRIGHT", 3, 3)
-    b.dot:SetColorTexture(a.r, a.g, a.b, 1)
+    Echo.Round.Apply(b.dot, { radius = 4, layer = "OVERLAY" })
+    Echo.Round.SetColor(b.dot, a.r, a.g, a.b, 1)
     b.count = Echo.NewText(b, 10)
     b.count:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", -2, 2)
+    -- A small rounded pill behind the count, in the accent colour, sized to fit the text.
+    b.countPill = CreateFrame("Frame", nil, b)
+    b.countPill:SetHeight(12)
+    Echo.Round.Apply(b.countPill, { radius = 6, layer = "ARTWORK" })
+    Echo.Round.SetColor(b.countPill, a.r, a.g, a.b, 1)
+    b.countPill:Hide()
     b:RegisterForClicks("LeftButtonUp")
     b:SetScript("OnClick", function(self)
         if not self.convKey then return end
@@ -208,16 +221,17 @@ local function PaintTile(b, conv)
     local face = { icon = b.icon, letter = b.letter, label = b.label, size = 16, smallSize = 10, flags = "",
                    fitWidth = Tiles.TILE_SIZE - 4, labelMax = Tiles.LABEL_MAX, labelMin = Tiles.LABEL_MIN }
     Echo.PaintTileFace(face, spec)
-    b:SetBackdropColor(View.FaceBackground(spec))
+    Echo.Round.SetColor(b, View.FaceBackground(spec))
     if spec.face == "glyph" or spec.face == "icon" then
-        b:SetBackdropBorderColor(spec.r, spec.g, spec.b, 0.8)
+        Echo.Round.SetBorderColor(b, spec.r, spec.g, spec.b, 0.8)
     else
-        b:SetBackdropBorderColor(0, 0, 0, 0.7)
+        Echo.Round.SetBorderColor(b, 0, 0, 0, 0.7)
     end
     local hasLabel = spec.label ~= nil and spec.label ~= ""
     b.labelShade:SetShown(hasLabel)
     b.dot:SetShown(spec.badge == "dot")
-    b.count:SetText(spec.badge == "count" and tostring(spec.count) or "")
+    local hasCount = spec.badge == "count"
+    b.count:SetText(hasCount and tostring(spec.count) or "")
     -- A shown label sits across the bottom; move the count off it so neither is covered,
     -- and put it back at the bottom corner when there's no label to clash with.
     b.count:ClearAllPoints()
@@ -225,6 +239,17 @@ local function PaintTile(b, conv)
         b.count:SetPoint("TOPLEFT", b, "TOPLEFT", 2, -2)
     else
         b.count:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", -2, 2)
+    end
+    if hasCount then
+        local textW = b.count.GetStringWidth and b.count:GetStringWidth()
+        if type(textW) ~= "number" or textW <= 0 then textW = 8 end
+        b.countPill:ClearAllPoints()
+        b.countPill:SetPoint("CENTER", b.count, "CENTER", 0, 0)
+        b.countPill:SetSize(math.max(12, textW + 6), 12)
+        Echo.Round.Layout(b.countPill)
+        b.countPill:Show()
+    else
+        b.countPill:Hide()
     end
     b:Show()
 end
@@ -348,6 +373,7 @@ function Tiles.Refresh()
         overflowTile.dot:Hide()
         overflowTile.icon:Hide()
         overflowTile.count:SetText("")
+        overflowTile.countPill:Hide()
         overflowTile.label:SetText("")
         overflowTile.labelShade:Hide()
         overflowTile:ClearAllPoints()
