@@ -119,12 +119,12 @@ When `Platform.Has("secretChat")` is false, only the first case applies.
 - Unread: a dot on loud conversations, a number on count-tier ones, and nothing on quiet ones until opened.
 - At most 8 tiles, configurable. Beyond that, a **+N** tile opens the stack.
 - Order: pinned first, then by last loud message. A mention or raid warning counts as a loud message: it toasts and moves its tile up. Ordinary count and quiet messages do not reorder.
-- The bottom button opens the stack and is the drag handle when the column is unlocked.
+- The bottom button, the Echo icon, is the drag handle when the column is unlocked. Since plan 14 a left-click opens the card on what needs you and a right-click opens a quick menu; clicking it no longer opens the stack.
 - The preview toast slides out beside the tile for loud messages only, using the shared toast chrome. Clicking it opens that card.
 
 ### Peek: stack
 
-- Opens on hover after a short delay, from the bottom button, or from the **Echo: Reply to newest** keybind. The keybind focuses the newest loud conversation's quick-reply input.
+- Opens on hover after a short delay (over a tile, or over the Echo icon while collapse is off), or from the **Echo: Reply to newest** keybind. The keybind focuses the newest loud conversation's quick-reply input.
 - Each card shows sender, class, unread count, age and the last few messages. The mouse wheel flips cards.
 - Quick reply: Enter sends and keeps the stack open. Escape clears focus first, then closes the stack. **Open** expands the card.
 - The stack closes when the mouse leaves it, unless its input has focus.
@@ -293,7 +293,7 @@ HorizonDB.echoHistory = {
 - **Rulings.**
   - Leading spaces are trimmed first, so `" /dance"` is still a command.
   - Commands match case-insensitively, and Blizzard's localised `SLASH_*` globals are accepted alongside the English forms.
-  - `/w` matches an existing whisper case-insensitively (`Store.WhisperKeyLike`). A new name gets your realm when it has none, and a capital first letter when that letter is ASCII a to z. The name runs to the first space. A name containing `|` (a Battle.net `|K` name) is never parsed, so Battle.net friends are reached from the + menu instead.
+  - `/w` matches an existing whisper case-insensitively (`Store.WhisperKeyLike`). A new name gets your realm when it has none, and a capital first letter when that letter is ASCII a to z. The name runs to the first space. A name containing `|` (a Battle.net `|K` name) is never parsed, so Battle.net friends are reached from **Start a chat…** in the Echo icon's menu instead.
   - Officer needs `C_GuildInfo.CanSpeakInOfficerChat`, falling back to `CanEditOfficerNote` and then to guild membership.
   - Party and Raid count only the home group (`LE_PARTY_CATEGORY_HOME`). A group-finder group, LFR included, talks in Instance. Without `LE_PARTY_CATEGORY_INSTANCE`, Instance is never reachable.
 - A shortcut with a message switches the card to its conversation, opening it with `Store.Start`, and sends the message there. One with no message only switches. The stack's quick reply does the same, opening the card to switch.
@@ -301,14 +301,14 @@ HorizonDB.echoHistory = {
 
 **`Store.Start(convKey)`.** Creates or reopens a conversation with no message. It sets `open`, clears `dismissed`, stamps `startedSeq` from the Store's sequence so `Store.List` puts it first, and notifies `"update"`. Pinned tiles stay above it, and a later loud message goes above it, because `startedSeq` orders the list without counting as a loud message. It rejects invalid keys and the feed kinds, which are read-only. A started conversation with no messages has a tile like any other, and closing it removes the tile.
 
-**The + menu.** A 20×20 round button (`Echo.Round.SMALL`) sits just above the Echo icon, with a `+` and the tooltip "Start a chat". It is a child of the column, so it follows the column's edge, scale and lock, and it drags the column when unlocked. The tiles stack above it (`Tiles.TilesBottom()`). Without `MenuUtil` the button stays hidden and the tiles drop back to one step above the Echo icon. A click opens `Compose.Open`, a MenuUtil context menu built by `Compose.Build`:
+**The Start a chat menu.** Plan 11 opened it from a 20×20 + button above the Echo icon. Plan 14 removed that button, so the tiles start one step above the Echo icon again (`Tiles.TilesBottom()`), and the same menu is now the **Start a chat…** submenu of the Echo icon's right-click menu, filled by `Compose.Build`:
 
 - **Whisper…** opens the `HORIZON_ECHO_NEW_WHISPER` StaticPopup, registered on first use. It suggests names through `GetAutoCompleteResults` with the `AUTOCOMPLETE_LIST.WHISPER` include and exclude masks. The name goes through the same rule as `/w` (`Send.WhisperKeyFor`).
 - **Friends online**, a submenu of up to 20 online character friends, then Battle.net friends when the client has Battle.net whispers. A Battle.net friend is labelled with its account name, a `|K` string shown whole and never parsed, and keyed `bn:<accountID>`. The submenu is left out when empty.
 - **Nearby**; **Guild**, **Officer**, **Party**, **Raid** and **Instance** by the same checks as the shortcuts (`Send.CanReach`).
 - **Channels**, a submenu of every enabled joined channel from `GetChannelList()`, keyed like incoming channel chat and showing the channel's icon when it has one.
 - Choosing an entry calls `Store.Start`, then opens the card on it with the reply box focused, growing from its tile or its group's tile.
-- Every Blizzard call is protected with `pcall` and every value checked with `IsSecret`. Opening a menu is protected too: a refused `MenuUtil.CreateContextMenu` makes `Compose.Open`, `Menu.Open` and `Menu.OpenMessage` return false instead of raising.
+- Every Blizzard call is protected with `pcall` and every value checked with `IsSecret`. Opening a menu is protected too: a refused `MenuUtil.CreateContextMenu` makes `Menu.Open`, `Menu.OpenMessage` and `Menu.OpenIcon` return false instead of raising.
 
 ### Replacing Blizzard chat (plan 12, 2026-09-26)
 
@@ -357,9 +357,9 @@ Plan 13 made Blizzard's docked input line look like Echo's own reply box, and ad
 
 **Why the send button hides.** Echo's send button can't send Blizzard's line. Pressing Enter is the game's own code. A click that sent the line from addon code would run Blizzard's send path from an addon, which taints it, and `/cast` and macros typed there would stop working. So the button hides while the line covers the card, and Enter sends.
 
-**Collapse mode** (`echoCollapse`: `"off"`, the default; `"all"`; `"keepnew"`). "Collapse all" folds every tile and the + into the Echo icon. "Keep new messages" keeps out each tile whose badge is set (`View.Badge`, a dot or a count; for a group, its group badge), packed down from the bottom slot in their normal order, and folds the rest. Collapsed means progress 0: folded tiles and the + are hidden, and the column's hit area shrinks to the icon and any kept tiles. `EchoCollapse.lua` runs the states on one clock, the column's `OnUpdate`, which is installed only while collapse isn't `"off"` and removed when it is switched off.
+**Collapse mode** (`echoCollapse`: `"off"`, the default; `"all"`; `"keepnew"`). "Collapse all" folds every tile into the Echo icon. "Keep new messages" keeps out each tile whose badge is set (`View.Badge`, a dot or a count; for a group, its group badge), packed down from the bottom slot in their normal order, and folds the rest. Collapsed means progress 0: folded tiles are hidden, and the column's hit area shrinks to the icon and any kept tiles. `EchoCollapse.lua` runs the states on one clock, the column's `OnUpdate`, which is installed only while collapse isn't `"off"` and removed when it is switched off.
 
-**Timings.** Hovering the Echo icon for `Collapse.OPEN_DELAY = 0.15` seconds opens the column. Tiles slide up from the icon one by one, each starting `Collapse.STAGGER = 0.03` seconds after the one below it and taking `Collapse.SLIDE = 0.18` seconds with an ease-out and a fade from alpha 0 to 1. Leaving the column (the icon, the tiles and the +) folds it after `Collapse.CLOSE_DELAY = 0.6` seconds, top tile first. Entering any of them cancels a pending fold. Nothing folds while the card or the stack is shown or the column is being dragged; when the card or stack hides, the close delay starts from zero. A drag that starts on the folded icon drops the pending open, so dragging the icon moves it without unfolding. Changing the setting live lays the column out at once, without animating.
+**Timings.** Hovering the Echo icon for `Collapse.OPEN_DELAY = 0.15` seconds opens the column. Tiles slide up from the icon one by one, each starting `Collapse.STAGGER = 0.03` seconds after the one below it and taking `Collapse.SLIDE = 0.18` seconds with an ease-out and a fade from alpha 0 to 1. Leaving the column (the icon and the tiles) folds it after `Collapse.CLOSE_DELAY = 0.6` seconds, top tile first. Entering any of them cancels a pending fold. Nothing folds while the card or the stack is shown or the column is being dragged; when the card or stack hides, the close delay starts from zero. A drag that starts on the folded icon drops the pending open, so dragging the icon moves it without unfolding. Changing the setting live lays the column out at once, without animating.
 
 **The icon's badge.** While tiles are folded, the Echo icon shows the sum of their unread counts in a count pill, or a dot when any of them has a dot. A folded +N tile brings the conversations hidden behind it, by the group rule: only a conversation whose own `View.Badge` is set counts, so a quiet or muted one adds nothing, and a dot among them makes the icon's badge a dot. Opening the column clears the icon's badge.
 
@@ -368,6 +368,38 @@ Plan 13 made Blizzard's docked input line look like Echo's own reply box, and ad
 **Pop-ups.** `Tiles.TileFor(convKey)` gives the Echo icon for a folded tile and the tile itself for a kept one, so a toast and the card's genie come from wherever the tile is. The frames are non-secure, so collapse behaves the same in combat.
 
 **Tile images fill the rounded square** (asked for by the director). A tile whose face is an image (a class icon, the Battle.net logo, a channel, feed or group icon; `Echo.IsImageFace`) fills its whole tile, clipped to the tile's rounded corners by a mask texture, with no coloured fill or border around it. `Echo.SetTileMask(tile, icon, on, path)` makes one mask per icon and adds or removes it as a reused tile changes face; `Echo.InsetTileIcon` anchors the image. There are two masks, both 64×64 white TGAs with the corner in the alpha, supersampled 8×8 per pixel: `media/echo/tile_mask.tga` for the column's 40px tiles (a corner of 8/40 of the side), and `media/echo/tile_mask_small.tga` for the smaller tiles (8/26 of the side), used by the card's 26px row tiles, the stack card's 28px tile and the toast's 28px icon. On the toast, an image also drops the style's colour chip. The guild tabard keeps its inset emblem on the tabard's colour, and glyph and letter faces and the +N tile keep their fill. The card's row tile for the conversation on show keeps its accent outline, with the image 2px inside it. A client without mask textures keeps each host's old inset icon on its fill.
+
+### Echo icon and card idle close (plan 14, 2026-09-26)
+
+Plan 14 gave the Echo icon a click of each kind, moved starting a chat into its menu, removed the + button, and made the card close itself when it is left alone.
+
+**Left-click: what needs you** (`Tiles.OpenInbox`). The card opens on the open conversation that needs you most, first match wins:
+
+1. a conversation with a dot (`View.Badge` is `"dot"`, a loud unread such as a whisper), the newest by `lastLoud`;
+2. else one with a count, the newest by its last message's `seq`;
+3. else the All view. A closed All tile reopens through `Store.OpenFeed("all")`, the feed counterpart of `Store.Start`: it clears the dismissal, opens the feed and puts it first. With All switched off, the top conversation opens instead.
+
+The card opens with `Card.Show(key, Tiles.TileFor(key))`, so it grows from the tile, or from the icon when that tile is folded. While the card is up, a click closes it as a tile click would, when nothing else needs you or the card already shows what does. A click while a different conversation needs you switches the card to it; the card marks each one read as it shows it, so repeated clicks walk through the unread ones and the last click closes the card. The icon no longer opens the stack; hovering still peeks.
+
+**Right-click: the quick menu** (`Menu.OpenIcon`, through `pcall` like the other menus). In order:
+
+- **Start a chat…**, a submenu `Compose.Build` fills.
+- **Mark all as read**, `Store.MarkAllRead()`: every open conversation's unread goes to 0, with one `"update"` notification (no conversation key) for the lot.
+- A divider, a **Collapse** title and three radios for `echoCollapse` (Off, Collapse all, Keep new messages).
+- **Hide Blizzard's chat windows**, a checkbox for `echoHideBlizzardChat`.
+- **Lock position**, a checkbox for `echoLockPosition`.
+- A divider, then **Echo settings…**, which shows the dashboard (`addon.ShowOptions`, only when it is shut, since that call toggles) and calls the dashboard's own `OpenModule(name, "echo")` to land on Echo's page.
+
+The radios and checkboxes write through `addon.SetDB` and then run `Echo.ApplyOptions()`, so they take effect live, and turning Hide Blizzard chat off asks for a reload as the options page does (`HideChat.Refresh`). The icon registers `LeftButtonUp` and `RightButtonUp`; its left-button drag still moves the column.
+
+**The card closes itself** (`echoCardIdleClose`, seconds, default 30, a 0 to 120 slider in steps of 5 in the Card section; 0 never closes it). `Card.idle` counts up in the card's own `OnUpdate` while the card is shown and nothing touches it. Touching it resets the count to 0:
+
+- the mouse over the card or its row tiles;
+- focus in the card's reply box, or in Blizzard's docked line while it covers the card (`Input.Covers` and `ChatFrame1EditBox:HasFocus()`, read only and checked with `IsSecret`; a secret answer is not a touch);
+- the card's ⋯ menu or a message menu still open (`Menu.IsOpen()`: the menu `MenuUtil.CreateContextMenu` returns is asked `IsShown()`, and a client that returns no menu counts the `Menu.OPEN_GRACE` second after opening);
+- scrolling, a tab, a row tile, the pin strip, the mode chip, the "new below" hint, sending, retrying, or switching conversation.
+
+A new message in the shown conversation is not a touch, so the card still closes on time. The count holds while a genie plays and in combat, which closes the card anyway. At the limit the card closes as a click on its tile would: the reverse genie into `Tiles.TileFor` of the shown conversation when the animation is on and that tile is visible, else an instant `Card.Hide()`. Collapse mode's fold timer then starts from zero, as for any close.
 
 ## Towards replacing Blizzard chat (decided 2026-09-26, built in plan 12)
 
@@ -410,7 +442,7 @@ HorizonDB.echoHistory = {
 | Notifications | Toast style (shared Compact / Framed / Accent); tier per conversation type; mention keywords; hold toasts in combat |
 | History | Save whisper history (on); Clear history |
 | Blizzard chat | Hide whispers Echo has stored (off) |
-| Card | Width; height; font |
+| Card | Width; height; message text size; animate; close after (plan 14); font |
 
 All strings go through `locales/horizon/enUS.lua` so `tools/locale_audit.js` picks them up.
 
