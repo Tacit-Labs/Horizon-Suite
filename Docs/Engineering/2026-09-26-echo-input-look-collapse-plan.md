@@ -128,3 +128,17 @@
   - [ ] Choose Keep new messages: a tile with a new message stays out, and folds after you read it.
   - [ ] A whisper while collapsed: the pop-up slides from the Echo icon.
 - **Commit:** `docs(echo): record the input line look and collapse mode`.
+
+---
+
+## In-game checklist (plan 13, 2026-09-26)
+
+- [ ] Press Enter with a card open: the line sits where the reply box was, with a chip ("Say", "Guild", "Whisper Brisa"), and the hint shows until you type. `/g` switches the chip.
+- [ ] Press Enter with no card open: the same look beside the Echo icon.
+- [ ] `/cast` and a macro still work from the line.
+- [ ] Choose Collapse all: the tiles fold into the Echo icon, and the icon shows the unread count.
+- [ ] Hover the icon: the tiles rise one by one. Move away: they fold back after a moment.
+- [ ] Choose Keep new messages: a tile with a new message stays out, and folds after you read it.
+- [ ] A whisper while collapsed: the pop-up slides from the Echo icon.
+- [ ] Class, Battle.net and channel tiles show the image filling the rounded tile with no coloured edge.
+- [ ] Dragging the folded Echo icon moves it without unfolding.
