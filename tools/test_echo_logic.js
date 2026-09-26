@@ -3809,6 +3809,9 @@ run(`
   check("officer saving defaults off", A.ECHO_DEFAULTS.echoSaveOfficer == false, tostring(A.ECHO_DEFAULTS.echoSaveOfficer))
   check("hiding Blizzard chat defaults off", A.ECHO_DEFAULTS.echoHideBlizzardChat == false, tostring(A.ECHO_DEFAULTS.echoHideBlizzardChat))
   check("the combat log is kept by default", A.ECHO_DEFAULTS.echoKeepCombatLog == true, tostring(A.ECHO_DEFAULTS.echoKeepCombatLog))
+  check("the card closes itself after 30s by default", A.ECHO_DEFAULTS.echoCardIdleClose == 30, tostring(A.ECHO_DEFAULTS.echoCardIdleClose))
+  local idleLim = A.ECHO_LIMITS.echoCardIdleClose
+  check("the idle close runs from 0 (never) to 120", idleLim and idleLim.min == 0 and idleLim.max == 120, idleLim and idleLim.max)
   -- Later sections run without defaults, as before this plan.
   A.ECHO_DEFAULTS, A.ECHO_KEYS, A.ECHO_LIMITS = nil, nil, nil
 `, 'echo-defaults-check');
@@ -4294,6 +4297,25 @@ run(`
   keys.echoScale.set(85)
   check("scale slider stores a fraction", A.OptionsData_GetDB("echoScale") == 0.85, A.OptionsData_GetDB("echoScale"))
   check("scale slider reads percent", keys.echoScale.get() == 85, keys.echoScale.get())
+  local idle = keys.echoCardIdleClose
+  check("idle close: a slider on the page", idle and idle.type == "slider" and idle.min == 0 and idle.max == 120 and idle.step == 5,
+        idle and tostring(idle.type))
+  check("idle close: in the Card section, labelled", idle and idle.name == A.L["ECHO_CARD_IDLE_CLOSE"] and idle.desc == A.L["ECHO_CARD_IDLE_CLOSE_DESC"],
+        idle and idle.name)
+  if idle then
+    local section
+    for _, opt in ipairs(cat.options) do
+      if opt.type == "section" then section = opt.name end
+      if opt == idle then break end
+    end
+    check("idle close: under Card", section == A.L["ECHO_SECTION_CARD"], section)
+    check("idle close: reads 30 by default", idle.get() == 30, idle.get())
+    idle.set(0)
+    check("idle close: 0 is kept", A.OptionsData_GetDB("echoCardIdleClose") == 0, A.OptionsData_GetDB("echoCardIdleClose"))
+    idle.set(500)
+    check("idle close: clamped to 120", A.OptionsData_GetDB("echoCardIdleClose") == 120, A.OptionsData_GetDB("echoCardIdleClose"))
+    A.OptionsData_SetDB("echoCardIdleClose", nil)
+  end
   keys.echoMaxTiles.set(1)
   check("max tiles at least two", A.OptionsData_GetDB("echoMaxTiles") == 2, A.OptionsData_GetDB("echoMaxTiles"))
   check("guild tier default", keys.echoTierGuild.get() == "quiet", keys.echoTierGuild.get())
@@ -10274,6 +10296,211 @@ run(`
   _G.HorizonSuiteEchoColumn = saved.column
   S.Reset()
 `, 'collapse-final-fixes');
+
+// --- Card: closes itself after a while untouched (plan 14, Task 1) ----------------------
+run(`
+  local Echo = HorizonSuite.Echo
+  local S, T, K, C, G, M = Echo.Store, Echo.Tiles, Echo.Stack, Echo.Card, Echo.Genie, Echo.Menu
+  S.Reset()
+  G._reset()
+  CreateFrame = STUB_CREATE_FRAME
+  local db = {}
+  local saved = { defaults = HorizonSuite.ECHO_DEFAULTS, getDB = HorizonSuite.GetDB, combat = InCombatLockdown,
+                  box = ChatFrame1EditBox, menu = MenuUtil, getTime = GetTime, covers = Echo.Input and Echo.Input.Covers }
+  HorizonSuite.ECHO_DEFAULTS = { echoAnimateCard = true, echoColumnEdge = "right", echoCardIdleClose = 30 }
+  HorizonSuite.GetDB = function(k, d) if db[k] ~= nil then return db[k] end return d end
+  InCombatLockdown = function() return false end
+  T.Enable()
+  K.Enable()
+  C.Enable()
+  local f = C._frames()
+  local function Geometry(frame, l, b, w, h)
+    frame.GetLeft = function() return l end
+    frame.GetBottom = function() return b end
+    frame.GetWidth = function() return w end
+    frame.GetHeight = function() return h end
+    frame.GetEffectiveScale = function() return 1 end
+  end
+  f.root.SetAlpha = function(self, a) self.alphaValue = a end
+  f.root.GetAlpha = function(self) return rawget(self, "alphaValue") or 1 end
+  Geometry(f.root, 500, 100, 360, 440)
+  local over = false
+  f.root.IsMouseOver = function() return over end
+  local focused = false
+  f.edit.HasFocus = function() return focused end
+
+  S.Add({ convKey = "w:Brisa-Horizon", text = "hi", sender = "Brisa-Horizon" })
+  S.Add({ convKey = "w:Vexa-Horizon", text = "gz", sender = "Vexa-Horizon" })
+  local vexa = T.TileFor("w:Vexa-Horizon")
+  Geometry(vexa, 870, 120, 30, 30)
+  local toast = T._toast()
+  if toast then toast:Hide() end
+
+  check("idle: the card has its own clock", type(f.root.scripts.OnUpdate) == "function", type(f.root.scripts.OnUpdate))
+  if type(f.root.scripts.OnUpdate) ~= "function" then return end
+  local function tick(dt) f.root.scripts.OnUpdate(f.root, dt) end
+  local function open()
+    C.Hide()
+    G._reset()
+    C.Open("w:Vexa-Horizon")
+  end
+
+  -- Left alone, it closes into its tile after the setting's time.
+  open()
+  tick(20)
+  check("idle: counts up while untouched", C.idle == 20, tostring(C.idle))
+  tick(9)
+  check("idle: still open before the time is up", f.root:IsShown() and not G.IsPlaying(), "closed")
+  tick(1.5)
+  check("idle: the time up closes it with a reverse genie", G.IsPlaying() and G._current().reverse == true, tostring(G.IsPlaying()))
+  check("idle: into the conversation's tile", G.IsPlaying() and G._current().from == vexa, "other")
+  local ov = G._overlay()
+  ov.scripts.OnUpdate(ov, 1)
+  check("idle: and the card is gone when it ends", not f.root:IsShown(), "shown")
+
+  -- Animation off: an instant close.
+  db.echoAnimateCard = false
+  open()
+  tick(31)
+  check("idle: with animation off it closes at once", not f.root:IsShown() and not G.IsPlaying(), tostring(f.root:IsShown()))
+  db.echoAnimateCard = nil
+
+  -- No tile in view: an instant close too.
+  open()
+  vexa:Hide()
+  tick(31)
+  check("idle: with no tile to fold into it closes at once", not f.root:IsShown() and not G.IsPlaying(), tostring(f.root:IsShown()))
+  vexa:Show()
+  db.echoAnimateCard = false
+
+  -- The mouse over the card holds the count at zero.
+  open()
+  tick(20)
+  over = true
+  tick(100)
+  check("idle: the mouse over the card keeps it open", f.root:IsShown() and C.idle == 0, tostring(C.idle))
+  over = false
+  tick(29)
+  check("idle: the count starts again from zero when it leaves", f.root:IsShown(), "closed")
+  tick(2)
+  check("idle: then closes on time", not f.root:IsShown(), "shown")
+
+  -- The mouse over a row tile.
+  open()
+  local rowTile
+  for _, b in ipairs(f.rowTiles) do if b:IsShown() then rowTile = b end end
+  rowTile.IsMouseOver = function() return true end
+  tick(100)
+  check("idle: the mouse over a row tile keeps it open", f.root:IsShown(), "closed")
+  rowTile.IsMouseOver = nil
+
+  -- Focus in the reply box.
+  open()
+  focused = true
+  tick(100)
+  check("idle: typing in the reply box keeps it open", f.root:IsShown() and C.idle == 0, tostring(C.idle))
+  focused = false
+  tick(31)
+  check("idle: losing focus lets it close", not f.root:IsShown(), "shown")
+
+  -- Focus in Blizzard's docked line over the card.
+  local boxFocus = true
+  ChatFrame1EditBox = { HasFocus = function() return boxFocus end }
+  Echo.Input.Covers = function() return true end
+  open()
+  tick(100)
+  check("idle: typing in the docked line over the card keeps it open", f.root:IsShown(), "closed")
+  boxFocus = SECRET(true)
+  tick(31)
+  check("idle: a secret focus answer is not a touch", not f.root:IsShown(), "shown")
+  boxFocus = true
+  Echo.Input.Covers = function() return false end
+  open()
+  tick(31)
+  check("idle: the line focused away from the card is not a touch", not f.root:IsShown(), "shown")
+  Echo.Input.Covers = saved.covers
+  ChatFrame1EditBox = saved.box
+
+  -- A menu open over the card.
+  local menuShown = true
+  MenuUtil = { CreateContextMenu = function(owner, gen) return { IsShown = function() return menuShown end } end }
+  open()
+  M.Open(f.menu, "w:Vexa-Horizon")
+  tick(100)
+  check("idle: the card's menu open keeps it open", f.root:IsShown() and M.IsOpen() == true, tostring(M.IsOpen()))
+  menuShown = false
+  check("idle: the menu shut is no longer open", M.IsOpen() == false, tostring(M.IsOpen()))
+  tick(31)
+  check("idle: and the card closes on time after", not f.root:IsShown(), "shown")
+  menuShown = true
+  open()
+  M.OpenMessage(f.menu, "w:Vexa-Horizon", S.Get("w:Vexa-Horizon").messages[1])
+  tick(100)
+  check("idle: the message menu open keeps it open", f.root:IsShown(), "closed")
+  -- A client whose MenuUtil hands back no menu: the moments after opening one count.
+  local now = 500
+  GetTime = function() return now end
+  MenuUtil = { CreateContextMenu = function() end }
+  M.Open(f.menu, "w:Vexa-Horizon")
+  check("idle: without a menu handle, just opened counts as open", M.IsOpen() == true, tostring(M.IsOpen()))
+  now = now + M.OPEN_GRACE + 0.1
+  check("idle: and a moment later no longer does", M.IsOpen() == false, tostring(M.IsOpen()))
+  GetTime = saved.getTime
+  MenuUtil = saved.menu
+
+  -- Scrolling, a tab or row tile, sending and switching are touches; a new message is not.
+  open()
+  tick(20)
+  C.Scroll(1)
+  check("idle: scrolling resets the count", C.idle == 0, tostring(C.idle))
+  tick(20)
+  check("idle: still open after scrolling", f.root:IsShown(), "closed")
+  C.Show("w:Brisa-Horizon")
+  check("idle: switching conversation resets the count", C.idle == 0, tostring(C.idle))
+  tick(20)
+  S.Add({ convKey = "w:Brisa-Horizon", text = "still there?", sender = "Brisa-Horizon" })
+  check("idle: a new message in the shown conversation doesn't reset it", C.idle == 20, tostring(C.idle))
+  tick(11)
+  check("idle: so the card still closes on time", not f.root:IsShown(), "shown")
+  open()
+  tick(20)
+  f.edit:SetText("on my way")
+  C.Submit()
+  check("idle: sending resets the count", C.idle == 0, tostring(C.idle))
+
+  -- 0 means never.
+  db.echoCardIdleClose = 0
+  open()
+  tick(1000)
+  check("idle: 0 never closes it", f.root:IsShown(), "closed")
+  db.echoCardIdleClose = nil
+
+  -- Combat, and a genie under way, hold the count.
+  open()
+  tick(20)
+  InCombatLockdown = function() return true end
+  tick(100)
+  check("idle: the count doesn't run in combat", f.root:IsShown() and C.idle == 20, tostring(C.idle))
+  InCombatLockdown = function() return false end
+  db.echoAnimateCard = nil
+  C.Hide()
+  G._reset()
+  vexa.scripts.OnClick(vexa)
+  check("idle: the tile opened it with a genie", G.IsPlaying(), "idle")
+  tick(100)
+  check("idle: the count doesn't run while the genie plays", f.root:IsShown() and C.idle == 0, tostring(C.idle))
+  G._overlay().scripts.OnUpdate(G._overlay(), 1)
+  tick(10)
+  check("idle: it counts once the genie is done", C.idle == 10, tostring(C.idle))
+
+  C.Hide()
+  C.Disable()
+  K.Disable()
+  T.Disable()
+  G._reset()
+  HorizonSuite.ECHO_DEFAULTS, HorizonSuite.GetDB, InCombatLockdown = saved.defaults, saved.getDB, saved.combat
+  S.Reset()
+`, 'card-idle-close');
 
 // --- Redraw: one repaint per frame -------------------------------------------
 run(`

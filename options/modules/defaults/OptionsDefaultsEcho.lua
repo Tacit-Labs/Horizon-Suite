@@ -59,6 +59,8 @@ addon.ECHO_DEFAULTS = {
     echoCardTextSize       = 11,
     echoFontPath           = "__global__",
     echoAnimateCard        = true,
+    -- Seconds untouched before the card closes itself (EchoCard.lua); 0 keeps it open.
+    echoCardIdleClose      = 30,
     -- Chat groups (modules/Echo/EchoGroups.lua). A blank name leaves the group unused;
     -- echoGroupOf maps a member id to its group index. Read through Echo.Setting; never
     -- mutate these tables in place.
@@ -80,6 +82,7 @@ addon.ECHO_LIMITS = {
     echoCardWidth    = { min = 320, max = 520 },
     echoCardHeight   = { min = 320, max = 640 },
     echoCardTextSize = { min = 9,   max = 16 },
+    echoCardIdleClose = { min = 0,  max = 120 },
 }
 
 -- Every setting, plus the dragged position, re-applies Echo when it changes.

@@ -3,7 +3,8 @@
     The ⋯ menu on the card: pin, notification tier, close conversation. Its contents come
     from View.MenuSpec; this file turns them into Blizzard's context menu and runs the choice.
     Also the right-click menu on one message: pin or unpin it, or say why it can't be pinned,
-    and whisper or invite the player who wrote it.
+    and whisper or invite the player who wrote it. Menu.IsOpen tells the card's idle close
+    whether either is still open.
     Blizzard: MenuUtil.CreateContextMenu, C_PartyInfo.InviteUnit (or InviteUnit), IsInGroup,
     UnitIsGroupLeader, UnitIsGroupAssistant.
 ]]
@@ -16,6 +17,35 @@ local Echo = addon.Echo
 
 local Menu = {}
 Echo.Menu = Menu
+
+-- The card's idle close (Echo.Card) asks whether one of these menus is open. MenuUtil hands
+-- back the menu it opened on current clients; one that hands back nothing counts as open
+-- for Menu.OPEN_GRACE seconds after it was opened.
+Menu.OPEN_GRACE = 1
+local openMenu, openedAt
+
+-- Remember the menu CreateContextMenu opened (or when, without a handle).
+local function Opened(ok, menu)
+    if not ok then return end
+    openMenu = (type(menu) == "table" and type(menu.IsShown) == "function") and menu or nil
+    openedAt = (not openMenu and type(GetTime) == "function") and GetTime() or nil
+end
+
+--- Whether a menu opened from Echo (the card's ⋯ menu or a message's menu) is still open.
+-- @return boolean
+function Menu.IsOpen()
+    if openMenu then
+        local ok, shown = pcall(openMenu.IsShown, openMenu)
+        if ok and not Echo.IsSecret(shown) and shown then return true end
+        openMenu = nil
+        return false
+    end
+    if openedAt and type(GetTime) == "function" then
+        local now = GetTime()
+        if type(now) == "number" and now - openedAt < Menu.OPEN_GRACE then return true end
+    end
+    return false
+end
 
 --- Invite a player to your group. Shared by the ⋯ menu, the message menu and /inv.
 -- @param name string  "Name-Realm"
@@ -102,9 +132,10 @@ end
 function Menu.Open(owner, convKey)
     if not Menu.Available() then return false end
     -- pcall: a refused menu is reported as not opened, never raised.
-    local ok = pcall(MenuUtil.CreateContextMenu, owner, function(_, rootDescription)
+    local ok, menu = pcall(MenuUtil.CreateContextMenu, owner, function(_, rootDescription)
         Menu.Build(rootDescription, convKey)
     end)
+    Opened(ok, menu)
     return ok
 end
 
@@ -192,8 +223,9 @@ end
 -- @return boolean opened
 function Menu.OpenMessage(owner, convKey, record)
     if not Menu.Available() then return false end
-    local ok = pcall(MenuUtil.CreateContextMenu, owner, function(_, rootDescription)
+    local ok, menu = pcall(MenuUtil.CreateContextMenu, owner, function(_, rootDescription)
         Menu.BuildMessage(rootDescription, convKey, record)
     end)
+    Opened(ok, menu)
     return ok
 end

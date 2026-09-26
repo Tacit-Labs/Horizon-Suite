@@ -12,10 +12,15 @@
     message carries a small pin marker, and the shown conversation's pins sit in a strip
     under the header (and the tabs): the pinned text, a counter that steps to older pins,
     and a × that unpins. Clicking the text scrolls to the message while it is still there.
+    Left untouched for echoCardIdleClose seconds (Card.idle, counted in root's OnUpdate), the
+    card closes itself as a click on its tile would. The mouse over it, focus in its reply
+    box or the docked input line over it, an open Echo menu, and scrolling, tabs, row tiles,
+    sending or switching conversation all count as touching it; a new message doesn't.
     Bubbles are laid out newest-first from the bottom of a clipped area and the wheel
     scrolls by message. Readable text is measured; a secret gets the widest bubble and a
     fixed three lines, so nothing ever reads a size from a FontString holding a secret.
-    Blizzard: CreateFrame, UISpecialFrames, MenuUtil (through Echo.Menu).
+    Blizzard: CreateFrame, UISpecialFrames, MenuUtil (through Echo.Menu), InCombatLockdown,
+    ChatFrame1EditBox:HasFocus (read only, for the idle close).
 ]]
 
 local addon = _G.HorizonSuite
@@ -66,6 +71,8 @@ Card.INVITED_SECONDS = 3 -- how long /inv's "Invited Name." stays in the hint
 Card.MODE_WIDTH = 42   -- Nearby's Say / Yell / Emote chip at the left end of the reply box
 Card.EDIT_INSET = 8    -- the reply box's own text inset
 Card.EDIT_BG = { 0.03, 0.03, 0.05, 0.95 }  -- the reply box's fill; the docked input line shares it
+Card.IDLE_CLOSE = 30   -- echoCardIdleClose's fallback: seconds untouched before the card closes
+Card.idle = 0          -- seconds the shown card has gone untouched
 
 local root, nameText, metaText, area, edit, send, menuButton, chevron, statusLine, hint, rule
 local modeChip
@@ -243,7 +250,10 @@ local function Create()
         if edit then edit:ClearFocus() end
         StopEffects()
         NotifyInput()
+        Card.idle = 0
     end)
+    -- The idle close's clock. Card.OnIdleUpdate is defined further down.
+    root:SetScript("OnUpdate", function(self, elapsed) Card.OnIdleUpdate(self, elapsed) end)
 
     rule = root:CreateTexture(nil, "OVERLAY")
     rule:SetColorTexture(a.r, a.g, a.b, 1)
@@ -396,6 +406,7 @@ local function Create()
     hint.text:SetTextColor(a.r, a.g, a.b, 1)
     hint:RegisterForClicks("LeftButtonUp")
     hint:SetScript("OnClick", function()
+        Card.Touch()
         offset = 0
         newBelow = 0
         hint:Hide()
@@ -1057,6 +1068,7 @@ local NEXT_MODE = { SAY = "YELL", YELL = "EMOTE", EMOTE = "SAY" }
 function Card.CycleMode()
     local conv = renderedKey and Echo.Store.Get(renderedKey)
     if not conv or conv.kind ~= "nearby" then return end
+    Card.Touch()
     Echo.Store.SetSendMode(conv.key, NEXT_MODE[Echo.Store.SendModeOf(conv.key)])
     PaintMode(conv)
 end
@@ -1266,6 +1278,7 @@ function Card.Open(convKey, focus, fromTile)
         if genie then root:SetAlpha(0) end
     end
     Target(convKey)
+    Card.Touch()
     offset = 0
     newBelow = 0
     hint:Hide()
@@ -1298,6 +1311,7 @@ function Card.Show(convKey, fromTile)
     end
     if closing then StopEffects() end
     Target(convKey)
+    Card.Touch()
     Card.Render()
 end
 
@@ -1307,6 +1321,7 @@ function Card.SelectMember(convKey)
     if not root or not root:IsShown() or not groupIndex or not convKey then return end
     selected[groupIndex] = convKey
     currentKey = convKey
+    Card.Touch()
     Card.Render()
 end
 
@@ -1343,6 +1358,7 @@ function HideNow()
     newBelow = 0
     if hint then hint:Hide() end
     StopEffects()
+    Card.idle = 0
     root:Hide()
     NotifyInput()
 end
@@ -1357,6 +1373,76 @@ end
 -- @return boolean
 function Card.IsClosing()
     return closing
+end
+
+--- Something touched the card: the idle close starts counting from zero again.
+function Card.Touch()
+    Card.idle = 0
+end
+
+-- The idle close's time in seconds; 0 (or less) means never.
+local function IdleLimit()
+    local v = tonumber(Echo.Setting("echoCardIdleClose"))
+    if v == nil then return Card.IDLE_CLOSE end
+    return v
+end
+
+-- A frame answer that is plainly true (never a secret).
+local function Yes(v)
+    return not Echo.IsSecret(v) and v == true
+end
+
+local function MouseOver(frame)
+    return frame ~= nil and frame:IsShown() and Yes(frame:IsMouseOver())
+end
+
+-- Whether the card is being touched right now: the mouse over it or its row, focus in its
+-- reply box or in Blizzard's docked line over it, or one of Echo's menus open.
+local function Touched()
+    if MouseOver(root) then return true end
+    for _, b in ipairs(rowTiles) do
+        if MouseOver(b) then return true end
+    end
+    if edit and Yes(edit:HasFocus()) then return true end
+    local box = _G.ChatFrame1EditBox
+    if box and type(box.HasFocus) == "function" and Echo.Input and renderedKey
+        and Echo.Input.Covers(renderedKey) and Yes(box:HasFocus()) then
+        return true
+    end
+    if Echo.Menu and Echo.Menu.IsOpen and Echo.Menu.IsOpen() then return true end
+    return false
+end
+
+-- Close as a click on the card's tile would: into the tile with the genie when it is on
+-- and the tile is in view, else at once.
+local function IdleClose()
+    local tile = Animated() and renderedKey and Echo.Tiles and Echo.Tiles.TileFor
+        and Echo.Tiles.TileFor(renderedKey) or nil
+    if tile and Visible(tile) then
+        PlayClose(tile)
+    else
+        Card.Hide()
+    end
+end
+
+--- root's OnUpdate: count the seconds the card goes untouched and close it at the setting.
+-- The count holds while a genie plays and in combat (which closes the card anyway).
+-- @param _ Frame
+-- @param elapsed number
+function Card.OnIdleUpdate(_, elapsed)
+    if not root or not root:IsShown() then return end
+    if closing or (Echo.Genie and Echo.Genie.IsPlaying()) then return end
+    if type(InCombatLockdown) == "function" and InCombatLockdown() then return end
+    local limit = IdleLimit()
+    if limit <= 0 or Touched() then
+        Card.idle = 0
+        return
+    end
+    Card.idle = Card.idle + (tonumber(elapsed) or 0)
+    if Card.idle >= limit then
+        Card.idle = 0
+        IdleClose()
+    end
 end
 
 --- @return boolean
@@ -1425,6 +1511,7 @@ end
 -- @param delta number
 function Card.Scroll(delta)
     if not root or not root:IsShown() then return end
+    Card.Touch()
     offset = offset + delta
     Card.Render()
     newBelow = math.min(newBelow, offset)
@@ -1440,6 +1527,7 @@ function Card.NextPin()
     if not root or not root:IsShown() or not renderedKey then return end
     local n = #Echo.Store.Pins(renderedKey)
     if n < 2 then return end
+    Card.Touch()
     pinIndex = (pinIndex or n) - 1
     if pinIndex < 1 then pinIndex = n end
     Card.Render()
@@ -1549,6 +1637,7 @@ end
 function Card.Submit()
     local text = edit and edit:GetText()
     if not currentKey or not text or text == "" then return end
+    Card.Touch()
     local shortcut = Echo.Send.ParseShortcut(text, currentKey)
     if shortcut then
         if shortcut.blocked == "command" then
@@ -1596,6 +1685,7 @@ end
 -- @param msg table  the failed record
 function Card.Retry(msg)
     if not currentKey or not msg or msg.status ~= "failed" then return end
+    Card.Touch()
     -- Deliberately no Send.ParseShortcut: a failed part starting with "/" is literal text
     -- (a split fragment) that was already vetted as chat when it was first sent.
     local sent, problem = Echo.Send.Send(currentKey, msg.text)
