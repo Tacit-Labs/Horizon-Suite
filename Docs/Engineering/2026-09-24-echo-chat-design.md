@@ -12,11 +12,13 @@ In simple terms: chat works like a messenger app sitting beside the normal chat 
 
 Blizzard's chat frames stay underneath as the source of truth. They still show everything, including combat log, system messages, loot, and any message Echo cannot safely read. If Echo is disabled or breaks, chat still works.
 
+**Direction (decided with the director, 2026-09-26):** Echo is to replace Blizzard's chat windows entirely, as an option, over plans 11–14. The combat log is the one part Blizzard keeps. See "Towards replacing Blizzard chat" below.
+
 ## Locked decisions
 
 | Decision | Choice |
 |----------|--------|
-| Shape | Custom conversation layer (tiles, stack, card) beside Blizzard's chat, not a reskin and not a replacement |
+| Shape | Custom conversation layer (tiles, stack, card) beside Blizzard's chat, not a reskin. From plan 14 it can replace Blizzard's chat windows (see "Towards replacing Blizzard chat") |
 | Conversations | Character whispers, Battle.net whispers, and group channels (party, raid, instance, guild, officer, custom channels) |
 | Layout | One tile column on one screen edge; channels use glyph tiles |
 | Notification tiers | Whispers: loud (reorder, toast, dot). Party/raid/instance: count, with a toast on mentions and raid warnings. Guild/officer/custom: quiet count. Each can be overridden per conversation |
@@ -149,7 +151,7 @@ When `Platform.Has("secretChat")` is false, only the first case applies.
 
 ### Feeds (plan 4, decided 2026-09-25)
 
-Echo stays a layer beside Blizzard's chat, not a replacement (a full overhaul was considered and set aside: it would mean showing secret lines Echo can't sort, keeping Blizzard's input box for protected slash commands, and a combat log Midnight largely closes to addons). Three read-only **feed** conversations collect non-conversation lines:
+At the time of plan 4, Echo stayed a layer beside Blizzard's chat (a full overhaul was considered and set aside, and later taken up as a roadmap in plans 11–14: it would mean showing secret lines Echo can't sort, keeping Blizzard's input box for protected slash commands, and a combat log Midnight largely closes to addons). Three read-only **feed** conversations collect non-conversation lines:
 
 | Feed | Events |
 |---|---|
@@ -250,6 +252,25 @@ HorizonDB.echoHistory = {
 - The pin strip is 22px high, in a dim accent tint, and shows under the header, or under the tabs on a group card, only while the shown conversation has pins. The message area moves down by `Card.PIN_STRIP` (26px) while it shows.
 - The strip shows one pin's text on one line, with links shown as their names. Clicking the text scrolls the card to that message while it is still in the conversation. Hovering it shows the full message, its sender and its time. The × unpins the shown pin.
 - With two or more pins, a counter steps to the next older pin and wraps round. It counts from the newest pin, so `1/n` is the newest. The strip starts on the newest pin whenever the card switches conversation or tab.
+
+## Towards replacing Blizzard chat (roadmap, decided 2026-09-26)
+
+The director wants Echo to be able to replace Blizzard's chat windows entirely. Four gaps stand in the way; each has a planned answer.
+
+| Gap | Answer | Plan |
+|---|---|---|
+| **Protected slash commands** (`/cast`, `/target`, macros) run only from Blizzard's own input box | Keep Blizzard's edit box, restyled and docked to the Echo column. Enter opens it there; commands and messages both work, and messages land in their Echo tiles | 12 |
+| **Lines Echo can't sort**: secret-sender lines during encounters, other addons' `print` output, red error text | An **All** view mirroring everything the default chat frame receives, through `hooksecurefunc` on its `AddMessage`, which is taint-safe. Secret text is displayed with `SetText` and never inspected | 13 |
+| **Other addons' chat filters** (spam blockers, formatters) change messages on their way into Blizzard's frames | Run incoming lines through the registered `ChatFrame` message event filters before filing, so blocked spam stays blocked | 13 |
+| **The combat log** is largely closed to addons in Midnight | Blizzard keeps it, as its own window the player can show or hide | 14 |
+
+The rest is ordinary work, in order:
+- **Plan 11:** start a chat from Echo, a **Nearby** conversation (say, yell, emotes, NPC speech), and chat shortcuts in the reply box.
+- **Plan 12:** the docked Blizzard input line.
+- **Plan 13:** the All view and filters.
+- **Plan 14:** the **Hide Blizzard chat** option (off by default; Blizzard's chat returns whenever Echo is disabled or errors), joining and leaving channels from Echo, and the combat log's own window.
+
+Once it has proved itself, hiding Blizzard chat may become the default.
 
 ## Storage
 
@@ -372,8 +393,8 @@ Two points worth keeping in mind when working on any of this:
 
 ## Out of scope for v1
 
-- A replacement combat log or system-message view
-- Joining, leaving or managing channels
+- A replacement combat log
+- Joining, leaving or managing channels (planned for plan 14)
 - Full-text search
 - Emoji
 - Syncing history between accounts
