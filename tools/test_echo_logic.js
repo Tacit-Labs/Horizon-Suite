@@ -7311,11 +7311,8 @@ run(`
   S.Reset()
 `, 'shortcut-fix-1');
 
-// --- Start a chat: the + button and the compose menu ---------------------------------------
+// --- Start a chat: the compose menu -------------------------------------------------------
 {
-  const enUS = read('locales/horizon/enUS.lua');
-  const ok = /L\["ECHO_NEW_CHAT"\]\s+= "Start a chat"/.test(enUS);
-  run(`check("compose: the + tooltip string", ${ok}, "missing")`, 'compose-string');
   const toc = read('HorizonSuite.toc');
   const tocOk = /modules\/Echo\/EchoMenu\.lua\r?\nmodules\/Echo\/EchoCompose\.lua/.test(toc);
   run(`check("compose: EchoCompose.lua loads after EchoMenu.lua", ${tocOk}, "toc order")`, 'compose-toc');
@@ -7324,7 +7321,7 @@ run(`
   local Echo = HorizonSuite.Echo
   local S, T, V = Echo.Store, Echo.Tiles, Echo.View
   local Co = Echo.Compose
-  check("compose: the module exists", type(Co) == "table" and type(Co.Build) == "function" and type(Co.Open) == "function", type(Co))
+  check("compose: the module exists", type(Co) == "table" and type(Co.Build) == "function", type(Co))
   S.Reset()
   CreateFrame = STUB_CREATE_FRAME
   local saved = {
@@ -7332,53 +7329,11 @@ run(`
     GetChannelList = GetChannelList, C_FriendList = C_FriendList, BNGetNumFriends = BNGetNumFriends,
     C_BattleNet = C_BattleNet, HOME = LE_PARTY_CATEGORY_HOME, INST = LE_PARTY_CATEGORY_INSTANCE,
     StaticPopupDialogs = StaticPopupDialogs, StaticPopup_Show = StaticPopup_Show, GameTooltip = GameTooltip,
-    MenuUtil = MenuUtil, CardOpen = Echo.Card.Open, ComposeOpen = Co.Open,
+    MenuUtil = MenuUtil, CardOpen = Echo.Card.Open,
     GetAutoCompleteResults = GetAutoCompleteResults, AUTOCOMPLETE_LIST = AUTOCOMPLETE_LIST,
   }
   MenuUtil = { CreateContextMenu = function() end }
   T.Enable()
-
-  -- The + button: a small round button just above the Echo icon.
-  local plus = T._plusButton and T._plusButton()
-  local sb = T._stackButton()
-  check("compose: the + button exists", plus ~= nil, "missing")
-  check("compose: it is 20x20", plus and plus.width == 20 and plus.height == 20, plus and (tostring(plus.width) .. "x" .. tostring(plus.height)))
-  local rr = plus and rawget(plus, "_echoRound")
-  check("compose: it is rounded with the SMALL radius", rr ~= nil and rr.corners.tl == Echo.Round.SMALL, "?")
-  local pt = plus and plus.points[1]
-  check("compose: it sits directly above the Echo icon", pt and pt[1] == "BOTTOM" and pt[2] == sb and pt[3] == "TOP", pt and tostring(pt[1]) .. "/" .. tostring(pt[3]))
-  check("compose: it shows a + glyph", plus and plus.glyph and plus.glyph.text == "+", plus and plus.glyph and plus.glyph.text)
-  check("compose: it drags the column like the Echo icon", plus and plus.scripts.OnDragStart == sb.scripts.OnDragStart
-        and plus.scripts.OnDragStop == sb.scripts.OnDragStop, "different")
-
-  -- The column reserves room for it: the lowest tile sits above the + button.
-  S.Add({ convKey = "w:Vexa-Horizon", text = "hi", sender = "Vexa-Horizon" })
-  T.Refresh()
-  local tile = T.TileFor("w:Vexa-Horizon")
-  local y = tile and tile.points[#tile.points][5]
-  check("compose: the tiles' bottom limit moved up past the + button", y == T.TilesBottom()
-        and T.TilesBottom() >= T.TILE_SIZE + T.GAP + 20 + T.GAP, tostring(y) .. " vs " .. tostring(T.TilesBottom()))
-
-  -- Tooltip and click.
-  local tip = {}
-  GameTooltip = { SetOwner = function(_, o) tip.owner = o end, SetText = function(_, t) tip.text = t end,
-                  Show = function() tip.shown = true end, Hide = function() tip.shown = false end }
-  plus.scripts.OnEnter(plus)
-  check("compose: the tooltip says Start a chat", tip.text == "ECHO_NEW_CHAT" and tip.owner == plus and tip.shown, tostring(tip.text))
-  plus.scripts.OnLeave(plus)
-  check("compose: leaving hides the tooltip", tip.shown == false, "shown")
-  local openedFrom
-  Co.Open = function(owner) openedFrom = owner; return true end
-  plus.scripts.OnClick(plus)
-  check("compose: clicking opens the compose menu from the button", openedFrom == plus, tostring(openedFrom))
-  Co.Open = saved.ComposeOpen
-  local ctx
-  local keepMenuUtil = MenuUtil
-  MenuUtil = { CreateContextMenu = function(owner, gen) ctx = { owner, gen } end }
-  check("compose: Open uses MenuUtil", Co.Open(plus) == true and ctx and ctx[1] == plus and type(ctx[2]) == "function", "?")
-  MenuUtil = nil
-  check("compose: without MenuUtil it does not open", Co.Open(plus) == false, "opened")
-  MenuUtil = keepMenuUtil
 
   -- A started, empty conversation shows a tile; closing it removes the tile.
   S.Start("w:Empty-Horizon")
@@ -7661,30 +7616,24 @@ run(`
   -- A throwing MenuUtil: every open reports false instead of raising.
   MenuUtil = { CreateContextMenu = function() error("protected") end }
   S.Add({ convKey = "w:Brisa-Horizon", text = "hi", sender = "Brisa-Horizon" })
-  local okC, resC = pcall(Co.Open, UIParent)
-  check("review: Compose.Open catches a throwing menu", okC and resC == false, tostring(okC) .. "/" .. tostring(resC))
   local okM, resM = pcall(M.Open, UIParent, "w:Brisa-Horizon")
   check("review: Menu.Open catches a throwing menu", okM and resM == false, tostring(okM) .. "/" .. tostring(resM))
   local okO, resO = pcall(M.OpenMessage, UIParent, "w:Brisa-Horizon", S.Get("w:Brisa-Horizon").messages[1])
   check("review: Menu.OpenMessage catches a throwing menu", okO and resO == false, tostring(okO) .. "/" .. tostring(resO))
   MenuUtil = { CreateContextMenu = function() end }
-  check("review: Compose.Open reports a working menu", Co.Open(UIParent) == true, "false")
 
-  -- No MenuUtil: the + button stays hidden and the tiles drop back to one step up.
+  -- The tiles start one step up, with MenuUtil or without it (plan 14 removed the + button).
   MenuUtil = nil
   T.Enable()
-  local plus = T._plusButton()
-  check("review: without MenuUtil the + button is hidden", plus and not plus:IsShown(), "shown")
-  check("review: and the tiles start one step up", T.TilesBottom() == T.TILE_SIZE + T.GAP, T.TilesBottom())
+  check("review: without MenuUtil the tiles start one step up", T.TilesBottom() == T.TILE_SIZE + T.GAP, T.TilesBottom())
   local tile = T.TileFor("w:Brisa-Horizon")
   check("review: the lowest tile sits one step up", tile and tile.points[#tile.points][5] == T.TILE_SIZE + T.GAP,
         tile and tile.points[#tile.points][5])
   MenuUtil = { CreateContextMenu = function() end }
   T.Refresh()
-  check("review: with MenuUtil the + button shows", plus:IsShown(), "hidden")
-  check("review: and the tiles make room for it", T.TilesBottom() == T.TILE_SIZE + T.GAP + T.PLUS_SIZE + T.GAP, T.TilesBottom())
+  check("review: with MenuUtil the tiles still start one step up", T.TilesBottom() == T.TILE_SIZE + T.GAP, T.TilesBottom())
   tile = T.TileFor("w:Brisa-Horizon")
-  check("review: the lowest tile moves above it", tile and tile.points[#tile.points][5] == T.TilesBottom(),
+  check("review: and the lowest tile stays there", tile and tile.points[#tile.points][5] == T.TILE_SIZE + T.GAP,
         tile and tile.points[#tile.points][5])
 
   T.Disable()
@@ -9657,7 +9606,7 @@ run(`
 `, 'echo-all-final');
 
 // --- Collapse: the column folds into the Echo icon (plan 13, Task 2) --------------------
-// Shared set-up for the collapse sections: a settings table, MenuUtil (so the + shows),
+// Shared set-up for the collapse sections: a settings table, MenuUtil,
 // alpha recording on every frame, and helpers to find tiles and drive the column's clock.
 run(`
   local Echo = HorizonSuite.Echo
@@ -9672,7 +9621,7 @@ run(`
   local T = Echo.Tiles
   T.Enable()
   for _, b in ipairs(T._tiles and T._tiles() or {}) do Alpha(b) end
-  Alpha(T._overflow()); Alpha(T._plusButton()); Alpha(T._stackButton())
+  Alpha(T._overflow()); Alpha(T._stackButton())
   -- An earlier section leaves the column's global cleared; the stack button's parent is the column.
   _G.HorizonSuiteEchoColumn = T._stackButton().parent
   _G.HorizonSuiteEchoColumn.SetHeight = function(self, h) self.height = h end
@@ -9706,7 +9655,7 @@ run(`
   S.Reset()
   COLLAPSE_DB.echoCollapse = "all"
   local column = _G.HorizonSuiteEchoColumn
-  local icon, plus = T._stackButton(), T._plusButton()
+  local icon = T._stackButton()
   S.Add({ convKey = "party", text = "pull", sender = "Tank-Horizon" })
   S.Add({ convKey = "party", text = "now", sender = "Tank-Horizon" })
   S.Add({ convKey = "raid", text = "a", sender = "Lead-Horizon" })
@@ -9715,7 +9664,6 @@ run(`
   T.Refresh()
   check("collapse all: every tile is folded away", CT.tile("party").shown == false and CT.tile("raid").shown == false,
         tostring(CT.tile("party").shown) .. "/" .. tostring(CT.tile("raid").shown))
-  check("collapse all: the + is hidden", plus.shown == false, tostring(plus.shown))
   check("collapse all: collapsed means progress 0", C.expanded == false and C.progress == 0, tostring(C.progress))
   check("collapse all: the icon shows the folded tiles' summed count", icon.countPill and icon.countPill.shown == true and icon.count.text == "5",
         icon.count and icon.count.text)
@@ -9755,8 +9703,6 @@ run(`
         and CT.y(top) == T.TilesBottom() + 2 * step, CT.y(low) .. "/" .. CT.y(mid) .. "/" .. CT.y(top))
   check("collapse: fully opaque", low.alpha == 1 and mid.alpha == 1 and top.alpha == 1, tostring(top.alpha))
   check("collapse: progress is 1 when fully out", C.progress == 1, tostring(C.progress))
-  local pp = plus.points[#plus.points]
-  check("collapse: the + is back above the icon", plus.shown == true and pp[2] == icon and pp[5] == T.GAP, pp and tostring(pp[5]))
   check("collapse: the hit area covers the open column", column.height == T.TilesBottom() + 3 * step - T.GAP, column.height)
   check("collapse: TileFor gives the tile itself once out", T.TileFor(keys[1]) == low, tostring(T.TileFor(keys[1])))
 
@@ -9771,7 +9717,7 @@ run(`
   check("collapse: the top tile goes first", CT.y(top) < T.TilesBottom() + 2 * step and CT.y(low) == T.TilesBottom(),
         CT.y(top) .. "/" .. CT.y(low))
   CT.tick(1)
-  check("collapse: folded away again", low.shown == false and mid.shown == false and top.shown == false and plus.shown == false, "shown")
+  check("collapse: folded away again", low.shown == false and mid.shown == false and top.shown == false, "shown")
   check("collapse: the icon's badge is back", icon.dot.shown == true, tostring(icon.dot.shown))
   check("collapse: progress back to 0", C.progress == 0 and column.height == T.TILE_SIZE, tostring(C.progress))
 
@@ -9841,7 +9787,6 @@ run(`
   T.Refresh()
   check("collapse off: every tile is back in its slot at once", low.shown and mid.shown and top.shown
         and CT.y(low) == T.TilesBottom() and CT.y(top) == T.TilesBottom() + 2 * step and low.alpha == 1, tostring(low.shown))
-  check("collapse off: the + is back", plus.shown == true and plus.points[#plus.points][5] == T.GAP, tostring(plus.shown))
   check("collapse off: the icon carries no badge", icon.dot.shown == false and icon.countPill.shown == false, "badge")
   check("collapse off: TileFor gives the tile", T.TileFor(keys[1]) == low, tostring(T.TileFor(keys[1])))
   check("collapse off: the column is full height", column.height == T.TilesBottom() + 3 * step - T.GAP, column.height)
@@ -9864,7 +9809,7 @@ run(`
   S.Reset()
   COLLAPSE_DB.echoCollapse = "keepnew"
   local column = _G.HorizonSuiteEchoColumn
-  local icon, plus = T._stackButton(), T._plusButton()
+  local icon = T._stackButton()
   S.Add({ convKey = "raid", text = "a", sender = "Lead-Horizon" })
   S.Add({ convKey = "guild", text = "gz", sender = "Guildie-Horizon" })
   S.Add({ convKey = "party", text = "pull", sender = "Tank-Horizon" })
@@ -9883,7 +9828,6 @@ run(`
   check("keepnew: kept tiles pack down from the bottom slot in order",
         CT.y(CT.tile(kept[1])) == T.TilesBottom() and CT.y(CT.tile(kept[2])) == T.TilesBottom() + T.TILE_SIZE + T.GAP,
         tostring(CT.y(CT.tile(kept[1]))) .. "/" .. tostring(CT.y(CT.tile(kept[2]))))
-  check("keepnew: the + is hidden", plus.shown == false, tostring(plus.shown))
   check("keepnew: no badge on the icon when no folded tile has one", icon.dot.shown == false and icon.countPill.shown == false, "badge")
   check("keepnew: the hit area is the icon and the kept tiles",
         column.height == T.TilesBottom() + 2 * (T.TILE_SIZE + T.GAP) - T.GAP, column.height)
@@ -10501,6 +10445,225 @@ run(`
   HorizonSuite.ECHO_DEFAULTS, HorizonSuite.GetDB, InCombatLockdown = saved.defaults, saved.getDB, saved.combat
   S.Reset()
 `, 'card-idle-close');
+
+// --- Echo icon: left-click opens what needs you, right-click holds the rest (plan 14, Task 2)
+{
+  const tiles = read('modules/Echo/EchoTiles.lua');
+  const clicks = /stackButton:RegisterForClicks\("LeftButtonUp", "RightButtonUp"\)/.test(tiles);
+  run(`check("icon: the Echo icon takes left and right clicks", ${clicks}, "one button")`, 'icon-clicks-source');
+  const drag = /stackButton:RegisterForDrag\("LeftButton"\)/.test(tiles);
+  run(`check("icon: and still drags the column", ${drag}, "no drag")`, 'icon-drag-source');
+  const enUS = read('locales/horizon/enUS.lua');
+  const gone = !/L\["ECHO_NEW_CHAT"\]/.test(enUS);
+  run(`check("icon: the + button's tooltip string is gone", ${gone}, "still there")`, 'icon-plus-string');
+}
+run(`
+  local A = HorizonSuite
+  local Echo = A.Echo
+  local S, T, K, C, M, Co, All = Echo.Store, Echo.Tiles, Echo.Stack, Echo.Card, Echo.Menu, Echo.Compose, Echo.All
+  S.Reset()
+  CreateFrame = STUB_CREATE_FRAME
+  local db = {}
+  local saved = { defaults = A.ECHO_DEFAULTS, getDB = A.GetDB, setDB = A.SetDB, menu = MenuUtil, apply = Echo.ApplyOptions,
+                  show = A.ShowOptions, dash = _G.HorizonSuiteDashboard, combat = InCombatLockdown }
+  A.ECHO_DEFAULTS = { echoAnimateCard = false, echoColumnEdge = "right", echoCollapse = "off", echoLockPosition = true,
+                      echoHideBlizzardChat = false, echoAllView = true, echoCardIdleClose = 30 }
+  A.GetDB = function(k, d) if db[k] ~= nil then return db[k] end return d end
+  A.SetDB = function(k, v) db[k] = v end
+  local applied = 0
+  Echo.ApplyOptions = function() applied = applied + 1 end
+  InCombatLockdown = function() return false end
+  local menus = {}
+  MenuUtil = { CreateContextMenu = function(owner, gen) menus[#menus + 1] = { owner = owner, gen = gen } end }
+  T.Enable()
+  K.Enable()
+  C.Enable()
+  All.Enable()
+  local icon = T._stackButton()
+  local stack = K._frames().root
+  local function left() icon.scripts.OnClick(icon, "LeftButton") end
+  local function right() icon.scripts.OnClick(icon, "RightButton") end
+  local function hideToast() local t = T._toast(); if t then t:Hide() end end
+
+  check("icon: Tiles.OpenInbox exists", type(T.OpenInbox) == "function", type(T.OpenInbox))
+  check("icon: Menu.OpenIcon exists", type(M.OpenIcon) == "function", type(M.OpenIcon))
+  check("icon: Store.MarkAllRead exists", type(S.MarkAllRead) == "function", type(S.MarkAllRead))
+  if type(T.OpenInbox) ~= "function" or type(M.OpenIcon) ~= "function" or type(S.MarkAllRead) ~= "function" then return end
+
+  -- The + button is gone and the column starts one step up.
+  check("icon: no + button", T._plusButton == nil and T.PLUS_SIZE == nil and T.PlusAvailable == nil, "still there")
+  check("icon: the tiles start one step up", T.TilesBottom() == T.TILE_SIZE + T.GAP, T.TilesBottom())
+  check("icon: Compose keeps its menu builder, not its own opener", type(Co.Build) == "function" and Co.Open == nil, type(Co.Open))
+
+  -- Nothing unread: the All view.
+  S.Add({ convKey = "guild", text = "gz", sender = "Guildie-Horizon" })
+  S.MarkAllRead()
+  hideToast()
+  left()
+  check("icon: with nothing unread, left-click opens All", C.IsShown() and C.ShownKey() == "all", tostring(C.ShownKey()))
+  check("icon: it no longer opens the stack", not stack:IsShown(), "stack shown")
+  left()
+  check("icon: a second click closes it", not C.IsShown(), "shown")
+
+  -- A count badge beats All; the newest count wins.
+  S.Add({ convKey = "party", text = "pull", sender = "Tank-Horizon" })
+  S.Add({ convKey = "raid", text = "bl", sender = "Lead-Horizon" })
+  hideToast()
+  left()
+  check("icon: with only counts, the newest count opens", C.ShownKey() == "raid", tostring(C.ShownKey()))
+  C.Hide()
+
+  -- A dot beats a count; the newest dot wins.
+  S.Add({ convKey = "w:Brisa-Horizon", text = "hi", sender = "Brisa-Horizon" })
+  S.Add({ convKey = "w:Vexa-Horizon", text = "gz", sender = "Vexa-Horizon" })
+  S.Add({ convKey = "party", text = "go", sender = "Tank-Horizon" })
+  hideToast()
+  left()
+  check("icon: the newest dot opens over a newer count", C.ShownKey() == "w:Vexa-Horizon", tostring(C.ShownKey()))
+  left()
+  check("icon: another that needs you is shown next", C.IsShown() and C.ShownKey() == "w:Brisa-Horizon", tostring(C.ShownKey()))
+  C.Hide()
+  S.MarkAllRead()
+  hideToast()
+  left()
+  check("icon: all read again, All opens", C.ShownKey() == "all", tostring(C.ShownKey()))
+  left()
+  check("icon: and closes on the next click", not C.IsShown(), "shown")
+
+  -- A closed All reopens through the feed path.
+  S.Close("all")
+  check("icon: All closed", not S.Get("all").open, "open")
+  left()
+  check("icon: a closed All reopens", S.Get("all").open == true and S.Get("all").dismissed == nil, tostring(S.Get("all").open))
+  check("icon: and the card shows it", C.ShownKey() == "all", tostring(C.ShownKey()))
+  C.Hide()
+
+  -- All off: the top conversation instead.
+  db.echoAllView = false
+  S.Close("all")
+  left()
+  check("icon: with All switched off, the top conversation opens", C.IsShown() and C.ShownKey() == S.List()[1].key, tostring(C.ShownKey()))
+  C.Hide()
+  db.echoAllView = nil
+
+  -- Right-click: the quick menu.
+  right()
+  check("icon: right-click opens a context menu from the icon", #menus == 1 and menus[1].owner == icon, #menus)
+  check("icon: and never the card", not C.IsShown(), "shown")
+  local function FakeRoot()
+    local r = { items = {} }
+    local function add(e) r.items[#r.items + 1] = e; return e end
+    function r:CreateButton(label, fn) local b = FakeRoot(); b.kind, b.label, b.fn = "button", label, fn; return add(b) end
+    function r:CreateTitle(label) return add({ kind = "title", label = label }) end
+    function r:CreateDivider() return add({ kind = "divider" }) end
+    function r:CreateRadio(label, isSel, setSel, data) return add({ kind = "radio", label = label, isSel = isSel, setSel = setSel, data = data }) end
+    function r:CreateCheckbox(label, isSel, setSel, data) return add({ kind = "checkbox", label = label, isSel = isSel, setSel = setSel, data = data }) end
+    return r
+  end
+  local root = FakeRoot()
+  if menus[1] then menus[1].gen(icon, root) end
+  local L = A.L
+  local want = {
+    { "button", L["ECHO_ICON_START"] }, { "button", L["ECHO_ICON_MARK_READ"] }, { "divider" },
+    { "title", L["ECHO_COLLAPSE"] }, { "radio", L["ECHO_COLLAPSE_OFF"] }, { "radio", L["ECHO_COLLAPSE_ALL"] },
+    { "radio", L["ECHO_COLLAPSE_KEEPNEW"] }, { "checkbox", L["ECHO_HIDE_CHAT"] }, { "checkbox", L["ECHO_LOCK"] },
+    { "divider" }, { "button", L["ECHO_ICON_SETTINGS"] },
+  }
+  local got = {}
+  for _, it in ipairs(root.items) do got[#got + 1] = it.kind .. ":" .. tostring(it.label) end
+  local order = #root.items == #want
+  for i, w in ipairs(want) do
+    local it = root.items[i]
+    if not it or it.kind ~= w[1] or (w[2] and it.label ~= w[2]) then order = false end
+  end
+  check("icon: the menu's entries in order", order, table.concat(got, ", "))
+  local items = root.items
+
+  -- Start a chat…: a submenu Compose.Build fills.
+  local start = items[1]
+  local composeRoot = FakeRoot()
+  Co.Build(composeRoot)
+  local same = start and #start.items == #composeRoot.items and #start.items > 0
+  for i, it in ipairs(composeRoot.items) do
+    if not (start and start.items[i] and start.items[i].label == it.label) then same = false end
+  end
+  check("icon: Start a chat is Compose's menu", same, start and #start.items)
+
+  -- Mark all as read: every unread cleared, one notification.
+  S.Add({ convKey = "w:Brisa-Horizon", text = "again", sender = "Brisa-Horizon" })
+  S.Add({ convKey = "party", text = "go", sender = "Tank-Horizon" })
+  hideToast()
+  local notes = 0
+  local function listen() notes = notes + 1 end
+  S.Subscribe(listen)
+  if items[2] and items[2].fn then items[2].fn() end
+  S.Unsubscribe(listen)
+  local unread = 0
+  for _, conv in ipairs(S.List()) do unread = unread + (conv.unread or 0) end
+  check("icon: Mark all as read clears every unread", unread == 0, unread)
+  check("icon: and notifies once", notes == 1, notes)
+
+  -- The collapse radios.
+  local off, all, keep = items[5], items[6], items[7]
+  if off and all and keep and off.isSel then
+    check("icon: Off is selected by default", off.isSel(off.data) == true and all.isSel(all.data) == false, "wrong")
+    applied = 0
+    keep.setSel(keep.data)
+    check("icon: Keep new messages writes echoCollapse", db.echoCollapse == "keepnew", tostring(db.echoCollapse))
+    check("icon: and applies it live", applied == 1, applied)
+    check("icon: the radios follow the setting", keep.isSel(keep.data) == true and off.isSel(off.data) == false, "wrong")
+    all.setSel(all.data)
+    check("icon: Collapse all writes echoCollapse", db.echoCollapse == "all", tostring(db.echoCollapse))
+    off.setSel(off.data)
+    check("icon: Off writes echoCollapse", db.echoCollapse == "off", tostring(db.echoCollapse))
+  end
+
+  -- The checkboxes.
+  local hide, lock = items[8], items[9]
+  if hide and lock and hide.isSel then
+    check("icon: Hide Blizzard chat reads its setting", hide.isSel(hide.data) == false, "on")
+    applied = 0
+    hide.setSel(hide.data)
+    check("icon: Hide Blizzard chat toggles on", db.echoHideBlizzardChat == true and hide.isSel(hide.data) == true,
+          tostring(db.echoHideBlizzardChat))
+    check("icon: through Echo's options apply (its reload flow)", applied == 1, applied)
+    hide.setSel(hide.data)
+    check("icon: and off again", db.echoHideBlizzardChat == false, tostring(db.echoHideBlizzardChat))
+    check("icon: Lock position reads its setting", lock.isSel(lock.data) == true, "unlocked")
+    lock.setSel(lock.data)
+    check("icon: Lock position toggles", db.echoLockPosition == false and lock.isSel(lock.data) == false, tostring(db.echoLockPosition))
+  end
+
+  -- Echo settings…: the dashboard, on Echo's page.
+  local opened, moduleKey = 0, nil
+  local dashShown = false
+  _G.HorizonSuiteDashboard = { IsShown = function() return dashShown end,
+                               OpenModule = function(name, mk) moduleKey = mk end }
+  A.ShowOptions = function() opened = opened + 1; dashShown = true end
+  if items[11] and items[11].fn then items[11].fn() end
+  check("icon: Echo settings opens the options", opened == 1, opened)
+  check("icon: on Echo's page", moduleKey == "echo", tostring(moduleKey))
+  moduleKey = nil
+  if items[11] and items[11].fn then items[11].fn() end
+  check("icon: an open dashboard isn't toggled shut", opened == 1 and moduleKey == "echo", opened)
+
+  -- A refused menu is reported, never raised.
+  MenuUtil = { CreateContextMenu = function() error("protected") end }
+  local ok, res = pcall(M.OpenIcon, icon)
+  check("icon: a throwing menu reports false", ok and res == false, tostring(ok) .. "/" .. tostring(res))
+  MenuUtil = nil
+  check("icon: no MenuUtil, no menu", M.OpenIcon(icon) == false, "opened")
+
+  C.Hide()
+  All.Disable()
+  C.Disable()
+  K.Disable()
+  T.Disable()
+  A.ECHO_DEFAULTS, A.GetDB, A.SetDB, MenuUtil = saved.defaults, saved.getDB, saved.setDB, saved.menu
+  Echo.ApplyOptions, A.ShowOptions, _G.HorizonSuiteDashboard = saved.apply, saved.show, saved.dash
+  InCombatLockdown = saved.combat
+  S.Reset()
+`, 'echo-icon-clicks');
 
 // --- Redraw: one repaint per frame -------------------------------------------
 run(`

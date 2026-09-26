@@ -1,7 +1,7 @@
 --[[
     Horizon Suite - Echo - Collapse
     Collapse mode (echoCollapse): the column of tiles folds into the Echo icon and slides up
-    on hover. "all" folds every tile and the + button; "keepnew" keeps tiles with a badge out,
+    on hover. "all" folds every tile; "keepnew" keeps tiles with a badge out,
     packed down from the bottom slot. While tiles are folded the icon wears their badge.
     One clock on the column (its OnUpdate, installed by Layout only while collapse is on)
     runs the open and close delays and the slide, so the harness can drive it with elapsed
@@ -83,7 +83,7 @@ local function Blocked()
     return false
 end
 
--- The column frame's own rect: the icon, the tiles and the +. Layout shrinks it to the
+-- The column frame's own rect: the icon and the tiles. Layout shrinks it to the
 -- icon and any kept tiles while folded.
 local function MouseOver()
     local column = Echo.Tiles.Column()
@@ -112,23 +112,12 @@ local function PaintIconBadge(show)
     Echo.Tiles.PaintBadge(icon, badge, sum)
 end
 
-local function PlacePlus(offset, alpha, shown)
-    local Tiles = Echo.Tiles
-    local plus, icon = Tiles._plusButton(), Tiles.StackButton()
-    if not plus or not icon then return end
-    plus:ClearAllPoints()
-    plus:SetPoint("BOTTOM", icon, "TOP", 0, Tiles.GAP + offset)
-    plus:SetAlpha(alpha)
-    plus:SetShown(shown)
-end
-
 -- Put every frame where the clock says: a folded tile slides from the icon (offset 0) to
 -- its slot and fades in; a kept tile moves from its packed slot to its place in the full
--- column. The + rides with the lowest tile. At 0 the folded frames hide.
+-- column. At 0 the folded frames hide.
 local function Place()
     local column = Echo.Tiles.Column()
     if not column then return end
-    local Tiles = Echo.Tiles
     for i, item in ipairs(items) do
         local e = Out(i)
         local f = item.frame
@@ -142,8 +131,6 @@ local function Place()
             f:SetAlpha(1)
         end
     end
-    local e = EaseOut(Clamp(t / Collapse.SLIDE))
-    PlacePlus(-(Tiles.TILE_SIZE + Tiles.GAP) * (1 - e), e, Tiles.PlusAvailable() and e > 0)
     local total = Total()
     Collapse.progress = Clamp(t / total)
     local out = t > 0 or Collapse.expanded
@@ -170,7 +157,7 @@ function Collapse.Fold()
     Place()
 end
 
---- The mouse entered the icon, a tile or the +. It cancels a pending fold; on the icon of a
+--- The mouse entered the icon or a tile. It cancels a pending fold; on the icon of a
 -- folded column it starts the open delay, and on any of them it turns a fold under way back.
 -- @param frame Frame
 function Collapse.Enter(frame)
@@ -184,7 +171,7 @@ function Collapse.Enter(frame)
     end
 end
 
---- The mouse left the icon, a tile or the +. Leaving the icon cancels a pending open; the
+--- The mouse left the icon or a tile. Leaving the icon cancels a pending open; the
 -- fold itself waits on the column's clock, which sees the mouse leave the whole column.
 -- @param frame Frame
 function Collapse.Leave(frame)
@@ -259,7 +246,6 @@ function Collapse.Layout(list, full)
     if column then column:SetScript("OnUpdate", m ~= "off" and Collapse.OnUpdate or nil) end
     if m == "off" then
         for _, item in ipairs(list) do item.frame:SetAlpha(1) end
-        PlacePlus(0, 1, Echo.Tiles.PlusAvailable())
         PaintIconBadge(false)
         Collapse.progress = 1
         return false

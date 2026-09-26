@@ -195,7 +195,8 @@ end
 
 --- Register a view.
 -- @param fn function(convKey, change, record)  change: "toast" | "count" | "quiet" | "silent" |
---   "update" | "closed" | "unrouted" | "reset" | "restored"; convKey is nil for "unrouted", "reset" and "restored".
+--   "update" | "closed" | "unrouted" | "reset" | "restored"; convKey is nil for "unrouted", "reset" and "restored",
+--   and for the one "update" of Store.MarkAllRead.
 --   record is the record just filed, passed only by Store.Add (the All view mirrors it).
 function Store.Subscribe(fn)
     if type(fn) == "function" then listeners[#listeners + 1] = fn end
@@ -415,6 +416,21 @@ function Store.MarkRead(convKey)
     Notify(convKey, "update")
 end
 
+--- Mark every open conversation read (the Echo icon's menu), with one notification for
+-- the lot: an "update" with no conversation.
+-- @return boolean changed  false when nothing was unread
+function Store.MarkAllRead()
+    local changed = false
+    for _, conv in pairs(conversations) do
+        if conv.open and conv.unread > 0 then
+            conv.unread = 0
+            changed = true
+        end
+    end
+    if changed then Notify(nil, "update") end
+    return changed
+end
+
 function Store.SetPinned(convKey, pinned)
     local conv = conversations[convKey]
     if not conv then return end
@@ -523,6 +539,23 @@ end
 function Store.Start(convKey)
     local kind = Store.KindOf(convKey)
     if not kind or Store.FEED_KINDS[kind] then return nil end
+    local conv = GetOrCreate(convKey)
+    conv.open = true
+    conv.dismissed = nil
+    seq = seq + 1
+    conv.startedSeq = seq
+    Notify(convKey, "update")
+    return conv
+end
+
+--- Open a feed from Echo (the Echo icon opening All): create or reopen it, clear its
+-- dismissal, and put it first among unpinned conversations as Store.Start does. Store.Start
+-- itself refuses feeds, which otherwise only reopen for their next line.
+-- @param convKey string  a feed key ("all", "loot", "progress", "system")
+-- @return table|nil conv  nil for anything that isn't a feed
+function Store.OpenFeed(convKey)
+    local kind = Store.KindOf(convKey)
+    if not kind or not Store.FEED_KINDS[kind] then return nil end
     local conv = GetOrCreate(convKey)
     conv.open = true
     conv.dismissed = nil

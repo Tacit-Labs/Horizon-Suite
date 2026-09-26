@@ -1,10 +1,11 @@
 --[[
     Horizon Suite - Echo - Compose
-    The + button's menu: every place you can start a chat right now. Whisper... (a name
-    prompt), online friends, Nearby, guild and officer chat, your group, and your joined
-    channels. Choosing one starts its conversation (Store.Start) and opens the card on it.
-    Blizzard: MenuUtil.CreateContextMenu, StaticPopup_Show, C_FriendList, BNGetNumFriends,
-    C_BattleNet.GetFriendAccountInfo, GetChannelList, IsInGroup, GetAutoCompleteResults.
+    Start a chat… in the Echo icon's menu (Echo.Menu.BuildIcon): every place you can start a
+    chat right now. Whisper... (a name prompt), online friends, Nearby, guild and officer
+    chat, your group, and your joined channels. Choosing one starts its conversation
+    (Store.Start) and opens the card on it.
+    Blizzard: StaticPopup_Show, C_FriendList, BNGetNumFriends, C_BattleNet.GetFriendAccountInfo,
+    GetChannelList, IsInGroup, GetAutoCompleteResults.
 ]]
 
 local addon = _G.HorizonSuite
@@ -232,16 +233,4 @@ function Compose.Build(rootDescription)
     if Send.CanReach("raid") then Entry(rootDescription, L["ECHO_KIND_RAID"], "raid") end
     if Send.CanReach("instance") then Entry(rootDescription, L["ECHO_KIND_INSTANCE"], "instance") end
     Submenu(rootDescription, L["ECHO_COMPOSE_CHANNELS"], Compose.JoinedChannels())
-end
-
---- Open the menu from the + button.
--- @param owner Frame
--- @return boolean opened
-function Compose.Open(owner)
-    if not (Echo.Menu and Echo.Menu.Available()) then return false end
-    -- pcall: a menu opened from a tainted path can be refused; report it, don't raise.
-    local ok = pcall(MenuUtil.CreateContextMenu, owner, function(_, rootDescription)
-        Compose.Build(rootDescription)
-    end)
-    return ok
 end

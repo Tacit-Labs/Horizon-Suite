@@ -1,10 +1,11 @@
 --[[
     Horizon Suite - Echo - Tiles
     The collapsed column: a tile per open conversation or group (Echo.Groups) on a screen
-    edge (top entry highest), a +N overflow tile, the stack button (the drag handle when
-    unlocked), the + button above it that starts a chat (Echo.Compose), the "n in chat"
-    marker for messages Echo could not file, and the preview toast. Collapse mode
-    (EchoCollapse.lua) places the column's frames when it is on.
+    edge (top entry highest), a +N overflow tile, the Echo icon at the foot (the drag handle
+    when unlocked; a left-click opens the card on what needs you, Tiles.OpenInbox, and a
+    right-click opens its quick menu, Echo.Menu.OpenIcon), the "n in chat" marker for
+    messages Echo could not file, and the preview toast. Collapse mode (EchoCollapse.lua)
+    places the column's frames when it is on.
     Blizzard: CreateFrame, FCF_SelectDockFrame. Shared: Augment toast chrome and motion.
 ]]
 
@@ -24,19 +25,12 @@ Tiles.LABEL_MAX = 10  -- a whisper tile's name, shrunk from this size...
 Tiles.LABEL_MIN = 7   -- ...down to this before any letters are dropped
 Tiles.TOAST_WIDTH = 240
 Tiles.TOAST_HEIGHT = 48
-Tiles.PLUS_SIZE = 20  -- the + button that starts a chat, just above the stack button
 
 local STEP = Tiles.TILE_SIZE + Tiles.GAP
--- The + button needs a menu to open; without MenuUtil it stays hidden.
-local function PlusAvailable()
-    return Echo.Menu ~= nil and Echo.Menu.Available()
-end
 
---- Where the lowest tile's bottom edge sits: above the stack button and the + button, or
--- one step up when there is no + button.
+--- Where the lowest tile's bottom edge sits: one step up, above the Echo icon.
 -- @return number
 function Tiles.TilesBottom()
-    if PlusAvailable() then return STEP + Tiles.PLUS_SIZE + Tiles.GAP end
     return STEP
 end
 
@@ -45,9 +39,8 @@ local function SlotY(n)
     return Tiles.TilesBottom() + (n - 1) * STEP
 end
 Tiles.SlotY = SlotY
-Tiles.PlusAvailable = PlusAvailable
 
-local column, stackButton, plusButton, overflowTile, marker, toast
+local column, stackButton, overflowTile, marker, toast
 local tiles = {}
 local pending = {}          -- keys to toast after combat, newest first
 local queue                 -- View toast queue, made on first Enable
@@ -458,8 +451,7 @@ function Tiles.ResetPosition()
     Tiles.ApplyPosition()
 end
 
--- Drag handlers shared by the stack button and the + button: either moves the column when
--- it is unlocked.
+-- The Echo icon's drag handlers: it moves the column when it is unlocked.
 local function DragStart()
     if InCombatLockdown() or Echo.Setting("echoLockPosition") then return end
     column.moving = true
@@ -477,48 +469,6 @@ local function DragStop()
     -- and re-anchors any open stack or card to match (Tiles.ApplyPosition alone
     -- would leave them on the old side).
     Echo.ApplyOptions()
-end
-
--- The + button: a small round button just above the stack button. It is the column's
--- child, so it follows its edge, scale and strata; it drags the column like the stack
--- button does, and a click opens the menu of places to talk.
-local function CreatePlusButton()
-    local View = Echo.View
-    local b = CreateFrame("Button", nil, column)
-    b:SetSize(Tiles.PLUS_SIZE, Tiles.PLUS_SIZE)
-    b:SetPoint("BOTTOM", stackButton, "TOP", 0, Tiles.GAP)
-    Echo.Round.Apply(b, { radius = Echo.Round.SMALL, border = true })
-    local a = View.ACCENT
-    PaintGlyphFrame(b, a.r, a.g, a.b)
-    b.glyph = Echo.NewText(b, 14, "")
-    b.glyph:SetPoint("CENTER", b, "CENTER", 0, 0)
-    b.glyph:SetText("+")
-    b.glyph:SetTextColor(0.85, 0.87, 0.95, 1)
-    b:RegisterForClicks("LeftButtonUp")
-    b:RegisterForDrag("LeftButton")
-    b:SetScript("OnClick", function(self)
-        if GameTooltip and type(GameTooltip.Hide) == "function" then GameTooltip:Hide() end
-        if Echo.Compose then Echo.Compose.Open(self) end
-    end)
-    b:SetScript("OnDragStart", DragStart)
-    b:SetScript("OnDragStop", DragStop)
-    b:SetScript("OnEnter", function(self)
-        if Echo.Collapse then Echo.Collapse.Enter(self) end
-        b.glyph:SetTextColor(1, 1, 1, 1)
-        if GameTooltip and type(GameTooltip.SetOwner) == "function" then
-            -- Open away from the screen edge, like the stack and card.
-            local edge = Echo.View.PanelEdge(200)
-            GameTooltip:SetOwner(self, edge == "left" and "ANCHOR_RIGHT" or "ANCHOR_LEFT")
-            GameTooltip:SetText(L["ECHO_NEW_CHAT"])
-            GameTooltip:Show()
-        end
-    end)
-    b:SetScript("OnLeave", function(self)
-        b.glyph:SetTextColor(0.85, 0.87, 0.95, 1)
-        if GameTooltip and type(GameTooltip.Hide) == "function" then GameTooltip:Hide() end
-        if Echo.Collapse then Echo.Collapse.Leave(self) end
-    end)
-    return b
 end
 
 local function CreateColumn()
@@ -549,10 +499,14 @@ local function CreateColumn()
     highlight:SetAlpha(0.25)
     highlight:Hide()
     stackButton.highlight = highlight
-    stackButton:RegisterForClicks("LeftButtonUp")
+    stackButton:RegisterForClicks("LeftButtonUp", "RightButtonUp")
     stackButton:RegisterForDrag("LeftButton")
-    stackButton:SetScript("OnClick", function()
-        if Echo.Stack then Echo.Stack.Toggle() end
+    stackButton:SetScript("OnClick", function(self, button)
+        if button == "RightButton" then
+            if Echo.Menu then Echo.Menu.OpenIcon(self) end
+        else
+            Tiles.OpenInbox()
+        end
     end)
     stackButton:SetScript("OnDragStart", DragStart)
     stackButton:SetScript("OnDragStop", DragStop)
@@ -567,7 +521,6 @@ local function CreateColumn()
     -- Collapse mode's badge for the tiles folded into the icon.
     Tiles.AddBadges(stackButton)
 
-    plusButton = CreatePlusButton()
     -- Collapse mode's clock (the column's OnUpdate) is installed by Collapse.Layout, and
     -- only while collapse is on.
 
@@ -664,7 +617,6 @@ function Tiles.Refresh()
     local fullHeight = SlotY(#items + 1) - Tiles.GAP
     -- Collapse mode places the frames itself; off, they sit in their slots as always.
     if not (Echo.Collapse and Echo.Collapse.Layout(items, fullHeight)) then
-        plusButton:SetShown(PlusAvailable())
         for _, item in ipairs(items) do
             item.frame:ClearAllPoints()
             item.frame:SetPoint("BOTTOM", column, "BOTTOM", 0, item.y)
@@ -698,6 +650,60 @@ function Tiles.TileFor(convKey)
     local index = Echo.Groups and Echo.Groups.Of(convKey)
     if index then return ShownTile(Echo.Groups.Key(index)) end
     return nil
+end
+
+-- The open conversation that needs you most: the newest loud one with a dot, else the one
+-- with a count whose last message is newest. Nil when nothing is unread.
+local function NeedsYou()
+    local View = Echo.View
+    local dot, dotAt, count, countAt
+    for _, conv in ipairs(Echo.Store.List()) do
+        local badge = View.Badge(conv)
+        if badge == "dot" then
+            local at = conv.lastLoud or 0
+            if not dot or at > dotAt then dot, dotAt = conv, at end
+        elseif badge == "count" then
+            local last = conv.messages[#conv.messages]
+            local at = last and last.seq or 0
+            if not count or at > countAt then count, countAt = conv, at end
+        end
+    end
+    local conv = dot or count
+    return conv and conv.key or nil
+end
+
+-- With nothing unread: the All view, reopened through the feed path when its tile is
+-- closed; with All switched off, the top conversation. Nil when there is nothing to show.
+local function InboxFallback()
+    local Store = Echo.Store
+    local key = Echo.All and Echo.All.KEY or "all"
+    local conv = Store.Get(key)
+    if conv and conv.open then return key end
+    if Echo.All and Echo.All.Collecting() and Store.OpenFeed(key) then
+        -- Store's repaint waits for the next frame; the card grows from the tile now.
+        Tiles.Refresh()
+        return key
+    end
+    local top = Store.List()[1]
+    return top and top.key or nil
+end
+
+--- The Echo icon's left-click: open the card on what needs you (NeedsYou), else All. A
+-- click while the card is open with nothing new, or already showing what needs you,
+-- closes it as a tile click would.
+function Tiles.OpenInbox()
+    local Card = Echo.Card
+    if not Card then return end
+    local key = NeedsYou()
+    if Card.IsShown() then
+        local shown = Card.ShownKey()
+        if shown and (key == nil or key == shown) then
+            Card.Toggle(shown, Tiles.TileFor(shown))
+            return
+        end
+    end
+    key = key or InboxFallback()
+    if key then Card.Show(key, Tiles.TileFor(key)) end
 end
 
 local function ToastUpdate(self, elapsed)
@@ -921,7 +927,6 @@ function Tiles._paintToastFace(f, entry, spec) PaintToastFace(f, entry, spec) en
 function Tiles._overflow() return overflowTile end
 function Tiles._marker() return marker end
 function Tiles._stackButton() return stackButton end
-function Tiles._plusButton() return plusButton end
 function Tiles._tiles() return tiles end
 function Tiles._savePosition() SavePosition() end
 function Tiles._newTile() return CreateTile() end

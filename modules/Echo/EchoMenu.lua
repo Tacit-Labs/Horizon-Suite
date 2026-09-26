@@ -4,9 +4,11 @@
     from View.MenuSpec; this file turns them into Blizzard's context menu and runs the choice.
     Also the right-click menu on one message: pin or unpin it, or say why it can't be pinned,
     and whisper or invite the player who wrote it. Menu.IsOpen tells the card's idle close
-    whether either is still open.
+    whether either is still open. And the Echo icon's right-click menu (Menu.OpenIcon):
+    start a chat, mark all read, the collapse mode, hide Blizzard chat, lock, and settings.
     Blizzard: MenuUtil.CreateContextMenu, C_PartyInfo.InviteUnit (or InviteUnit), IsInGroup,
-    UnitIsGroupLeader, UnitIsGroupAssistant.
+    UnitIsGroupLeader, UnitIsGroupAssistant. Horizon: addon.SetDB, addon.ShowOptions and the
+    dashboard's OpenModule.
 ]]
 
 local addon = _G.HorizonSuite
@@ -227,5 +229,79 @@ function Menu.OpenMessage(owner, convKey, record)
         Menu.BuildMessage(rootDescription, convKey, record)
     end)
     Opened(ok, menu)
+    return ok
+end
+
+-- The Echo icon's menu (Menu.OpenIcon) ------------------------------------------------------
+
+-- The collapse choices, in the options page's order.
+local COLLAPSE_CHOICES = {
+    { "ECHO_COLLAPSE_OFF", "off" },
+    { "ECHO_COLLAPSE_ALL", "all" },
+    { "ECHO_COLLAPSE_KEEPNEW", "keepnew" },
+}
+
+-- Write a setting and push it into the running module, as the options page does (hiding
+-- Blizzard's chat then follows its own reload flow in HideChat.Refresh).
+local function SetSetting(key, value)
+    if type(addon.SetDB) == "function" then addon.SetDB(key, value) end
+    if Echo.ApplyOptions then Echo.ApplyOptions() end
+end
+
+-- A checkbox bound to a boolean setting.
+local function Checkbox(rootDescription, label, key)
+    local function IsOn() return Echo.Setting(key) == true end
+    rootDescription:CreateCheckbox(label, IsOn, function() SetSetting(key, not IsOn()) end)
+end
+
+--- Open the options on Echo's page: the dashboard's own module opener, after showing the
+-- dashboard if it is shut (ShowOptions toggles, so it isn't called on an open one).
+-- @return boolean opened
+function Menu.OpenSettings()
+    local dash = _G.HorizonSuiteDashboard
+    local shown = dash and type(dash.IsShown) == "function" and dash:IsShown()
+    if not shown then
+        local show = addon.ShowOptions or _G.HorizonSuite_ShowOptions
+        if type(show) ~= "function" then return false end
+        pcall(show)
+        dash = _G.HorizonSuiteDashboard
+    end
+    if dash and type(dash.OpenModule) == "function" then
+        pcall(dash.OpenModule, addon.L["NAME_ADDON_CHAT"], "echo")
+    end
+    return true
+end
+
+--- Fill a MenuUtil root description for the Echo icon: Start a chat… (Echo.Compose's menu
+-- as a submenu), Mark all as read, the collapse mode, Hide Blizzard chat, Lock position,
+-- and Echo settings….
+-- @param rootDescription table
+function Menu.BuildIcon(rootDescription)
+    local L = addon.L
+    local start = rootDescription:CreateButton(L["ECHO_ICON_START"])
+    if start and Echo.Compose then Echo.Compose.Build(start) end
+    rootDescription:CreateButton(L["ECHO_ICON_MARK_READ"], function() Echo.Store.MarkAllRead() end)
+    rootDescription:CreateDivider()
+    rootDescription:CreateTitle(L["ECHO_COLLAPSE"])
+    for _, choice in ipairs(COLLAPSE_CHOICES) do
+        local value = choice[2]
+        rootDescription:CreateRadio(L[choice[1]],
+            function() return Echo.Collapse ~= nil and Echo.Collapse.Mode() == value end,
+            function() SetSetting("echoCollapse", value) end)
+    end
+    Checkbox(rootDescription, L["ECHO_HIDE_CHAT"], "echoHideBlizzardChat")
+    Checkbox(rootDescription, L["ECHO_LOCK"], "echoLockPosition")
+    rootDescription:CreateDivider()
+    rootDescription:CreateButton(L["ECHO_ICON_SETTINGS"], function() Menu.OpenSettings() end)
+end
+
+--- Open the Echo icon's menu (its right-click).
+-- @param owner Frame  the Echo icon
+-- @return boolean opened
+function Menu.OpenIcon(owner)
+    if not Menu.Available() then return false end
+    local ok = pcall(MenuUtil.CreateContextMenu, owner, function(_, rootDescription)
+        Menu.BuildIcon(rootDescription)
+    end)
     return ok
 end

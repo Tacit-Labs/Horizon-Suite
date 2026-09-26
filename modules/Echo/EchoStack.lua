@@ -2,8 +2,9 @@
     Horizon Suite - Echo - Stack
     The peek stack beside the tile column: open conversations as cards, the chosen one on
     top showing its last few messages and a quick-reply box, the next ones peeking out
-    behind it. The mouse wheel flips cards. Opens on hover, from the stack button, a tile,
-    a toast or a keybind; closes when the mouse leaves unless the reply box has focus.
+    behind it. The mouse wheel flips cards. Opens on hover (a tile, or the Echo icon while
+    collapse is off), a tile, a toast or a keybind; closes when the mouse leaves unless the
+    reply box has focus. Clicking the Echo icon no longer opens it (Tiles.OpenInbox).
     Blizzard: CreateFrame, C_Timer, UISpecialFrames, UIPanelCloseButton.
 ]]
 
