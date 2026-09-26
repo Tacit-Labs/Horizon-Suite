@@ -40,7 +40,8 @@ Echo.Input = Input
 
 Input.FONT_SIZE = 12  -- for a FontString whose own size can't be read
 Input.HEADER_SIZE = 10  -- the header's font size, as the card's mode chip label
-Input.CHIP_PAD = 8      -- the chip reaches this far past the header on each side
+Input.CHIP_PAD = 8      -- the chip reaches this far before the header
+Input.CHIP_PAD_RIGHT = 2  -- and only this far after it: Blizzard starts the typed text right after the header
 Input.CHIP_HEIGHT = 22
 Input.CHIP_WIDTH = 48   -- for a header whose width is secret or unreadable
 Input.CHIP_ALPHA = 0.22
@@ -199,7 +200,7 @@ function Input.PaintChip()
         return
     end
     local w = HeaderWidth(header)
-    local width = w and (w + 2 * Input.CHIP_PAD) or Input.CHIP_WIDTH
+    local width = w and (w + Input.CHIP_PAD + Input.CHIP_PAD_RIGHT) or Input.CHIP_WIDTH
     chip:ClearAllPoints()
     chip:SetPoint("LEFT", header, "LEFT", -Input.CHIP_PAD, 0)
     chip:SetSize(width, Input.CHIP_HEIGHT)

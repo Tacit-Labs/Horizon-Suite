@@ -8534,7 +8534,7 @@ run(`
   box.attrs = { chatType = "GUILD" }
   fire("UpdateHeader", box)
   check("look: the chip is rounded with the SMALL radius", chipRR ~= nil and chipRR.corners.tl == Echo.Round.SMALL, "?")
-  check("look: the chip is the header's width plus 8 each side, 22 high", chip and chip.width == 46 and chip.height == 22,
+  check("look: the chip is the header's width plus 8 before and 2 after, 22 high", chip and chip.width == 40 and chip.height == 22,
     chip and (tostring(chip.width) .. "x" .. tostring(chip.height)))
   local cp = chip and chip.points[1]
   check("look: the chip sits behind the header", cp and cp[1] == "LEFT" and cp[2] == header and cp[3] == "LEFT" and cp[4] == -8, cp and tostring(cp[2]))
@@ -8544,7 +8544,7 @@ run(`
     cfill and table.concat(cfill, ","))
   header.width = 50
   fire("UpdateHeader", box)
-  check("look: the chip follows the header's width", chip.width == 66, chip.width)
+  check("look: the chip follows the header's width", chip.width == 60, chip.width)
   header.width = SECRET(50)
   fire("UpdateHeader", box)
   check("look: a secret width gives a 48px chip", chip.width == 48, chip.width)
