@@ -6949,7 +6949,9 @@ run(`
     check("shortcut: " .. t .. " is a command", r and r.blocked == "command", r and (r.blocked or r.convKey))
   end
   check("shortcut: a plain message is nil", P("hello there", "party") == nil, "parsed")
-  check("shortcut: a leading space then / is nil", P(" /dance", "party") == nil, "parsed")
+  local lead = P(" /dance", "party")
+  check("shortcut: a leading space then / is still a command", lead and lead.blocked == "command", lead and (lead.blocked or lead.convKey))
+  sends("  /g hi", "guild", "hi")
   check("shortcut: an empty text is nil", P("", "party") == nil, "parsed")
   check("shortcut: a secret text is nil", P(SECRET("/dance"), "party") == nil, "parsed")
 
@@ -7033,7 +7035,7 @@ run(`
   C.Open("w:Brisa-Horizon")
 
   -- A blocked command keeps its text and never reaches Send.Send.
-  for _, t in ipairs({ "/cast Fireball", "/dance", "/foo" }) do
+  for _, t in ipairs({ "/cast Fireball", "/dance", "/foo", " /dance" }) do
     calls, wire = {}, {}
     f.hint:Hide()
     f.edit:SetText(t)
@@ -7182,6 +7184,71 @@ run(`
   A.ECHO_DEFAULTS, A.ECHO_KEYS, A.ECHO_LIMITS = nil, nil, nil
   S.Reset()
 `, 'shortcut-group');
+
+
+// --- Chat shortcuts fix round 1 ---------------------------------------------------
+{
+  const enUS = read('locales/horizon/enUS.lua');
+  const ok = enUS.includes(`L["ECHO_SHORTCUT_COMMAND"]                                    = "Echo can't run commands yet. Use Blizzard's chat for this."`);
+  run(`check("shortcut fix: the command notice makes no promise", ${ok}, "old wording")`, 'shortcut-fix-string');
+}
+run(`
+  local Echo = HorizonSuite.Echo
+  local S, Send, V, Gr = Echo.Store, Echo.Send, Echo.View, Echo.Groups
+  S.Reset()
+  local saved = { IsInGuild = IsInGuild, C_GuildInfo = C_GuildInfo, CreateFrame = CreateFrame }
+  local P = Send.ParseShortcut
+
+  -- Name case: an existing whisper wins, case-insensitively; else the first letter is capitalised.
+  S.Add({ convKey = "w:Brisa-Horizon", text = "hi", sender = "Brisa-Horizon" })
+  S.Close("w:Brisa-Horizon")
+  local r = P("/w brisa hi", "party")
+  check("shortcut fix: /w finds an existing whisper whatever the case", r and r.convKey == "w:Brisa-Horizon", r and r.convKey)
+  r = P("/w BRISA-horizon hi", "party")
+  check("shortcut fix: the realm matches whatever the case too", r and r.convKey == "w:Brisa-Horizon", r and r.convKey)
+  r = P("/w vexa hi", "party")
+  check("shortcut fix: a new name gets a capital first letter", r and r.convKey == "w:Vexa-Horizon", r and r.convKey)
+  r = P("/w vexa-argent hi", "party")
+  check("shortcut fix: with its realm kept as typed", r and r.convKey == "w:Vexa-argent", r and r.convKey)
+  r = P("/w éowyn hi", "party")
+  check("shortcut fix: a non-ASCII first letter is left as typed", r and r.convKey == "w:éowyn-Horizon", r and r.convKey)
+  S.Add({ convKey = "bn:7", text = "hi", sender = "Friend" })
+  r = P("/w bn:7 hi", "party")
+  check("shortcut fix: a Battle.net conversation is never matched", r and r.convKey == "w:Bn:7-Horizon", r and r.convKey)
+  S.Reset()
+
+  -- Officer chat asks the client whether you may speak there.
+  IsInGuild = function() return true end
+  C_GuildInfo = { CanSpeakInOfficerChat = function() return false end }
+  check("shortcut fix: /o needs officer rights", Send.CanReach("officer") == false, "reachable")
+  r = P("/o hi", "party")
+  check("shortcut fix: /o without them goes nowhere", r and r.blocked == "nowhere", r and (r.blocked or r.convKey))
+  check("shortcut fix: /g still only needs a guild", Send.CanReach("guild") == true, "unreachable")
+  C_GuildInfo.CanSpeakInOfficerChat = function() return true end
+  r = P("/o hi", "party")
+  check("shortcut fix: /o with them goes to officer", r and r.convKey == "officer", r and (r.blocked or r.convKey))
+  C_GuildInfo.CanSpeakInOfficerChat = function() error("boom") end
+  check("shortcut fix: a throwing check is unreachable", Send.CanReach("officer") == false, "reachable")
+  C_GuildInfo = {}
+  check("shortcut fix: without the check, a guild is enough", Send.CanReach("officer") == true, "unreachable")
+  IsInGuild = function() return false end
+  check("shortcut fix: and no guild is not", Send.CanReach("officer") == false, "reachable")
+
+  -- Ordering: a started conversation is listed first, but it is not a loud one.
+  S.SetTier("guild", "loud")
+  S.Add({ convKey = "guild", text = "loud", sender = "Thorn-Horizon" })
+  local conv = S.Start("w:Brisa-Horizon")
+  check("shortcut fix: a started conversation is first", S.List()[1] == conv, S.List()[1].key)
+  check("shortcut fix: it carries startedSeq", (conv.startedSeq or 0) > 0 and conv.lastLoud == 0, conv.lastLoud)
+  check("shortcut fix: NewestLoud doesn't pick it", V.NewestLoud(S.List()).key == "guild", V.NewestLoud(S.List()).key)
+  S.Add({ convKey = "guild", text = "louder", sender = "Thorn-Horizon" })
+  check("shortcut fix: a later loud line goes above it", S.List()[1].key == "guild", S.List()[1].key)
+  S.Start("w:Brisa-Horizon")
+  check("shortcut fix: starting again puts it back on top", S.List()[1].key == "w:Brisa-Horizon", S.List()[1].key)
+
+  IsInGuild, C_GuildInfo, CreateFrame = saved.IsInGuild, saved.C_GuildInfo, saved.CreateFrame
+  S.Reset()
+`, 'shortcut-fix-1');
 
 // --- Redraw: one repaint per frame -------------------------------------------
 run(`

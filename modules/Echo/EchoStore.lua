@@ -365,7 +365,8 @@ function Store.Get(convKey)
     return conversations[convKey]
 end
 
---- Open conversations: pinned first, then most recent loud message, then conversations
+--- Open conversations: pinned first, then most recent loud message or start (Store.Start),
+-- then conversations
 -- restored from the last session in their saved order, then newest created.
 -- Count and quiet messages never change the order.
 -- @return table conversations
@@ -376,7 +377,8 @@ function Store.List()
     end
     table.sort(out, function(a, b)
         if a.pinned ~= b.pinned then return a.pinned end
-        if a.lastLoud ~= b.lastLoud then return a.lastLoud > b.lastLoud end
+        local ta, tb = math.max(a.lastLoud, a.startedSeq or 0), math.max(b.lastLoud, b.startedSeq or 0)
+        if ta ~= tb then return ta > tb end
         local ra, rb = a.restoreRank, b.restoreRank
         if (ra ~= nil) ~= (rb ~= nil) then return ra ~= nil end
         if ra and ra ~= rb then return ra < rb end
@@ -489,8 +491,9 @@ end
 
 --- Start a conversation from Echo (a shortcut, or the + menu): create or reopen it with no
 -- message, clear a feed-style dismissal, and put it first among unpinned conversations.
--- It moves up the way a loud message does (lastLoud), so pins stay above it and the next
--- loud message goes above it in turn.
+-- List ranks startedSeq beside lastLoud, so pins stay above it and the next loud message
+-- goes above it in turn; lastLoud itself is untouched, so it never counts as a loud one
+-- (View.NewestLoud, Groups.Newest).
 -- @param convKey string
 -- @return table|nil conv  nil for an invalid key or a feed
 function Store.Start(convKey)
@@ -500,9 +503,23 @@ function Store.Start(convKey)
     conv.open = true
     conv.dismissed = nil
     seq = seq + 1
-    conv.lastLoud = seq
+    conv.startedSeq = seq
     Notify(convKey, "update")
     return conv
+end
+
+--- The existing whisper conversation whose key matches this one ignoring case, else nil.
+-- Only whisper keys are compared, never Battle.net ones.
+-- @param convKey string  a "w:Name-Realm" key
+-- @return string|nil convKey
+function Store.WhisperKeyLike(convKey)
+    if Store.KindOf(convKey) ~= "whisper" then return nil end
+    if conversations[convKey] then return convKey end
+    local want = convKey:lower()
+    for key, conv in pairs(conversations) do
+        if conv.kind == "whisper" and key:lower() == want then return key end
+    end
+    return nil
 end
 
 --- The whisper or Battle.net conversation with the newest incoming message, open or

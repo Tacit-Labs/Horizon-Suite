@@ -231,6 +231,8 @@ end
 
 --- Whether the player can reach a group conversation now. Tests replace it; each check
 -- reads the client when it has the function and counts a missing one as reachable.
+-- Officer chat asks C_GuildInfo.CanSpeakInOfficerChat where the client has it, else only
+-- whether you are in a guild.
 -- @param kind string  "party" | "raid" | "instance" | "guild" | "officer"
 -- @return boolean
 function Send.CanReach(kind)
@@ -243,7 +245,12 @@ function Send.CanReach(kind)
     if kind == "party" then return ask(IsInGroup) end
     if kind == "raid" then return ask(IsInRaid) end
     if kind == "instance" then return ask(IsInGroup, LE_PARTY_CATEGORY_INSTANCE) end
-    if kind == "guild" or kind == "officer" then return ask(IsInGuild) end
+    if kind == "officer" then
+        local canSpeak = C_GuildInfo and C_GuildInfo.CanSpeakInOfficerChat
+        if type(canSpeak) == "function" then return ask(canSpeak) end
+        return ask(IsInGuild)
+    end
+    if kind == "guild" then return ask(IsInGuild) end
     return true
 end
 
@@ -265,15 +272,18 @@ local function Result(key, rest, mode)
     return { convKey = key, text = rest, mode = mode }
 end
 
---- Read a chat shortcut at the start of a reply box's text. Text that doesn't start with
--- "/" is not a shortcut; any other slash command is blocked, never sent as chat.
+--- Read a chat shortcut at the start of a reply box's text. Leading spaces are skipped, so
+-- " /dance" is still a command. Text that doesn't start with "/" is not a shortcut; any
+-- other slash command is blocked, never sent as chat.
 -- @param text string
 -- @param currentKey string|nil  the conversation the box belongs to (unused for now)
 -- @return table|nil result  nil: send as typed. { convKey, text, mode|nil }: send text
 --   there. { blocked = "command" }, { blocked = "empty", convKey, mode|nil } or
 --   { blocked = "nowhere" }.
 function Send.ParseShortcut(text, currentKey)
-    if Echo.IsSecret(text) or type(text) ~= "string" or text:sub(1, 1) ~= "/" then return nil end
+    if Echo.IsSecret(text) or type(text) ~= "string" then return nil end
+    text = text:gsub("^%s+", "")
+    if text:sub(1, 1) ~= "/" then return nil end
     local word, rest = text:match("^/(%S*)%s*(.*)$")
     word = (word or ""):lower()
     rest = rest or ""
@@ -301,8 +311,16 @@ function Send.ParseShortcut(text, currentKey)
     -- |K name, a link) is never parsed.
     local name, message = rest:match("^(%S+)%s*(.*)$")
     if not name or name:find("|", 1, true) then return { blocked = "nowhere" } end
+    -- An existing whisper wins whatever the case typed; a new name gets a capital first
+    -- letter when it is ASCII a-z, and is otherwise left as typed.
     local full = Echo.Events.NormaliseName(name)
-    local key = full and Store.KeyFor("whisper", full)
-    if not key then return { blocked = "nowhere" } end
+    local typed = full and Store.KeyFor("whisper", full)
+    if not typed then return { blocked = "nowhere" } end
+    local key = Store.WhisperKeyLike(typed)
+    if not key then
+        local first = full:sub(1, 1)
+        if first:match("^[a-z]$") then full = first:upper() .. full:sub(2) end
+        key = Store.KeyFor("whisper", full)
+    end
     return Result(key, message or "")
 end
