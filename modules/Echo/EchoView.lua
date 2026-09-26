@@ -75,6 +75,22 @@ View.CHANNEL_SHORT = {
     ["Trade(Services)"] = "Serv",
 }
 
+-- Channel key (spaces stripped, as above) -> its icon file. A channel without an entry here
+-- keeps today's glyph face instead.
+View.CHANNEL_ICONS = {
+    General = "Interface\\Icons\\Ability_Warrior_RallyingCry",
+    Trade = "Interface\\Icons\\INV_Misc_Coin_01",
+    Services = "Interface\\Icons\\Trade_BlackSmithing",
+    ["Trade(Services)"] = "Interface\\Icons\\Trade_BlackSmithing",
+    LocalDefense = "Interface\\Icons\\INV_Shield_06",
+    LookingForGroup = "Interface\\Icons\\INV_Misc_GroupNeedMore",
+    WorldDefense = "Interface\\Icons\\Ability_Warrior_DefensiveStance",
+    NewcomerChat = "Interface\\Icons\\INV_Misc_Book_09",
+}
+
+-- The icon a group tile shows (Task 3).
+View.GROUP_ICON = "Interface\\Icons\\Spell_Holy_PrayerOfSpirit"
+
 -- ChatTypeInfo keys, so each kind uses Blizzard's own chat colour.
 View.CHAT_TYPE = {
     whisper = "WHISPER", bnet = "BN_WHISPER", party = "PARTY", raid = "RAID",
@@ -265,6 +281,7 @@ function View.TileSpec(conv)
         spec.face = "icon"
         spec.icon = View.FEED_ICONS[kind]
         spec.glyph = true
+        spec.label = L["ECHO_FEED_SHORT_" .. kind:upper()]
         spec.r, spec.g, spec.b = View.ChatColor(kind)
     elseif kind == "whisper" then
         local name = key:sub(3)
@@ -304,10 +321,19 @@ function View.TileSpec(conv)
             spec.r, spec.g, spec.b = View.BNET.r, View.BNET.g, View.BNET.b
         end
     elseif kind == "channel" then
-        spec.face = "glyph"
-        spec.glyph = true
         local name = key:sub(4)
-        spec.letter = View.CHANNEL_SHORT[(name:gsub(" ", ""))] or View.ShortName(name, 4)
+        local shortKey = (name:gsub(" ", ""))
+        local short = View.CHANNEL_SHORT[shortKey] or View.ShortName(name, 4)
+        local icon = View.CHANNEL_ICONS[shortKey]
+        spec.glyph = true
+        if icon then
+            spec.face = "icon"
+            spec.icon = icon
+            spec.label = short
+        else
+            spec.face = "glyph"
+            spec.letter = short
+        end
         spec.r, spec.g, spec.b = View.ChatColor(kind)
     else
         spec.face = "glyph"

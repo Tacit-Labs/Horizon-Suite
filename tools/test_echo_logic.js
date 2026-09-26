@@ -933,7 +933,7 @@ run(`
   S.Add({ convKey = "guild", text = "gz" })
   check("a quiet tile shows no badge", V.TileSpec(S.Get("guild")).badge == nil, V.TileSpec(S.Get("guild")).badge)
   S.Add({ convKey = "ch:Trade", text = "wts" })
-  check("a channel tile uses its short name", V.TileSpec(S.Get("ch:Trade")).letter == "Trade", V.TileSpec(S.Get("ch:Trade")).letter)
+  check("a channel tile with an icon shows its short name as a label", V.TileSpec(S.Get("ch:Trade")).label == "Trade", V.TileSpec(S.Get("ch:Trade")).label)
   check("a channel's name is its key name", V.DisplayName(S.Get("ch:Trade")) == "Trade", V.DisplayName(S.Get("ch:Trade")))
   S.SetTier("w:Brisa-Horizon", "muted")
   check("a muted conversation shows no badge", V.TileSpec(brisa).badge == nil, V.TileSpec(brisa).badge)
@@ -3129,6 +3129,7 @@ run(`
   S.Add({ convKey = "loot", text = "You receive loot: [Cloak].", feed = true, chatType = "LOOT" })
   local spec = V.TileSpec(S.Get("loot"))
   check("a feed tile shows an icon, not a letter", spec.glyph == true and spec.icon == V.FEED_ICONS.loot and spec.letter == "", tostring(spec.icon))
+  check("a feed tile carries its short label", spec.label == HorizonSuite.L["ECHO_FEED_SHORT_LOOT"], tostring(spec.label))
   check("a quiet feed shows no badge", spec.badge == nil, spec.badge)
   check("a feed is named by its kind", V.DisplayName(S.Get("loot")) == "ECHO_KIND_LOOT", V.DisplayName(S.Get("loot")))
   check("each feed has its own icon", V.FEED_ICONS.loot ~= V.FEED_ICONS.progress and V.FEED_ICONS.progress ~= V.FEED_ICONS.system, "?")
@@ -4020,21 +4021,25 @@ run(`
 
   S.Add({ convKey = "ch:General", text = "lfg" })
   local genSpec = V.TileSpec(S.Get("ch:General"))
-  check("channel General is Gen", genSpec.letter == "Gen" and genSpec.small == true, genSpec.letter)
+  check("channel General is an icon face", genSpec.face == "icon" and genSpec.icon == V.CHANNEL_ICONS.General, genSpec.face)
+  check("channel General labels Gen", genSpec.label == "Gen", genSpec.label)
   S.Add({ convKey = "ch:Guild", text = "hi" })
   local chGuildSpec = V.TileSpec(S.Get("ch:Guild"))
-  check("a channel named Guild isn't the guild kind", chGuildSpec.letter == "Guil" and chGuildSpec.small == true, chGuildSpec.letter)
+  check("a channel named Guild isn't the guild kind", chGuildSpec.face == "glyph" and chGuildSpec.letter == "Guil" and chGuildSpec.small == true, chGuildSpec.letter)
   S.Add({ convKey = "guild", text = "gz" })
   local guildSpec = V.TileSpec(S.Get("guild"))
   check("the guild kind is its glyph", guildSpec.letter == "G" and not guildSpec.small, guildSpec.letter)
   S.Add({ convKey = "ch:Trade", text = "wts" })
   local tradeSpec = V.TileSpec(S.Get("ch:Trade"))
-  check("channel Trade is Trade", tradeSpec.letter == "Trade" and tradeSpec.small == true, tradeSpec.letter)
+  check("channel Trade is an icon face", tradeSpec.face == "icon" and tradeSpec.icon == V.CHANNEL_ICONS.Trade, tradeSpec.face)
+  check("channel Trade labels Trade", tradeSpec.label == "Trade", tradeSpec.label)
   S.Add({ convKey = "ch:Local Defense", text = "inc" })
   local defSpec = V.TileSpec(S.Get("ch:Local Defense"))
-  check("channel Local Defense is Def", defSpec.letter == "Def" and defSpec.small == true, defSpec.letter)
+  check("channel Local Defense is an icon face", defSpec.face == "icon" and defSpec.icon == V.CHANNEL_ICONS.LocalDefense, defSpec.face)
+  check("channel Local Defense labels Def", defSpec.label == "Def", defSpec.label)
   S.Add({ convKey = "ch:MyCustom", text = "hi" })
   local customSpec = V.TileSpec(S.Get("ch:MyCustom"))
+  check("an unlisted channel stays a glyph", customSpec.face == "glyph", customSpec.face)
   check("an unlisted channel is capped at 4", customSpec.letter == "MyCu" and customSpec.small == true, customSpec.letter)
 
   S.Add({ convKey = "w:Brisa-Horizon", text = "hi", class = "DRUID", sender = "Brisa-Horizon" })
@@ -4044,8 +4049,9 @@ run(`
   check("a resolved class gives a class face", classSpec.face == "class", classSpec.face)
   check("the class face carries the icon", classSpec.classIcon and classSpec.classIcon.path == "X", "?")
   check("a whisper's label is its name", classSpec.label == "Brisa", classSpec.label)
-  check("the Services channel reads Serv", V.TileSpec({ key = "ch:Trade (Services)", kind = "channel", unread = 0, messages = {} }).letter == "Serv",
-    V.TileSpec({ key = "ch:Trade (Services)", kind = "channel", unread = 0, messages = {} }).letter)
+  local servicesSpec = V.TileSpec({ key = "ch:Trade (Services)", kind = "channel", unread = 0, messages = {} })
+  check("the Services channel is an icon face", servicesSpec.face == "icon" and servicesSpec.icon == V.CHANNEL_ICONS["Trade(Services)"], servicesSpec.face)
+  check("the Services channel reads Serv", servicesSpec.label == "Serv", servicesSpec.label)
   HorizonSuite.ResolveClassIconDisplay = function() return nil end
   local letterSpec = V.TileSpec(brisa)
   check("no resolved class gives a letter face", letterSpec.face == "letter", letterSpec.face)
@@ -4068,6 +4074,7 @@ run(`
   local feedSpec = V.TileSpec(S.Get("loot"))
   check("a feed is still an icon face", feedSpec.face == "icon" and feedSpec.icon == V.FEED_ICONS.loot
         and feedSpec.iconFull == nil, feedSpec.face)
+  check("a feed keeps its short label here too", feedSpec.label == HorizonSuite.L["ECHO_FEED_SHORT_LOOT"], feedSpec.label)
 
   S.SetTier("w:Brisa-Horizon", "loud")
   check("loud with unread shows a dot", V.Badge(brisa) == "dot", V.Badge(brisa))
@@ -4839,31 +4846,42 @@ run(`
   check("toast: bnet icon shown", toast.entry.face.shown == true, "?")
   check("toast: bnet full texcoords", toast.entry.face.texCoord and toast.entry.face.texCoord[1] == 0 and toast.entry.face.texCoord[2] == 1, "?")
 
-  -- A General channel: letter "Gen" at the small size, on every host.
-  S.Add({ convKey = "ch:General", text = "lfg" })
-  local genSpec = V.TileSpec(S.Get("ch:General"))
-  check("setup: General channel is Gen, small", genSpec.letter == "Gen" and genSpec.small == true, genSpec.letter)
+  -- A channel with no icon (Guild) keeps its glyph: letter "Guil" at the small size, on
+  -- every host. General now has an icon (Task 1) and is covered separately.
+  S.Add({ convKey = "ch:Guild", text = "lfg" })
+  local guilSpec = V.TileSpec(S.Get("ch:Guild"))
+  check("setup: Guild channel is Guil, small", guilSpec.letter == "Guil" and guilSpec.small == true, guilSpec.letter)
 
-  local genTile = T.TileFor("ch:General")
-  check("column tile: Gen letter", genTile.letter.text == "Gen", genTile.letter.text)
-  check("column tile: Gen small size", genTile.letter._echoSize == 10, tostring(genTile.letter._echoSize))
+  local guilTile = T.TileFor("ch:Guild")
+  check("column tile: Guil letter", guilTile.letter.text == "Guil", guilTile.letter.text)
+  check("column tile: Guil small size", guilTile.letter._echoSize == 10, tostring(guilTile.letter._echoSize))
 
-  C.Open("ch:General")
-  local genRow
-  for _, b in ipairs(cf.rowTiles) do if b.convKey == "ch:General" then genRow = b end end
-  check("card row tile: Gen letter", genRow and genRow.letter.text == "Gen", "?")
-  check("card row tile: Gen small size", genRow and genRow.letter._echoSize == 8, tostring(genRow and genRow.letter._echoSize))
+  C.Open("ch:Guild")
+  local guilRow
+  for _, b in ipairs(cf.rowTiles) do if b.convKey == "ch:Guild" then guilRow = b end end
+  check("card row tile: Guil letter", guilRow and guilRow.letter.text == "Guil", "?")
+  check("card row tile: Guil small size", guilRow and guilRow.letter._echoSize == 8, tostring(guilRow and guilRow.letter._echoSize))
   C.Hide()
 
-  K.Open("ch:General")
-  check("stack card tile: Gen letter", kf.card.letter.text == "Gen", kf.card.letter.text)
-  check("stack card tile: Gen small size", kf.card.letter._echoSize == 9, tostring(kf.card.letter._echoSize))
+  K.Open("ch:Guild")
+  check("stack card tile: Guil letter", kf.card.letter.text == "Guil", kf.card.letter.text)
+  check("stack card tile: Guil small size", kf.card.letter._echoSize == 9, tostring(kf.card.letter._echoSize))
   K.Hide()
 
-  T.ShowToast("ch:General")
+  T.ShowToast("ch:Guild")
   toast = T._toast()
-  check("toast: Gen letter", toast.entry.letter.text == "Gen", toast.entry.letter.text)
-  check("toast: Gen small size", toast.entry.letter._echoSize == 9, tostring(toast.entry.letter._echoSize))
+  check("toast: Guil letter", toast.entry.letter.text == "Guil", toast.entry.letter.text)
+  check("toast: Guil small size", toast.entry.letter._echoSize == 9, tostring(toast.entry.letter._echoSize))
+
+  -- General now carries an icon and a label instead of a glyph letter (Task 1).
+  S.Add({ convKey = "ch:General", text = "lfg" })
+  local genSpec = V.TileSpec(S.Get("ch:General"))
+  check("setup: General channel is an icon with a Gen label", genSpec.face == "icon" and genSpec.label == "Gen", genSpec.label)
+
+  local genTile = T.TileFor("ch:General")
+  check("column tile: General icon shown", genTile.icon.shown == true, tostring(genTile.icon.shown))
+  check("column tile: General icon textured", genTile.icon.texture == V.CHANNEL_ICONS.General, tostring(genTile.icon.texture))
+  check("column tile: General label shown", genTile.label.text == "Gen", genTile.label.text)
 
   -- A party glyph: letter "P" at the full size; the column tile's label shade stays hidden.
   S.Add({ convKey = "party", text = "pull", sender = "Tank-Horizon" })

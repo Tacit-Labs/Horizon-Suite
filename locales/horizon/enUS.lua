@@ -2965,3 +2965,6 @@ L["ECHO_SLASH_HELP_CLEAR"]                                    = "  /h echo clear
 L["ECHO_SLASH_HELP_OPTIONS"]                                  = "  More settings: Horizon dashboard, Echo."
 L["ECHO_SLASH_UNKNOWN"]                                       = "Unknown command. Use /h echo for help."
 L["ECHO_NEW_BELOW"]                                           = "%d new below"
+L["ECHO_FEED_SHORT_LOOT"]                                     = "Loot"
+L["ECHO_FEED_SHORT_PROGRESS"]                                 = "Prog"
+L["ECHO_FEED_SHORT_SYSTEM"]                                   = "Sys"
