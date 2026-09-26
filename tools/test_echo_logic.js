@@ -5427,6 +5427,45 @@ run(`
   SetSmallGuildTabardTextures = nil
 `, 'guild-emblem-painter');
 
+// --- Panels open on the side with room -------------------------------------------------
+run(`
+  local V = HorizonSuite.Echo.View
+  local db = { echoColumnEdge = "right" }
+  HorizonSuite.GetDB = function(k, d) if db[k] ~= nil then return db[k] end return d end
+  local col = STUB_FRAME()
+  _G.HorizonSuiteEchoColumn = col
+  col.GetScale = function() return 1 end
+  UIParent.GetWidth = function() return 1920 end
+  -- A column dragged to the far left, with the edge still set to Right.
+  col.GetLeft = function() return 20 end
+  col.GetRight = function() return 60 end
+  check("no room on the left: the card opens to the right", V.PanelEdge(360) == "left", V.PanelEdge(360))
+  -- Room on the usual side: keep it.
+  col.GetLeft = function() return 1500 end
+  col.GetRight = function() return 1540 end
+  check("room on the left: the usual side is kept", V.PanelEdge(360) == "right", V.PanelEdge(360))
+  -- Left edge at the far right of the screen: flip to open leftwards.
+  db.echoColumnEdge = "left"
+  col.GetLeft = function() return 1860 end
+  col.GetRight = function() return 1900 end
+  check("no room on the right: the card opens to the left", V.PanelEdge(360) == "right", V.PanelEdge(360))
+  -- Neither side fits: keep the edge.
+  UIParent.GetWidth = function() return 400 end
+  col.GetLeft = function() return 180 end
+  col.GetRight = function() return 220 end
+  check("no room either side: the edge stands", V.PanelEdge(360) == "left", V.PanelEdge(360))
+  -- A bigger scale needs more room.
+  UIParent.GetWidth = function() return 1920 end
+  db.echoColumnEdge = "right"
+  col.GetScale = function() return 2 end
+  col.GetLeft = function() return 150 end
+  col.GetRight = function() return 170 end
+  check("scale counts: 300 px left of a 2x column is too little for 360", V.PanelEdge(360) == "left", V.PanelEdge(360))
+  check("no column: the edge stands", (function() _G.HorizonSuiteEchoColumn = nil; return V.PanelEdge(360) end)() == "right", "")
+  UIParent.GetWidth = nil
+  HorizonSuite.GetDB = nil
+`, 'panel-edge-room');
+
 // --- Redraw: one repaint per frame -------------------------------------------
 run(`
   CreateFrame = STUB_CREATE_FRAME

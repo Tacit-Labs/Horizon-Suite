@@ -513,7 +513,7 @@ local function ToastUpdate(self, elapsed)
     -- it; follow the conversation, not the frame.
     self.anchor = Tiles.TileFor(self.convKey) or stackButton
     self:ClearAllPoints()
-    local side = Echo.View.PanelSides(Echo.View.Edge())
+    local side = Echo.View.PanelSides(Echo.View.PanelEdge(Tiles.TOAST_WIDTH))
     self:SetPoint(side.toast, self.anchor, side.toastRel, side.toastDir * (8 + offset), 0)
 end
 
@@ -590,7 +590,7 @@ function Tiles.ShowToast(convKey)
     toast.t = 0
     toast:SetAlpha(0)
     toast:ClearAllPoints()
-    local side = View.PanelSides(Echo.View.Edge())
+    local side = View.PanelSides(View.PanelEdge(Tiles.TOAST_WIDTH))
     toast:SetPoint(side.toast, toast.anchor, side.toastRel, side.toastDir * 8, 0)
     toast:Show()
     return true

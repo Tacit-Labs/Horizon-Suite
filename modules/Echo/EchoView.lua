@@ -52,6 +52,28 @@ function View.Edge()
     return "right"
 end
 
+--- The side a panel of a given width opens on: the edge's usual side (away from the screen
+-- edge), unless the panel wouldn't fit there, in which case the other side if it fits there.
+-- Stops the card or stack being pushed back on screen on top of the column.
+-- @param panelWidth number  in the column's own units (panels share the column's scale)
+-- @return string "left" | "right"  an edge, for View.PanelSides
+function View.PanelEdge(panelWidth)
+    local edge = View.Edge()
+    local column = _G.HorizonSuiteEchoColumn
+    if not column or type(panelWidth) ~= "number" then return edge end
+    local left, right = column:GetLeft(), column:GetRight()
+    local screenW = UIParent and UIParent.GetWidth and UIParent:GetWidth()
+    if type(left) ~= "number" or type(right) ~= "number" or type(screenW) ~= "number" then return edge end
+    local scale = column:GetScale() or 1
+    local need = (panelWidth + 8) * scale
+    local roomLeft = left * scale
+    local roomRight = screenW - right * scale
+    -- "right" edge: panels open to the column's left; "left" edge: to its right.
+    if edge == "right" and roomLeft < need and roomRight >= need then return "left" end
+    if edge == "left" and roomRight < need and roomLeft >= need then return "right" end
+    return edge
+end
+
 -- Echo's module colour, #8FA3E8 (Docs/Branding/ColourSchema.md).
 View.ACCENT = { r = 0x8F / 255, g = 0xA3 / 255, b = 0xE8 / 255 }
 View.PANEL_BG = { 0.06, 0.06, 0.09, 0.94 }
