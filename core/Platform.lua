@@ -67,6 +67,9 @@ Platform.unverified = {
     -- proven nothing here before (see the delve note above).
     groupLootRolls = true,
     lootHistory    = true,
+    -- Echo (2026-09-25): settled by /h echo probe on each client.
+    bnetWhispers = true,
+    secretChat   = true,
 }
 
 local detected = {
@@ -94,6 +97,10 @@ local detected = {
     -- tally row and keeps the working buttons.
     lootHistory     = HasFunction(C_LootHistory, "GetSortedDropsForEncounter")
                       and HasFunction(C_LootHistory, "GetSortedInfoForDrop"),
+    -- Echo: Battle.net whisper sending, and Midnight secret chat payloads. Both stay
+    -- in Platform.unverified until /h echo probe has been run on the Forever beta.
+    bnetWhispers    = type(BNSendWhisper) == "function" or HasFunction(C_BattleNet, "SendWhisper"),
+    secretChat      = type(issecretvalue) == "function",
 }
 
 Platform.has = {}

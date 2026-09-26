@@ -1,0 +1,483 @@
+--[[
+    Horizon Suite - Echo - Events
+    Turns CHAT_MSG_* payloads into message records and hands them to the Store.
+    All of Echo's secret-value handling lives here (spec: Intake and secret values):
+      - sender readable, text secret: routed, flagged secret, never persisted
+      - sender secret on a whisper: no conversation; counted as unrouted
+    Other addons' message filters run over each line before it is filed (plan 12), as they
+    do for Blizzard's chat windows: a blocked line is dropped, a rewritten one filed as
+    rewritten.
+    Blizzard: CHAT_MSG_* events, GetPlayerInfoByGUID, GetNormalizedRealmName, UnitGUID,
+    ERR_CHAT_PLAYER_NOT_FOUND_S, ChatFrameUtil.ProcessMessageEventFilters (legacy
+    ChatFrame_GetMessageEventFilters), ChatFrame1.
+]]
+
+local addon = _G.HorizonSuite
+if not addon then return end
+
+addon.Echo = addon.Echo or {}
+local Echo = addon.Echo
+local Store = Echo.Store
+local IsSecret = Echo.IsSecret
+
+local Events = {}
+Echo.Events = Events
+
+-- Extra mention words (case-insensitive), from the echoKeywords setting.
+Events.keywords = {}
+
+local OUTGOING_EVENTS = {
+    CHAT_MSG_WHISPER_INFORM    = true,
+    CHAT_MSG_BN_WHISPER_INFORM = true,
+}
+local MENTION_KINDS = { party = true, raid = true, instance = true, nearby = true }
+
+-- NPC speech (Nearby): never yours, and the speaker is a creature's name, not "Name-Realm".
+local NPC_EVENTS = {
+    CHAT_MSG_MONSTER_SAY = true, CHAT_MSG_MONSTER_YELL = true, CHAT_MSG_MONSTER_EMOTE = true,
+}
+
+--- "Name" -> "Name-Realm"; a name that already carries a realm is unchanged.
+-- @param name string
+-- @return string|nil  nil for secret, empty or non-string names
+function Events.NormaliseName(name)
+    if IsSecret(name) or type(name) ~= "string" or name == "" then return nil end
+    if name:find("-", 1, true) then return name end
+    local realm = GetNormalizedRealmName and GetNormalizedRealmName()
+    if type(realm) == "string" and realm ~= "" then return name .. "-" .. realm end
+    return name
+end
+
+--- @return string|nil  The player's "Name-Realm"
+function Events.PlayerKey()
+    return Events.NormaliseName(UnitName and UnitName("player"))
+end
+
+--- True when a readable GUID is the player's own. Secret GUIDs are never compared.
+-- @param guid any
+-- @return boolean
+local function IsPlayerGUID(guid)
+    if guid == nil or IsSecret(guid) or type(guid) ~= "string" or not UnitGUID then return false end
+    local ok, mine = pcall(UnitGUID, "player")
+    if not ok or IsSecret(mine) or type(mine) ~= "string" then return false end
+    return guid == mine
+end
+
+local function ClassFromGUID(guid)
+    if IsSecret(guid) or type(guid) ~= "string" or not GetPlayerInfoByGUID then return nil end
+    local ok, _, englishClass = pcall(GetPlayerInfoByGUID, guid)
+    if ok and not IsSecret(englishClass) and type(englishClass) == "string" then return englishClass end
+    return nil
+end
+
+--- True when readable text names the player or a configured keyword. Case-insensitive.
+-- @param text string
+-- @return boolean
+function Events.IsMention(text)
+    if IsSecret(text) or type(text) ~= "string" then return false end
+    local lower = text:lower()
+    local me = UnitName and UnitName("player")
+    if type(me) == "string" and me ~= "" and lower:find(me:lower(), 1, true) then return true end
+    for _, word in ipairs(Events.keywords) do
+        if type(word) == "string" and word ~= "" and lower:find(word:lower(), 1, true) then return true end
+    end
+    return false
+end
+
+--- Replace the mention keywords from a comma-separated setting.
+-- @param text string|nil
+function Events.SetKeywords(text)
+    local out = {}
+    if type(text) == "string" then
+        for word in text:gmatch("[^,]+") do
+            word = word:match("^%s*(.-)%s*$")
+            if word ~= "" then out[#out + 1] = word end
+        end
+    end
+    Events.keywords = out
+end
+
+--- Conversation name for a channel. Zone channels arrive as "General - Zul'Aman"; the zone
+-- is dropped so General stays one conversation as you travel. Custom channels keep their name.
+-- @param name string  CHAT_MSG_CHANNEL arg 9
+-- @param zoneChannelID number  arg 7; 0 for custom channels
+-- @return string|nil
+function Events.ChannelKeyName(name, zoneChannelID)
+    if IsSecret(name) or type(name) ~= "string" or name == "" then return nil end
+    if not IsSecret(zoneChannelID) and type(zoneChannelID) == "number" and zoneChannelID > 0 then
+        return name:match("^(.-) %- ") or name
+    end
+    return name
+end
+
+-- Achievement lines arrive as "%s has earned…" and are filled with the achiever's link.
+local ACHIEVEMENT_EVENTS = { CHAT_MSG_ACHIEVEMENT = true, CHAT_MSG_GUILD_ACHIEVEMENT = true }
+
+-- Only the Battle.net whisper events and the friend alert need the capability to be registered.
+local BNET_EVENTS = {
+    CHAT_MSG_BN_WHISPER = true, CHAT_MSG_BN_WHISPER_INFORM = true,
+    CHAT_MSG_BN_INLINE_TOAST_ALERT = true, BN_INLINE_TOAST_ALERT = true,
+}
+-- The friend alert, under the game's name and the unprefixed one: handled alike.
+local TOAST_EVENTS = { CHAT_MSG_BN_INLINE_TOAST_ALERT = true, BN_INLINE_TOAST_ALERT = true }
+
+-- A feed line: routed by event type, never outgoing, never urgent, no class.
+local function BuildFeedRecord(event, kind, text, sender)
+    local textSecret = IsSecret(text)
+    if TOAST_EVENTS[event] then
+        -- arg1 names the alert ("FRIEND_ONLINE"), arg2 is the friend's |K name. Build the
+        -- line from Blizzard's own string, as Blizzard's chat does; feeds are never saved.
+        if textSecret or type(text) ~= "string" or IsSecret(sender) then return nil, "ignored" end
+        local template = _G["BN_INLINE_TOAST_" .. text]
+        if type(template) ~= "string" then return nil, "ignored" end
+        if template:find("%s", 1, true) then
+            if type(sender) ~= "string" then return nil, "ignored" end
+            local ok, formatted = pcall(string.format, template, sender)
+            if not ok then return nil, "ignored" end
+            template = formatted
+        end
+        if template:find("%%%a") then return nil, "ignored" end
+        text, textSecret = template, false
+    elseif ACHIEVEMENT_EVENTS[event] and not textSecret and type(text) == "string"
+        and text:find("%s", 1, true) then
+        -- A readable achiever becomes a player link; a secret, empty or missing one is
+        -- "Someone", so the line never shows a raw "%s".
+        local who
+        if not IsSecret(sender) and type(sender) == "string" and sender ~= "" then
+            local short = sender:match("^([^-]+)") or sender
+            who = "|Hplayer:" .. sender .. "|h[" .. short .. "]|h"
+        else
+            who = addon.L["ECHO_SOMEONE"]
+        end
+        local ok, formatted = pcall(string.format, text, who)
+        if ok then text = formatted end
+    end
+    return {
+        convKey  = kind,
+        text     = text,
+        secret   = textSecret,
+        outgoing = false,
+        urgent   = false,
+        feed     = true,
+        chatType = (event:gsub("^CHAT_MSG_", "")),
+        time     = Store.Now(),
+    }
+end
+
+--- Build a message record from a CHAT_MSG_* payload.
+-- @return table|nil record
+-- @return string|nil reason  "ignored" (not an Echo event) | "unrouted" (no conversation can be chosen)
+function Events.BuildRecord(event, text, sender, _, _, _, _, zoneChannelID, channelIndex, channelName, _, _, guid, bnSenderID)
+    local kind = Store.EVENT_KIND[event]
+    if not kind then return nil, "ignored" end
+    if Store.FEED_KINDS[kind] then return BuildFeedRecord(event, kind, text, sender) end
+
+    local id
+    if kind == "whisper" then
+        id = Events.NormaliseName(sender)
+    elseif kind == "bnet" then
+        if not IsSecret(bnSenderID) then id = bnSenderID end
+    elseif kind == "channel" then
+        id = Events.ChannelKeyName(channelName, zoneChannelID)
+    end
+    local convKey = Store.KeyFor(kind, id)
+    if not convKey then return nil, "unrouted" end
+
+    local npc = NPC_EVENTS[event] == true
+    local senderKey = (kind ~= "bnet" and not npc) and Events.NormaliseName(sender) or nil
+    local outgoing = OUTGOING_EVENTS[event] == true
+    if npc then
+        -- An NPC's name is kept as it reads; a secret or empty one is dropped.
+        if not IsSecret(sender) and type(sender) == "string" and sender ~= "" then senderKey = sender end
+    elseif not outgoing and kind ~= "whisper" and kind ~= "bnet" then
+        if senderKey ~= nil then
+            outgoing = senderKey == Events.PlayerKey()
+        else
+            -- Secret sender: a readable GUID can still say the line is your own.
+            outgoing = IsPlayerGUID(guid)
+        end
+    end
+
+    local textSecret = IsSecret(text)
+    -- An NPC emote arrives as "%s goes into a frenzy!": fill in the speaker, as Blizzard's
+    -- chat does, or "Someone" when the name can't be read.
+    if event == "CHAT_MSG_MONSTER_EMOTE" and not textSecret and type(text) == "string"
+        and text:find("%s", 1, true) then
+        local ok, formatted = pcall(string.format, text, senderKey or addon.L["ECHO_SOMEONE"])
+        if ok then text = formatted end
+    end
+    local record = {
+        convKey  = convKey,
+        text     = text,
+        secret   = textSecret,
+        outgoing = outgoing,
+        class    = (not outgoing and not npc) and ClassFromGUID(guid) or nil,
+        style    = Store.NEARBY_STYLE[event],
+        time     = Store.Now(),
+    }
+    -- An NPC's line: its sender is a creature's plain name, never a player to whisper or invite.
+    if npc then record.npc = true end
+    -- A whisper to yourself arrives twice: the received copy, then the sent echo.
+    if kind == "whisper" and senderKey ~= nil and senderKey == Events.PlayerKey() then
+        record.toSelf = true
+    end
+    -- The joined slot this line arrived on; Send replies there (it follows you between zones).
+    if kind == "channel" and not IsSecret(channelIndex) and type(channelIndex) == "number" and channelIndex > 0 then
+        record.channelIndex = channelIndex
+    end
+    if not outgoing then
+        if kind == "bnet" then
+            -- Protected |K display string: safe to SetText, never stored.
+            if not IsSecret(sender) then record.sender = sender end
+        else
+            record.sender = senderKey
+        end
+    end
+    -- An NPC saying your name (quest givers do, constantly) is never a mention.
+    record.urgent = (event == "CHAT_MSG_RAID_WARNING")
+        or (MENTION_KINDS[kind] == true and not npc and not outgoing and not textSecret and Events.IsMention(text))
+    return record
+end
+
+local notFoundPattern
+local function NotFoundPattern()
+    if notFoundPattern == nil then
+        local fmt = ERR_CHAT_PLAYER_NOT_FOUND_S
+        if type(fmt) == "string" and fmt:find("%s", 1, true) then
+            local escaped = fmt:gsub("[%^%$%(%)%%%.%[%]%*%+%-%?]", "%%%0")
+            notFoundPattern = "^" .. escaped:gsub("%%%%s", "(.+)", 1) .. "$"
+        else
+            notFoundPattern = false
+        end
+    end
+    return notFoundPattern
+end
+
+--- Mark the pending whisper to a player who is not online as failed.
+-- @param text string  CHAT_MSG_SYSTEM message
+function Events.OnSystemMessage(text)
+    if IsSecret(text) or type(text) ~= "string" then return end
+    local pattern = NotFoundPattern()
+    if not pattern then return end
+    local name = text:match(pattern)
+    local convKey = name and Store.KeyFor("whisper", Events.NormaliseName(name))
+    if convKey then Store.MarkFailed(convKey) end
+end
+
+local PROBE_ARGS = { { 1, "text" }, { 2, "sender" }, { 7, "zoneChannelID" }, { 8, "channelIndex" }, { 9, "channelName" }, { 12, "guid" }, { 13, "bnSenderID" } }
+
+--- One-line description of a chat payload for the verification probe.
+-- Reports only type and secrecy, never values, so it is safe to print mid-encounter.
+-- @return string
+function Events.DescribeArgs(event, ...)
+    local parts = { tostring(event) }
+    for _, arg in ipairs(PROBE_ARGS) do
+        local v = select(arg[1], ...)
+        local state
+        if v == nil then
+            state = "nil"
+        elseif IsSecret(v) then
+            state = "SECRET"
+        else
+            state = type(v)
+        end
+        parts[#parts + 1] = arg[2] .. "=" .. state
+    end
+    local record, reason = Events.BuildRecord(event, ...)
+    parts[#parts + 1] = "conv=" .. (record and record.convKey or ("none/" .. tostring(reason)))
+    if record and Echo.Send then
+        local route = Echo.Send.RouteFor(record.convKey)
+        parts[#parts + 1] = "route=" .. (route
+            and (route.chatType .. (route.target ~= nil and (":" .. tostring(route.target)) or ""))
+            or "none")
+    end
+    return table.concat(parts, " ")
+end
+
+--- Describe the next `count` chat messages through outFn (spec: Verification before code).
+-- @param count number
+-- @param outFn function(string)
+function Events.StartProbe(count, outFn)
+    Events.probeRemaining = count
+    Events.probeOut = outFn
+end
+
+-- ---------------------------------------------------------------------------
+-- Other addons' message filters (plan 12)
+-- ---------------------------------------------------------------------------
+
+local filtered = 0
+
+--- How many lines other addons' filters have blocked this session.
+-- @return number
+function Events.GetFilteredCount()
+    return filtered
+end
+
+-- A chat payload as a table; secret values are only stored, never looked at.
+local function Pack(...)
+    return { n = select("#", ...), ... }
+end
+
+-- The table's values as a list, nils included (Lua 5.1 and fengari both lack one name for this).
+local function Unpack(t, i)
+    i = i or 1
+    if i > t.n then return end
+    return t[i], Unpack(t, i + 1)
+end
+
+-- A filter's first return blocks the line when it is readable and true.
+local function Blocks(v)
+    if IsSecret(v) then return false end
+    return v ~= nil and v ~= false
+end
+
+-- Take one filter call's result: blocked, or the arguments to go on with. A call that
+-- threw, or returned no new first argument, keeps the arguments it was given. New
+-- arguments replace the old ones position by position; any it didn't return stay.
+local function Settle(args, ok, blocked, ...)
+    if not ok then return false, args end
+    if Blocks(blocked) then return true, args end
+    local new1 = ...
+    if select("#", ...) == 0 or (not IsSecret(new1) and new1 == nil) then return false, args end
+    local out = Pack(...)
+    for i = out.n + 1, args.n do out[i] = args[i] end
+    if args.n > out.n then out.n = args.n end
+    return false, out
+end
+
+-- Take ProcessMessageEventFilters' result. Expected: true when blocked, else false and the
+-- arguments. Coded for a client that returns only the arguments too: with no leading
+-- boolean, the whole list is the arguments and nothing is blocked.
+local function SettleProcess(args, ok, first, ...)
+    if not ok then return false, args end
+    if not IsSecret(first) and type(first) == "boolean" then
+        if first then return true, args end
+        return Settle(args, true, false, ...)
+    end
+    return Settle(args, true, false, first, ...)
+end
+
+-- The filters themselves; RunFilters wraps this so Filter.passing is always reset.
+local function Run(event, ...)
+    local args = Pack(...)
+    local frame = _G.ChatFrame1 or _G.DEFAULT_CHAT_FRAME
+    local util = _G.ChatFrameUtil
+    local blocked = false
+    if util and type(util.ProcessMessageEventFilters) == "function" then
+        blocked, args = SettleProcess(args, pcall(util.ProcessMessageEventFilters, frame, event, Unpack(args)))
+    else
+        local get = (util and util.GetMessageEventFilters) or _G.ChatFrame_GetMessageEventFilters
+        local ok, filters = false, nil
+        if type(get) == "function" then ok, filters = pcall(get, event) end
+        if ok and type(filters) == "table" then
+            for _, fn in ipairs(filters) do
+                if type(fn) == "function" then
+                    blocked, args = Settle(args, pcall(fn, frame, event, Unpack(args)))
+                    if blocked then break end
+                end
+            end
+        end
+    end
+    return blocked, args
+end
+
+--- Run other addons' message filters over a chat event's arguments, as Blizzard's chat
+-- does for each window: ChatFrameUtil.ProcessMessageEventFilters where it exists, else a
+-- loop over ChatFrame_GetMessageEventFilters. Each call is protected, so a broken filter
+-- keeps the arguments it was given. Echo's own whisper filter (EchoFilter.lua) stands
+-- aside meanwhile: it hides lines from Blizzard's windows, never from Echo. Whatever
+-- happens, Filter.passing is reset afterwards; an error of Echo's own here is reported
+-- and the original arguments are filed.
+-- @param event string
+-- @return boolean blocked
+-- @return table args  { n = count, ... }: the arguments to file
+function Events.RunFilters(event, ...)
+    local own = Echo.Filter
+    if own then own.passing = true end
+    local ok, blocked, args = pcall(Run, event, ...)
+    if own then own.passing = false end
+    if not ok then
+        local handler = geterrorhandler and geterrorhandler()
+        if handler then handler(blocked) end
+        return false, Pack(...)
+    end
+    return blocked, args
+end
+
+-- File one chat event's (filtered) arguments.
+local function File(event, ...)
+    local record, reason = Events.BuildRecord(event, ...)
+    if not record then
+        if reason == "unrouted" then Store.CountUnrouted() end
+        return
+    end
+    -- A conversation with yourself shows each message once. Typed in Blizzard's box, keep
+    -- the received copy and drop the echo; sent from Echo, the pending line claims the
+    -- received copy and the echo confirms it.
+    if record.toSelf then
+        if record.outgoing then
+            if Store.HasPending(record.convKey) then Store.ConfirmSent(record) end
+            return
+        elseif Store.ClaimSelfEcho(record.convKey, record.text) then
+            return
+        end
+    end
+    if record.outgoing then
+        Store.ConfirmSent(record)
+    else
+        Store.Add(record)
+    end
+end
+
+--- Route one chat event. Exposed for tests and the probe.
+function Events.Dispatch(event, ...)
+    -- A system line may fail a pending whisper; it is then filed in the System feed too.
+    -- Checked before the filters: an addon hiding "not online" lines must not strand the
+    -- pending whisper.
+    if event == "CHAT_MSG_SYSTEM" then Events.OnSystemMessage((...)) end
+    -- A switched-off feed files nothing (the system line above still checked for a failed whisper).
+    local feedKind = Store.EVENT_KIND[event]
+    if Store.FEED_KINDS[feedKind] and Echo.FeedEnabled and not Echo.FeedEnabled(feedKind) then return end
+    local blocked, args = Events.RunFilters(event, ...)
+    -- The probe is for conversations; feed lines (loot, progress, system) never spend it.
+    if (Events.probeRemaining or 0) > 0 and Events.probeOut and not Store.FEED_KINDS[feedKind] then
+        Events.probeRemaining = Events.probeRemaining - 1
+        if blocked then
+            Events.probeOut(Events.DescribeArgs(event, ...) .. " filtered")
+        else
+            Events.probeOut(Events.DescribeArgs(event, Unpack(args)))
+        end
+    end
+    if blocked then
+        filtered = filtered + 1
+        return
+    end
+    File(event, Unpack(args))
+end
+
+local frame
+
+function Events.Enable()
+    if not frame then
+        frame = CreateFrame("Frame")
+        frame:SetScript("OnEvent", function(_, event, ...) Events.Dispatch(event, ...) end)
+    end
+    local hasBnet = addon.Platform and addon.Platform.Has("bnetWhispers")
+    for event in pairs(Store.EVENT_KIND) do
+        -- One client may lack an event (Forever, or the unprefixed alert name): skip it
+        -- rather than abort the loop.
+        if (not BNET_EVENTS[event] or hasBnet) and Echo.IsEventValid(event) then
+            pcall(frame.RegisterEvent, frame, event)
+        end
+    end
+end
+
+function Events.Disable()
+    if frame then frame:UnregisterAllEvents() end
+end
+
+-- Test and debug handle.
+function Events._frame()
+    return frame
+end

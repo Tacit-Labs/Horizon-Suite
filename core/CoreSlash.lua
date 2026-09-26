@@ -143,7 +143,7 @@ local function OnSlashCommand(msg)
             HSPrint("  /h debug locale                - Toggle missing-locale key logging")
             HSPrint("  /h debug logger [dump|clear]   - Inspect/clear the log ring buffer (DEV_MODE required)")
             HSPrint(" ")
-            HSPrint("  Modules: focus, presence, vista, augment, insight, essence")
+            HSPrint("  Modules: focus, presence, vista, augment, insight, essence, echo")
             return
         end
         -- Core debug: locale

@@ -91,6 +91,7 @@ function OptionsData_SetDB(key, value)
         if addon.Presence and addon.Presence.ApplyPresenceOptions then addon.Presence.ApplyPresenceOptions() end
         if addon.Insight and addon.Insight.ApplyInsightOptions then addon.Insight.ApplyInsightOptions() end
         if addon.Essence and addon.Essence.ApplyEssenceOptions then addon.Essence.ApplyEssenceOptions() end
+        if addon.Echo and addon.Echo.ApplyFont and addon.IsModuleEnabled and addon:IsModuleEnabled("echo") then addon.Echo.ApplyFont() end
         if addon.Vista and addon.Vista.ApplyOptions then
             local k = key
             C_Timer.After(0, function() if addon.Vista and addon.Vista.ApplyOptions then addon.Vista.ApplyOptions(k) end end)
@@ -117,6 +118,10 @@ function OptionsData_SetDB(key, value)
     end
     if addon.ESSENCE_KEYS and addon.ESSENCE_KEYS[key] and addon.Essence and addon.Essence.ApplyEssenceOptions then
         addon.Essence.ApplyEssenceOptions()
+    end
+    if addon.ECHO_KEYS and addon.ECHO_KEYS[key] and addon.Echo and addon.Echo.ApplyOptions
+        and addon.IsModuleEnabled and addon:IsModuleEnabled("echo") then
+        addon.Echo.ApplyOptions()
     end
     if addon.AUGMENT_KEYS and addon.AUGMENT_KEYS[key]
         and addon.Augment and addon.Augment.ApplyAugmentOptions
