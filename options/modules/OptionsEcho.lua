@@ -181,6 +181,16 @@ local function GroupOfCopy()
     return copy
 end
 
+-- A fresh copy of the group-index -> chosen-icon table.
+local function GroupIconsCopy()
+    local icons = getDB("echoGroupIcons", D.echoGroupIcons)
+    local copy = {}
+    if type(icons) == "table" then
+        for k, v in pairs(icons) do copy[k] = v end
+    end
+    return copy
+end
+
 options[#options + 1] = Section(L["ECHO_SECTION_GROUPS"])
 options[#options + 1] = Toggle(L["ECHO_GROUPS_ENABLE"], L["ECHO_GROUPS_ENABLE_DESC"], "echoGroupsEnabled", D.echoGroupsEnabled)
 
@@ -200,6 +210,25 @@ for i = 1, 4 do
             setDB("echoGroupNames", copy)
         end,
     }
+    options[#options + 1] = Button(L["ECHO_GROUP_ICON"], L["ECHO_GROUP_ICON_DESC"], function()
+        local names = getDB("echoGroupNames", D.echoGroupNames)
+        local name = (type(names) == "table" and type(names[i]) == "string" and names[i]:find("%S"))
+            and names[i] or string.format(L["ECHO_GROUP_DEFAULT_TITLE"], i)
+        if not addon.OpenIconPicker then return end
+        addon.OpenIconPicker({
+            title = name,
+            get = function()
+                local icons = getDB("echoGroupIcons", D.echoGroupIcons)
+                return (type(icons) == "table") and icons[i] or nil
+            end,
+            set = function(icon)
+                local copy = GroupIconsCopy()
+                copy[i] = icon
+                setDB("echoGroupIcons", copy)
+            end,
+            allowDefault = true,
+        })
+    end, (i == 1) and { dbKey = "echoGroupIcons" } or nil)
 end
 
 for i, member in ipairs(GROUP_MEMBERS) do

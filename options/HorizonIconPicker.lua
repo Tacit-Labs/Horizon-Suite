@@ -1,7 +1,13 @@
 --[[
-    Horizon Suite — Vista Drawer Icon Picker
-    Searchable icon grid modal for selecting the Vista drawer button icon.
-    Exposed as addon.OpenVistaDrawerIconPicker() — called from OptionsVista.lua.
+    Horizon Suite — Icon Picker
+    Searchable icon grid modal, reused by any caller that needs to choose one icon.
+    Exposed as addon.OpenIconPicker(opts), where opts = { title, get, set, allowDefault }:
+      - title: string shown in the modal's title bar.
+      - get(): returns the currently saved icon (fileID number, path string, or nil).
+      - set(icon): saves the chosen icon. Called with nil when "Use default" is clicked.
+      - allowDefault: when true, shows a "Use default" button that calls set(nil) and closes.
+    addon.OpenVistaDrawerIconPicker() — called from OptionsVista.lua — wraps this with Vista's
+    own get/set/title, unchanged in behaviour, strings and saved key (vistaDrawerIcon).
 ]]
 
 local addon = _G.HorizonSuite
@@ -15,12 +21,10 @@ local SetTextColor = addon.SetTextColor or function(obj, color)
     obj:SetTextColor(color[1], color[2], color[3], color[4] or 1)
 end
 
-local function getDB(k, d) return addon.OptionsData_GetDB(k, d) end
-local function setDB(k, v) return addon.OptionsData_SetDB(k, v) end
 local function notifyMainAddon() return addon.OptionsData_NotifyMainAddon() end
 
 local vistaDrawerIconPickerFrame
-function addon.OpenVistaDrawerIconPicker()
+function addon.OpenIconPicker(opts)
     local icons = {}
     local usingIconBrowserData = false
     local LRPMedia
@@ -104,7 +108,7 @@ function addon.OpenVistaDrawerIconPicker()
     local pageSize = cols * rows
     local filtered = icons
     local offset = 0
-    local pendingIcon = getDB("vistaDrawerIcon", nil)
+    local pendingIcon = opts.get()
 
     if not vistaDrawerIconPickerFrame then
         local pf = CreateFrame("Frame", "HorizonSuiteVistaDrawerIconPicker", UIParent, "BackdropTemplate")
@@ -134,7 +138,6 @@ function addon.OpenVistaDrawerIconPicker()
         pf.title:SetFont(Def.FontPath or "Fonts\\FRIZQT__.TTF", 14, "OUTLINE")
         SetTextColor(pf.title, Def.TextColorTitleBar or { 0.9, 0.92, 0.96, 1 })
         pf.title:SetPoint("TOPLEFT", pf, "TOPLEFT", 14, -12)
-        pf.title:SetText(L["VISTA_DRAWER_BUTTON_ICON"])
 
         pf.close = CreateFrame("Button", nil, pf)
         pf.close:SetSize(22, 22)
@@ -260,10 +263,25 @@ function addon.OpenVistaDrawerIconPicker()
         pf.apply.text:SetPoint("CENTER")
         pf.apply.text:SetText(L["APPLY"])
         SetTextColor(pf.apply.text, Def.TextColorLabel or { 0.84, 0.84, 0.88, 1 })
+
+        pf.useDefault = CreateFrame("Button", nil, pf)
+        pf.useDefault:SetSize(110, 24)
+        pf.useDefault:SetPoint("RIGHT", pf.apply, "LEFT", -8, 0)
+        pf.useDefault.bg = pf.useDefault:CreateTexture(nil, "BACKGROUND")
+        pf.useDefault.bg:SetAllPoints(pf.useDefault)
+        pf.useDefault.bg:SetColorTexture(0.1, 0.1, 0.13, 0.75)
+        if addon.CreateBorder then addon.CreateBorder(pf.useDefault, Def.InputBorder or { 0.2, 0.22, 0.28, 0.3 }) end
+        pf.useDefault.text = pf.useDefault:CreateFontString(nil, "OVERLAY")
+        pf.useDefault.text:SetFont(Def.FontPath or "Fonts\\FRIZQT__.TTF", Def.LabelSize or 13, "OUTLINE")
+        pf.useDefault.text:SetPoint("CENTER")
+        pf.useDefault.text:SetText(L["ICON_PICKER_USE_DEFAULT"])
+        SetTextColor(pf.useDefault.text, Def.TextColorLabel or { 0.84, 0.84, 0.88, 1 })
     end
 
     local pf = vistaDrawerIconPickerFrame
-    pendingIcon = getDB("vistaDrawerIcon", nil)
+    pendingIcon = opts.get()
+    pf.title:SetText(opts.title or "")
+    if pf.useDefault then pf.useDefault:SetShown(opts.allowDefault == true) end
 
     local function sameIcon(a, b)
         return tostring(a or "") == tostring(b or "")
@@ -315,7 +333,7 @@ function addon.OpenVistaDrawerIconPicker()
         end
         pf.footer:SetText(string.format("%d icons%s%s", #filtered, usingIconBrowserData and " from IconBrowser" or "", #filtered > pageSize and " - mouse wheel to scroll" or ""))
         if pf.apply then
-            local changed = not sameIcon(pendingIcon, getDB("vistaDrawerIcon", nil))
+            local changed = not sameIcon(pendingIcon, opts.get())
             pf.apply:SetAlpha(changed and 1 or 0.55)
         end
         updateScrollThumb()
@@ -367,7 +385,14 @@ function addon.OpenVistaDrawerIconPicker()
     if pf.apply then
         pf.apply:SetScript("OnClick", function()
             if not pendingIcon then return end
-            setDB("vistaDrawerIcon", pendingIcon)
+            opts.set(pendingIcon)
+            notifyMainAddon()
+            pf:Hide()
+        end)
+    end
+    if pf.useDefault then
+        pf.useDefault:SetScript("OnClick", function()
+            opts.set(nil)
             notifyMainAddon()
             pf:Hide()
         end)
@@ -406,4 +431,16 @@ function addon.OpenVistaDrawerIconPicker()
     offset = 0
     updateGrid()
     pf:Show()
+end
+
+local function getDB(k, d) return addon.OptionsData_GetDB(k, d) end
+local function setDB(k, v) return addon.OptionsData_SetDB(k, v) end
+
+function addon.OpenVistaDrawerIconPicker()
+    addon.OpenIconPicker({
+        title = L["VISTA_DRAWER_BUTTON_ICON"],
+        get = function() return getDB("vistaDrawerIcon", nil) end,
+        set = function(icon) setDB("vistaDrawerIcon", icon) end,
+        allowDefault = false,
+    })
 end

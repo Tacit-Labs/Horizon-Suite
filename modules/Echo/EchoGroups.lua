@@ -68,6 +68,21 @@ function Groups.Of(convKey)
     return index
 end
 
+--- The icon a group's tile shows: the chosen echoGroupIcons entry (a fileID number > 0, or a
+-- non-blank icon path string), else Echo.View.GROUP_ICON.
+-- @param index number
+-- @return number|string
+function Groups.Icon(index)
+    if not ValidIndex(index) then return Echo.View.GROUP_ICON end
+    local icons = Echo.Setting("echoGroupIcons")
+    if type(icons) ~= "table" then return Echo.View.GROUP_ICON end
+    local icon = icons[index]
+    if Echo.IsSecret(icon) then return Echo.View.GROUP_ICON end
+    if type(icon) == "number" and icon > 0 then return icon end
+    if type(icon) == "string" and icon:find("%S") then return icon end
+    return Echo.View.GROUP_ICON
+end
+
 --- The open conversations in a group, in Store order.
 -- @param index number
 -- @param list table|nil  Store.List(); defaults to it

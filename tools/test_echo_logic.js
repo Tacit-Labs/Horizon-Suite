@@ -3958,7 +3958,7 @@ run(`
   A.OptionsData_SetDB = function(k, v) db[k] = v end
   local function merge(t, o) if o then for k, v in pairs(o) do t[k] = v end end return t end
   A.Section = function(n) return { type = "section", name = n } end
-  A.Button = function(n, d, f) return { type = "button", name = n, desc = d, onClick = f } end
+  A.Button = function(n, d, f, o) return merge({ type = "button", name = n, desc = d, onClick = f }, o) end
   A.Toggle = function(n, d, key, def, o) return merge({ type = "toggle", name = n, desc = d, dbKey = key,
     get = function() return A.OptionsData_GetDB(key, def) end, set = function(v) A.OptionsData_SetDB(key, v) end }, o) end
   A.GetPerElementFontDropdownOptions = function() return { { "Global", "__global__" } } end
@@ -4080,6 +4080,59 @@ run(`
 
   otherOpt.set("none")
   tradeOpt.set("none")
+
+  -- Group icon buttons (Task: group icons). One "Choose icon" button sits after each of the
+  -- four group-name editboxes; addon.OpenIconPicker is stubbed to capture the opts it's
+  -- called with, so the button's own wiring (title, get, set, allowDefault) is testable
+  -- without the picker frame itself (the harness doesn't load HorizonIconPicker.lua).
+  local capturedOpts
+  A.OpenIconPicker = function(o) capturedOpts = o end
+
+  local iconButtons = {}
+  for _, opt in ipairs(cat.options) do
+    if opt.type == "button" and opt.name == A.L["ECHO_GROUP_ICON"] then iconButtons[#iconButtons + 1] = opt end
+  end
+  check("a choose-icon button per group", #iconButtons == 4, #iconButtons)
+  check("first icon button carries the options-page dbKey", iconButtons[1].dbKey == "echoGroupIcons", tostring(iconButtons[1] and iconButtons[1].dbKey))
+  check("icon button desc", iconButtons[1].desc == A.L["ECHO_GROUP_ICON_DESC"], iconButtons[1].desc)
+
+  -- Group 1 ("Channels") titles with its own name; group 2 was renamed to "Crew" above.
+  iconButtons[1].onClick()
+  check("titles with the group's own name", capturedOpts.title == A.L["ECHO_GROUP_CHANNELS"], tostring(capturedOpts.title))
+  check("allows clearing to default", capturedOpts.allowDefault == true, tostring(capturedOpts.allowDefault))
+  check("get reads the unset default", capturedOpts.get() == nil, tostring(capturedOpts.get()))
+
+  -- Group 3 stayed blank throughout, so its button falls back to "Group 3".
+  iconButtons[3].onClick()
+  check("a blank group titles as Group N", capturedOpts.title == string.format(A.L["ECHO_GROUP_DEFAULT_TITLE"], 3), tostring(capturedOpts.title))
+
+  -- set(icon) writes a fresh copy, leaving the saved and default tables untouched.
+  iconButtons[1].onClick()
+  local savedBefore = A.OptionsData_GetDB("echoGroupIcons")
+  capturedOpts.set(136243)
+  local iconsAfterSet = A.OptionsData_GetDB("echoGroupIcons")
+  check("set(fileID) writes a fresh copy", iconsAfterSet ~= savedBefore and iconsAfterSet ~= A.ECHO_DEFAULTS.echoGroupIcons and iconsAfterSet[1] == 136243, tostring(iconsAfterSet and iconsAfterSet[1]))
+  check("default echoGroupIcons untouched by set", A.ECHO_DEFAULTS.echoGroupIcons[1] == nil, tostring(A.ECHO_DEFAULTS.echoGroupIcons[1]))
+
+  iconButtons[1].onClick()
+  check("get reads back the chosen fileID", capturedOpts.get() == 136243, tostring(capturedOpts.get()))
+
+  iconButtons[2].onClick()
+  capturedOpts.set("Interface\\\\Icons\\\\INV_Misc_Book_09")
+  local iconsAfterPath = A.OptionsData_GetDB("echoGroupIcons")
+  check("set(path) writes group 2's slot without disturbing group 1's", iconsAfterPath[1] == 136243 and iconsAfterPath[2] == "Interface\\\\Icons\\\\INV_Misc_Book_09", tostring(iconsAfterPath[2]))
+
+  -- Use default (set(nil)) clears the slot but leaves the other slot and the default table
+  -- alone.
+  iconButtons[1].onClick()
+  capturedOpts.set(nil)
+  local iconsAfterClear = A.OptionsData_GetDB("echoGroupIcons")
+  check("set(nil) clears group 1's slot", iconsAfterClear[1] == nil and iconsAfterClear[2] == "Interface\\\\Icons\\\\INV_Misc_Book_09", tostring(iconsAfterClear[1]))
+  check("clearing does not mutate the previous saved table", iconsAfterPath[1] == 136243, tostring(iconsAfterPath[1]))
+  check("default echoGroupIcons still untouched", A.ECHO_DEFAULTS.echoGroupIcons[1] == nil and A.ECHO_DEFAULTS.echoGroupIcons[2] == nil, "?")
+
+  A.OptionsData_SetDB("echoGroupIcons", nil)
+  A.OpenIconPicker = nil
 
   A.OptionCategories, A.OptionsData_GetDB, A.OptionsData_SetDB = nil, nil, nil
   A.Section, A.Button, A.Toggle, A.GetPerElementFontDropdownOptions = nil, nil, nil, nil
@@ -4881,6 +4934,19 @@ run(`
   check("index of a group key", G.IndexOf("grp:3") == 3, tostring(G.IndexOf("grp:3")))
   check("index of other keys is nil", G.IndexOf("grp:9") == nil and G.IndexOf("ch:Trade") == nil and G.IndexOf(nil) == nil, "?")
 
+  -- A group's chosen icon (Task: group icons). No echoGroupIcons setting at all yet: every
+  -- group falls back to View.GROUP_ICON.
+  check("no echoGroupIcons setting falls back to the default icon", G.Icon(1) == V.GROUP_ICON, tostring(G.Icon(1)))
+  db.echoGroupIcons = { 136243, "Interface\\\\Icons\\\\INV_Misc_Book_09", 0, "" }
+  check("a chosen fileID", G.Icon(1) == 136243, tostring(G.Icon(1)))
+  check("a chosen path", G.Icon(2) == "Interface\\\\Icons\\\\INV_Misc_Book_09", tostring(G.Icon(2)))
+  check("a zero fileID falls back to the default", G.Icon(3) == V.GROUP_ICON, tostring(G.Icon(3)))
+  check("an empty path falls back to the default", G.Icon(4) == V.GROUP_ICON, tostring(G.Icon(4)))
+  check("an out-of-range index falls back to the default", G.Icon(9) == V.GROUP_ICON and G.Icon(nil) == V.GROUP_ICON, "?")
+  db.echoGroupIcons[1] = SECRET(136243)
+  check("a secret icon falls back to the default", G.Icon(1) == V.GROUP_ICON, tostring(G.Icon(1)))
+  db.echoGroupIcons = nil
+
   -- Column: members merge into one entry at the first member's position.
   local trade = { key = "ch:Trade", kind = "channel", open = true, unread = 2 }
   local brisa = { key = "w:Brisa-Horizon", kind = "whisper", open = true, unread = 1 }
@@ -4915,6 +4981,15 @@ run(`
   check("group face is the group icon", spec.face == "icon" and spec.icon == V.GROUP_ICON and spec.glyph == true, spec.face)
   check("group label is its short name", spec.label == V.ShortName("Channels", 6), spec.label)
   check("group accent colour", spec.r == V.ACCENT.r and spec.g == V.ACCENT.g and spec.b == V.ACCENT.b, spec.r)
+
+  -- A chosen echoGroupIcons entry shows on the tile instead of the default group icon.
+  db.echoGroupIcons = { 136243 }
+  spec = V.TileSpec(g1)
+  check("a chosen group icon shows on its tile", spec.icon == 136243, tostring(spec.icon))
+  db.echoGroupIcons = nil
+  spec = V.TileSpec(g1)
+  check("no chosen icon falls back to the group icon", spec.icon == V.GROUP_ICON, tostring(spec.icon))
+
   -- Final fix 4: quiet (and muted) members don't inflate the group's count, only ones with
   -- their own badge do.
   check("quiet members give no badge and don't inflate the count", spec.badge == nil and spec.count == 0, spec.count)

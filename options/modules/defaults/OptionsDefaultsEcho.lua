@@ -57,6 +57,9 @@ addon.ECHO_DEFAULTS = {
         ["ch:General"] = 1, ["ch:Trade"] = 1, ["ch:Trade (Services)"] = 1,
         ["ch:LocalDefense"] = 1, ["ch:LookingForGroup"] = 1,
     },
+    -- Chosen icon per group, index 1..4 -> fileID (number) or icon path (string). An
+    -- absent entry means the group tile keeps View.GROUP_ICON.
+    echoGroupIcons         = {},
 }
 
 addon.ECHO_LIMITS = {

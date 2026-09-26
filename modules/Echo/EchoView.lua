@@ -378,8 +378,9 @@ local BADGE_RANK = { count = 1, dot = 2 }
 -- @return table  see View.TileSpec
 function View.GroupTileSpec(entry)
     local name = Echo.Groups and Echo.Groups.Name(entry.group) or ""
+    local icon = (Echo.Groups and Echo.Groups.Icon(entry.group)) or View.GROUP_ICON
     local spec = {
-        face = "icon", icon = View.GROUP_ICON, glyph = true, letter = "",
+        face = "icon", icon = icon, glyph = true, letter = "",
         label = View.ShortName(name, 6),
         r = View.ACCENT.r, g = View.ACCENT.g, b = View.ACCENT.b,
         count = 0,
