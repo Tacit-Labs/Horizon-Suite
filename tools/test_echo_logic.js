@@ -9201,19 +9201,24 @@ run(`
   local late = FCF_OpenTemporaryWindow("WHISPER")
   check("final hide: once off, a temporary window stays", late.parent == UIParent, tostring(late.parent))
 
-  -- Disabling puts the input line back on its old parent.
+  -- Disabling before the reload: ChatFrame1 is still hidden, so the input line stays on
+  -- UIParent rather than going back under a hidden window.
   HC.Disable()
-  check("final hide: disabling puts the input line back", box.parent == cf1, tostring(box.parent))
+  check("final hide: disabling keeps the line visible while the windows are hidden", box.parent == UIParent, tostring(box.parent))
+  I.Disable()
+  check("final hide: undocking keeps it visible too", box.parent == UIParent, tostring(box.parent))
+  -- After the reload nothing is hidden, so the recorded parent is put back.
+  HC._reset()
+  box:SetParent(UIParent)
   HC.RestoreBoxParent()
-  check("final hide: with nothing recorded, restoring moves nothing", box.parent == cf1, tostring(box.parent))
-  -- Input.Disable does the same.
+  check("final hide: with nothing recorded, restoring moves nothing", box.parent == UIParent, tostring(box.parent))
+  -- Moved again on the next apply.
+  box:SetParent(cf1)
   db.echoHideBlizzardChat = true
   HC.Enable()
   HC.Refresh()
   RunTimers()
   check("final hide: moved again on the next apply", box.parent == UIParent, tostring(box.parent))
-  I.Disable()
-  check("final hide: undocking puts the input line back", box.parent == cf1, tostring(box.parent))
   HC.Disable()
 
   -- whisperMode is account-wide: another character with hiding off puts it back at login.

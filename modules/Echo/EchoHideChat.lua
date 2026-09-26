@@ -202,6 +202,9 @@ end
 -- UIParent. Input.Disable and HideChat.Disable call this; it does nothing otherwise.
 function HideChat.RestoreBoxParent()
     local previous = boxParent
+    -- The windows stay hidden until the reload, so the old parent is still hidden: putting
+    -- the line back there would leave the player with no visible input line.
+    if previous and hidden[previous] then return end
     boxParent = nil
     local box = _G.ChatFrame1EditBox
     if previous and type(box) == "table" and type(box.SetParent) == "function" then box:SetParent(previous) end
