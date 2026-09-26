@@ -164,7 +164,7 @@ end
 local function PaintTile(b, spec, shown)
     local View = Echo.View
     local a = View.ACCENT
-    local image = Echo.SetTileMask(b, b.icon, Echo.IsImageFace(spec))
+    local image = Echo.SetTileMask(b, b.icon, Echo.IsImageFace(spec), Echo.Tiles.TILE_MASK_SMALL)
     local inset = 3
     if image then inset = shown and 2 or 0 end
     Echo.InsetTileIcon(b, b.icon, inset)

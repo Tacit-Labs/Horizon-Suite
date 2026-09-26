@@ -3,9 +3,9 @@
     Collapse mode (echoCollapse): the column of tiles folds into the Echo icon and slides up
     on hover. "all" folds every tile and the + button; "keepnew" keeps tiles with a badge out,
     packed down from the bottom slot. While tiles are folded the icon wears their badge.
-    One clock on the column (its OnUpdate, wired in EchoTiles) runs the open and close delays
-    and the slide, so the harness can drive it with elapsed values. Echo's frames are
-    non-secure, so this behaves the same in combat.
+    One clock on the column (its OnUpdate, installed by Layout only while collapse is on)
+    runs the open and close delays and the slide, so the harness can drive it with elapsed
+    values. Echo's frames are non-secure, so this behaves the same in combat.
     Blizzard: none. Echo: Tiles (layout, badges), Card and Stack (which hold a fold off).
 ]]
 
@@ -91,13 +91,14 @@ local function MouseOver()
 end
 
 -- The folded tiles' badge on the icon: a dot when any has one, else their counts summed.
+-- A folded +N tile brings the badge of the conversations hidden behind it (item.hidden).
 local function PaintIconBadge(show)
     local icon = Echo.Tiles.StackButton()
     if not icon or not icon.dot then return end
     local badge, sum = nil, 0
     if show then
         for _, item in ipairs(items) do
-            local spec = item.spec
+            local spec = item.spec or item.hidden
             if folded[item.frame] and spec then
                 if spec.badge == "dot" then
                     badge = "dot"
@@ -191,6 +192,11 @@ function Collapse.Leave(frame)
     if frame ~= nil and frame == Echo.Tiles.StackButton() then openWait = nil end
 end
 
+--- Drop a pending open: a drag has started on the icon, and a drag never unfolds the column.
+function Collapse.CancelOpen()
+    openWait = nil
+end
+
 --- The column's OnUpdate: the open delay, the close delay and the slide.
 -- @param _ Frame
 -- @param elapsed number
@@ -199,6 +205,8 @@ function Collapse.OnUpdate(_, elapsed)
     elapsed = tonumber(elapsed) or 0
     -- A slide starts from where it is on the tick that starts it; the next tick moves it.
     local started = false
+    local column = Echo.Tiles.Column()
+    if column and column.moving then openWait = nil end
     if openWait then
         openWait = openWait + elapsed
         if openWait >= Collapse.OPEN_DELAY then
@@ -246,6 +254,9 @@ function Collapse.Layout(list, full)
     end
     items = list
     folded = {}
+    -- The clock runs only while collapsing: off, the column has no OnUpdate at all.
+    local column = Echo.Tiles.Column()
+    if column then column:SetScript("OnUpdate", m ~= "off" and Collapse.OnUpdate or nil) end
     if m == "off" then
         for _, item in ipairs(list) do item.frame:SetAlpha(1) end
         PlacePlus(0, 1, Echo.Tiles.PlusAvailable())

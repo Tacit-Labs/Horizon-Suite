@@ -67,6 +67,9 @@ end
 -- The rounded-square mask an image face is clipped to: white, with Echo.Round.TILE's corner
 -- (8 on a 40px tile) in its alpha. Resolved from the addon's own folder, like EchoRound.
 Tiles.TILE_MASK = "Interface\\AddOns\\" .. (addon.ADDON_NAME or "HorizonSuite") .. "\\media\\echo\\tile_mask.tga"
+-- The same shape for the smaller tiles (the card's 26px row, the stack card's and the
+-- toast's 28px icons): a corner of 8/26 of the side, so it stays about 8px there.
+Tiles.TILE_MASK_SMALL = "Interface\\AddOns\\" .. (addon.ADDON_NAME or "HorizonSuite") .. "\\media\\echo\\tile_mask_small.tga"
 
 --- Whether a tile face is an image (a class icon, the Battle.net logo, a channel, feed or
 -- group icon). The guild tabard is not: its emblem sits inset on the tabard's colour.
@@ -81,8 +84,10 @@ end
 -- @param tile Frame  the frame that owns the icon
 -- @param icon Texture
 -- @param on boolean
+-- @param path string|nil  the mask texture; defaults to Tiles.TILE_MASK (40px tiles)
 -- @return boolean  true when the icon is now masked; false without mask support
-function Echo.SetTileMask(tile, icon, on)
+function Echo.SetTileMask(tile, icon, on, path)
+    path = path or Tiles.TILE_MASK
     -- rawget: the test stand-ins answer unknown fields with a function.
     local mask = rawget(icon, "_echoMask")
     if on and not mask then
@@ -91,11 +96,14 @@ function Echo.SetTileMask(tile, icon, on)
         end
         mask = tile:CreateMaskTexture()
         if not mask then return false end
-        mask:SetTexture(Tiles.TILE_MASK, "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
         mask:SetAllPoints(icon)
         icon._echoMask = mask
     end
     if not mask then return false end
+    if on and rawget(icon, "_echoMaskPath") ~= path then
+        mask:SetTexture(path, "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+        icon._echoMaskPath = path
+    end
     local applied = rawget(icon, "_echoMasked") == true
     if on and not applied then
         icon:AddMaskTexture(mask)
@@ -455,6 +463,8 @@ end
 local function DragStart()
     if InCombatLockdown() or Echo.Setting("echoLockPosition") then return end
     column.moving = true
+    -- A drag that starts on the folded icon mustn't finish its hover's open delay.
+    if Echo.Collapse then Echo.Collapse.CancelOpen() end
     column:StartMoving()
 end
 
@@ -558,10 +568,8 @@ local function CreateColumn()
     Tiles.AddBadges(stackButton)
 
     plusButton = CreatePlusButton()
-    -- Collapse mode's clock: one OnUpdate drives its open and close delays and the slide.
-    column:SetScript("OnUpdate", function(self, elapsed)
-        if Echo.Collapse then Echo.Collapse.OnUpdate(self, elapsed) end
-    end)
+    -- Collapse mode's clock (the column's OnUpdate) is installed by Collapse.Layout, and
+    -- only while collapse is on.
 
     marker = CreateFrame("Button", nil, column)
     marker:SetSize(90, 16)
@@ -577,6 +585,35 @@ local function CreateColumn()
 
     overflowTile = CreateTile()
     overflowTile:Hide()
+end
+
+-- The badge the +N tile's hidden entries add up to, by the group rule: only a conversation
+-- with its own badge counts, a group through its members, and a dot among them wins.
+-- @param hidden table  View.Entries entries
+-- @return table  { badge = "dot"|"count"|nil, count = number }
+local function HiddenBadge(hidden)
+    local members = {}
+    for _, entry in ipairs(hidden) do
+        if entry.members then
+            for _, conv in ipairs(entry.members) do members[#members + 1] = conv end
+        else
+            members[#members + 1] = entry
+        end
+    end
+    local View = Echo.View
+    local out = { count = 0 }
+    for _, conv in ipairs(members) do
+        local badge = View.Badge(conv)
+        if badge then
+            out.count = out.count + (conv.unread or 0)
+            if badge == "dot" then
+                out.badge = "dot"
+            elseif out.badge == nil then
+                out.badge = "count"
+            end
+        end
+    end
+    return out
 end
 
 --- Redraw every tile from the Store. Cheap: at most echoMaxTiles + 1 frames.
@@ -601,7 +638,12 @@ function Tiles.Refresh()
         overflowTile.label:SetText("")
         overflowTile.labelShade:Hide()
         overflowTile:Show()
-        items[#items + 1] = { frame = overflowTile, y = SlotY(#items + 1) }
+        -- What the hidden entries would badge, for the Echo icon when this tile is folded
+        -- into it. Not a spec: keep-new mode keeps a tile with a spec badge out.
+        local hidden = {}
+        for i = #visible + 1, #entries do hidden[#hidden + 1] = entries[i] end
+        items[#items + 1] = { frame = overflowTile, y = SlotY(#items + 1),
+                              hidden = HiddenBadge(hidden) }
     else
         overflowTile.convKey = nil
         overflowTile:Hide()
@@ -692,6 +734,21 @@ local function ToastUpdate(self, elapsed)
     self:SetPoint(side.toast, self.anchor, side.toastRel, side.toastDir * (8 + offset), 0)
 end
 
+-- The toast's icon: an image face fills it, clipped to the small rounded mask, with no
+-- colour square or style chip around it; any other face (and a client without mask
+-- textures) keeps the colour square and the style's chip.
+local function PaintToastFace(f, entry, spec)
+    local image = Echo.SetTileMask(f, entry.face, Echo.IsImageFace(spec), Tiles.TILE_MASK_SMALL)
+    Echo.InsetTileIcon(entry.icon, entry.face, 0)
+    local face = { bg = entry.icon, icon = entry.face, letter = entry.letter, size = 14, smallSize = 9, flags = "" }
+    Echo.PaintTileFace(face, spec)
+    if image then
+        entry.icon:SetColorTexture(0, 0, 0, 0)
+        if entry.iconBg then entry.iconBg:Hide() end
+        if entry.iconDark then entry.iconDark:Hide() end
+    end
+end
+
 local function CreateToast()
     local f = CreateFrame("Button", nil, UIParent, "BackdropTemplate")
     f:SetSize(Tiles.TOAST_WIDTH, Tiles.TOAST_HEIGHT)
@@ -741,8 +798,6 @@ function Tiles.ShowToast(convKey)
     if not toast then CreateToast() end
     local entry = toast.entry
     local spec = View.TileSpec(conv)
-    local face = { bg = entry.icon, icon = entry.face, letter = entry.letter, size = 14, smallSize = 9, flags = "" }
-    Echo.PaintTileFace(face, spec)
     entry.title:SetText(View.DisplayName(conv))
     if msg.secret or Echo.IsSecret(msg.text) then
         entry.body:SetText(L["ECHO_NEW_MESSAGE"])
@@ -757,6 +812,8 @@ function Tiles.ShowToast(convKey)
             { textMode = "dual", iconSide = "left", iconSize = 28, iconGap = 8, iconBgPad = 2,
               scale = function(v) return v end })
     end
+    -- After the chrome: an image face takes away the colour chip the chrome just drew.
+    PaintToastFace(toast, entry, spec)
     toast:SetScale(column:GetScale())
     toast:SetFrameStrata(column:GetFrameStrata())
     toast.anchor = Tiles.TileFor(convKey) or stackButton
@@ -860,6 +917,7 @@ function Tiles.Column() return column end
 
 -- Test and debug handles.
 function Tiles._toast() return toast end
+function Tiles._paintToastFace(f, entry, spec) PaintToastFace(f, entry, spec) end
 function Tiles._overflow() return overflowTile end
 function Tiles._marker() return marker end
 function Tiles._stackButton() return stackButton end

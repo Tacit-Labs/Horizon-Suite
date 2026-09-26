@@ -340,6 +340,17 @@ function Stack.FollowShortcut(shortcut, text)
     end
 end
 
+-- The top card's 28px tile: an image face fills it, clipped to the small rounded mask, with
+-- no colour square behind it. Any other face, and a client without mask textures, keeps the
+-- colour square with the icon 2px inside it.
+local function PaintCardTile(c, spec)
+    local image = Echo.SetTileMask(c, c.tileIcon, Echo.IsImageFace(spec), Echo.Tiles.TILE_MASK_SMALL)
+    Echo.InsetTileIcon(c.tile, c.tileIcon, image and 0 or 2)
+    local face = { bg = c.tile, icon = c.tileIcon, letter = c.letter, size = 14, smallSize = 9, flags = "" }
+    Echo.PaintTileFace(face, spec)
+    if image then c.tile:SetColorTexture(0, 0, 0, 0) end
+end
+
 --- Redraw the stack from the Store around the current card, and mark that card read.
 function Stack.Render()
     if not root or not root:IsShown() then return end
@@ -370,8 +381,7 @@ function Stack.Render()
     currentKey = conv.key
     local spec = View.TileSpec(conv)
 
-    local face = { bg = card.tile, icon = card.tileIcon, letter = card.letter, size = 14, smallSize = 9, flags = "" }
-    Echo.PaintTileFace(face, spec)
+    PaintCardTile(card, spec)
     card.name:SetText(View.DisplayName(conv))
     card.name:SetTextColor(spec.r, spec.g, spec.b, 1)
     card.meta:SetText(View.Upper(View.MetaLine(conv, Echo.Store.Now())))
@@ -640,6 +650,7 @@ function Stack.Disable()
 end
 
 -- Test and debug handle.
+function Stack._paintCardTile(c, spec) PaintCardTile(c, spec) end
 function Stack._frames()
     return { root = root, card = card, edit = edit, more = more, behind = behind, rule = rule, notice = notice }
 end

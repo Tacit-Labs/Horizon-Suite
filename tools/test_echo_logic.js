@@ -9778,7 +9778,7 @@ run(`
   CT.tick(0.5)
   check("collapse: the close delay starts when the card hides", C.expanded == true, tostring(C.expanded))
   CT.tick(0.15)
-  check("collapse: and it folds after it", C.expanded == false, tostring(C.expanded))
+  check("collapse: and it folds after it (card)", C.expanded == false, tostring(C.expanded))
   CT.tick(1)
 
   CT.expand()
@@ -9790,7 +9790,7 @@ run(`
   CT.tick(0.5)
   check("collapse: the close delay starts when the stack hides", C.expanded == true, tostring(C.expanded))
   CT.tick(0.15)
-  check("collapse: and it folds after it", C.expanded == false, tostring(C.expanded))
+  check("collapse: and it folds after it (stack)", C.expanded == false, tostring(C.expanded))
   CT.tick(1)
 
   CT.expand()
@@ -9812,12 +9812,14 @@ run(`
   check("collapse off: the icon carries no badge", icon.dot.shown == false and icon.countPill.shown == false, "badge")
   check("collapse off: TileFor gives the tile", T.TileFor(keys[1]) == low, tostring(T.TileFor(keys[1])))
   check("collapse off: the column is full height", column.height == T.TilesBottom() + 3 * step - T.GAP, column.height)
-  CT.tick(5)
+  check("collapse off: the column's OnUpdate is removed", column.scripts.OnUpdate == nil, type(column.scripts.OnUpdate))
+  C.OnUpdate(column, 5)
   check("collapse off: the clock does nothing", low.shown and CT.y(low) == T.TilesBottom(), tostring(low.shown))
 
   -- And switching on while open snaps shut without animating.
   COLLAPSE_DB.echoCollapse = "all"
   T.Refresh()
+  check("collapse: switching on installs the column's OnUpdate again", type(column.scripts.OnUpdate) == "function", type(column.scripts.OnUpdate))
   check("collapse: switching on folds at once", low.shown == false and top.shown == false and C.progress == 0, tostring(low.shown))
   S.Reset()
 `, 'collapse-all');
@@ -10049,6 +10051,218 @@ run(`
   check("card tiles: without masks the inset and fill stay", Inset(oldRow.icon) == "TOPLEFT,3,-3,BOTTOMRIGHT,-3,3"
     and FillAlpha(oldRow) == V.GLYPH_BG[4], Inset(oldRow.icon))
 `, 'echo-tile-images');
+
+// --- Plan 13 final fixes: collapse drags, the OnUpdate, overflow unread, every tile masked --
+{
+  const big = fs.readFileSync(REPO + 'media/echo/tile_mask.tga');
+  let small = null;
+  try { small = fs.readFileSync(REPO + 'media/echo/tile_mask_small.tga'); } catch (e) { small = null; }
+  const ok = small !== null;
+  const px = (buf, x, y) => buf[18 + (y * 64 + x) * 4 + 3];
+  run(`check("small tile mask: the file exists", ${ok}, "missing")
+       check("small tile mask: the header matches tile_mask.tga's", ${ok && small.subarray(0, 18).equals(big.subarray(0, 18))}, "differs")
+       check("small tile mask: the same size and footer", ${ok && small.length === big.length && small.subarray(small.length - 26).equals(big.subarray(big.length - 26))}, "${ok ? small.length : 0}")
+       check("small tile mask: the corner is clear and the centre solid", ${ok && px(small, 0, 0) === 0 && px(small, 32, 32) === 255}, "?")
+       check("small tile mask: a wider corner than the 40px mask's", ${ok && px(small, 4, 4) === 0 && px(big, 4, 4) === 255}, "${ok ? px(small, 4, 4) : '?'}")
+       check("small tile mask: the edges' middles are solid", ${ok && px(small, 32, 0) === 255 && px(small, 0, 32) === 255}, "?")`, 'echo-tile-mask-small-file');
+}
+run(`
+  local Echo = HorizonSuite.Echo
+  local T, V, Card, K = Echo.Tiles, Echo.View, Echo.Card, Echo.Stack
+  local function MaskFrame(...)
+    local f = STUB_CREATE_FRAME(...)
+    f.maskCount = 0
+    f.CreateMaskTexture = function(self)
+      self.maskCount = self.maskCount + 1
+      local m = STUB_FRAME(self)
+      m.SetTexture = function(mm, path, h, v) mm.texture, mm.wrapH, mm.wrapV = path, h, v end
+      m.SetAllPoints = function(mm, rel) mm.allPoints = rel end
+      self.lastMask = m
+      return m
+    end
+    f.CreateTexture = function(self)
+      local t = STUB_FRAME(self)
+      t.masks, t.maskAdds = {}, 0
+      t.AddMaskTexture = function(tt, m) tt.maskAdds = tt.maskAdds + 1; tt.masks[m] = true end
+      t.RemoveMaskTexture = function(tt, m) tt.masks[m] = nil end
+      return t
+    end
+    return f
+  end
+  local function Inset(icon, rel)
+    local a, b = icon.points[1], icon.points[2]
+    if not a or not b then return "none" end
+    if rel and (a[2] ~= rel or b[2] ~= rel) then return "wrong anchor" end
+    return table.concat({ a[1], a[4], a[5], b[1], b[4], b[5] }, ",")
+  end
+  local function Masked(icon) return next(icon.masks) ~= nil end
+  local loot = { kind = "loot", key = "loot", unread = 0 }
+  local party = { kind = "party", key = "party", unread = 0 }
+  local expected = "Interface\\\\AddOns\\\\" .. (HorizonSuite.ADDON_NAME or "HorizonSuite") .. "\\\\media\\\\echo\\\\tile_mask_small.tga"
+  check("small tile mask: the path uses the addon folder", T.TILE_MASK_SMALL == expected, tostring(T.TILE_MASK_SMALL))
+
+  -- SetTileMask takes an optional path; the default stays the 40px mask.
+  CreateFrame = MaskFrame
+  local host = CreateFrame("Frame")
+  local icon = host:CreateTexture()
+  Echo.SetTileMask(host, icon, true)
+  check("tile mask path: the default is the 40px mask", host.lastMask.texture == T.TILE_MASK, tostring(host.lastMask.texture))
+  Echo.SetTileMask(host, icon, true, T.TILE_MASK_SMALL)
+  check("tile mask path: a new path re-textures the one mask", host.maskCount == 1 and host.lastMask.texture == T.TILE_MASK_SMALL,
+        tostring(host.lastMask.texture))
+  check("tile mask path: and it is still added once", icon.maskAdds == 1, icon.maskAdds)
+
+  -- The card's row tiles use the small mask.
+  local r = Card._newRowTile(UIParent)
+  Card._paintTile(r, V.TileSpec(loot), false)
+  check("card tiles: the row tile's mask is the small one", r.lastMask and r.lastMask.texture == T.TILE_MASK_SMALL,
+        r.lastMask and tostring(r.lastMask.texture))
+
+  -- The stack's card tile: the image fills the square, masked, with no colour behind it.
+  local function StackCard(make)
+    local c = make("Frame")
+    c.tile = c:CreateTexture()
+    c.tileIcon = c:CreateTexture()
+    c.letter = c:CreateFontString()
+    return c
+  end
+  local c = StackCard(MaskFrame)
+  K._paintCardTile(c, V.TileSpec(loot))
+  check("stack tile: an image fills the tile", Inset(c.tileIcon, c.tile) == "TOPLEFT,0,0,BOTTOMRIGHT,0,0", Inset(c.tileIcon, c.tile))
+  check("stack tile: masked with the small mask", Masked(c.tileIcon) and c.lastMask.texture == T.TILE_MASK_SMALL
+        and c.lastMask.allPoints == c.tileIcon, tostring(c.lastMask and c.lastMask.texture))
+  check("stack tile: no colour behind the image", c.tile.colorTexture and c.tile.colorTexture[4] == 0,
+        c.tile.colorTexture and c.tile.colorTexture[4])
+  K._paintCardTile(c, V.TileSpec(party))
+  check("stack tile: a glyph keeps its 2px inset", Inset(c.tileIcon, c.tile) == "TOPLEFT,2,-2,BOTTOMRIGHT,-2,2", Inset(c.tileIcon, c.tile))
+  check("stack tile: and its fill, unmasked", c.tile.colorTexture[4] == V.GLYPH_BG[4] and not Masked(c.tileIcon), c.tile.colorTexture[4])
+  local old = StackCard(STUB_CREATE_FRAME)
+  K._paintCardTile(old, V.TileSpec(loot))
+  check("stack tile: without masks the 2px inset and fill stay", Inset(old.tileIcon, old.tile) == "TOPLEFT,2,-2,BOTTOMRIGHT,-2,2"
+        and old.tile.colorTexture[4] > 0, Inset(old.tileIcon, old.tile))
+
+  -- The toast's icon: the same, and the style's colour chip goes for an image.
+  local function Toast(make)
+    local f = make("Button")
+    local e = { frame = f }
+    e.iconBg = f:CreateTexture(); e.iconBg:Show()
+    e.iconDark = f:CreateTexture(); e.iconDark:Show()
+    e.icon = f:CreateTexture()
+    e.face = f:CreateTexture()
+    e.letter = f:CreateFontString()
+    return f, e
+  end
+  local tf, te = Toast(MaskFrame)
+  T._paintToastFace(tf, te, V.TileSpec(loot))
+  check("toast icon: an image fills the icon", Inset(te.face, te.icon) == "TOPLEFT,0,0,BOTTOMRIGHT,0,0", Inset(te.face, te.icon))
+  check("toast icon: masked with the small mask", Masked(te.face) and tf.lastMask.texture == T.TILE_MASK_SMALL,
+        tostring(tf.lastMask and tf.lastMask.texture))
+  check("toast icon: no colour behind the image", te.icon.colorTexture and te.icon.colorTexture[4] == 0,
+        te.icon.colorTexture and te.icon.colorTexture[4])
+  check("toast icon: no coloured edge around it", te.iconBg.shown == false and te.iconDark.shown == false, "edge shown")
+  te.iconBg:Show(); te.iconDark:Show()
+  T._paintToastFace(tf, te, V.TileSpec(party))
+  check("toast icon: a glyph keeps its fill, unmasked", te.icon.colorTexture[4] == V.GLYPH_BG[4] and not Masked(te.face),
+        te.icon.colorTexture[4])
+  check("toast icon: and the style's chip", te.iconBg.shown == true and te.iconDark.shown == true, "hidden")
+  local of, oe = Toast(STUB_CREATE_FRAME)
+  T._paintToastFace(of, oe, V.TileSpec(loot))
+  check("toast icon: without masks it keeps today's look", Inset(oe.face, oe.icon) == "TOPLEFT,0,0,BOTTOMRIGHT,0,0"
+        and oe.icon.colorTexture[4] > 0 and oe.iconBg.shown == true, Inset(oe.face, oe.icon))
+  CreateFrame = STUB_CREATE_FRAME
+`, 'echo-tile-images-everywhere');
+
+run(`
+  local Echo = HorizonSuite.Echo
+  local S, T, C = Echo.Store, Echo.Tiles, Echo.Collapse
+  S.Reset()
+  CreateFrame = STUB_CREATE_FRAME
+  local db = { echoCollapse = "off" }
+  local saved = { getDB = HorizonSuite.GetDB, column = _G.HorizonSuiteEchoColumn, combat = InCombatLockdown }
+  HorizonSuite.GetDB = function(k, d) if db[k] ~= nil then return db[k] end return d end
+  InCombatLockdown = function() return false end
+  T.Enable()
+  local icon = T._stackButton()
+  local column = icon.parent
+  _G.HorizonSuiteEchoColumn = column
+  local over = false
+  column.IsMouseOver = function() return over end
+  S.Add({ convKey = "party", text = "pull", sender = "Tank-Horizon" })
+  T.Refresh()
+  check("collapse clock: no OnUpdate on the column while collapse is off", column.scripts.OnUpdate == nil, type(column.scripts.OnUpdate))
+  db.echoCollapse = "all"
+  T.Refresh()
+  check("collapse clock: collapsing installs it", type(column.scripts.OnUpdate) == "function", type(column.scripts.OnUpdate))
+  local function tick(dt) column.scripts.OnUpdate(column, dt) end
+
+  -- Dragging the folded icon never unfolds the column.
+  over = true
+  icon.scripts.OnEnter(icon)
+  tick(0.1)
+  icon.scripts.OnDragStart(icon)
+  check("collapse drag: the drag started", column.moving == true, tostring(column.moving))
+  -- DragStart itself drops the pending open, before any tick sees the drag.
+  column.moving = false
+  tick(0.2)
+  check("collapse drag: starting a drag drops the pending open", C.expanded == false, tostring(C.expanded))
+  column.moving = true
+  tick(0.1)
+  tick(1)
+  check("collapse drag: the column stays folded through a drag", C.expanded == false, tostring(C.expanded))
+  icon.scripts.OnEnter(icon)
+  tick(0.2)
+  tick(1)
+  check("collapse drag: re-entering the icon mid-drag doesn't unfold it", C.expanded == false, tostring(C.expanded))
+  column.moving = false
+  tick(0.2)
+  tick(1)
+  check("collapse drag: nor does a wait left over from the drag", C.expanded == false, tostring(C.expanded))
+  icon.scripts.OnLeave(icon)
+  icon.scripts.OnEnter(icon)
+  tick(0.2)
+  check("collapse drag: a fresh hover after the drag unfolds it", C.expanded == true, tostring(C.expanded))
+  over = false
+  icon.scripts.OnLeave(icon)
+  tick(1)
+  tick(1)
+
+  -- The +N overflow's hidden conversations add their unread to the folded icon's badge.
+  S.Reset()
+  db.echoMaxTiles = 2
+  S.Add({ convKey = "officer", text = "o", sender = "Off-Horizon" })
+  S.Add({ convKey = "party", text = "a", sender = "Tank-Horizon" })
+  S.Add({ convKey = "party", text = "b", sender = "Tank-Horizon" })
+  S.Add({ convKey = "raid", text = "c", sender = "Lead-Horizon" })
+  S.Add({ convKey = "raid", text = "d", sender = "Lead-Horizon" })
+  S.Add({ convKey = "raid", text = "e", sender = "Lead-Horizon" })
+  S.Add({ convKey = "guild", text = "gz", sender = "Guildie-Horizon" })
+  local toast = T._toast()
+  if toast then toast:Hide() end
+  T.Refresh()
+  check("collapse overflow: the set-up has a +N tile", T._overflow().shown ~= nil and T._overflow().convKey ~= nil, "no overflow")
+  check("collapse overflow: the hidden conversations' counts reach the icon", icon.countPill.shown == true and icon.count.text == "5",
+        tostring(icon.count.text))
+  check("collapse overflow: a quiet hidden conversation adds nothing, and no dot", icon.dot.shown == false, "dot")
+  S.Add({ convKey = "w:Brisa-Horizon", text = "hi", sender = "Brisa-Horizon" })
+  S.Add({ convKey = "guild", text = "again", sender = "Guildie-Horizon" })
+  toast = T._toast()
+  if toast then toast:Hide() end
+  T.Refresh()
+  check("collapse overflow: a dot among the hidden makes the icon's badge a dot", icon.dot.shown == true and icon.countPill.shown == false,
+        tostring(icon.dot.shown) .. "/" .. tostring(icon.countPill.shown))
+
+  db.echoCollapse = "off"
+  db.echoMaxTiles = nil
+  T.Refresh()
+  check("collapse clock: switching off removes the OnUpdate", column.scripts.OnUpdate == nil, type(column.scripts.OnUpdate))
+  check("collapse overflow: off, the icon carries no badge", icon.dot.shown == false and icon.countPill.shown == false, "badge")
+  T.Disable()
+  column.IsMouseOver = nil
+  column.moving = nil
+  HorizonSuite.GetDB, InCombatLockdown = saved.getDB, saved.combat
+  _G.HorizonSuiteEchoColumn = saved.column
+  S.Reset()
+`, 'collapse-final-fixes');
 
 // --- Redraw: one repaint per frame -------------------------------------------
 run(`
