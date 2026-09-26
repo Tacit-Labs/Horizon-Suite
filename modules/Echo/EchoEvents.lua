@@ -26,7 +26,12 @@ local OUTGOING_EVENTS = {
     CHAT_MSG_WHISPER_INFORM    = true,
     CHAT_MSG_BN_WHISPER_INFORM = true,
 }
-local MENTION_KINDS = { party = true, raid = true, instance = true }
+local MENTION_KINDS = { party = true, raid = true, instance = true, nearby = true }
+
+-- NPC speech (Nearby): never yours, and the speaker is a creature's name, not "Name-Realm".
+local NPC_EVENTS = {
+    CHAT_MSG_MONSTER_SAY = true, CHAT_MSG_MONSTER_YELL = true, CHAT_MSG_MONSTER_EMOTE = true,
+}
 
 --- "Name" -> "Name-Realm"; a name that already carries a realm is unchanged.
 -- @param name string
@@ -171,9 +176,13 @@ function Events.BuildRecord(event, text, sender, _, _, _, _, zoneChannelID, chan
     local convKey = Store.KeyFor(kind, id)
     if not convKey then return nil, "unrouted" end
 
-    local senderKey = (kind ~= "bnet") and Events.NormaliseName(sender) or nil
+    local npc = NPC_EVENTS[event] == true
+    local senderKey = (kind ~= "bnet" and not npc) and Events.NormaliseName(sender) or nil
     local outgoing = OUTGOING_EVENTS[event] == true
-    if not outgoing and kind ~= "whisper" and kind ~= "bnet" then
+    if npc then
+        -- An NPC's name is kept as it reads; a secret or empty one is dropped.
+        if not IsSecret(sender) and type(sender) == "string" and sender ~= "" then senderKey = sender end
+    elseif not outgoing and kind ~= "whisper" and kind ~= "bnet" then
         if senderKey ~= nil then
             outgoing = senderKey == Events.PlayerKey()
         else
@@ -183,12 +192,20 @@ function Events.BuildRecord(event, text, sender, _, _, _, _, zoneChannelID, chan
     end
 
     local textSecret = IsSecret(text)
+    -- An NPC emote arrives as "%s goes into a frenzy!": fill in the speaker, as Blizzard's
+    -- chat does, or "Someone" when the name can't be read.
+    if event == "CHAT_MSG_MONSTER_EMOTE" and not textSecret and type(text) == "string"
+        and text:find("%s", 1, true) then
+        local ok, formatted = pcall(string.format, text, senderKey or addon.L["ECHO_SOMEONE"])
+        if ok then text = formatted end
+    end
     local record = {
         convKey  = convKey,
         text     = text,
         secret   = textSecret,
         outgoing = outgoing,
-        class    = (not outgoing) and ClassFromGUID(guid) or nil,
+        class    = (not outgoing and not npc) and ClassFromGUID(guid) or nil,
+        style    = Store.NEARBY_STYLE[event],
         time     = Store.Now(),
     }
     -- A whisper to yourself arrives twice: the received copy, then the sent echo.

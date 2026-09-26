@@ -34,6 +34,7 @@ addon.ECHO_DEFAULTS = {
     echoTierGuild          = "quiet",
     echoTierOfficer        = "quiet",
     echoTierChannel        = "quiet",
+    echoTierNearby         = "quiet",
     echoTierLoot           = "quiet",
     echoTierProgress       = "quiet",
     echoTierSystem         = "quiet",

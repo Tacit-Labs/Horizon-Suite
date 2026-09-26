@@ -59,12 +59,17 @@ Card.LINK_WINDOW = 0.3  -- seconds: a link click this close to a right-click kee
 Card.PIN_CLEAR = Card.PIN_INSET + Card.PIN_MARK + 2
 Card.PIN_TEXTURE = "Interface\\AddOns\\" .. (addon.ADDON_NAME or "HorizonSuite") .. "\\media\\echo\\pin.tga"
 
+Card.MODE_WIDTH = 42   -- Nearby's Say / Yell / Emote chip at the left end of the reply box
+Card.EDIT_INSET = 8    -- the reply box's own text inset
+
 local root, nameText, metaText, area, edit, send, menuButton, chevron, statusLine, hint, rule
+local modeChip
 local rowTiles, bubbles, labels, tabs = {}, {}, {}, {}
 local tabStrip, pinStrip
 -- Forward-declared: Create()'s OnHide handler (defined further down) needs to stop the
 -- genie, which is defined later in the file.
 local StopEffects
+local PaintMode  -- defined beside Card.Render
 local currentKey, renderedKey
 local groupIndex      -- the group the card shows, or nil for a lone conversation
 local selected = {}   -- group index -> the member last selected there this session
@@ -379,6 +384,19 @@ local function Create()
     edit.placeholder = Echo.NewText(edit, 12, "")
     edit.placeholder:SetPoint("LEFT", edit, "LEFT", 8, 0)
     edit.placeholder:SetTextColor(0.5, 0.52, 0.6, 1)
+    edit._leftInset = Card.EDIT_INSET
+
+    -- Nearby's send mode: a click steps Say -> Yell -> Emote -> Say. Shown on Nearby only.
+    modeChip = CreateFrame("Button", nil, edit)
+    modeChip:SetSize(Card.MODE_WIDTH, 22)
+    modeChip:SetPoint("LEFT", edit, "LEFT", 4, 0)
+    Paint(modeChip, { a.r, a.g, a.b, 0.22 }, nil, Echo.Round.SMALL, false)
+    modeChip.text = Echo.NewText(modeChip, 10, "")
+    modeChip.text:SetPoint("CENTER", modeChip, "CENTER", 0, 0)
+    modeChip.text:SetTextColor(0.92, 0.93, 0.98, 1)
+    modeChip:RegisterForClicks("LeftButtonUp")
+    modeChip:SetScript("OnClick", function() Card.CycleMode() end)
+    modeChip:Hide()
     edit:SetScript("OnEnterPressed", function(self)
         if self:GetText() == "" then
             self:ClearFocus()
@@ -514,7 +532,7 @@ end
 
 -- Lay out one feed line across the card: time, then (when pinned) the pin marker, then
 -- text. Readable text is measured; a secret gets a fixed number of lines. Returns its height.
-local function SizeFeedLine(b, msg, secret, pinned)
+local function SizeFeedLine(b, msg, secret, pinned, text)
     local width = Card.WIDTH - Card.PAD * 2
     local left = Card.FEED_TIME_WIDTH + (pinned and (Card.PIN_MARK + 3) or 0)
     b.time:SetText(Echo.View.FeedTime(msg.time))
@@ -530,7 +548,8 @@ local function SizeFeedLine(b, msg, secret, pinned)
     b.text:SetPoint("TOPLEFT", b, "TOPLEFT", left, -3)
     b.text:SetWidth(width - left - 4)
     b.text:SetMaxLines(secret and Card.SECRET_LINES or 0)
-    b.text:SetText(msg.text)
+    if text == nil then text = msg.text end
+    b.text:SetText(text)
     local height
     if secret then
         height = Card.SECRET_LINES * (Card.TEXT_SIZE + 3)
@@ -625,52 +644,75 @@ local function RenderMessages(conv)
         bubble.msgKey, bubble.msg = conv.key, msg
         local secret = msg.secret or Echo.IsSecret(msg.text)
         local pinned = Pinned(msg)
-        local markSide = pinned and (msg.outgoing and "left" or "right") or nil
-        local height = SizeBubble(bubble, msg.text, secret, markSide)
-        Mark(bubble, pinned, msg.outgoing)
-        bubble:ClearAllPoints()
-        local Round = Echo.Round
-        local ends = EndsGroup(messages, i)
-        if msg.outgoing then
-            bubble:SetPoint("BOTTOMRIGHT", area, "BOTTOMRIGHT", 0, y)
-            local dimmed = msg.status == "pending" or msg.status == "retried"
-            Echo.Round.SetColor(bubble, a.r, a.g, a.b, dimmed and 0.14 or 0.24)
-            if ends then
-                Round.SetCorners(bubble, Round.BUBBLE, Round.BUBBLE, Round.BUBBLE, Round.TIGHT)
-            else
-                Round.SetCorners(bubble, Round.BUBBLE, Round.BUBBLE, Round.BUBBLE, Round.BUBBLE)
-            end
+        if View.IsEmoteLine(msg) then
+            -- A Nearby emote: a full-width line in its emote colour, like a feed line.
+            local height = SizeFeedLine(bubble, msg, secret, pinned, View.LineText(conv, msg))
+            bubble:ClearAllPoints()
+            bubble:SetPoint("BOTTOMLEFT", area, "BOTTOMLEFT", 0, y)
+            Echo.Round.SetColor(bubble, 0, 0, 0, 0)
             if msg.status == "failed" then
                 bubble.text:SetTextColor(1, 0.45, 0.45, 1)
             else
-                bubble.text:SetTextColor(0.92, 0.93, 0.98, 1)
+                local lr, lg, lb = View.LineColor(conv, msg)
+                bubble.text:SetTextColor(lr, lg, lb, 1)
             end
+            bubble:Show()
+            y = y + height + (View.StartsGroup(messages, i) and Card.GROUP_GAP or Card.GAP)
         else
-            bubble:SetPoint("BOTTOMLEFT", area, "BOTTOMLEFT", 0, y)
-            Echo.Round.SetColor(bubble, 0.11, 0.11, 0.15, 0.95)
-            if ends then
-                Round.SetCorners(bubble, Round.BUBBLE, Round.BUBBLE, Round.TIGHT, Round.BUBBLE)
+            local markSide = pinned and (msg.outgoing and "left" or "right") or nil
+            local height = SizeBubble(bubble, msg.text, secret, markSide)
+            Mark(bubble, pinned, msg.outgoing)
+            bubble:ClearAllPoints()
+            local Round = Echo.Round
+            local ends = EndsGroup(messages, i)
+            if msg.outgoing then
+                bubble:SetPoint("BOTTOMRIGHT", area, "BOTTOMRIGHT", 0, y)
+                local dimmed = msg.status == "pending" or msg.status == "retried"
+                Echo.Round.SetColor(bubble, a.r, a.g, a.b, dimmed and 0.14 or 0.24)
+                if ends then
+                    Round.SetCorners(bubble, Round.BUBBLE, Round.BUBBLE, Round.BUBBLE, Round.TIGHT)
+                else
+                    Round.SetCorners(bubble, Round.BUBBLE, Round.BUBBLE, Round.BUBBLE, Round.BUBBLE)
+                end
+                if msg.status == "failed" then
+                    bubble.text:SetTextColor(1, 0.45, 0.45, 1)
+                elseif msg.style == "yell" then
+                    -- Your own yell reads as a yell too.
+                    local lr, lg, lb = View.LineColor(conv, msg)
+                    bubble.text:SetTextColor(lr, lg, lb, 1)
+                else
+                    bubble.text:SetTextColor(0.92, 0.93, 0.98, 1)
+                end
             else
-                Round.SetCorners(bubble, Round.BUBBLE, Round.BUBBLE, Round.BUBBLE, Round.BUBBLE)
+                bubble:SetPoint("BOTTOMLEFT", area, "BOTTOMLEFT", 0, y)
+                Echo.Round.SetColor(bubble, 0.11, 0.11, 0.15, 0.95)
+                if ends then
+                    Round.SetCorners(bubble, Round.BUBBLE, Round.BUBBLE, Round.TIGHT, Round.BUBBLE)
+                else
+                    Round.SetCorners(bubble, Round.BUBBLE, Round.BUBBLE, Round.BUBBLE, Round.BUBBLE)
+                end
+                -- A Nearby line takes its own style's colour (Say, Yell, NPC).
+                local lr, lg, lb = r, g, b
+                if msg.style then lr, lg, lb = View.LineColor(conv, msg) end
+                bubble.text:SetTextColor(lr, lg, lb, 1)
             end
-            bubble.text:SetTextColor(r, g, b, 1)
+            bubble:Show()
+            y = y + height
+            local startsGroup = View.StartsGroup(messages, i)
+            local name = isGroup and not msg.outgoing and View.SenderName(msg) or nil
+            if startsGroup and name then
+                usedLabels = usedLabels + 1
+                local label = Label(usedLabels)
+                label:SetText(name)
+                local cr, cg, cb = View.ClassColor(msg.class)
+                label:SetTextColor(cr or r, cg or g, cb or b, 1)
+                label:ClearAllPoints()
+                label:SetPoint("BOTTOMLEFT", area, "BOTTOMLEFT", 2, y + 2)
+                label:Show()
+                y = y + Card.LINE_HEIGHT
+            end
+            y = y + (startsGroup and Card.GROUP_GAP or Card.GAP)
         end
-        bubble:Show()
-        y = y + height
-        local startsGroup = View.StartsGroup(messages, i)
-        if startsGroup and isGroup and not msg.outgoing
-            and not Echo.IsSecret(msg.sender) and type(msg.sender) == "string" then
-            usedLabels = usedLabels + 1
-            local label = Label(usedLabels)
-            label:SetText(msg.sender:match("^([^-]+)") or msg.sender)
-            local cr, cg, cb = View.ClassColor(msg.class)
-            label:SetTextColor(cr or r, cg or g, cb or b, 1)
-            label:ClearAllPoints()
-            label:SetPoint("BOTTOMLEFT", area, "BOTTOMLEFT", 2, y + 2)
-            label:Show()
-            y = y + Card.LINE_HEIGHT
-        end
-        y = y + (startsGroup and Card.GROUP_GAP or Card.GAP)
     end
     for j = used + 1, #bubbles do bubbles[j]:Hide() end
     for j = usedLabels + 1, #labels do labels[j]:Hide() end
@@ -916,6 +958,32 @@ local function Target(key)
 end
 
 --- Redraw the card around its conversation, and mark that conversation read.
+-- Nearby's send-mode chip: shown, labelled with the current mode, and the reply box's text
+-- moved right to clear it; every other conversation gets the plain inset back.
+local MODE_LABEL = { SAY = "ECHO_MODE_SAY", YELL = "ECHO_MODE_YELL", EMOTE = "ECHO_MODE_EMOTE" }
+function PaintMode(conv)
+    local nearby = conv.kind == "nearby"
+    local inset = Card.EDIT_INSET
+    if nearby then
+        modeChip.text:SetText(L[MODE_LABEL[Echo.Store.SendModeOf(conv.key)]])
+        inset = 4 + Card.MODE_WIDTH + 6
+    end
+    modeChip:SetShown(nearby)
+    edit._leftInset = inset
+    edit:SetTextInsets(inset, Card.EDIT_INSET, 0, 0)
+    edit.placeholder:ClearAllPoints()
+    edit.placeholder:SetPoint("LEFT", edit, "LEFT", inset, 0)
+end
+
+--- The mode chip: step the shown Nearby conversation's send mode Say -> Yell -> Emote -> Say.
+local NEXT_MODE = { SAY = "YELL", YELL = "EMOTE", EMOTE = "SAY" }
+function Card.CycleMode()
+    local conv = renderedKey and Echo.Store.Get(renderedKey)
+    if not conv or conv.kind ~= "nearby" then return end
+    Echo.Store.SetSendMode(conv.key, NEXT_MODE[Echo.Store.SendModeOf(conv.key)])
+    PaintMode(conv)
+end
+
 function Card.Render()
     if not root or not root:IsShown() then return end
     local View, Store = Echo.View, Echo.Store
@@ -987,6 +1055,7 @@ function Card.Render()
     else
         edit.placeholder:SetText(L["ECHO_REPLY"])
     end
+    PaintMode(conv)
     edit.placeholder:SetShown(edit:GetText() == "" and not edit:HasFocus())
 
     -- Feeds are read-only: no reply box or send button.
@@ -1209,7 +1278,20 @@ end
 -- Show the hint raised above the message area, so it never sits under a bubble, with its
 -- text set to the given count.
 local function ShowHint(n)
+    hint:SetSize(90, 20)
+    hint.text:SetWidth(0)
     hint.text:SetText(L["ECHO_NEW_BELOW"]:format(n))
+    hint:SetFrameLevel(area:GetFrameLevel() + 5)
+    hint:Show()
+end
+
+-- The game refused a Nearby send: say why in the hint, widened to hold the sentence.
+-- A click dismisses it (and, as for the count, returns to the newest message).
+local function ShowBlockedHint()
+    local width = Card.WIDTH - Card.PAD * 2 - 16
+    hint:SetSize(width, 38)
+    hint.text:SetWidth(width - 16)
+    hint.text:SetText(L["ECHO_SEND_BLOCKED_NEARBY"])
     hint:SetFrameLevel(area:GetFrameLevel() + 5)
     hint:Show()
 end
@@ -1317,8 +1399,10 @@ function Card.Submit()
     -- A send that can't route keeps its text in the box, so nothing typed is lost. Nothing
     -- was filed either, so no Store change follows to repaint the view around offset 0:
     -- render explicitly so the card doesn't stay showing the scrolled-up messages.
-    if Echo.Send.Send(currentKey, text) then
+    local sent, problem = Echo.Send.Send(currentKey, text)
+    if sent then
         edit:SetText("")
+        if problem == "blocked" then ShowBlockedHint() end
     else
         Card.Render()
     end
@@ -1328,7 +1412,9 @@ end
 -- @param msg table  the failed record
 function Card.Retry(msg)
     if not currentKey or not msg or msg.status ~= "failed" then return end
-    if Echo.Send.Send(currentKey, msg.text) then
+    local sent, problem = Echo.Send.Send(currentKey, msg.text)
+    if sent then
+        if problem == "blocked" then ShowBlockedHint() end
         -- Send.Send's own Store.AddPending already marked "card" (of the newly filed
         -- part, still "failed" here); mark it again now that this message reads
         -- "retried" so its bubble picks up the dimmed styling once repainted.
@@ -1418,7 +1504,7 @@ end
 function Card._frames()
     return {
         root = root, rowTiles = rowTiles, name = nameText, meta = metaText, area = area,
-        edit = edit, send = send, menu = menuButton, chevron = chevron,
+        edit = edit, send = send, mode = modeChip, menu = menuButton, chevron = chevron,
         bubbles = bubbles, labels = labels, status = statusLine, hint = hint, rule = rule,
         tabs = tabs, tabStrip = tabStrip, pinStrip = pinStrip,
     }

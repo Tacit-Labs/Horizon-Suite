@@ -125,6 +125,7 @@ local options = {
     TierDropdown("guild",    L["ECHO_KIND_GUILD"]),
     TierDropdown("officer",  L["ECHO_KIND_OFFICER"]),
     TierDropdown("channel",  L["ECHO_KIND_CHANNEL"]),
+    TierDropdown("nearby",   L["ECHO_NEARBY"]),
 
     Section(L["ECHO_SECTION_FEEDS"]),
 }

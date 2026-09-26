@@ -32,6 +32,7 @@ Store.DEFAULT_TIERS = {
     party   = "count", raid = "count", instance = "count",
     guild   = "quiet", officer = "quiet", channel = "quiet",
     loot = "quiet", progress = "quiet", system = "quiet",
+    nearby = "quiet",
 }
 Store.VALID_TIERS = { loud = true, count = true, quiet = true, muted = true }
 
@@ -61,6 +62,25 @@ Store.EVENT_KIND = {
     CHAT_MSG_GUILD_ACHIEVEMENT     = "progress",
     CHAT_MSG_SYSTEM                = "system",
     BN_INLINE_TOAST_ALERT          = "system",
+    -- Nearby (plan 11): speech you hear where you stand, players' and NPCs'.
+    CHAT_MSG_SAY                   = "nearby",
+    CHAT_MSG_YELL                  = "nearby",
+    CHAT_MSG_EMOTE                 = "nearby",
+    CHAT_MSG_TEXT_EMOTE            = "nearby",
+    CHAT_MSG_MONSTER_SAY           = "nearby",
+    CHAT_MSG_MONSTER_YELL          = "nearby",
+    CHAT_MSG_MONSTER_EMOTE         = "nearby",
+}
+
+-- The style each Nearby event files its line with; EchoView colours and lays out by it.
+Store.NEARBY_STYLE = {
+    CHAT_MSG_SAY           = "say",
+    CHAT_MSG_YELL          = "yell",
+    CHAT_MSG_EMOTE         = "emote",
+    CHAT_MSG_TEXT_EMOTE    = "textemote",
+    CHAT_MSG_MONSTER_SAY   = "npc",
+    CHAT_MSG_MONSTER_YELL  = "npcyell",
+    CHAT_MSG_MONSTER_EMOTE = "npcemote",
 }
 
 -- Always-persisted kinds. Kept as the base table so existing readers still work; guild and
@@ -101,6 +121,7 @@ Store.FEED_KINDS = { loot = true, progress = true, system = true }
 
 local conversations = {}
 local overrides = {}
+local sendModes = {}  -- convKey -> "YELL" | "EMOTE"; in memory only, Say when unset
 local kindTiers = {}
 local listeners = {}
 local unrouted = 0
@@ -492,9 +513,11 @@ end
 --- File an outgoing message before the server confirms it.
 -- @param convKey string
 -- @param text string
+-- @param style string|nil  a Nearby line's style ("say", "yell", "emote"), so it is drawn
+--   as it will read once sent
 -- @return table|nil record  status "pending"
-function Store.AddPending(convKey, text)
-    local record = { convKey = convKey, text = text, outgoing = true, status = "pending" }
+function Store.AddPending(convKey, text, style)
+    local record = { convKey = convKey, text = text, outgoing = true, status = "pending", style = style }
     if not Store.Add(record) then return nil end
     return record
 end
@@ -627,10 +650,32 @@ function Store.Restore(keys)
     return restored
 end
 
+-- The chat types a conversation's send mode may take (Nearby's mode chip).
+Store.SEND_MODES = { SAY = true, YELL = true, EMOTE = true }
+
+--- Set how a conversation sends: "SAY", "YELL" or "EMOTE". In memory only, so a reload
+-- starts on Say again.
+-- @param convKey string
+-- @param mode string
+-- @return boolean accepted
+function Store.SetSendMode(convKey, mode)
+    if type(convKey) ~= "string" or not Store.SEND_MODES[mode] then return false end
+    sendModes[convKey] = (mode ~= "SAY") and mode or nil
+    return true
+end
+
+--- A conversation's send mode, "SAY" unless it was changed this session.
+-- @param convKey string
+-- @return string
+function Store.SendModeOf(convKey)
+    return sendModes[convKey] or "SAY"
+end
+
 --- Forget every conversation (module disable, tests). Listeners and history are kept.
 function Store.Reset()
     conversations = {}
     overrides = {}
+    sendModes = {}
     unrouted = 0
     seq = 0
     Notify(nil, "reset")

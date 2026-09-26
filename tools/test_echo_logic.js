@@ -542,7 +542,7 @@ run(`
   UnitGUID = savedUnitGUID
   S.Reset()
 
-  none, reason = E.BuildRecord("CHAT_MSG_SAY", payload("hi", "A-B"))
+  none, reason = E.BuildRecord("CHAT_MSG_AFK", payload("hi", "A-B"))
   check("non-Echo event is ignored", none == nil and reason == "ignored", reason)
 
   S.Reset()
@@ -6523,6 +6523,249 @@ run(`
   check("Keep history for drops the old wording", not has("ECHO_HISTORY_DAYS_DESC", "A pinned conversation"), EN.ECHO_HISTORY_DAYS_DESC)
   check("Keep history for still says when it takes effect", has("ECHO_HISTORY_DAYS_DESC", "next login"), EN.ECHO_HISTORY_DAYS_DESC)
 `, 'echo-copy');
+
+// --- Nearby: say, yell, emotes and NPC speech (plan 11, Task 1) --------------------------
+run(`
+  local Echo = HorizonSuite.Echo
+  local S, E, V, Send = Echo.Store, Echo.Events, Echo.View, Echo.Send
+  S.Reset()
+  local function payload(text, sender, guid)
+    return text, sender, nil, nil, nil, nil, nil, nil, nil, nil, nil, guid, nil
+  end
+  local styles = {
+    CHAT_MSG_SAY = "say", CHAT_MSG_YELL = "yell", CHAT_MSG_EMOTE = "emote",
+    CHAT_MSG_TEXT_EMOTE = "textemote", CHAT_MSG_MONSTER_SAY = "npc",
+    CHAT_MSG_MONSTER_YELL = "npcyell", CHAT_MSG_MONSTER_EMOTE = "npcemote",
+  }
+  for event, style in pairs(styles) do
+    local r = E.BuildRecord(event, payload("hello there", "Brisa"))
+    check("nearby: " .. event .. " routes to nearby", r and r.convKey == "nearby", r and r.convKey)
+    check("nearby: " .. event .. " carries style " .. style, r and r.style == style, r and r.style)
+    check("nearby: " .. event .. " is not a feed line", r and not r.feed, "feed")
+  end
+  check("nearby: the kind is valid and quiet by default", S.KindOf("nearby") == "nearby" and S.DEFAULT_TIERS.nearby == "quiet",
+        tostring(S.DEFAULT_TIERS.nearby))
+  check("nearby: never persisted", S.IsPersisted("nearby") == false, "persisted")
+  check("nearby: not a feed", not S.FEED_KINDS.nearby, "feed")
+  check("nearby: never groupable", (function()
+    HorizonSuite.GetDB = function(k, d)
+      if k == "echoGroupsEnabled" then return true end
+      if k == "echoGroupNames" then return { "Chat" } end
+      if k == "echoGroupOf" then return { nearby = 1 } end
+      return d
+    end
+    local g = Echo.Groups.Of("nearby")
+    HorizonSuite.GetDB = nil
+    return g == nil end)(), "grouped")
+
+  local r = E.BuildRecord("CHAT_MSG_SAY", payload("hi all", "Brisa"))
+  check("nearby: a say line names its sender", r.sender == "Brisa-Horizon" and r.outgoing == false, r.sender)
+  r = E.BuildRecord("CHAT_MSG_SAY", payload("hi all", "Kaelis"))
+  check("nearby: your own say is outgoing", r.outgoing == true, tostring(r.outgoing))
+  r = E.BuildRecord("CHAT_MSG_MONSTER_SAY", payload("You there!", "Kaelis"))
+  check("nearby: an NPC line is never outgoing", r.outgoing == false, tostring(r.outgoing))
+  r = E.BuildRecord("CHAT_MSG_MONSTER_YELL", payload("Intruders!", "Hogger"))
+  check("nearby: an NPC line keeps the NPC's name", r.sender == "Hogger", r.sender)
+  r = E.BuildRecord("CHAT_MSG_MONSTER_SAY", payload("Hmm.", SECRET("Hogger")))
+  check("nearby: a secret NPC name is not kept", r.sender == nil, tostring(r.sender))
+  r = E.BuildRecord("CHAT_MSG_MONSTER_EMOTE", payload("%s goes into a frenzy!", "Hogger"))
+  check("nearby: an NPC emote names its speaker", r.text == "Hogger goes into a frenzy!", r.text)
+  r = E.BuildRecord("CHAT_MSG_MONSTER_EMOTE", payload("%s roars!", SECRET("Hogger")))
+  check("nearby: an NPC emote with a secret speaker says Someone", r.text == "ECHO_SOMEONE roars!", r.text)
+  r = E.BuildRecord("CHAT_MSG_SAY", payload("hey Kaelis", "Brisa"))
+  check("nearby: a mention of your name is urgent", r.urgent == true, tostring(r.urgent))
+  S.SetKindTier("nearby", "count")
+  E.Dispatch("CHAT_MSG_SAY", payload("Kaelis, over here", "Brisa"))
+  check("nearby: a mention on a count tier toasts", S.Get("nearby").lastLoud > 0, S.Get("nearby").lastLoud)
+  S.SetKindTier("nearby", nil)
+
+  local registered = {}
+  E.Enable()
+  local fr = E._frame()
+  local savedRegister = fr.RegisterEvent
+  fr.RegisterEvent = function(_, ev)
+    if ev == "CHAT_MSG_MONSTER_EMOTE" then error("unknown event") end
+    registered[ev] = true
+  end
+  E.Enable()
+  check("nearby: say, yell and emote events are registered",
+        registered.CHAT_MSG_SAY and registered.CHAT_MSG_YELL and registered.CHAT_MSG_EMOTE
+        and registered.CHAT_MSG_TEXT_EMOTE and registered.CHAT_MSG_MONSTER_SAY and registered.CHAT_MSG_MONSTER_YELL, "missing")
+  check("nearby: an event the client lacks is skipped, the rest still register", registered.CHAT_MSG_WHISPER == true, "aborted")
+  E.Disable()
+  fr.RegisterEvent = savedRegister
+  S.Reset()
+
+  -- Display helpers.
+  local savedInfo = ChatTypeInfo
+  ChatTypeInfo = { SAY = { r = 1, g = 1, b = 1 }, YELL = { r = 1, g = 0.25, b = 0.25 }, EMOTE = { r = 1, g = 0.5, b = 0.25 },
+                   MONSTER_SAY = { r = 1, g = 1, b = 0.62 }, MONSTER_YELL = { r = 0.9, g = 0.2, b = 0.2 },
+                   MONSTER_EMOTE = { r = 0.9, g = 0.45, b = 0.2 } }
+  S.Add({ convKey = "nearby", text = "hi", sender = "Brisa-Horizon", style = "say" })
+  local conv = S.Get("nearby")
+  local spec = V.TileSpec(conv)
+  check("nearby: tile has the icon face", spec.face == "icon" and spec.icon == "Interface\\\\Icons\\\\Ability_Warrior_BattleShout", spec.icon)
+  check("nearby: tile label", spec.label == "ECHO_NEARBY_SHORT", spec.label)
+  check("nearby: tile uses the Say colour", spec.r == 1 and spec.g == 1 and spec.b == 1, spec.g)
+  check("nearby: card title", V.DisplayName(conv) == "ECHO_NEARBY", V.DisplayName(conv))
+
+  local function color(msg) local r, g, b = V.LineColor(conv, msg) return r .. "," .. g .. "," .. b end
+  check("nearby: yell colour", color({ style = "yell" }) == "1,0.25,0.25", color({ style = "yell" }))
+  check("nearby: emote colour", color({ style = "emote" }) == "1,0.5,0.25", color({ style = "emote" }))
+  check("nearby: text emote uses the emote colour", color({ style = "textemote" }) == "1,0.5,0.25", color({ style = "textemote" }))
+  check("nearby: NPC say colour", color({ style = "npc" }) == "1,1,0.62", color({ style = "npc" }))
+  check("nearby: NPC yell colour", color({ style = "npcyell" }) == "0.9,0.2,0.2", color({ style = "npcyell" }))
+  check("nearby: NPC emote colour", color({ style = "npcemote" }) == "0.9,0.45,0.2", color({ style = "npcemote" }))
+  ChatTypeInfo = nil
+  check("nearby: a yell colour without ChatTypeInfo falls back", color({ style = "yell" }) == "1,0.25,0.25", color({ style = "yell" }))
+  ChatTypeInfo = savedInfo
+
+  check("nearby: an emote line reads name then text",
+        V.LineText(conv, { style = "emote", text = "waves.", sender = "Brisa-Horizon" }) == "Brisa waves.",
+        V.LineText(conv, { style = "emote", text = "waves.", sender = "Brisa-Horizon" }))
+  check("nearby: a text emote shows its text only",
+        V.LineText(conv, { style = "textemote", text = "Brisa waves at you.", sender = "Brisa-Horizon" }) == "Brisa waves at you.", "?")
+  local secretText = SECRET("dances")
+  check("nearby: a secret emote shows its text alone",
+        rawequal(V.LineText(conv, { style = "emote", text = secretText, secret = true, sender = "Brisa-Horizon" }), secretText), "joined")
+  check("nearby: an emote from a secret sender shows its text alone",
+        V.LineText(conv, { style = "emote", text = "dances", sender = SECRET("Brisa") }) == "dances", "joined")
+  check("nearby: emote lines are full-width lines", V.IsEmoteLine({ style = "emote" }) and V.IsEmoteLine({ style = "textemote" })
+        and not V.IsEmoteLine({ style = "say" }) and not V.IsEmoteLine({ style = "yell" }), "?")
+  S.Reset()
+
+  -- Sending: the mode follows the chip, and resets on Reset.
+  check("nearby: the send mode starts on Say", S.SendModeOf("nearby") == "SAY", S.SendModeOf("nearby"))
+  check("nearby: Say routes to SAY", Send.RouteFor("nearby").chatType == "SAY", Send.RouteFor("nearby").chatType)
+  S.SetSendMode("nearby", "YELL")
+  check("nearby: Yell routes to YELL", Send.RouteFor("nearby").chatType == "YELL", Send.RouteFor("nearby").chatType)
+  S.SetSendMode("nearby", "EMOTE")
+  check("nearby: Emote routes to EMOTE", Send.RouteFor("nearby").chatType == "EMOTE", Send.RouteFor("nearby").chatType)
+  check("nearby: a route has no target", Send.RouteFor("nearby").target == nil, "target")
+  S.SetSendMode("nearby", "WHISPER")
+  check("nearby: an unknown mode is refused", S.SendModeOf("nearby") == "EMOTE", S.SendModeOf("nearby"))
+  S.Reset()
+  check("nearby: the mode resets to Say", S.SendModeOf("nearby") == "SAY", S.SendModeOf("nearby"))
+
+  local sent = {}
+  C_ChatInfo = { SendChatMessage = function(msg, chatType) sent[#sent + 1] = chatType .. ":" .. msg end }
+  S.SetSendMode("nearby", "YELL")
+  check("nearby: a send goes out in the current mode", Send.Send("nearby", "over here") and sent[1] == "YELL:over here", sent[1])
+  local pending = S.Get("nearby").messages[1]
+  check("nearby: the pending line carries the mode's style", pending.style == "yell", tostring(pending.style))
+  E.Dispatch("CHAT_MSG_YELL", payload("over here", "Kaelis"))
+  check("nearby: your yell's echo confirms it", pending.status == "sent", pending.status)
+  S.SetSendMode("nearby", "EMOTE")
+  Send.Send("nearby", "waves")
+  check("nearby: an emote goes out as EMOTE", sent[2] == "EMOTE:waves", sent[2])
+  local msgs = S.Get("nearby").messages
+  check("nearby: a pending emote is an emote line", msgs[#msgs].style == "emote", tostring(msgs[#msgs].style))
+
+  C_ChatInfo.SendChatMessage = function() error("SendChatMessage: SAY is restricted") end
+  S.SetSendMode("nearby", "SAY")
+  local ok, blocked = Send.Send("nearby", "hello?")
+  msgs = S.Get("nearby").messages
+  check("nearby: a thrown send marks the line failed", msgs[#msgs].status == "failed", msgs[#msgs].status)
+  check("nearby: a thrown send reports it was blocked", ok == true and blocked == "blocked", tostring(blocked))
+  local _, other = Send.Send("party", "hi")
+  check("nearby: a thrown party send is not reported as a Nearby block", other == nil, tostring(other))
+  C_ChatInfo = nil
+  S.Reset()
+`, 'nearby-logic');
+
+run(`
+  local Echo = HorizonSuite.Echo
+  local S, C = Echo.Store, Echo.Card
+  S.Reset()
+  CreateFrame = STUB_CREATE_FRAME
+  local savedInfo = ChatTypeInfo
+  ChatTypeInfo = { SAY = { r = 1, g = 1, b = 1 }, YELL = { r = 1, g = 0.25, b = 0.25 }, EMOTE = { r = 1, g = 0.5, b = 0.25 } }
+  C.Enable()
+  local f = C._frames()
+  S.Add({ convKey = "nearby", text = "anyone around?", sender = "Brisa-Horizon", style = "say" })
+  S.Add({ convKey = "nearby", text = "waves.", sender = "Brisa-Horizon", style = "emote" })
+  S.Add({ convKey = "nearby", text = "HELP!", sender = "Vexa-Horizon", style = "yell" })
+  C.Open("nearby")
+  -- Record text colours, then paint again.
+  for _, b in ipairs(f.bubbles) do
+    rawset(b.text, "SetTextColor", function(self, r, g, bl) self.color = r .. "," .. g .. "," .. bl end)
+  end
+  C.Render()
+  local yell, emote, say = f.bubbles[1], f.bubbles[2], f.bubbles[3]
+  check("nearby card: the yell is a bubble in the yell colour", yell.text.text == "HELP!" and yell.text.color == "1,0.25,0.25",
+        tostring(yell.text.color))
+  check("nearby card: the emote line shows the name first", emote.text.text == "Brisa waves.", emote.text.text)
+  check("nearby card: the emote line spans the card", emote.width == C.WIDTH - C.PAD * 2, emote.width)
+  check("nearby card: the emote line is in the emote colour", emote.text.color == "1,0.5,0.25", tostring(emote.text.color))
+  check("nearby card: the say bubble is fitted, not full-width", say.text.text == "anyone around?" and say.width ~= C.WIDTH - C.PAD * 2, say.width)
+  local labelled = false
+  for _, l in ipairs(f.labels) do if l.shown and l.text == "Brisa" then labelled = true end end
+  check("nearby card: the speaker is named above the run", labelled, "no label")
+
+  local secretText = SECRET("dances")
+  S.Add({ convKey = "nearby", text = secretText, secret = true, sender = "Brisa-Horizon", style = "emote" })
+  check("nearby card: a secret emote shows its text alone", rawequal(f.bubbles[1].text.text, secretText), "joined")
+
+  -- The mode chip.
+  check("nearby card: the mode chip shows on Nearby", f.mode and f.mode.shown == true, "hidden")
+  check("nearby card: the chip starts on Say", f.mode.text.text == "ECHO_MODE_SAY", f.mode.text.text)
+  check("nearby card: the reply box makes room for the chip", (rawget(f.edit, "_leftInset") or 0) > 8, rawget(f.edit, "_leftInset"))
+  f.mode.scripts.OnClick(f.mode)
+  check("nearby card: a click moves to Yell", S.SendModeOf("nearby") == "YELL" and f.mode.text.text == "ECHO_MODE_YELL", f.mode.text.text)
+  f.mode.scripts.OnClick(f.mode)
+  check("nearby card: then Emote", S.SendModeOf("nearby") == "EMOTE" and f.mode.text.text == "ECHO_MODE_EMOTE", f.mode.text.text)
+  f.mode.scripts.OnClick(f.mode)
+  check("nearby card: then back to Say", S.SendModeOf("nearby") == "SAY" and f.mode.text.text == "ECHO_MODE_SAY", f.mode.text.text)
+
+  C_ChatInfo = { SendChatMessage = function() error("SAY is restricted outdoors") end }
+  f.edit:SetText("hello?")
+  C.Submit()
+  local msgs = S.Get("nearby").messages
+  check("nearby card: a blocked send is failed", msgs[#msgs].status == "failed", msgs[#msgs].status)
+  check("nearby card: a blocked send explains itself in the hint", f.hint.shown and f.hint.text.text == "ECHO_SEND_BLOCKED_NEARBY",
+        tostring(f.hint.text.text))
+  C_ChatInfo = nil
+
+  S.Add({ convKey = "w:Brisa-Horizon", text = "psst", sender = "Brisa-Horizon" })
+  C.Show("w:Brisa-Horizon")
+  check("nearby card: no chip on a whisper", f.mode.shown == false, "shown")
+  check("nearby card: a whisper's reply box has its plain inset", rawget(f.edit, "_leftInset") == 8, rawget(f.edit, "_leftInset"))
+  C.Disable()
+  ChatTypeInfo = savedInfo
+  S.Reset()
+`, 'nearby-card');
+
+run(read('options/modules/defaults/OptionsDefaultsEcho.lua'), 'nearby-defaults');
+run(`
+  local A = HorizonSuite
+  check("nearby: the tier default is quiet", A.ECHO_DEFAULTS.echoTierNearby == "quiet", tostring(A.ECHO_DEFAULTS.echoTierNearby))
+  A.OptionCategories = {}
+  local db = {}
+  A.OptionsData_GetDB = function(k, d) if db[k] ~= nil then return db[k] end return d end
+  A.OptionsData_SetDB = function(k, v) db[k] = v end
+  local function merge(t, o) if o then for k, v in pairs(o) do t[k] = v end end return t end
+  A.Section = function(n) return { type = "section", name = n } end
+  A.Button = function(n, d, f, o) return merge({ type = "button", name = n, desc = d, onClick = f }, o) end
+  A.Toggle = function(n, d, key, def, o) return merge({ type = "toggle", name = n, desc = d, dbKey = key,
+    get = function() return A.OptionsData_GetDB(key, def) end, set = function(v) A.OptionsData_SetDB(key, v) end }, o) end
+  A.GetPerElementFontDropdownOptions = function() return { { "Global", "__global__" } } end
+`, 'nearby-options-stubs');
+run(read('options/modules/OptionsEcho.lua'), 'nearby-options');
+run(`
+  local A = HorizonSuite
+  local found, afterChannel
+  local seenChannel = false
+  for _, opt in ipairs(A.OptionCategories[1].options) do
+    if opt.dbKey == "echoTierChannel" then seenChannel = true end
+    if opt.dbKey == "echoTierNearby" then found = opt; afterChannel = seenChannel end
+  end
+  check("nearby: the tier is on the options page", found ~= nil and found.name == A.L["ECHO_NEARBY"], found and found.name)
+  check("nearby: alongside the other tiers", afterChannel == true, tostring(afterChannel))
+  check("nearby: the dropdown reads quiet", found and found.get() == "quiet", found and found.get())
+  A.OptionCategories, A.OptionsData_GetDB, A.OptionsData_SetDB = nil, nil, nil
+  A.Section, A.Button, A.Toggle, A.GetPerElementFontDropdownOptions = nil, nil, nil, nil
+  A.ECHO_DEFAULTS, A.ECHO_KEYS, A.ECHO_LIMITS = nil, nil, nil
+`, 'nearby-options-check');
 
 // --- Redraw: one repaint per frame -------------------------------------------
 run(`

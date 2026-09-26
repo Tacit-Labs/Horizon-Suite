@@ -62,6 +62,8 @@ function Send.RouteFor(convKey)
         return index and { chatType = "CHANNEL", target = index } or nil
     elseif GROUP_CHAT_TYPE[kind] then
         return { chatType = GROUP_CHAT_TYPE[kind] }
+    elseif kind == "nearby" then
+        return { chatType = Store.SendModeOf(convKey) }
     end
     return nil
 end
@@ -138,11 +140,18 @@ function Send.InLockdown()
     return ok and locked == true
 end
 
+-- The style a Nearby line sent in each mode is drawn with while it waits for its echo.
+local MODE_STYLE = { SAY = "say", YELL = "yell", EMOTE = "emote" }
+
 --- Send a reply. Each part is filed as pending; the echo marks it sent. During chat
 -- lockdown each part is filed and failed at once, and nothing is sent.
+-- A Nearby send the game refuses by throwing (addon Say and Yell are restricted outside
+-- instances on some clients) is failed like any other, and reported as "blocked" so the
+-- card can say why.
 -- @param convKey string
 -- @param text string
 -- @return boolean sent  false when there was nothing to send or nowhere to send it
+-- @return string|nil problem  "blocked" when a Nearby send threw
 function Send.Send(convKey, text)
     if type(text) ~= "string" then return false end
     local route = Send.RouteFor(convKey)
@@ -151,17 +160,21 @@ function Send.Send(convKey, text)
     if #parts == 0 then return false end
     local sendChat, sendBN = Send.Resolve()
     local locked = Send.InLockdown()
+    local nearby = Store.KindOf(convKey) == "nearby"
+    local style = nearby and MODE_STYLE[route.chatType] or nil
+    local problem
     for _, part in ipairs(parts) do
-        Store.AddPending(convKey, part)
+        Store.AddPending(convKey, part, style)
         local ok
         if locked then
             ok = false
         elseif route.chatType == "BN_WHISPER" then
             ok = sendBN and pcall(sendBN, route.target, part)
-        else
-            ok = sendChat and pcall(sendChat, part, route.chatType, nil, route.target)
+        elseif sendChat then
+            ok = pcall(sendChat, part, route.chatType, nil, route.target)
+            if not ok and nearby then problem = "blocked" end
         end
         if not ok then Store.MarkFailed(convKey) end
     end
-    return true
+    return true, problem
 end

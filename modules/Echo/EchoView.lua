@@ -190,8 +190,54 @@ end
 View.CHAT_TYPE = {
     whisper = "WHISPER", bnet = "BN_WHISPER", party = "PARTY", raid = "RAID",
     instance = "INSTANCE_CHAT", guild = "GUILD", officer = "OFFICER", channel = "CHANNEL",
-    loot = "LOOT", progress = "ACHIEVEMENT", system = "SYSTEM",
+    loot = "LOOT", progress = "ACHIEVEMENT", system = "SYSTEM", nearby = "SAY",
 }
+
+-- Nearby (plan 11): each line style's ChatTypeInfo key, and Blizzard's default colour for
+-- it when ChatTypeInfo can't be read. Text emotes take the Emote colour.
+View.NEARBY_ICON = "Interface\\Icons\\Ability_Warrior_BattleShout"
+View.STYLE_COLOR = {
+    say       = { "SAY",           1, 1,    1    },
+    yell      = { "YELL",          1, 0.25, 0.25 },
+    emote     = { "EMOTE",         1, 0.5,  0.25 },
+    textemote = { "EMOTE",         1, 0.5,  0.25 },
+    npc       = { "MONSTER_SAY",   1, 1,    0.62 },
+    npcyell   = { "MONSTER_YELL",  1, 0.25, 0.25 },
+    npcemote  = { "MONSTER_EMOTE", 1, 0.5,  0.25 },
+}
+-- Styles drawn as full-width lines rather than bubbles.
+local EMOTE_STYLES = { emote = true, textemote = true, npcemote = true }
+-- Styles whose sender is an NPC: the name is kept whole, with no realm to strip.
+local NPC_STYLES = { npc = true, npcyell = true, npcemote = true }
+
+--- The chat colour for a Nearby line style, from ChatTypeInfo, else Blizzard's default.
+-- @param style string
+-- @return number|nil r, number g, number b  nil for an unknown style
+function View.StyleColor(style)
+    local entry = View.STYLE_COLOR[style]
+    if not entry then return nil end
+    local info = ChatTypeInfo and ChatTypeInfo[entry[1]]
+    if info and type(info.r) == "number" then return info.r, info.g, info.b end
+    return entry[2], entry[3], entry[4]
+end
+
+--- True for a Nearby line drawn full-width (custom, text and NPC emotes).
+-- @param msg table|nil
+-- @return boolean
+function View.IsEmoteLine(msg)
+    return msg ~= nil and EMOTE_STYLES[msg.style] == true
+end
+
+--- The name shown for an incoming line's speaker: a player without their realm, an NPC
+-- whole. nil when the sender is secret or missing.
+-- @param msg table
+-- @return string|nil
+function View.SenderName(msg)
+    local sender = msg and msg.sender
+    if Echo.IsSecret(sender) or type(sender) ~= "string" or sender == "" then return nil end
+    if NPC_STYLES[msg.style] then return sender end
+    return sender:match("^([^-]+)") or sender
+end
 
 local FIRST_CHAR = "^[\1-\127\194-\244][\128-\191]*"
 local UTF8_CHAR = "[\1-\127\194-\244][\128-\191]*"
@@ -319,6 +365,8 @@ function View.DisplayName(conv)
         return L["ECHO_BATTLENET"]
     elseif kind == "channel" then
         return key:sub(4)
+    elseif kind == "nearby" then
+        return L["ECHO_NEARBY"]
     end
     return L["ECHO_KIND_" .. kind:upper()]
 end
@@ -415,6 +463,12 @@ function View.TileSpec(conv)
         spec.glyph = true
         spec.label = L["ECHO_FEED_SHORT_" .. kind:upper()]
         spec.r, spec.g, spec.b = View.ChatColor(kind)
+    elseif kind == "nearby" then
+        spec.face = "icon"
+        spec.icon = View.NEARBY_ICON
+        spec.glyph = true
+        spec.label = L["ECHO_NEARBY_SHORT"]
+        spec.r, spec.g, spec.b = View.StyleColor("say")
     elseif kind == "whisper" then
         local name = key:sub(3)
         name = name:match("^([^-]+)") or name
@@ -621,9 +675,21 @@ end
 function View.LineText(conv, msg)
     local text = msg.text
     if msg.secret or Echo.IsSecret(text) then return text end
+    if EMOTE_STYLES[msg.style] then
+        -- A custom emote reads "Name text"; a text or NPC emote already names its speaker.
+        if msg.style ~= "emote" then return text end
+        local name
+        if msg.outgoing then
+            local me = UnitName and UnitName("player")
+            if not Echo.IsSecret(me) and type(me) == "string" and me ~= "" then name = me end
+        else
+            name = View.SenderName(msg)
+        end
+        return name and (name .. " " .. tostring(text)) or text
+    end
     if conv.kind ~= "whisper" and conv.kind ~= "bnet" and not msg.outgoing
         and not Echo.IsSecret(msg.sender) and type(msg.sender) == "string" then
-        local short = msg.sender:match("^([^-]+)") or msg.sender
+        local short = View.SenderName(msg) or msg.sender
         return short .. ": " .. tostring(text)
     end
     return text
@@ -667,6 +733,8 @@ function View.StartsGroup(messages, i)
     local cur, prev = messages[i], messages[i - 1]
     if not prev then return true end
     if (cur.outgoing and true or false) ~= (prev.outgoing and true or false) then return true end
+    -- A Nearby emote line breaks a run of bubbles, so the next bubble is named again.
+    if (EMOTE_STYLES[cur.style] == true) ~= (EMOTE_STYLES[prev.style] == true) then return true end
     if not cur.outgoing then
         if Echo.IsSecret(cur.sender) or Echo.IsSecret(prev.sender) or cur.sender ~= prev.sender then
             return true
@@ -901,6 +969,7 @@ end
 -- @param msg table
 -- @return number r, number g, number b
 function View.LineColor(conv, msg)
+    if msg and msg.style and View.STYLE_COLOR[msg.style] then return View.StyleColor(msg.style) end
     local info = msg and msg.chatType and ChatTypeInfo and ChatTypeInfo[msg.chatType]
     if info and info.r then return info.r, info.g, info.b end
     return View.ChatColor(conv.kind)
