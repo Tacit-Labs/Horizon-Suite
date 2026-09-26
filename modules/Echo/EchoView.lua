@@ -868,6 +868,8 @@ function View.InviteTarget(conv)
     if kind == "whisper" then
         local name = key:sub(3)
         if Echo.IsSecret(name) or type(name) ~= "string" or name == "" then return nil end
+        -- A player's name never has a space or "|": that is an NPC's name or a |K string.
+        if name:find("|", 1, true) or name:find("%s") then return nil end
         target = name
     elseif kind == "bnet" then
         local id = tonumber(key:sub(4))
@@ -890,6 +892,32 @@ function View.InviteTarget(conv)
     end
     if Echo.Events and target == Echo.Events.PlayerKey() then return nil end
     return target
+end
+
+--- Who wrote a message, as a player you can whisper and invite: "Name-Realm". An incoming
+-- whisper's writer is the conversation's own name. Your own lines, feed lines, NPC lines,
+-- demo lines, secret lines, Battle.net conversations (their sender is a |K string), and a
+-- sender that is missing, secret, has a space or "|" in it, or is you have none.
+-- @param convKey string
+-- @param record table
+-- @return string|nil
+function View.MessageSender(convKey, record)
+    if type(record) ~= "table" or Echo.IsSecret(convKey) or type(convKey) ~= "string" then return nil end
+    if record.outgoing or record.feed or record.npc or record.demo or record.secret then return nil end
+    if NPC_STYLES[record.style] or Echo.IsSecret(record.text) then return nil end
+    local Store = Echo.Store
+    local kind = Store.KindOf(convKey)
+    if not kind or kind == "bnet" or Store.FEED_KINDS[kind] then return nil end
+    local sender
+    if kind == "whisper" then
+        sender = convKey:sub(3)
+    else
+        sender = record.sender
+    end
+    if Echo.IsSecret(sender) or type(sender) ~= "string" or sender == "" then return nil end
+    if sender:find("|", 1, true) or sender:find("%s") then return nil end
+    if Echo.Events and sender == Echo.Events.PlayerKey() then return nil end
+    return sender
 end
 
 View.TIER_CHOICES = { "default", "loud", "count", "quiet", "muted" }

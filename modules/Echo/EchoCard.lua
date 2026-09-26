@@ -60,6 +60,7 @@ Card.PIN_CLEAR = Card.PIN_INSET + Card.PIN_MARK + 2
 Card.PIN_TEXTURE = "Interface\\AddOns\\" .. (addon.ADDON_NAME or "HorizonSuite") .. "\\media\\echo\\pin.tga"
 
 Card.NOTICE_SECONDS = 4  -- how long a shortcut's "can't do that" stays in the hint
+Card.INVITED_SECONDS = 3 -- how long /inv's "Invited Name." stays in the hint
 Card.MODE_WIDTH = 42   -- Nearby's Say / Yell / Emote chip at the left end of the reply box
 Card.EDIT_INSET = 8    -- the reply box's own text inset
 
@@ -1305,15 +1306,20 @@ local function ShowBlockedHint()
     ShowWideHint(L["ECHO_SEND_BLOCKED_NEARBY"])
 end
 
--- A shortcut the card won't follow: say why for Card.NOTICE_SECONDS. A later hint replaces
--- it, and the older timer then leaves that one alone.
+-- A shortcut the card won't follow: say why for Card.NOTICE_SECONDS (or seconds, when
+-- given). A later hint replaces it, and the older timer then leaves that one alone.
+-- @param key string  the string's L key
+-- @param seconds number|nil
+-- @param arg string|nil  formatted into the string
 local noticeCount = 0
-local function ShowNotice(key)
-    ShowWideHint(L[key])
+local function ShowNotice(key, seconds, arg)
+    local text = L[key]
+    if arg ~= nil then text = text:format(arg) end
+    ShowWideHint(text)
     noticeCount = noticeCount + 1
     local token = noticeCount
     activeNotice = token
-    C_Timer.After(Card.NOTICE_SECONDS, function()
+    C_Timer.After(seconds or Card.NOTICE_SECONDS, function()
         if activeNotice == token and hint then
             activeNotice = nil
             hint:Hide()
@@ -1459,6 +1465,13 @@ function Card.Submit()
         end
         if shortcut.blocked == "nowhere" then
             ShowNotice("ECHO_SHORTCUT_NOWHERE")
+            return
+        end
+        -- /inv: invite, send nothing, and say so.
+        if shortcut.action == "invite" then
+            if Echo.Menu then Echo.Menu.InviteName(shortcut.name) end
+            edit:SetText("")
+            ShowNotice("ECHO_INVITED", Card.INVITED_SECONDS, shortcut.name:match("^([^-]+)") or shortcut.name)
             return
         end
         -- Empty the box first, so the shortcut isn't parked as this conversation's draft.

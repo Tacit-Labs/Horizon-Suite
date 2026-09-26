@@ -25,6 +25,7 @@ Stack.LINES = 3         -- messages on the top card
 Stack.FEED_TIME_WIDTH = 36  -- a feed line's time column, left of its text
 Stack.HOVER_CLOSE = 0.4
 Stack.NOTICE_SECONDS = 4    -- how long a shortcut's "can't do that" stays up
+Stack.INVITED_SECONDS = 3   -- how long /inv's "Invited Name." stays up
 
 local root, card, edit, more, rule
 local behind = {}
@@ -287,14 +288,19 @@ local function Create()
     more:SetTextColor(0.55, 0.60, 0.75, 1)
 end
 
--- Say why a shortcut went nowhere, for Stack.NOTICE_SECONDS.
-local function ShowNotice(key)
-    notice.text:SetText(L[key])
+-- Say why a shortcut went nowhere, for Stack.NOTICE_SECONDS (or seconds, when given).
+-- @param key string  the string's L key
+-- @param seconds number|nil
+-- @param arg string|nil  formatted into the string
+local function ShowNotice(key, seconds, arg)
+    local text = L[key]
+    if arg ~= nil then text = text:format(arg) end
+    notice.text:SetText(text)
     notice:Show()
     noticeCount = noticeCount + 1
     local token = noticeCount
     activeNotice = token
-    C_Timer.After(Stack.NOTICE_SECONDS, function()
+    C_Timer.After(seconds or Stack.NOTICE_SECONDS, function()
         if activeNotice == token and notice then
             activeNotice = nil
             notice:Hide()
@@ -303,13 +309,20 @@ local function ShowNotice(key)
 end
 
 --- A chat shortcut typed in the quick reply (Echo.Send.ParseShortcut). A slash command,
--- or a shortcut with nowhere to go, stays in the box and says why; one that goes
--- somewhere opens the card on its conversation, which sends the rest.
+-- or a shortcut with nowhere to go, stays in the box and says why; /inv invites and says
+-- so; one that goes somewhere opens the card on its conversation, which sends the rest.
 -- @param shortcut table
 -- @param text string  what was typed, put back if the card can't follow it
 function Stack.FollowShortcut(shortcut, text)
     if shortcut.blocked == "command" then
         ShowNotice("ECHO_SHORTCUT_COMMAND")
+        return
+    end
+    -- /inv: invite, send nothing, and say so. The stack stays open.
+    if shortcut.action == "invite" then
+        if Echo.Menu then Echo.Menu.InviteName(shortcut.name) end
+        edit:SetText("")
+        ShowNotice("ECHO_INVITED", Stack.INVITED_SECONDS, shortcut.name:match("^([^-]+)") or shortcut.name)
         return
     end
     if shortcut.blocked == "nowhere" or not Echo.Card then

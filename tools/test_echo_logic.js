@@ -6103,7 +6103,7 @@ run(`
   C_Timer = { After = function(_, fn) deferred[#deferred + 1] = fn end, NewTimer = savedTimer.NewTimer }
   local r = FakeRoot()
   opened[2](opened[1], r)
-  check("the menu offers Pin on an unpinned message", #r.items == 1 and r.items[1].label == "ECHO_PIN_MESSAGE" and r.items[1].enabled, r.items[1] and r.items[1].label)
+  check("the menu offers Pin on an unpinned message", #r.items == 2 and r.items[2].label == "ECHO_INVITE_NAME" and r.items[1].label == "ECHO_PIN_MESSAGE" and r.items[1].enabled, r.items[1] and r.items[1].label)
 
   -- Pinning shows the strip and moves the area down.
   r.items[1].fn()
@@ -6137,7 +6137,7 @@ run(`
 
   -- The menu now offers Unpin, and Unpin works.
   local items = Build("w:Brisa-Horizon", conv.messages[3])
-  check("the menu offers Unpin on a pinned message", #items == 1 and items[1].label == "ECHO_UNPIN_MESSAGE", items[1] and items[1].label)
+  check("the menu offers Unpin on a pinned message", #items == 2 and items[2].label == "ECHO_INVITE_NAME" and items[1].label == "ECHO_UNPIN_MESSAGE", items[1] and items[1].label)
 
   -- Disabled reasons.
   items = Build("w:Brisa-Horizon", { text = SECRET("hush"), secret = true, time = 5 })
@@ -7632,6 +7632,231 @@ run(`
   LE_PARTY_CATEGORY_HOME, LE_PARTY_CATEGORY_INSTANCE = saved.HOME, saved.INST
   S.Reset()
 `, 'plan11-review');
+
+// --- Whisper or invite a message's sender, /inv, and NPC names ------------------------------
+run(`
+  local A = HorizonSuite
+  local Echo = A.Echo
+  local S, E, V, M, C, K, T, Send = Echo.Store, Echo.Events, Echo.View, Echo.Menu, Echo.Card, Echo.Stack, Echo.Tiles, Echo.Send
+  S.Reset()
+  Echo.ClearDrafts()
+  CreateFrame = STUB_CREATE_FRAME
+  local saved = { IsInGroup = IsInGroup, Leader = UnitIsGroupLeader, Assist = UnitIsGroupAssistant,
+                  C_PartyInfo = C_PartyInfo, InviteUnit = InviteUnit, C_Timer = C_Timer, MenuUtil = MenuUtil }
+  rawset(A.L, "ECHO_WHISPER_NAME", "Whisper %s")
+  rawset(A.L, "ECHO_INVITE_NAME", "Invite %s")
+  rawset(A.L, "ECHO_INVITED", "Invited %s.")
+  local function payload(text, sender)
+    return text, sender, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil
+  end
+
+  -- 1. NPC senders keep their plain name.
+  for _, ev in ipairs({ "CHAT_MSG_MONSTER_SAY", "CHAT_MSG_MONSTER_YELL", "CHAT_MSG_MONSTER_EMOTE" }) do
+    local r = E.BuildRecord(ev, payload("Welcome, hero.", "Elina Stillwind"))
+    check("npc: " .. ev .. " keeps the plain name", r and r.sender == "Elina Stillwind", r and tostring(r.sender))
+    check("npc: " .. ev .. " is marked npc", r and r.npc == true, r and tostring(r.npc))
+  end
+  local say = E.BuildRecord("CHAT_MSG_SAY", payload("hi", "Brisa"))
+  check("npc: a player's Say still has Name-Realm", say.sender == "Brisa-Horizon" and not say.npc, say.sender)
+
+  -- 2. View.MessageSender.
+  local MS = V.MessageSender
+  check("sender: a player's channel line", MS("ch:Trade", { text = "wts", sender = "Brisa-Horizon" }) == "Brisa-Horizon", tostring(MS("ch:Trade", { text = "wts", sender = "Brisa-Horizon" })))
+  check("sender: an NPC line has none", MS("nearby", { text = "hi", sender = "Hogger", npc = true, style = "npc" }) == nil, "named")
+  check("sender: an NPC style without the flag has none", MS("nearby", { text = "hi", sender = "Hogger", style = "npcyell" }) == nil, "named")
+  check("sender: your own line has none", MS("ch:Trade", { text = "wts", outgoing = true }) == nil, "named")
+  check("sender: your own name has none", MS("ch:Trade", { text = "wts", sender = "Kaelis-Horizon" }) == nil, "named")
+  check("sender: Battle.net has none", MS("bn:7", { text = "hi", sender = "|Kq7|k" }) == nil, "named")
+  check("sender: a secret sender has none", MS("ch:Trade", { text = "wts", sender = SECRET("Brisa-Horizon") }) == nil, "named")
+  check("sender: secret text has none", MS("ch:Trade", { text = SECRET("wts"), secret = true, sender = "Brisa-Horizon" }) == nil, "named")
+  check("sender: a name with a space has none", MS("nearby", { text = "hi", sender = "Elina Stillwind-Horizon", style = "say" }) == nil, "named")
+  check("sender: a name with | has none", MS("guild", { text = "hi", sender = "|cffBrisa-Horizon" }) == nil, "named")
+  check("sender: a missing sender has none", MS("guild", { text = "hi" }) == nil, "named")
+  check("sender: a demo line has none", MS("guild", { text = "hi", sender = "Brisa-Horizon", demo = true }) == nil, "named")
+  check("sender: an incoming whisper is the conversation's name", MS("w:Brisa-Horizon", { text = "hi", sender = "Brisa-Horizon" }) == "Brisa-Horizon", "none")
+  check("sender: an incoming whisper with no sender is the conversation's name", MS("w:Brisa-Horizon", { text = "hi" }) == "Brisa-Horizon", "none")
+  check("sender: a feed line has none", MS("loot", { text = "You receive loot", feed = true, sender = "Brisa-Horizon" }) == nil, "named")
+
+  -- 3. The message menu.
+  local function FakeRoot()
+    local r = { items = {} }
+    function r:CreateButton(label, fn)
+      local b = { label = label, fn = fn, enabled = true }
+      function b:SetEnabled(v) self.enabled = v end
+      self.items[#self.items + 1] = b
+      return b
+    end
+    function r:CreateTitle(label) self.items[#self.items + 1] = { label = label, title = true } end
+    function r:CreateDivider() self.items[#self.items + 1] = { divider = true } end
+    return r
+  end
+  local function Build(key, record)
+    local r = FakeRoot()
+    M.BuildMessage(r, key, record)
+    return r.items
+  end
+  local function Find(items, label)
+    for _, it in ipairs(items) do if it.label == label then return it end end
+    return nil
+  end
+  IsInGroup = function() return false end
+  S.Add({ convKey = "ch:Trade", text = "wts cloth", sender = "Brisa-Horizon" })
+  local trade = S.Get("ch:Trade").messages[1]
+  local items = Build("ch:Trade", trade)
+  check("menu: a Trade line offers Whisper", Find(items, "Whisper Brisa") ~= nil, #items)
+  check("menu: a Trade line offers Invite", Find(items, "Invite Brisa") ~= nil, #items)
+  check("menu: the pin entry stays first", items[1] and items[1].label == "ECHO_PIN_BLOCKED_UNSAVED" and items[1].enabled == false, items[1] and items[1].label)
+  check("menu: a divider comes before them", items[2] and items[2].divider, "no divider")
+  S.Add({ convKey = "nearby", text = "Welcome.", sender = "Elina Stillwind", npc = true, style = "npc" })
+  items = Build("nearby", S.Get("nearby").messages[1])
+  check("menu: an NPC line offers neither", Find(items, "Whisper Elina Stillwind") == nil and Find(items, "Invite Elina Stillwind") == nil and #items == 1, #items)
+  S.Add({ convKey = "w:Brisa-Horizon", text = "hey", sender = "Brisa-Horizon" })
+  items = Build("w:Brisa-Horizon", S.Get("w:Brisa-Horizon").messages[1])
+  check("menu: no Whisper inside that person's whisper", Find(items, "Whisper Brisa") == nil, "shown")
+  check("menu: Invite still inside the whisper", Find(items, "Invite Brisa") ~= nil, "hidden")
+  IsInGroup = function() return true end
+  UnitIsGroupLeader = function() return false end
+  UnitIsGroupAssistant = function() return false end
+  items = Build("ch:Trade", trade)
+  check("menu: in a group you don't lead, no Invite", Find(items, "Invite Brisa") == nil, "shown")
+  check("menu: but Whisper stays", Find(items, "Whisper Brisa") ~= nil, "hidden")
+  UnitIsGroupAssistant = function() return true end
+  items = Build("ch:Trade", trade)
+  check("menu: an assistant can invite", Find(items, "Invite Brisa") ~= nil, "hidden")
+  UnitIsGroupAssistant = function() return false end
+  UnitIsGroupLeader = function() return true end
+  items = Build("ch:Trade", trade)
+  check("menu: a leader can invite", Find(items, "Invite Brisa") ~= nil, "hidden")
+  UnitIsGroupLeader, UnitIsGroupAssistant = nil, nil
+  items = Build("ch:Trade", trade)
+  check("menu: without the leader checks, Invite shows", Find(items, "Invite Brisa") ~= nil, "hidden")
+  IsInGroup = function() return false end
+
+  -- Invite runs through Menu.InviteName.
+  local invited
+  C_PartyInfo = { InviteUnit = function(t) invited = t end }
+  items = Build("ch:Trade", trade)
+  Find(items, "Invite Brisa").fn()
+  check("menu: Invite invites the sender", invited == "Brisa-Horizon", tostring(invited))
+  invited = nil
+  check("InviteName: invites a name", M.InviteName("Vexa-Horizon") == true and invited == "Vexa-Horizon", tostring(invited))
+  C_PartyInfo, InviteUnit = nil, function(t) invited = t end
+  M.InviteName("Thorn-Horizon")
+  check("InviteName: falls back to InviteUnit", invited == "Thorn-Horizon", tostring(invited))
+  InviteUnit = function() error("boom") end
+  check("InviteName: survives a throwing invite", pcall(M.InviteName, "Thorn-Horizon"), "threw")
+  InviteUnit = nil
+  check("InviteName: no invite function is false", M.InviteName("Thorn-Horizon") == false, "true")
+  local realInviteName, via = M.InviteName, nil
+  M.InviteName = function(n) via = n; return true end
+  M.Run("w:Brisa-Horizon", "invite")
+  check("the ⋯ menu invite goes through InviteName", via == "Brisa-Horizon", tostring(via))
+  M.InviteName = realInviteName
+
+  -- Whisper opens or starts the conversation, reusing a case-insensitive match.
+  T.Enable()
+  C.Enable()
+  items = Build("ch:Trade", trade)
+  Find(items, "Whisper Brisa").fn()
+  check("menu: Whisper opens the whisper card", C.IsShown() and C.ShownKey() == "w:Brisa-Horizon", tostring(C.ShownKey()))
+  S.Add({ convKey = "ch:Trade", text = "lfg", sender = "Vexa-Horizon" })
+  local vexa = S.Get("ch:Trade").messages[2]
+  Find(Build("ch:Trade", vexa), "Whisper Vexa").fn()
+  check("menu: Whisper starts a new whisper", S.Get("w:Vexa-Horizon") ~= nil and C.ShownKey() == "w:Vexa-Horizon", tostring(C.ShownKey()))
+  check("menu: the started whisper is open", S.Get("w:Vexa-Horizon").open == true, "closed")
+  S.Add({ convKey = "w:thorn-Horizon", text = "yo", sender = "thorn-Horizon" })
+  S.Add({ convKey = "ch:Trade", text = "wtb", sender = "Thorn-Horizon" })
+  local thorn = S.Get("ch:Trade").messages[3]
+  Find(Build("ch:Trade", thorn), "Whisper Thorn").fn()
+  check("menu: Whisper reuses a case-insensitive match", C.ShownKey() == "w:thorn-Horizon" and S.Get("w:Thorn-Horizon") == nil, tostring(C.ShownKey()))
+  check("menu: the matched whisper hides Whisper", Find(Build("w:thorn-Horizon", thorn), "Whisper Thorn") == nil, "shown")
+
+  -- 4. /inv and /invite.
+  local P = Send.ParseShortcut
+  local r = P("/inv Brisa", "guild")
+  check("inv: /inv Brisa is an invite with the realm", r and r.action == "invite" and r.name == "Brisa-Horizon" and r.convKey == nil, r and tostring(r.name))
+  r = P("/invite vexa", "guild")
+  check("inv: /invite capitalises and adds the realm", r and r.action == "invite" and r.name == "Vexa-Horizon", r and tostring(r.name))
+  r = P("/INV Brisa-Other", "guild")
+  check("inv: a given realm is kept", r and r.name == "Brisa-Other", r and tostring(r.name))
+  r = P("/inv", "w:Brisa-Horizon")
+  check("inv: /inv in a whisper invites that person", r and r.action == "invite" and r.name == "Brisa-Horizon", r and tostring(r.name or r.blocked))
+  r = P("/inv", "guild")
+  check("inv: /inv elsewhere is nowhere", r and r.blocked == "nowhere", r and tostring(r.blocked or r.action))
+  r = P("/inv", "bn:7")
+  check("inv: /inv in Battle.net is nowhere", r and r.blocked == "nowhere", r and tostring(r.blocked or r.action))
+  r = P("/inv |Kq1|k", "guild")
+  check("inv: a |K name is nowhere", r and r.blocked == "nowhere", r and tostring(r.blocked or r.action))
+  SLASH_INVITE2 = "/einladen"
+  r = P("/einladen Brisa", "guild")
+  check("inv: a localised global works", r and r.action == "invite" and r.name == "Brisa-Horizon", r and tostring(r.name or r.blocked))
+  SLASH_INVITE2 = nil
+
+  -- Card and stack: invite, clear the box, say so for 3 seconds, send nothing.
+  local timers = {}
+  C_Timer = { After = function(sec, fn) timers[#timers + 1] = { sec = sec, fn = fn } end,
+              NewTimer = function() return { Cancel = function() end } end }
+  local realSend, sent = Send.Send, {}
+  Send.Send = function(key, text) sent[#sent + 1] = key .. ":" .. text; return false end
+  invited = nil
+  C_PartyInfo = { InviteUnit = function(t) invited = t end }
+  local f = C._frames()
+  S.Add({ convKey = "guild", text = "hi", sender = "Morn-Horizon" })
+  C.Open("guild")
+  f.edit:SetText("/inv Brisa")
+  C.Submit()
+  check("inv card: invites", invited == "Brisa-Horizon", tostring(invited))
+  check("inv card: sends nothing", #sent == 0, sent[1])
+  check("inv card: empties the box", f.edit:GetText() == "", f.edit:GetText())
+  check("inv card: says so", f.hint.shown and f.hint.text.text == "Invited Brisa.", f.hint.text.text)
+  check("inv card: for 3 seconds", timers[#timers] and timers[#timers].sec == 3, timers[#timers] and timers[#timers].sec)
+  check("inv card: stays on its conversation", C.ShownKey() == "guild", tostring(C.ShownKey()))
+  timers[#timers].fn()
+  check("inv card: then the hint goes", f.hint.shown == false, "shown")
+  invited = nil
+  C.Open("w:Vexa-Horizon")
+  f.edit:SetText("/inv")
+  C.Submit()
+  check("inv card: /inv in a whisper card invites that person", invited == "Vexa-Horizon", tostring(invited))
+  f.edit:SetText("/inv")
+  C.Open("guild")
+  f.edit:SetText("/inv")
+  invited = nil
+  C.Submit()
+  check("inv card: /inv elsewhere says nowhere", invited == nil and f.hint.text.text == "ECHO_SHORTCUT_NOWHERE", f.hint.text.text)
+  f.edit:SetText("")
+
+  C.Hide()
+  K.Enable()
+  local k = K._frames()
+  K.Open("guild")
+  invited = nil
+  k.edit:SetText("/invite Morn")
+  k.edit.scripts.OnEnterPressed(k.edit)
+  check("inv stack: invites", invited == "Morn-Horizon", tostring(invited))
+  check("inv stack: sends nothing", #sent == 0, sent[1])
+  check("inv stack: empties the box", k.edit:GetText() == "", k.edit:GetText())
+  check("inv stack: says so", k.notice.shown and k.notice.text.text == "Invited Morn.", k.notice.text.text)
+  check("inv stack: for 3 seconds", timers[#timers].sec == 3, timers[#timers].sec)
+  check("inv stack: stays open", k.root.shown and not C.IsShown(), "closed")
+  timers[#timers].fn()
+  check("inv stack: then the notice goes", k.notice.shown == false, "shown")
+
+  -- 5. InviteTarget backstop.
+  check("InviteTarget: a spaced whisper name has none", V.InviteTarget({ kind = "whisper", key = "w:Elina Stillwind-Horizon" }) == nil, "targeted")
+  check("InviteTarget: a | whisper name has none", V.InviteTarget({ kind = "whisper", key = "w:|Kq1|k" }) == nil, "targeted")
+
+  K.Disable()
+  C.Disable()
+  T.Disable()
+  Send.Send = realSend
+  IsInGroup, UnitIsGroupLeader, UnitIsGroupAssistant = saved.IsInGroup, saved.Leader, saved.Assist
+  C_PartyInfo, InviteUnit, C_Timer, MenuUtil = saved.C_PartyInfo, saved.InviteUnit, saved.C_Timer, saved.MenuUtil
+  rawset(A.L, "ECHO_WHISPER_NAME", nil)
+  rawset(A.L, "ECHO_INVITE_NAME", nil)
+  rawset(A.L, "ECHO_INVITED", nil)
+  S.Reset()
+`, 'echo-invite');
 
 // --- Redraw: one repaint per frame -------------------------------------------
 run(`

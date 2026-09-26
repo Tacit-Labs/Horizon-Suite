@@ -205,6 +205,7 @@ local SHORTCUTS = {
     i = "instance", instance = "instance", bg = "instance",
     w = "whisper", whisper = "whisper", t = "whisper", tell = "whisper",
     r = "reply", reply = "reply",
+    inv = "invite", invite = "invite",
 }
 
 -- Blizzard's localised SLASH_<NAME><n> globals for each shortcut. They add to the English
@@ -212,7 +213,7 @@ local SHORTCUTS = {
 local SLASH_GLOBALS = {
     SAY = "say", YELL = "yell", EMOTE = "emote", GUILD = "guild", OFFICER = "officer",
     PARTY = "party", RAID = "raid", RAID_WARNING = "raid", INSTANCE_CHAT = "instance",
-    WHISPER = "whisper", REPLY = "reply",
+    WHISPER = "whisper", REPLY = "reply", INVITE = "invite",
 }
 
 local NEARBY_MODE = { say = "SAY", yell = "YELL", emote = "EMOTE" }
@@ -304,9 +305,10 @@ end
 -- " /dance" is still a command. Text that doesn't start with "/" is not a shortcut; any
 -- other slash command is blocked, never sent as chat.
 -- @param text string
--- @param currentKey string|nil  the conversation the box belongs to (unused for now)
+-- @param currentKey string|nil  the conversation the box belongs to: where a bare /inv goes
 -- @return table|nil result  nil: send as typed. { convKey, text, mode|nil }: send text
---   there. { blocked = "command" }, { blocked = "empty", convKey, mode|nil } or
+--   there. { action = "invite", name = "Name-Realm" }: invite, send nothing.
+--   { blocked = "command" }, { blocked = "empty", convKey, mode|nil } or
 --   { blocked = "nowhere" }.
 function Send.ParseShortcut(text, currentKey)
     if Echo.IsSecret(text) or type(text) ~= "string" then return nil end
@@ -329,6 +331,21 @@ function Send.ParseShortcut(text, currentKey)
     if GROUP_CHAT_TYPE[target] then
         if not Send.CanReach(target) then return { blocked = "nowhere" } end
         return Result(target, rest)
+    end
+    if target == "invite" then
+        -- /inv Name: the name as /w reads it. /inv alone: the whisper the box belongs to.
+        local key
+        local name = rest:match("^(%S+)")
+        if name then
+            key = Send.WhisperKeyFor(name)
+        elseif not Echo.IsSecret(currentKey) and Store.KindOf(currentKey) == "whisper" then
+            key = currentKey
+        end
+        local full = key and key:sub(3)
+        if not full or full == "" or full:find("|", 1, true) or full:find("%s") then
+            return { blocked = "nowhere" }
+        end
+        return { action = "invite", name = full }
     end
     if target == "reply" then
         local key = Store.NewestIncomingWhisper()

@@ -208,6 +208,8 @@ function Events.BuildRecord(event, text, sender, _, _, _, _, zoneChannelID, chan
         style    = Store.NEARBY_STYLE[event],
         time     = Store.Now(),
     }
+    -- An NPC's line: its sender is a creature's plain name, never a player to whisper or invite.
+    if npc then record.npc = true end
     -- A whisper to yourself arrives twice: the received copy, then the sent echo.
     if kind == "whisper" and senderKey ~= nil and senderKey == Events.PlayerKey() then
         record.toSelf = true
