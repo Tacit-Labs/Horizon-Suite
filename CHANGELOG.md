@@ -10,6 +10,18 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [5.11.0] – 2026-09-26
+
+### ✨ New Features
+- **(Augment) Loot roll frames**: When your group rolls on loot, Horizon draws its own Need and Greed frame. It shows who has rolled so far and who is winning, whether the item's appearance is new to you, how its item level compares with what you have equipped, and whether it binds on pickup. Rolls below the quality you choose, and any beyond the number of frames you allow on screen, keep Blizzard's own frame, so no roll goes missing. Find it under Augment → Loot Rolls, and try it with Show Demo Rolls, which needs no group.
+
+### 🐛 Fixes
+- **(Presence)** Switching off an achievement, achievement progress or world quest notification brings back the game's own version of it immediately, with no need to turn Presence off.
+- **(Presence)** Switching off zone names or area names brings back the game's own versions of them. With zone names off, area names no longer keep showing when the settings say they are off.
+- **(Focus)** The dungeon run tracker no longer shows an error when a system chat message arrives inside a dungeon.
+
+---
+
 ## [5.10.0] – 2026-09-20
 
 ### ✨ New Features
