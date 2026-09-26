@@ -9,6 +9,12 @@ local L = addon.L
 local function getDB(k, d) return addon.OptionsData_GetDB(k, d) end
 local function setDB(k, v) addon.OptionsData_SetDB(k, v) end
 local Section, Button, Toggle = addon.Section, addon.Button, addon.Toggle
+-- The dashboard's reload prompt: shown while a reload is recommended.
+local ReloadPrompt = addon.ModuleReloadPrompt or function(opts)
+    local t = { type = "moduleReloadPrompt" }
+    for k, v in pairs(opts or {}) do t[k] = v end
+    return t
+end
 local D   = addon.ECHO_DEFAULTS
 local LIM = addon.ECHO_LIMITS
 if not D or not LIM then return end
@@ -302,6 +308,10 @@ local tail = {
     Toggle(L["ECHO_DOCK_INPUT"], L["ECHO_DOCK_INPUT_DESC"], "echoDockInput", D.echoDockInput),
     Toggle(L["ECHO_INPUT_ALWAYS_VISIBLE"], L["ECHO_INPUT_ALWAYS_VISIBLE_DESC"], "echoInputAlwaysVisible", D.echoInputAlwaysVisible,
         { visibleWhen = function() return getDB("echoDockInput", D.echoDockInput) ~= false end }),
+    Toggle(L["ECHO_HIDE_CHAT"], L["ECHO_HIDE_CHAT_DESC"], "echoHideBlizzardChat", D.echoHideBlizzardChat),
+    Toggle(L["ECHO_KEEP_COMBAT_LOG"], L["ECHO_KEEP_COMBAT_LOG_DESC"], "echoKeepCombatLog", D.echoKeepCombatLog,
+        { visibleWhen = function() return getDB("echoHideBlizzardChat", D.echoHideBlizzardChat) == true end }),
+    ReloadPrompt({ hintText = L["ECHO_HIDE_CHAT_RELOAD"] }),
 
     Section(L["ECHO_SECTION_CARD"]),
     IntSlider("echoCardWidth",  L["ECHO_CARD_WIDTH"],  L["ECHO_CARD_SIZE_DESC"], 10),

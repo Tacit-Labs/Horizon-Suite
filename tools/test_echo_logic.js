@@ -139,6 +139,7 @@ const FILES = [
   'modules/Echo/EchoCompose.lua',
   'modules/Echo/EchoCard.lua',
   'modules/Echo/EchoInput.lua',
+  'modules/Echo/EchoHideChat.lua',
   'modules/Echo/EchoOptions.lua',
   'modules/Echo/EchoSlash.lua',
 ];
@@ -1872,6 +1873,8 @@ run(`
   H.SaveSession = function() saves = saves + 1; return true end
 
   M.def.OnEnable()
+  local hideFrame = Echo.HideChat and Echo.HideChat._frame()
+  check("enable starts the hide-chat watch", hideFrame ~= nil and hideFrame.events.PLAYER_ENTERING_WORLD == true, "not started")
   local lifecycle
   for _, f in ipairs(M.frames) do if f.events.PLAYER_LOGOUT then lifecycle = f end end
   check("a lifecycle frame listens for logout", lifecycle ~= nil, "none")
@@ -1915,6 +1918,7 @@ run(`
 
   M.def.OnDisable()
   check("disable drops every lifecycle event", next(lifecycle.events) == nil, "still registered")
+  check("disable stops the hide-chat watch", hideFrame ~= nil and next(hideFrame.events) == nil, "still registered")
   IsLoggedIn = function() return true end
   sessionKeys = { "w:Again-Horizon" }
   M.def.OnEnable()
@@ -3797,6 +3801,8 @@ run(`
   check("history days default is 30", A.ECHO_DEFAULTS.echoHistoryDays == 30, A.ECHO_DEFAULTS.echoHistoryDays)
   check("guild saving defaults on", A.ECHO_DEFAULTS.echoSaveGuild == true, tostring(A.ECHO_DEFAULTS.echoSaveGuild))
   check("officer saving defaults off", A.ECHO_DEFAULTS.echoSaveOfficer == false, tostring(A.ECHO_DEFAULTS.echoSaveOfficer))
+  check("hiding Blizzard chat defaults off", A.ECHO_DEFAULTS.echoHideBlizzardChat == false, tostring(A.ECHO_DEFAULTS.echoHideBlizzardChat))
+  check("the combat log is kept by default", A.ECHO_DEFAULTS.echoKeepCombatLog == true, tostring(A.ECHO_DEFAULTS.echoKeepCombatLog))
   -- Later sections run without defaults, as before this plan.
   A.ECHO_DEFAULTS, A.ECHO_KEYS, A.ECHO_LIMITS = nil, nil, nil
 `, 'echo-defaults-check');
@@ -4303,6 +4309,15 @@ run(`
   check("guild toggle hidden with history off", keys.echoSaveGuild.visibleWhen() == false, "shown")
   check("officer toggle hidden with history off", keys.echoSaveOfficer.visibleWhen() == false, "shown")
   A.OptionsData_SetDB("echoSaveHistory", nil)
+  check("keep combat log hidden while Blizzard chat shows", keys.echoKeepCombatLog and keys.echoKeepCombatLog.visibleWhen
+      and keys.echoKeepCombatLog.visibleWhen() == false, "shown")
+  A.OptionsData_SetDB("echoHideBlizzardChat", true)
+  check("keep combat log shown while hiding", keys.echoKeepCombatLog and keys.echoKeepCombatLog.visibleWhen
+      and keys.echoKeepCombatLog.visibleWhen() == true, "hidden")
+  A.OptionsData_SetDB("echoHideBlizzardChat", nil)
+  local reloadPrompt
+  for _, opt in ipairs(cat.options) do if opt.type == "moduleReloadPrompt" then reloadPrompt = opt end end
+  check("the Blizzard chat section has the reload prompt", reloadPrompt and reloadPrompt.hintText == A.L["ECHO_HIDE_CHAT_RELOAD"], "missing")
 
   A.OptionsData_SetDB("echoX", 800)
   A.OptionsData_SetDB("echoY", 300)
@@ -8727,6 +8742,246 @@ run(`
   A.GetDB, A.ECHO_DEFAULTS = saved.getDB, saved.defaults
   S.Reset()
 `, 'echo-all');
+
+// --- Hide Blizzard chat (plan 12, Task 5) -------------------------------------------------
+run(`
+  local A, Echo = HorizonSuite, HorizonSuite.Echo
+  local S, H, All = Echo.Store, Echo.History, Echo.All
+  local HC = Echo.HideChat
+  check("hide: EchoHideChat.lua is loaded", HC ~= nil and HC.Enable ~= nil, "no Echo.HideChat")
+  if not (HC and HC.Enable) then return end
+  local saved = { hook = hooksecurefunc, frames = CHAT_FRAMES, create = CreateFrame, getDB = A.GetDB,
+    setDB = A.SetDB, defaults = A.ECHO_DEFAULTS, combat = InCombatLockdown, after = C_Timer.After,
+    util = C_EventUtils, cvar = C_CVar, logged = IsLoggedIn, group = ChatTypeGroup, info = ChatTypeInfo,
+    cfu = ChatFrameUtil, getf = ChatFrame_GetMessageEventFilters, refresh = A.Dashboard_Refresh,
+    flag = A._moduleReloadRecommended }
+  S.Reset()
+  local db = {}
+  A.GetDB = function(k, d) if db[k] ~= nil then return db[k] end return d end
+  A.SetDB = function(k, v) db[k] = v end
+  A.ECHO_DEFAULTS = { echoHideBlizzardChat = false, echoKeepCombatLog = true, echoDockInput = true, echoAllView = true }
+  -- A real post-hook: the original runs, then the hook with the same arguments.
+  hooksecurefunc = function(t, name, fn)
+    local orig = t[name]
+    t[name] = function(...) orig(...); fn(...) end
+  end
+  CreateFrame = function(...)
+    local f = STUB_CREATE_FRAME(...)
+    f.events = {}
+    f.RegisterEvent = function(self, e) self.events[e] = true end
+    f.UnregisterEvent = function(self, e) self.events[e] = nil end
+    f.UnregisterAllEvents = function(self) self.events = {} end
+    return f
+  end
+  local function Reparentable(t)
+    t.parent = UIParent
+    function t:SetParent(p) self.parent = p end
+    function t:GetParent() return self.parent end
+    return t
+  end
+  local function Window(name)
+    local w = Reparentable({ name = name,
+      events = { CHAT_MSG_SAY = true, CHAT_MSG_GUILD = true, CHAT_MSG_WHISPER = true, UPDATE_CHAT_COLOR = true } })
+    function w:RegisterEvent(e) self.events[e] = true end
+    function w:UnregisterEvent(e) self.events[e] = nil end
+    function w:UnregisterAllEvents() self.events = {} end
+    _G[name] = w
+    local tab = Reparentable({})
+    _G[name .. "Tab"] = tab
+    return w, tab
+  end
+  local function Keys(t)
+    local out = {}
+    for k in pairs(t) do out[#out + 1] = k end
+    table.sort(out)
+    return table.concat(out, ",")
+  end
+  CHAT_FRAMES = { "ChatFrame1", "ChatFrame2", "ChatFrame3" }
+  local cf1, tab1 = Window("ChatFrame1")
+  local cf2, tab2 = Window("ChatFrame2")
+  local cf3, tab3 = Window("ChatFrame3")
+  local menu, channel, quick = Reparentable({}), Reparentable({}), Reparentable({})
+  ChatFrameMenuButton, ChatFrameChannelButton, QuickJoinToastButton = menu, channel, quick
+  ChatFrameToggleVoiceDeafenButton, ChatFrameToggleVoiceMuteButton = nil, nil
+  local invalid = { CAUTIONARY_CHAT_MESSAGE = true, CHAT_MSG_PING = true }
+  C_EventUtils = { IsEventValid = function(e) return not invalid[e] end }
+  local cvars = { whisperMode = "popout" }
+  C_CVar = { GetCVar = function(n) return cvars[n] end, SetCVar = function(n, v) cvars[n] = v end }
+  local inCombat = false
+  InCombatLockdown = function() return inCombat end
+  local timers = {}
+  C_Timer.After = function(_, fn) timers[#timers + 1] = fn end
+  local function RunTimers() local t = timers; timers = {}; for _, fn in ipairs(t) do fn() end end
+  IsLoggedIn = function() return false end
+  ChatTypeGroup = {
+    SYSTEM = { "CHAT_MSG_SYSTEM", "TIME_PLAYED_MSG" }, AFK = { "CHAT_MSG_AFK" }, DND = { "CHAT_MSG_DND" },
+    WHISPER = { "CHAT_MSG_WHISPER", "CHAT_MSG_WHISPER_INFORM", "CHAT_MSG_AFK" },
+    TRADESKILLS = { "CHAT_MSG_TRADESKILLS" }, IGNORED = { "CHAT_MSG_IGNORED" },
+    BG_HORDE = { "CHAT_MSG_BG_SYSTEM_HORDE" }, RAID_BOSS_EMOTE = { "CHAT_MSG_RAID_BOSS_EMOTE" },
+    COMBAT_HONOR_GAIN = { "CHAT_MSG_COMBAT_HONOR_GAIN" }, COMBAT_MISC_INFO = { "CHAT_MSG_COMBAT_MISC_INFO" },
+    COMBAT_XP_GAIN = { "CHAT_MSG_COMBAT_XP_GAIN" },
+    BN_INLINE_TOAST_ALERT = { "CHAT_MSG_BN_INLINE_TOAST_ALERT", "CHAT_MSG_BN_INLINE_TOAST_BROADCAST" },
+    PING = { "CHAT_MSG_PING" },
+  }
+  ChatTypeInfo = { AFK = { r = 1, g = 0.5, b = 0 }, RAID_BOSS_EMOTE = { r = 1, g = 0.87, b = 0 } }
+  ChatFrameUtil = nil
+  ChatFrame_GetMessageEventFilters = function() return { function(_, _, text) return text == "spam" end } end
+  local hideDB = {}
+  H.Bind(hideDB, function() return "Kaelis-Horizon" end)
+  local refreshes = 0
+  A.Dashboard_Refresh = function() refreshes = refreshes + 1 end
+  A._moduleReloadRecommended = nil
+
+  HC.Enable()
+  local frame = HC._frame()
+  local function fire(event, ...) frame.scripts.OnEvent(frame, event, ...) end
+  check("hide: it waits for the world", frame ~= nil and frame.events.PLAYER_ENTERING_WORLD == true, "not registered")
+  HC.Refresh()
+  fire("PLAYER_ENTERING_WORLD")
+  RunTimers()
+  check("hide: off by default, nothing moves", cf1.parent == UIParent and cvars.whisperMode == "popout", tostring(cf1.parent))
+
+  -- Turning it on: docking comes on with it, and nothing moves before the next frame.
+  db.echoDockInput = false
+  db.echoHideBlizzardChat = true
+  HC.Refresh()
+  check("hide: turning it on turns docking on", db.echoDockInput == true, tostring(db.echoDockInput))
+  check("hide: it waits a frame", cf1.parent == UIParent, "moved at once")
+  RunTimers()
+  local hidden = cf1.parent
+  check("hide: the main window moves to a hidden parent", hidden ~= UIParent and hidden ~= nil and not hidden.shown, tostring(hidden))
+  check("hide: every other window and tab moves with it", cf3.parent == hidden and tab1.parent == hidden and tab3.parent == hidden, "left")
+  check("hide: the combat log and its tab stay", cf2.parent == UIParent and tab2.parent == UIParent, "moved")
+  check("hide: the combat log keeps its events", cf2.events.CHAT_MSG_SAY == true, Keys(cf2.events))
+
+  -- Events: ChatFrame1 keeps only the whisper events that exist, and chat colours.
+  check("hide: ChatFrame1 keeps its whisper events that exist", Keys(cf1.events) == "CHAT_MSG_BN_WHISPER,CHAT_MSG_WHISPER,UPDATE_CHAT_COLOR", Keys(cf1.events))
+  check("hide: other windows keep only chat colours", Keys(cf3.events) == "UPDATE_CHAT_COLOR", Keys(cf3.events))
+  cf1:RegisterEvent("CHAT_MSG_SAY")
+  cf3:RegisterEvent("CHAT_MSG_GUILD")
+  check("hide: a later RegisterEvent is undone", cf1.events.CHAT_MSG_SAY == nil and cf3.events.CHAT_MSG_GUILD == nil, Keys(cf1.events))
+  cf1:RegisterEvent("CHAT_MSG_WHISPER")
+  check("hide: a kept event can still register", cf1.events.CHAT_MSG_WHISPER == true, Keys(cf1.events))
+  cf2:RegisterEvent("CHAT_MSG_GUILD")
+  check("hide: the combat log's registrations are left alone", cf2.events.CHAT_MSG_GUILD == true, Keys(cf2.events))
+  tab1:SetParent(UIParent)
+  check("hide: a tab put back is moved away again", tab1.parent == hidden, tostring(tab1.parent))
+  check("hide: the chat buttons move away", menu.parent == hidden and channel.parent == hidden and quick.parent == hidden, "left")
+
+  -- whisperMode: saved per character, then set to inline.
+  check("hide: whispers go inline", cvars.whisperMode == "inline", cvars.whisperMode)
+  check("hide: the old whisperMode is saved", H.SavedCVar("whisperMode") == "popout", tostring(H.SavedCVar("whisperMode")))
+  check("hide: saved for this character", hideDB.echoHistory.cvars and hideDB.echoHistory.cvars["Kaelis-Horizon"]
+      and hideDB.echoHistory.cvars["Kaelis-Horizon"].whisperMode == "popout", "not in the character's settings")
+  H.Clear()
+  check("hide: clearing history keeps the saved whisperMode", H.SavedCVar("whisperMode") == "popout", tostring(H.SavedCVar("whisperMode")))
+  HC.Refresh()
+  RunTimers()
+  check("hide: applying again never saves inline over it", H.SavedCVar("whisperMode") == "popout", tostring(H.SavedCVar("whisperMode")))
+
+  -- Chat types Echo doesn't route come to Echo's own frame instead.
+  check("hide: unrouted chat types are registered",
+      frame.events.CHAT_MSG_AFK and frame.events.CHAT_MSG_DND and frame.events.CHAT_MSG_TRADESKILLS
+      and frame.events.CHAT_MSG_IGNORED and frame.events.CHAT_MSG_BG_SYSTEM_HORDE and frame.events.CHAT_MSG_RAID_BOSS_EMOTE
+      and frame.events.CHAT_MSG_BN_INLINE_TOAST_BROADCAST, Keys(frame.events))
+  check("hide: honour gains are kept", frame.events.CHAT_MSG_COMBAT_HONOR_GAIN == true, Keys(frame.events))
+  check("hide: routed chat types are left to Echo", not frame.events.CHAT_MSG_SYSTEM and not frame.events.CHAT_MSG_WHISPER
+      and not frame.events.CHAT_MSG_COMBAT_XP_GAIN and not frame.events.CHAT_MSG_BN_INLINE_TOAST_ALERT, Keys(frame.events))
+  check("hide: other combat types and non-chat events are skipped", not frame.events.CHAT_MSG_COMBAT_MISC_INFO
+      and not frame.events.TIME_PLAYED_MSG, Keys(frame.events))
+  check("hide: an event the client lacks is skipped", not frame.events.CHAT_MSG_PING, Keys(frame.events))
+
+  All.Enable()
+  S.Reset()
+  fire("CHAT_MSG_AFK", "back in 5", "Brisa-Horizon")
+  local all = S.Get("all")
+  local line = all and all.messages[1] or {}
+  check("hide: an unrouted line is added to All", line.text == "back in 5" and line.convKey == "all" and line.feed == true, tostring(line.text))
+  check("hide: prefixed with the sender's short name", line.prefix == "Brisa:", tostring(line.prefix))
+  check("hide: in its chat type's colour", line.r == 1 and line.g == 0.5 and line.b == 0, tostring(line.r))
+  fire("CHAT_MSG_TRADESKILLS", "You create Bread.", "")
+  line = all and all.messages[2] or {}
+  check("hide: no sender, no prefix; no colour, white", line.text == "You create Bread." and line.prefix == nil
+      and line.r == 1 and line.g == 1 and line.b == 1, tostring(line.prefix))
+  local secretText = SECRET("psst")
+  fire("CHAT_MSG_AFK", secretText, "Brisa-Horizon")
+  line = all and all.messages[3] or {}
+  check("hide: a secret text is kept as it is", rawequal(line.text, secretText) and line.secret == true and line.prefix == "Brisa:", tostring(line.secret))
+  fire("CHAT_MSG_AFK", "hi", SECRET("Brisa-Horizon"))
+  line = all and all.messages[4] or {}
+  check("hide: a secret sender gives no prefix", line.text == "hi" and line.prefix == nil, tostring(line.prefix))
+  local count = all and #all.messages or 0
+  fire("CHAT_MSG_AFK", "spam", "Brisa-Horizon")
+  check("hide: another addon's filter can block a line", all and #all.messages == count, all and #all.messages)
+  fire("CHAT_MSG_RAID_BOSS_EMOTE", "%s roars!", "Onyxia")
+  line = all and all.messages[#all.messages] or {}
+  check("hide: a boss emote names its speaker in place", line.text == "Onyxia roars!" and line.prefix == nil, tostring(line.text))
+  fire("CHAT_MSG_BN_INLINE_TOAST_BROADCAST", "hello all", "|Kq1|k")
+  line = all and all.messages[#all.messages] or {}
+  check("hide: a battle.net name is used whole, never cut", line.prefix == "|Kq1|k:", tostring(line.prefix))
+
+  -- Echo.ApplyOptions pushes the setting, before docking is applied.
+  local realRefresh, realInput = HC.Refresh, Echo.Input.Enable
+  local order = {}
+  HC.Refresh = function() order[#order + 1] = "hide" end
+  Echo.Input.Enable = function() order[#order + 1] = "dock" end
+  Echo.ApplyOptions()
+  HC.Refresh, Echo.Input.Enable = realRefresh, realInput
+  check("hide: ApplyOptions refreshes it before docking", table.concat(order, ",") == "hide,dock", table.concat(order, ","))
+
+  -- Turning it off: whisperMode goes back and a reload is asked for; nothing un-hides live.
+  db.echoHideBlizzardChat = false
+  HC.Refresh()
+  RunTimers()
+  check("hide: off restores whisperMode", cvars.whisperMode == "popout", cvars.whisperMode)
+  check("hide: and forgets the saved value", H.SavedCVar("whisperMode") == nil, tostring(H.SavedCVar("whisperMode")))
+  check("hide: turning it off asks for a reload", A._moduleReloadRecommended == true and refreshes >= 1, refreshes)
+  check("hide: nothing is un-hidden live", cf1.parent == hidden and tab1.parent == hidden, "put back")
+
+  -- Disabling the module with it applied also asks for a reload.
+  A._moduleReloadRecommended = nil
+  HC.Disable()
+  check("hide: disabling after hiding asks for a reload", A._moduleReloadRecommended == true, tostring(A._moduleReloadRecommended))
+  check("hide: disabling drops Echo's extra events", next(frame.events) == nil, Keys(frame.events))
+
+  -- In combat nothing is applied until combat ends; without the combat log kept, it goes too.
+  cf1, tab1 = Window("ChatFrame1")
+  cf2, tab2 = Window("ChatFrame2")
+  cf3, tab3 = Window("ChatFrame3")
+  invalid = {}
+  cvars.whisperMode = "popout"
+  db.echoHideBlizzardChat, db.echoKeepCombatLog = true, false
+  IsLoggedIn = function() return true end
+  inCombat = true
+  HC.Enable()
+  HC.Refresh()
+  RunTimers()
+  check("hide: nothing is applied in combat", cf1.parent == UIParent and cvars.whisperMode == "popout", tostring(cf1.parent))
+  check("hide: it waits for combat to end", frame.events.PLAYER_REGEN_ENABLED == true, Keys(frame.events))
+  inCombat = false
+  fire("PLAYER_REGEN_ENABLED")
+  RunTimers()
+  check("hide: applied once combat ends", cf1.parent == hidden and cf3.parent == hidden, tostring(cf1.parent))
+  check("hide: the combat log goes too when not kept", cf2.parent == hidden and tab2.parent == hidden, tostring(cf2.parent))
+  check("hide: the combat log keeps only chat colours", Keys(cf2.events) == "UPDATE_CHAT_COLOR", Keys(cf2.events))
+  check("hide: an existing cautionary event is kept too",
+      Keys(cf1.events) == "CAUTIONARY_CHAT_MESSAGE,CHAT_MSG_BN_WHISPER,CHAT_MSG_WHISPER,UPDATE_CHAT_COLOR", Keys(cf1.events))
+  check("hide: combat's end is no longer watched", not frame.events.PLAYER_REGEN_ENABLED, Keys(frame.events))
+  HC.Disable()
+  check("hide: disabling the module restores whisperMode", cvars.whisperMode == "popout", cvars.whisperMode)
+
+  All.Disable()
+  H.Unbind()
+  hooksecurefunc, CHAT_FRAMES, CreateFrame = saved.hook, saved.frames, saved.create
+  A.GetDB, A.SetDB, A.ECHO_DEFAULTS = saved.getDB, saved.setDB, saved.defaults
+  InCombatLockdown, C_Timer.After, C_EventUtils, C_CVar = saved.combat, saved.after, saved.util, saved.cvar
+  IsLoggedIn, ChatTypeGroup, ChatTypeInfo = saved.logged, saved.group, saved.info
+  ChatFrameUtil, ChatFrame_GetMessageEventFilters = saved.cfu, saved.getf
+  A.Dashboard_Refresh, A._moduleReloadRecommended = saved.refresh, saved.flag
+  for _, name in ipairs({ "ChatFrame1", "ChatFrame2", "ChatFrame3" }) do _G[name], _G[name .. "Tab"] = nil, nil end
+  ChatFrameMenuButton, ChatFrameChannelButton, QuickJoinToastButton = nil, nil, nil
+  S.Reset()
+`, 'echo-hide-chat');
 
 // --- Redraw: one repaint per frame -------------------------------------------
 run(`

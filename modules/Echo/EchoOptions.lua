@@ -123,6 +123,9 @@ function Echo.ApplyOptions()
     if Echo.Redraw then Echo.Redraw.Mark("tiles") end
     local filterOn = Echo.Setting("echoHideStoredWhispers") == true
     if filterOn ~= Echo.Filter.active then Echo.Filter.Apply(filterOn) end
+    -- Hide Blizzard's chat windows, or ask for a reload to bring them back. First, as hiding
+    -- turns docking on.
+    if Echo.HideChat then Echo.HideChat.Refresh() end
     -- Dock or undock Blizzard's input line, and re-anchor it to the new card size and edge.
     if Echo.Input then Echo.Input.Enable() end
 end

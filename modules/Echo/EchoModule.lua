@@ -102,6 +102,7 @@ function Echo.Init()
     Echo.Stack.Enable()
     Echo.Card.Enable()
     Echo.Input.Enable()
+    Echo.HideChat.Enable()
     Echo.Links.Hook()
     Echo.ApplyOptions()
     if not lifecycle then
@@ -124,6 +125,8 @@ function Echo.Disable()
     if lifecycle then lifecycle:UnregisterAllEvents() end
     Echo.Redraw.Clear()
     restoredAt = nil
+    -- Puts whisperMode back, and asks for a reload if Blizzard's chat was hidden.
+    Echo.HideChat.Disable()
     Echo.Input.Disable()
     Echo.Card.Disable()
     Echo.Stack.Disable()

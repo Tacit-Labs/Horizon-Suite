@@ -190,3 +190,33 @@ end
 function All.Disable()
     active = false
 end
+
+--- File a printed-style line into All: a chat type Echo doesn't route, while Blizzard's
+-- chat windows are hidden (plan 12, Task 5, EchoHideChat.lua). A secret text is filed as
+-- it is, never inspected; the prefix stays a field of its own and is never joined to it.
+-- @param text string  may be secret
+-- @param r number|nil  colour; white when any part is missing
+-- @param g number|nil
+-- @param b number|nil
+-- @param prefix string|nil  drawn before the text, e.g. the sender's short name
+-- @return boolean filed
+function All.AddLine(text, r, g, b, prefix)
+    if not Collecting() then return false end
+    local secret = IsSecret(text)
+    if not secret then
+        if type(text) == "number" then text = tostring(text) end
+        if type(text) ~= "string" or text == "" then return false end
+    end
+    r, g, b = Colour(r), Colour(g), Colour(b)
+    if not (r and g and b) then r, g, b = 1, 1, 1 end
+    Store.Add({
+        convKey = All.KEY,
+        text    = text,
+        secret  = secret,
+        prefix  = Readable(prefix),
+        feed    = true,
+        r = r, g = g, b = b,
+        time    = Store.Now(),
+    })
+    return true
+end

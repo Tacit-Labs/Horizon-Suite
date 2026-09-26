@@ -9,6 +9,8 @@
     Never writes secret, pending, failed or demo messages. Channels are never persisted.
     Old conversations are dropped by History.Prune, on a timer the player sets
     (echoHistoryDays); a pinned conversation is always kept.
+    A game setting Echo changes (whisperMode, while Blizzard's chat is hidden) keeps its
+    earlier value per character in echoHistory.cvars, which History.Clear leaves alone.
     Blizzard: C_BattleNet.GetAccountInfoByID, GetGuildInfo, GetNormalizedRealmName.
 ]]
 
@@ -231,6 +233,38 @@ function History.SavePref(convKey, tier, pinned)
     else
         bucket[key] = { tier = tier, pinned = pinned and true or nil }
     end
+    return true
+end
+
+--- A game setting (CVar) Echo changed on this character, saved so it can be put back
+-- (plan 12, Task 5: whisperMode while Blizzard's chat is hidden). Kept in root.cvars,
+-- apart from chat history, so clearing history never loses it.
+-- @param name string
+-- @return string|nil
+function History.SavedCVar(name)
+    local charKey = root and characterKey()
+    local bucket = charKey and type(root.cvars) == "table" and root.cvars[charKey]
+    local value = type(bucket) == "table" and bucket[name]
+    if type(value) ~= "string" then return nil end
+    return value
+end
+
+--- Save a CVar's earlier value on this character; nil forgets it.
+-- @param name string
+-- @param value string|nil
+-- @return boolean saved  false while unbound or the character is unknown
+function History.SaveCVar(name, value)
+    local charKey = root and characterKey()
+    if not charKey then return false end
+    if type(root.cvars) ~= "table" then root.cvars = {} end
+    local bucket = root.cvars[charKey]
+    if type(bucket) ~= "table" then
+        if value == nil then return true end
+        bucket = {}
+        root.cvars[charKey] = bucket
+    end
+    bucket[name] = value
+    if next(bucket) == nil then root.cvars[charKey] = nil end
     return true
 end
 
