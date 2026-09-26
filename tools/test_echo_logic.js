@@ -2615,10 +2615,12 @@ run(`
   check("a toggle close runs a reverse genie", G.IsPlaying() and G._current().reverse, "")
   vexa.scripts.OnClick(vexa)
   check("a second click during the close is ignored", f.root:IsShown() and G.IsPlaying() and G._current().reverse, "")
+  check("the card says a close is animating", C.IsClosing() == true, tostring(C.IsClosing()))
   ov.scripts.OnUpdate(ov, 0.1)
   check("the card fades as the sheet folds", f.root:GetAlpha() < 1, f.root:GetAlpha())
   ov.scripts.OnUpdate(ov, 1)
   check("the close hides the card at the end", not f.root:IsShown(), "shown")
+  check("and that it no longer is", C.IsClosing() == false, tostring(C.IsClosing()))
   check("the close restores alpha for the next open", f.root:GetAlpha() == 1, f.root:GetAlpha())
 
   vexa.scripts.OnClick(vexa)
@@ -8160,7 +8162,7 @@ run(`
   check("target: emote is Nearby", target("EMOTE") == "nearby", I.TargetKey())
   check("target: a channel by its joined name", target("CHANNEL", { channelTarget = 2 }) == "ch:Trade", I.TargetKey())
   check("target: a channel not joined has none", target("CHANNEL", { channelTarget = 7 }) == nil, I.TargetKey())
-  check("target: Battle.net is Task 3's", target("BN_WHISPER", { tellTarget = "Friend" }) == nil, I.TargetKey())
+  check("target: Battle.net without a friends list has none", target("BN_WHISPER", { tellTarget = "Friend" }) == nil, I.TargetKey())
   check("target: a secret chat type has none", target(SECRET("GUILD")) == nil, "keyed")
   check("target: a secret whisper name has none", target("WHISPER", { tellTarget = SECRET("Brisa-Horizon") }) == nil, "keyed")
 
@@ -8261,6 +8263,107 @@ run(`
   box.shown = false
   box.hookScripts.OnShow(box)
   box.shown = true
+  fire("ActivateChat", box)
+  C.Show("w:Brisa-Horizon")
+
+  -- Task 3: Echo follows the input line.
+  local savedBN, savedNumFriends = C_BattleNet, BNGetNumFriends
+  C_BattleNet = { GetFriendAccountInfo = function(i)
+    if i == 1 then return { accountName = "|Kq1|k", bnetAccountID = 41 } end
+    if i == 2 then return { accountName = "|Kq2|k", bnetAccountID = 42 } end
+    if i == 3 then return { accountName = SECRET("|Kq3|k"), bnetAccountID = 43 } end
+    if i == 4 then return { accountName = "|Kq4|k", bnetAccountID = SECRET(44) } end
+  end }
+  BNGetNumFriends = function() return 4 end
+  check("follow: Battle.net is the friend whose account name matches", target("BN_WHISPER", { tellTarget = "|Kq2|k" }) == "bn:42", I.TargetKey())
+  check("follow: Battle.net matches whole strings only", target("BN_WHISPER", { tellTarget = "|Kq2" }) == nil, I.TargetKey())
+  check("follow: an unknown Battle.net friend has none", target("BN_WHISPER", { tellTarget = "|Kq9|k" }) == nil, I.TargetKey())
+  check("follow: a secret account name never matches", target("BN_WHISPER", { tellTarget = "|Kq3|k" }) == nil, I.TargetKey())
+  check("follow: a secret account ID gives none", target("BN_WHISPER", { tellTarget = "|Kq4|k" }) == nil, I.TargetKey())
+  check("follow: a secret Battle.net target has none", target("BN_WHISPER", { tellTarget = SECRET("|Kq2|k") }) == nil, I.TargetKey())
+  BNGetNumFriends = function() error("no friends list") end
+  check("follow: an unreadable friends list has none", target("BN_WHISPER", { tellTarget = "|Kq2|k" }) == nil, I.TargetKey())
+  BNGetNumFriends = function() return 4 end
+
+  -- The header hook opens the card on the line's target, once per change, without focus.
+  C.Hide()
+  local realStart, realShow = S.Start, C.Show
+  local starts, shows = {}, {}
+  S.Start = function(key) starts[#starts + 1] = key; return realStart(key) end
+  C.Show = function(key, fromTile) shows[#shows + 1] = { key = key, tile = fromTile }; return realShow(key, fromTile) end
+  local fe = C._frames().edit
+  fe.focused = false
+  local focusCalls = 0
+  local realFocus = C.Focus
+  C.Focus = function(...) focusCalls = focusCalls + 1; return realFocus(...) end
+  box.shown, box.focus = true, nil
+  box.attrs = { chatType = "GUILD" }
+  fire("UpdateHeader", box)
+  check("follow: an unfocused line opens nothing", #shows == 0 and not C.IsShown(), #shows)
+  box.focus = true
+  fire("UpdateHeader", box)
+  check("follow: a focused line opens its conversation", #shows == 1 and shows[1].key == "guild" and C.IsShown() and C.ShownKey() == "guild",
+    shows[1] and shows[1].key)
+  check("follow: the conversation is started", starts[1] == "guild", tostring(starts[1]))
+  check("follow: the card grows out of its tile", shows[1] and shows[1].tile == T.TileFor("guild"), "other tile")
+  fire("UpdateHeader", box)
+  check("follow: the same target opens it only once", #shows == 1, #shows)
+  box.attrs = { chatType = "WHISPER", tellTarget = "brisa-horizon" }
+  fire("UpdateHeader", box)
+  check("follow: a new target switches the card", #shows == 2 and C.ShownKey() == "w:Brisa-Horizon", C.ShownKey())
+  box.attrs = { chatType = "WHISPER", tellTarget = "Quill" }
+  fire("UpdateHeader", box)
+  check("follow: a whisper to someone new starts their conversation", C.ShownKey() == "w:Quill-Horizon" and S.Get("w:Quill-Horizon") ~= nil, C.ShownKey())
+  box.attrs = { chatType = "BN_WHISPER", tellTarget = "|Kq1|k" }
+  fire("UpdateHeader", box)
+  check("follow: a Battle.net whisper opens the friend's conversation", C.ShownKey() == "bn:41", C.ShownKey())
+  box.attrs = { chatType = "SAY" }
+  fire("UpdateHeader", box)
+  check("follow: say opens Nearby on Say", C.ShownKey() == "nearby" and S.SendModeOf("nearby") == "SAY", S.SendModeOf("nearby"))
+  local before = #shows
+  box.attrs = { chatType = "YELL" }
+  fire("UpdateHeader", box)
+  check("follow: Nearby's mode follows yell", S.SendModeOf("nearby") == "YELL", S.SendModeOf("nearby"))
+  check("follow: without opening it again", #shows == before, #shows - before)
+  check("follow: the card's reply box is never focused", focusCalls == 0 and rawget(fe, "focused") ~= true, focusCalls)
+  check("follow: nor Blizzard's line", box.calls.focus == 0, box.calls.focus)
+
+  -- Deactivate forgets the target, so the next activate on it opens it again.
+  fire("DeactivateChat", box)
+  C.Hide()
+  box.shown = true
+  fire("ActivateChat", box)
+  fire("UpdateHeader", box)
+  check("follow: after deactivate the same target opens again", #shows == before + 1 and C.ShownKey() == "nearby", #shows - before)
+
+  -- Never while the card is animating a close, and never while docking is off.
+  local realClosing = C.IsClosing
+  check("follow: the card says whether a close is animating", type(realClosing) == "function" and realClosing() == false, tostring(realClosing))
+  C.IsClosing = function() return true end
+  box.attrs = { chatType = "GUILD" }
+  fire("UpdateHeader", box)
+  check("follow: not while the card animates a close", C.ShownKey() == "nearby", C.ShownKey())
+  C.IsClosing = realClosing
+  fire("UpdateHeader", box)
+  check("follow: and once the close is done, it follows", C.ShownKey() == "guild", C.ShownKey())
+  box.shown = false
+  box.attrs = { chatType = "OFFICER" }
+  fire("UpdateHeader", box)
+  check("follow: a hidden line opens nothing", C.ShownKey() == "guild", C.ShownKey())
+  box.shown = true
+  db.echoDockInput = false
+  Echo.ApplyOptions()
+  box.shown = true
+  fire("UpdateHeader", box)
+  check("follow: nothing while docking is off", C.ShownKey() == "guild", C.ShownKey())
+  db.echoDockInput = nil
+  Echo.ApplyOptions()
+
+  S.Start, C.Show, C.Focus = realStart, realShow, realFocus
+  C_BattleNet, BNGetNumFriends = savedBN, savedNumFriends
+  box.focus = nil
+  box.shown = true
+  box.attrs = { chatType = "WHISPER", tellTarget = "Brisa-Horizon" }
   fire("ActivateChat", box)
   C.Show("w:Brisa-Horizon")
 

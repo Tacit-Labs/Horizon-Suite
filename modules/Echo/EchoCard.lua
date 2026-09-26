@@ -1281,6 +1281,12 @@ function Card.Hide()
     HideNow()
 end
 
+--- Whether a close genie is running: the card is still up but on its way out.
+-- @return boolean
+function Card.IsClosing()
+    return closing
+end
+
 --- @return boolean
 function Card.IsShown()
     return root ~= nil and root:IsShown()

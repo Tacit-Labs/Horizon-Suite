@@ -8,16 +8,19 @@
     Under an open card it sits flush with the card's bottom edge at the card's width; with
     no card it sits beside the Echo icon at the column's foot, on the side panels open to.
     The card hides its own reply box while the shown line sends to the card's conversation.
+    While the line is being typed in, the card follows it: Blizzard's Whisper, R, /w, /g
+    and /1 open the conversation the line is aimed at, once per target, without focus.
     Blizzard's chat code is only observed: hooksecurefunc post-hooks on the activate,
     deactivate and header functions and on the box's SetPoint, and HookScript post-hooks on
     its OnShow and OnHide. Echo never calls them, never focuses the box and never
     sets its attributes (Task 1's probe in EchoSlash.lua is the one exception).
     Blizzard: ChatFrame1EditBox (GetPoint, GetNumPoints, GetScale, GetRegions, GetAttribute,
-    GetFrameLevel, GetFrameStrata, GetFont, ClearAllPoints, SetPoint, SetScale,
+    GetFrameLevel, GetFrameStrata, GetFont, HasFocus, ClearAllPoints, SetPoint, SetScale,
     SetFrameStrata, SetFont, HookScript; Show, SetShown and SetAlpha from the activate and
     deactivate post-hooks and at enable; Hide at disable), hooksecurefunc,
     ChatFrameUtil.ActivateChat / DeactivateChat / UpdateHeader or the ChatEdit_ equivalents,
-    ChatTypeInfo, GetChannelName (through Send.ChannelKeyForSlot).
+    ChatTypeInfo, GetChannelName (through Send.ChannelKeyForSlot),
+    BNGetNumFriends, C_BattleNet.GetFriendAccountInfo.
 ]]
 
 local addon = _G.HorizonSuite
@@ -38,6 +41,7 @@ local background      -- Echo's rounded panel behind the box
 local hooked = false  -- the post-hooks are installed once and stay
 local anchoring = false  -- Echo's own SetPoint calls on the box are running; its hook lets them by
 local alwaysShown = false  -- always-visible put the box on screen, not Blizzard's own activate
+local followed        -- the conversation the card last opened because the line aimed at it
 
 -- The conversation each chat type sends to, for the types keyed by kind alone.
 local KIND_OF = {
@@ -56,7 +60,30 @@ local function Attribute(box, name)
     return v
 end
 
---- The conversation Blizzard's input line sends to now, or nil. Battle.net is Task 3's.
+-- The "bn:<accountID>" conversation of the Battle.net friend whose account name is this
+-- one, else nil. Account names are |K protected strings: they are only ever compared as
+-- whole strings, never searched, cut or parsed.
+local function BattleNetKey(accountName)
+    if type(accountName) ~= "string" or accountName == "" then return nil end
+    local api = C_BattleNet and C_BattleNet.GetFriendAccountInfo
+    if type(BNGetNumFriends) ~= "function" or type(api) ~= "function" then return nil end
+    local okCount, count = pcall(BNGetNumFriends)
+    if not okCount or Echo.IsSecret(count) or type(count) ~= "number" then return nil end
+    for i = 1, count do
+        local ok, info = pcall(api, i)
+        if ok and not Echo.IsSecret(info) and type(info) == "table" then
+            local name = info.accountName
+            if not Echo.IsSecret(name) and name == accountName then
+                local id = info.bnetAccountID
+                if Echo.IsSecret(id) or type(id) ~= "number" then return nil end
+                return Echo.Store.KeyFor("bnet", id)
+            end
+        end
+    end
+    return nil
+end
+
+--- The conversation Blizzard's input line sends to now, or nil.
 -- @return string|nil convKey
 function Input.TargetKey()
     local box = Box()
@@ -66,6 +93,9 @@ function Input.TargetKey()
     if chatType == "WHISPER" then
         local key = Echo.Send.WhisperKeyFor(Attribute(box, "tellTarget"))
         return key and (Echo.Store.WhisperKeyLike(key) or key)
+    end
+    if chatType == "BN_WHISPER" then
+        return BattleNetKey(Attribute(box, "tellTarget"))
     end
     if chatType == "CHANNEL" then
         local slot = Attribute(box, "channelTarget")
@@ -223,6 +253,7 @@ end
 
 local function OnDeactivate(editBox)
     if not active or editBox ~= Box() then return end
+    followed = nil  -- the next time the line opens, its target opens the card again
     local always = Echo.Setting("echoInputAlwaysVisible") == true
     editBox:SetShown(always)
     if always then editBox:SetAlpha(1) end
@@ -231,10 +262,37 @@ local function OnDeactivate(editBox)
     RefreshCard()
 end
 
+-- Whether the box has the keyboard now, read without trusting a secret answer.
+local function Focused(box)
+    if type(box.HasFocus) ~= "function" then return false end
+    local focus = box:HasFocus()
+    return not Echo.IsSecret(focus) and focus == true
+end
+
+-- The line is being typed in and aims at a conversation: open it on the card, without
+-- focusing the card's reply box, once per target. Say, Yell and Emote set Nearby's mode
+-- each time, since switching among them keeps the same conversation.
+local function Follow(box)
+    if not box:IsShown() or not Focused(box) then return end
+    local Card = Echo.Card
+    if Card.IsClosing and Card.IsClosing() then return end
+    local key = Input.TargetKey()
+    if key == nil then return end
+    if key == "nearby" then
+        local mode = Attribute(box, "chatType")
+        if type(mode) == "string" then Echo.Store.SetSendMode("nearby", mode) end
+    end
+    if key == followed then return end
+    followed = key
+    Echo.Store.Start(key)
+    Card.Show(key, Echo.Tiles.TileFor(key))
+end
+
 local function OnHeader(editBox)
     if not active or editBox ~= Box() then return end
     FadeTextures()
     Input.PaintBorder()
+    Follow(editBox)
     RefreshCard()
 end
 
@@ -366,6 +424,7 @@ function Input.Disable()
     -- A box only always-visible kept on screen goes, so Blizzard's own flow shows it next time.
     if box and alwaysShown and box:IsShown() and not box:HasFocus() then box:Hide() end
     alwaysShown = false
+    followed = nil
     if background then background:Hide() end
     RefreshCard()
 end
