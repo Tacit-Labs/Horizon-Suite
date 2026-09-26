@@ -9,7 +9,8 @@
     no card it sits beside the Echo icon at the column's foot, on the side panels open to.
     The card hides its own reply box while the shown line sends to the card's conversation.
     While the line is being typed in, the card follows it: Blizzard's Whisper, R, /w, /g
-    and /1 open the conversation the line is aimed at, once per target, without focus.
+    and /1 open the conversation the line is aimed at, once per target, without focus
+    or the genie.
     Blizzard's chat code is only observed: hooksecurefunc post-hooks on the activate,
     deactivate and header functions and on the box's SetPoint, and HookScript post-hooks on
     its OnShow and OnHide. Echo never calls them, never focuses the box and never
@@ -240,28 +241,6 @@ function Input.Reanchor()
     SyncBackground(box)
 end
 
-local function OnActivate(editBox)
-    if not active or editBox ~= Box() then return end
-    -- Blizzard's own chat-frame layout can re-anchor the box; take it back as typing starts.
-    Input.Reanchor()
-    FadeTextures()
-    alwaysShown = false  -- Blizzard's own flow has it now
-    editBox:Show()
-    SyncBackground(editBox)
-    RefreshCard()
-end
-
-local function OnDeactivate(editBox)
-    if not active or editBox ~= Box() then return end
-    followed = nil  -- the next time the line opens, its target opens the card again
-    local always = Echo.Setting("echoInputAlwaysVisible") == true
-    editBox:SetShown(always)
-    if always then editBox:SetAlpha(1) end
-    alwaysShown = always
-    SyncBackground(editBox)
-    RefreshCard()
-end
-
 -- Whether the box has the keyboard now, read without trusting a secret answer.
 local function Focused(box)
     if type(box.HasFocus) ~= "function" then return false end
@@ -270,8 +249,10 @@ local function Focused(box)
 end
 
 -- The line is being typed in and aims at a conversation: open it on the card, without
--- focusing the card's reply box, once per target. Say, Yell and Emote set Nearby's mode
--- each time, since switching among them keeps the same conversation.
+-- focusing the card's reply box and without the genie, once per target. The header and
+-- activate hooks both call this, since the header can update before the box has focus.
+-- Say, Yell and Emote set Nearby's mode each time, since switching among them keeps the
+-- same conversation.
 local function Follow(box)
     if not box:IsShown() or not Focused(box) then return end
     local Card = Echo.Card
@@ -285,7 +266,31 @@ local function Follow(box)
     if key == followed then return end
     followed = key
     Echo.Store.Start(key)
-    Card.Show(key, Echo.Tiles.TileFor(key))
+    Card.Show(key, nil)  -- no tile, so no genie: the line is being typed in
+end
+
+local function OnActivate(editBox)
+    if not active or editBox ~= Box() then return end
+    -- Blizzard's own chat-frame layout can re-anchor the box; take it back as typing starts.
+    Input.Reanchor()
+    FadeTextures()
+    alwaysShown = false  -- Blizzard's own flow has it now
+    editBox:Show()
+    SyncBackground(editBox)
+    -- A header update that ran before the box took focus followed nothing; catch it here.
+    Follow(editBox)
+    RefreshCard()
+end
+
+local function OnDeactivate(editBox)
+    if not active or editBox ~= Box() then return end
+    followed = nil  -- the next time the line opens, its target opens the card again
+    local always = Echo.Setting("echoInputAlwaysVisible") == true
+    editBox:SetShown(always)
+    if always then editBox:SetAlpha(1) end
+    alwaysShown = always
+    SyncBackground(editBox)
+    RefreshCard()
 end
 
 local function OnHeader(editBox)

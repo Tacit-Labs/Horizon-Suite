@@ -8305,7 +8305,9 @@ run(`
   check("follow: a focused line opens its conversation", #shows == 1 and shows[1].key == "guild" and C.IsShown() and C.ShownKey() == "guild",
     shows[1] and shows[1].key)
   check("follow: the conversation is started", starts[1] == "guild", tostring(starts[1]))
-  check("follow: the card grows out of its tile", shows[1] and shows[1].tile == T.TileFor("guild"), "other tile")
+  check("follow: the card opens without a tile, so without a genie", shows[1] and shows[1].tile == nil, "a tile")
+  check("follow: a card opened by the line still takes the line under it", box.points[1] and box.points[1][2] == C._frames().root,
+    box.points[1] and tostring(box.points[1][1]))
   fire("UpdateHeader", box)
   check("follow: the same target opens it only once", #shows == 1, #shows)
   box.attrs = { chatType = "WHISPER", tellTarget = "brisa-horizon" }
@@ -8358,6 +8360,38 @@ run(`
   check("follow: nothing while docking is off", C.ShownKey() == "guild", C.ShownKey())
   db.echoDockInput = nil
   Echo.ApplyOptions()
+
+  -- Activate follows too: a header update that came before the focus is caught there.
+  fire("DeactivateChat", box)
+  C.Hide()
+  box.shown, box.focus = true, nil
+  box.attrs = { chatType = "PARTY" }
+  fire("UpdateHeader", box)
+  check("follow: a header before focus opens nothing", not C.IsShown(), C.ShownKey())
+  box.focus = true
+  fire("ActivateChat", box)
+  check("follow: the activate that follows opens it", C.IsShown() and C.ShownKey() == "party", C.ShownKey())
+  local n = #shows
+  fire("UpdateHeader", box)
+  check("follow: and the header after it doesn't open it twice", #shows == n, #shows - n)
+
+  -- No genie when following, even with the animation on and the tile in view.
+  local realTileFor = T.TileFor
+  T.TileFor = function() return stackButton end
+  local realPlay, plays = Echo.Genie.Play, 0
+  Echo.Genie.Play = function(...) plays = plays + 1; return realPlay(...) end
+  db.echoAnimateCard = true
+  fire("DeactivateChat", box)
+  C.Hide()
+  box.shown = true
+  box.attrs = { chatType = "RAID" }
+  fire("ActivateChat", box)
+  check("follow: no genie plays when following", C.ShownKey() == "raid" and plays == 0 and not Echo.Genie.IsPlaying(), plays)
+  check("follow: the card is solid at once", C._frames().root:GetAlpha() == 1, C._frames().root:GetAlpha())
+  Echo.Genie.Stop()
+  Echo.Genie.Play = realPlay
+  db.echoAnimateCard = nil
+  T.TileFor = realTileFor
 
   S.Start, C.Show, C.Focus = realStart, realShow, realFocus
   C_BattleNet, BNGetNumFriends = savedBN, savedNumFriends
