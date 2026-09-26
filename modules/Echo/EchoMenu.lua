@@ -74,8 +74,11 @@ end
 -- @return boolean opened
 function Menu.Open(owner, convKey)
     if not Menu.Available() then return false end
-    MenuUtil.CreateContextMenu(owner, function(_, rootDescription) Menu.Build(rootDescription, convKey) end)
-    return true
+    -- pcall: a refused menu is reported as not opened, never raised.
+    local ok = pcall(MenuUtil.CreateContextMenu, owner, function(_, rootDescription)
+        Menu.Build(rootDescription, convKey)
+    end)
+    return ok
 end
 
 -- The disabled button's text for each reason Store.PinMessage can refuse.
@@ -120,8 +123,8 @@ end
 -- @return boolean opened
 function Menu.OpenMessage(owner, convKey, record)
     if not Menu.Available() then return false end
-    MenuUtil.CreateContextMenu(owner, function(_, rootDescription)
+    local ok = pcall(MenuUtil.CreateContextMenu, owner, function(_, rootDescription)
         Menu.BuildMessage(rootDescription, convKey, record)
     end)
-    return true
+    return ok
 end

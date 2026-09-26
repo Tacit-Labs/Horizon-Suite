@@ -26,12 +26,22 @@ Tiles.TOAST_HEIGHT = 48
 Tiles.PLUS_SIZE = 20  -- the + button that starts a chat, just above the stack button
 
 local STEP = Tiles.TILE_SIZE + Tiles.GAP
--- Where the lowest tile's bottom edge sits: above the stack button and the + button.
-Tiles.TILES_BOTTOM = STEP + Tiles.PLUS_SIZE + Tiles.GAP
+-- The + button needs a menu to open; without MenuUtil it stays hidden.
+local function PlusAvailable()
+    return Echo.Menu ~= nil and Echo.Menu.Available()
+end
+
+--- Where the lowest tile's bottom edge sits: above the stack button and the + button, or
+-- one step up when there is no + button.
+-- @return number
+function Tiles.TilesBottom()
+    if PlusAvailable() then return STEP + Tiles.PLUS_SIZE + Tiles.GAP end
+    return STEP
+end
 
 -- The column offset of the tile in slot n (1 = lowest).
 local function SlotY(n)
-    return Tiles.TILES_BOTTOM + (n - 1) * STEP
+    return Tiles.TilesBottom() + (n - 1) * STEP
 end
 
 local column, stackButton, plusButton, overflowTile, marker, toast
@@ -477,6 +487,7 @@ function Tiles.Refresh()
     local View = Echo.View
     local list = Echo.Store.List()
     local visible, overflow, entries = View.Column(list, math.max(2, tonumber(Echo.Setting("echoMaxTiles")) or 8))
+    plusButton:SetShown(PlusAvailable())
     local slot = 1
     if overflow > 0 then
         -- The first hidden entry; a group stands in for its first member (a real conversation).

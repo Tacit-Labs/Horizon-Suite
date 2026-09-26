@@ -7275,6 +7275,7 @@ run(`
     MenuUtil = MenuUtil, CardOpen = Echo.Card.Open, ComposeOpen = Co.Open,
     GetAutoCompleteResults = GetAutoCompleteResults, AUTOCOMPLETE_LIST = AUTOCOMPLETE_LIST,
   }
+  MenuUtil = { CreateContextMenu = function() end }
   T.Enable()
 
   -- The + button: a small round button just above the Echo icon.
@@ -7295,8 +7296,8 @@ run(`
   T.Refresh()
   local tile = T.TileFor("w:Vexa-Horizon")
   local y = tile and tile.points[#tile.points][5]
-  check("compose: the tiles' bottom limit moved up past the + button", y == T.TILES_BOTTOM
-        and T.TILES_BOTTOM >= T.TILE_SIZE + T.GAP + 20 + T.GAP, tostring(y) .. " vs " .. tostring(T.TILES_BOTTOM))
+  check("compose: the tiles' bottom limit moved up past the + button", y == T.TilesBottom()
+        and T.TilesBottom() >= T.TILE_SIZE + T.GAP + 20 + T.GAP, tostring(y) .. " vs " .. tostring(T.TilesBottom()))
 
   -- Tooltip and click.
   local tip = {}
@@ -7312,11 +7313,12 @@ run(`
   check("compose: clicking opens the compose menu from the button", openedFrom == plus, tostring(openedFrom))
   Co.Open = saved.ComposeOpen
   local ctx
+  local keepMenuUtil = MenuUtil
   MenuUtil = { CreateContextMenu = function(owner, gen) ctx = { owner, gen } end }
   check("compose: Open uses MenuUtil", Co.Open(plus) == true and ctx and ctx[1] == plus and type(ctx[2]) == "function", "?")
   MenuUtil = nil
   check("compose: without MenuUtil it does not open", Co.Open(plus) == false, "opened")
-  MenuUtil = saved.MenuUtil
+  MenuUtil = keepMenuUtil
 
   -- A started, empty conversation shows a tile; closing it removes the tile.
   S.Start("w:Empty-Horizon")
@@ -7552,6 +7554,84 @@ run(`
   T.Disable()
   S.Reset()
 `, 'compose');
+
+// --- Plan 11 final review: group checks and the + button fallback ------------------------
+run(`
+  local Echo = HorizonSuite.Echo
+  local S, T, Send, M, Co = Echo.Store, Echo.Tiles, Echo.Send, Echo.Menu, Echo.Compose
+  S.Reset()
+  CreateFrame = STUB_CREATE_FRAME
+  local saved = { IsInGroup = IsInGroup, IsInRaid = IsInRaid, HOME = LE_PARTY_CATEGORY_HOME,
+                  INST = LE_PARTY_CATEGORY_INSTANCE, MenuUtil = MenuUtil }
+
+  -- Raid: the home raid only. An LFR raid is an instance group.
+  LE_PARTY_CATEGORY_HOME, LE_PARTY_CATEGORY_INSTANCE = 1, 2
+  local home, inst = false, true
+  IsInRaid = function(cat)
+    if cat == 1 then return home end
+    if cat == 2 then return inst end
+    return home or inst
+  end
+  IsInGroup = IsInRaid
+  check("review: an instance-only raid is not Raid", Send.CanReach("raid") == false, "reachable")
+  check("review: an instance-only raid is not Party", Send.CanReach("party") == false, "reachable")
+  check("review: an instance-only raid is Instance", Send.CanReach("instance") == true, "unreachable")
+  home = true
+  check("review: a home raid is Raid", Send.CanReach("raid") == true, "unreachable")
+
+  -- Instance: without the category constant, never reachable.
+  LE_PARTY_CATEGORY_INSTANCE = nil
+  check("review: no instance category, no Instance", Send.CanReach("instance") == false, "reachable")
+  LE_PARTY_CATEGORY_INSTANCE = 2
+
+  -- Compose uses CanReach for Party.
+  local savedReach = Send.CanReach
+  local asked = {}
+  Send.CanReach = function(kind) asked[kind] = true; return kind == "party" end
+  local r = { items = {} }
+  function r:CreateButton(label, fn) local b = { label = label, fn = fn, items = {} }; b.CreateButton = r.CreateButton; self.items[#self.items + 1] = b; return b end
+  function r:CreateDivider() end
+  function r:CreateTitle() end
+  Co.Build(r)
+  local party = false
+  for _, it in ipairs(r.items) do if it.label == "ECHO_KIND_PARTY" then party = true end end
+  check("review: compose asks CanReach for Party", asked.party == true and party, tostring(asked.party))
+  Send.CanReach = savedReach
+
+  -- A throwing MenuUtil: every open reports false instead of raising.
+  MenuUtil = { CreateContextMenu = function() error("protected") end }
+  S.Add({ convKey = "w:Brisa-Horizon", text = "hi", sender = "Brisa-Horizon" })
+  local okC, resC = pcall(Co.Open, UIParent)
+  check("review: Compose.Open catches a throwing menu", okC and resC == false, tostring(okC) .. "/" .. tostring(resC))
+  local okM, resM = pcall(M.Open, UIParent, "w:Brisa-Horizon")
+  check("review: Menu.Open catches a throwing menu", okM and resM == false, tostring(okM) .. "/" .. tostring(resM))
+  local okO, resO = pcall(M.OpenMessage, UIParent, "w:Brisa-Horizon", S.Get("w:Brisa-Horizon").messages[1])
+  check("review: Menu.OpenMessage catches a throwing menu", okO and resO == false, tostring(okO) .. "/" .. tostring(resO))
+  MenuUtil = { CreateContextMenu = function() end }
+  check("review: Compose.Open reports a working menu", Co.Open(UIParent) == true, "false")
+
+  -- No MenuUtil: the + button stays hidden and the tiles drop back to one step up.
+  MenuUtil = nil
+  T.Enable()
+  local plus = T._plusButton()
+  check("review: without MenuUtil the + button is hidden", plus and not plus:IsShown(), "shown")
+  check("review: and the tiles start one step up", T.TilesBottom() == T.TILE_SIZE + T.GAP, T.TilesBottom())
+  local tile = T.TileFor("w:Brisa-Horizon")
+  check("review: the lowest tile sits one step up", tile and tile.points[#tile.points][5] == T.TILE_SIZE + T.GAP,
+        tile and tile.points[#tile.points][5])
+  MenuUtil = { CreateContextMenu = function() end }
+  T.Refresh()
+  check("review: with MenuUtil the + button shows", plus:IsShown(), "hidden")
+  check("review: and the tiles make room for it", T.TilesBottom() == T.TILE_SIZE + T.GAP + T.PLUS_SIZE + T.GAP, T.TilesBottom())
+  tile = T.TileFor("w:Brisa-Horizon")
+  check("review: the lowest tile moves above it", tile and tile.points[#tile.points][5] == T.TilesBottom(),
+        tile and tile.points[#tile.points][5])
+
+  T.Disable()
+  IsInGroup, IsInRaid, MenuUtil = saved.IsInGroup, saved.IsInRaid, saved.MenuUtil
+  LE_PARTY_CATEGORY_HOME, LE_PARTY_CATEGORY_INSTANCE = saved.HOME, saved.INST
+  S.Reset()
+`, 'plan11-review');
 
 // --- Redraw: one repaint per frame -------------------------------------------
 run(`

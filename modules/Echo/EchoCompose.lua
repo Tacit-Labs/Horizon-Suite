@@ -30,13 +30,6 @@ local function Call(fn, ...)
     return results
 end
 
--- A readable true from a Blizzard check; a missing, throwing or secret answer is false.
-local function IsTrue(fn, ...)
-    local r = Call(fn, ...)
-    if not r or IsSecret(r[1]) then return false end
-    return r[1] and true or false
-end
-
 -- A readable number, else nil.
 local function Number(v)
     if IsSecret(v) or type(v) ~= "number" then return nil end
@@ -65,12 +58,6 @@ function Compose.Choose(convKey)
         Echo.Stack.Open(convKey)
     end
     return true
-end
-
--- Party chat needs a home group; an instance group alone talks in Instance.
-local function InHomeGroup()
-    if LE_PARTY_CATEGORY_HOME ~= nil then return IsTrue(IsInGroup, LE_PARTY_CATEGORY_HOME) end
-    return IsTrue(IsInGroup)
 end
 
 --- The online friends to offer: character friends, then Battle.net friends where the client
@@ -237,11 +224,11 @@ function Compose.Build(rootDescription)
     rootDescription:CreateButton(L["ECHO_COMPOSE_WHISPER"], function() Compose.PromptWhisper() end)
     Submenu(rootDescription, L["ECHO_COMPOSE_FRIENDS"], Compose.OnlineFriends())
     Entry(rootDescription, L["ECHO_NEARBY"], "nearby")
-    -- Send.CanReach is the same check a /g, /o, /ra or /i shortcut makes (officer rights
-    -- included). Party asks for a home group here, which CanReach("party") doesn't.
+    -- Send.CanReach is the same check a chat shortcut makes: officer rights, and the home
+    -- group for Party and Raid (a group-finder group talks in Instance).
     if Send.CanReach("guild") then Entry(rootDescription, L["ECHO_KIND_GUILD"], "guild") end
     if Send.CanReach("officer") then Entry(rootDescription, L["ECHO_KIND_OFFICER"], "officer") end
-    if InHomeGroup() then Entry(rootDescription, L["ECHO_KIND_PARTY"], "party") end
+    if Send.CanReach("party") then Entry(rootDescription, L["ECHO_KIND_PARTY"], "party") end
     if Send.CanReach("raid") then Entry(rootDescription, L["ECHO_KIND_RAID"], "raid") end
     if Send.CanReach("instance") then Entry(rootDescription, L["ECHO_KIND_INSTANCE"], "instance") end
     Submenu(rootDescription, L["ECHO_COMPOSE_CHANNELS"], Compose.JoinedChannels())
@@ -252,6 +239,9 @@ end
 -- @return boolean opened
 function Compose.Open(owner)
     if not (Echo.Menu and Echo.Menu.Available()) then return false end
-    MenuUtil.CreateContextMenu(owner, function(_, rootDescription) Compose.Build(rootDescription) end)
-    return true
+    -- pcall: a menu opened from a tainted path can be refused; report it, don't raise.
+    local ok = pcall(MenuUtil.CreateContextMenu, owner, function(_, rootDescription)
+        Compose.Build(rootDescription)
+    end)
+    return ok
 end

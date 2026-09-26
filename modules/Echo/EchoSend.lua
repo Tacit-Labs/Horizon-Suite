@@ -244,8 +244,13 @@ function Send.CanReach(kind)
     end
     -- Home group only: in a group-finder group, party chat goes to instance chat instead.
     if kind == "party" then return ask(IsInGroup, LE_PARTY_CATEGORY_HOME) end
-    if kind == "raid" then return ask(IsInRaid) end
-    if kind == "instance" then return ask(IsInGroup, LE_PARTY_CATEGORY_INSTANCE) end
+    -- Home raid only: an LFR raid is an instance group, and talks in instance chat.
+    if kind == "raid" then return ask(IsInRaid, LE_PARTY_CATEGORY_HOME) end
+    -- Without the category, IsInGroup would answer for any group: count none.
+    if kind == "instance" then
+        if LE_PARTY_CATEGORY_INSTANCE == nil then return false end
+        return ask(IsInGroup, LE_PARTY_CATEGORY_INSTANCE)
+    end
     if kind == "officer" then
         local canSpeak = C_GuildInfo and C_GuildInfo.CanSpeakInOfficerChat
         if type(canSpeak) == "function" then return ask(canSpeak) end
