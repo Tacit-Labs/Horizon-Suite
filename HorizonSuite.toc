@@ -175,6 +175,7 @@ modules/Echo/EchoClass.lua
 modules/Echo/EchoRedraw.lua
 modules/Echo/EchoLinks.lua
 modules/Echo/EchoTiles.lua
+modules/Echo/EchoCollapse.lua
 modules/Echo/EchoStack.lua
 modules/Echo/EchoMenu.lua
 modules/Echo/EchoCompose.lua

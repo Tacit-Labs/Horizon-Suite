@@ -18,6 +18,8 @@ addon.ECHO_DEFAULTS = {
     echoScale              = 1,
     echoFrameStrata        = "MEDIUM",
     echoMaxTiles           = 8,
+    -- Collapse mode (EchoCollapse.lua): "off", "all" or "keepnew".
+    echoCollapse           = "off",
     echoToastStyle         = "framed",
     echoToastSeconds       = 4,
     echoHoverDelay         = 0.35,

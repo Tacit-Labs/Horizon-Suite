@@ -3,7 +3,8 @@
     The collapsed column: a tile per open conversation or group (Echo.Groups) on a screen
     edge (top entry highest), a +N overflow tile, the stack button (the drag handle when
     unlocked), the + button above it that starts a chat (Echo.Compose), the "n in chat"
-    marker for messages Echo could not file, and the preview toast.
+    marker for messages Echo could not file, and the preview toast. Collapse mode
+    (EchoCollapse.lua) places the column's frames when it is on.
     Blizzard: CreateFrame, FCF_SelectDockFrame. Shared: Augment toast chrome and motion.
 ]]
 
@@ -43,6 +44,8 @@ end
 local function SlotY(n)
     return Tiles.TilesBottom() + (n - 1) * STEP
 end
+Tiles.SlotY = SlotY
+Tiles.PlusAvailable = PlusAvailable
 
 local column, stackButton, plusButton, overflowTile, marker, toast
 local tiles = {}
@@ -193,11 +196,14 @@ local function MemberKey(key)
 end
 
 -- A tile hovers its own conversation to the front; the chat button hovers none (top card).
+-- Collapse mode (Echo.Collapse) hears every enter and leave in the column too.
 local function HoverEnter(self)
+    if Echo.Collapse then Echo.Collapse.Enter(self) end
     if Echo.Stack then Echo.Stack.HoverEnter(MemberKey(self and self.convKey)) end
 end
 
-local function HoverLeave()
+local function HoverLeave(self)
+    if Echo.Collapse then Echo.Collapse.Leave(self) end
     if Echo.Stack then Echo.Stack.HoverLeave() end
 end
 
@@ -205,6 +211,56 @@ local function PaintGlyphFrame(frame, r, g, b)
     local bg = Echo.View.GLYPH_BG
     Echo.Round.SetColor(frame, bg[1], bg[2], bg[3], bg[4])
     Echo.Round.SetBorderColor(frame, r, g, b, 0.8)
+end
+
+--- Give a frame the tile's unread badges: b.dot, and b.countPill with b.count on it.
+-- Column tiles and the Echo icon (its folded tiles' badge in collapse mode) share them.
+-- @param b Frame
+function Tiles.AddBadges(b)
+    local a = Echo.View.ACCENT
+    -- The unread dot: one fully round texture (Echo.Round.Dot), not a full 9-slice.
+    b.dot = Echo.Round.Dot(b, 8, "OVERLAY")
+    b.dot:SetPoint("TOPRIGHT", b, "TOPRIGHT", 3, 3)
+    b.dot:SetVertexColor(a.r, a.g, a.b, 1)
+    b.dot:Hide()
+    -- A small rounded pill behind the count, in the accent colour, sized to fit the text.
+    b.countPill = CreateFrame("Frame", nil, b)
+    b.countPill:SetHeight(12)
+    Echo.Round.Apply(b.countPill, { radius = 6, layer = "ARTWORK" })
+    Echo.Round.SetColor(b.countPill, a.r, a.g, a.b, 1)
+    b.countPill:Hide()
+    -- Parented to the pill, same reason as a tile's label: otherwise the pill's own fill
+    -- draws over the number.
+    b.count = Echo.NewText(b.countPill, 10)
+    b.count:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", -2, 2)
+end
+
+--- Show a badge made by Tiles.AddBadges: a dot, a count in its pill, or neither.
+-- @param b Frame
+-- @param badge string|nil  "dot" | "count" | nil
+-- @param count number|nil
+-- @param countTop boolean|nil  put the count in the top corner (a label covers the bottom)
+function Tiles.PaintBadge(b, badge, count, countTop)
+    b.dot:SetShown(badge == "dot")
+    local hasCount = badge == "count"
+    b.count:SetText(hasCount and tostring(count) or "")
+    b.count:ClearAllPoints()
+    if countTop then
+        b.count:SetPoint("TOPLEFT", b, "TOPLEFT", 2, -2)
+    else
+        b.count:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", -2, 2)
+    end
+    if hasCount then
+        local textW = b.count.GetStringWidth and b.count:GetStringWidth()
+        if type(textW) ~= "number" or textW <= 0 then textW = 8 end
+        b.countPill:ClearAllPoints()
+        b.countPill:SetPoint("CENTER", b.count, "CENTER", 0, 0)
+        b.countPill:SetSize(math.max(12, textW + 6), 12)
+        Echo.Round.Layout(b.countPill)
+        b.countPill:Show()
+    else
+        b.countPill:Hide()
+    end
 end
 
 local function CreateTile()
@@ -234,21 +290,7 @@ local function CreateTile()
     b.label = Echo.NewText(b.labelShade, 9, "OUTLINE")
     b.label:SetPoint("BOTTOM", b, "BOTTOM", 0, 2)
     b.label:SetWordWrap(false)
-    local a = Echo.View.ACCENT
-    -- The unread dot: one fully round texture (Echo.Round.Dot), not a full 9-slice.
-    b.dot = Echo.Round.Dot(b, 8, "OVERLAY")
-    b.dot:SetPoint("TOPRIGHT", b, "TOPRIGHT", 3, 3)
-    b.dot:SetVertexColor(a.r, a.g, a.b, 1)
-    -- A small rounded pill behind the count, in the accent colour, sized to fit the text.
-    b.countPill = CreateFrame("Frame", nil, b)
-    b.countPill:SetHeight(12)
-    Echo.Round.Apply(b.countPill, { radius = 6, layer = "ARTWORK" })
-    Echo.Round.SetColor(b.countPill, a.r, a.g, a.b, 1)
-    b.countPill:Hide()
-    -- Parented to the pill, same reason as the label above: otherwise the pill's own fill
-    -- draws over the number.
-    b.count = Echo.NewText(b.countPill, 10)
-    b.count:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", -2, 2)
+    Tiles.AddBadges(b)
     b:RegisterForClicks("LeftButtonUp")
     b:SetScript("OnClick", function(self)
         if not self.convKey then return end
@@ -264,7 +306,7 @@ local function CreateTile()
 end
 
 -- The column tile keeps its own backdrop (no face.bg), coloured with FaceBackground so it
--- shares the rule every other host uses.
+-- shares the rule every other host uses. Returns the spec it painted.
 local function PaintTile(b, conv)
     local View = Echo.View
     local spec = View.TileSpec(conv)
@@ -289,29 +331,11 @@ local function PaintTile(b, conv)
     end
     local hasLabel = spec.label ~= nil and spec.label ~= ""
     b.labelShade:SetShown(hasLabel)
-    b.dot:SetShown(spec.badge == "dot")
-    local hasCount = spec.badge == "count"
-    b.count:SetText(hasCount and tostring(spec.count) or "")
     -- A shown label sits across the bottom; move the count off it so neither is covered,
     -- and put it back at the bottom corner when there's no label to clash with.
-    b.count:ClearAllPoints()
-    if hasLabel then
-        b.count:SetPoint("TOPLEFT", b, "TOPLEFT", 2, -2)
-    else
-        b.count:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", -2, 2)
-    end
-    if hasCount then
-        local textW = b.count.GetStringWidth and b.count:GetStringWidth()
-        if type(textW) ~= "number" or textW <= 0 then textW = 8 end
-        b.countPill:ClearAllPoints()
-        b.countPill:SetPoint("CENTER", b.count, "CENTER", 0, 0)
-        b.countPill:SetSize(math.max(12, textW + 6), 12)
-        Echo.Round.Layout(b.countPill)
-        b.countPill:Show()
-    else
-        b.countPill:Hide()
-    end
+    Tiles.PaintBadge(b, spec.badge, spec.count, hasLabel)
     b:Show()
+    return spec
 end
 
 -- Saved in screen units (the column's own coordinates times its scale), so a scale change
@@ -405,6 +429,7 @@ local function CreatePlusButton()
     b:SetScript("OnDragStart", DragStart)
     b:SetScript("OnDragStop", DragStop)
     b:SetScript("OnEnter", function(self)
+        if Echo.Collapse then Echo.Collapse.Enter(self) end
         b.glyph:SetTextColor(1, 1, 1, 1)
         if GameTooltip and type(GameTooltip.SetOwner) == "function" then
             -- Open away from the screen edge, like the stack and card.
@@ -414,9 +439,10 @@ local function CreatePlusButton()
             GameTooltip:Show()
         end
     end)
-    b:SetScript("OnLeave", function()
+    b:SetScript("OnLeave", function(self)
         b.glyph:SetTextColor(0.85, 0.87, 0.95, 1)
         if GameTooltip and type(GameTooltip.Hide) == "function" then GameTooltip:Hide() end
+        if Echo.Collapse then Echo.Collapse.Leave(self) end
     end)
     return b
 end
@@ -460,12 +486,18 @@ local function CreateColumn()
         highlight:Show()
         HoverEnter(self)
     end)
-    stackButton:SetScript("OnLeave", function()
+    stackButton:SetScript("OnLeave", function(self)
         highlight:Hide()
-        HoverLeave()
+        HoverLeave(self)
     end)
+    -- Collapse mode's badge for the tiles folded into the icon.
+    Tiles.AddBadges(stackButton)
 
     plusButton = CreatePlusButton()
+    -- Collapse mode's clock: one OnUpdate drives its open and close delays and the slide.
+    column:SetScript("OnUpdate", function(self, elapsed)
+        if Echo.Collapse then Echo.Collapse.OnUpdate(self, elapsed) end
+    end)
 
     marker = CreateFrame("Button", nil, column)
     marker:SetSize(90, 16)
@@ -489,8 +521,8 @@ function Tiles.Refresh()
     local View = Echo.View
     local list = Echo.Store.List()
     local visible, overflow, entries = View.Column(list, math.max(2, tonumber(Echo.Setting("echoMaxTiles")) or 8))
-    plusButton:SetShown(PlusAvailable())
-    local slot = 1
+    -- The column's frames bottom-up, each with its slot's offset (and a tile's spec).
+    local items = {}
     if overflow > 0 then
         -- The first hidden entry; a group stands in for its first member (a real conversation).
         local first = entries[#visible + 1]
@@ -504,10 +536,8 @@ function Tiles.Refresh()
         overflowTile.countPill:Hide()
         overflowTile.label:SetText("")
         overflowTile.labelShade:Hide()
-        overflowTile:ClearAllPoints()
-        overflowTile:SetPoint("BOTTOM", column, "BOTTOM", 0, SlotY(slot))
         overflowTile:Show()
-        slot = slot + 1
+        items[#items + 1] = { frame = overflowTile, y = SlotY(#items + 1) }
     else
         overflowTile.convKey = nil
         overflowTile:Hide()
@@ -518,31 +548,42 @@ function Tiles.Refresh()
             b = CreateTile()
             tiles[i] = b
         end
-        PaintTile(b, visible[i])
-        b:ClearAllPoints()
-        b:SetPoint("BOTTOM", column, "BOTTOM", 0, SlotY(slot))
-        slot = slot + 1
+        local spec = PaintTile(b, visible[i])
+        items[#items + 1] = { frame = b, y = SlotY(#items + 1), spec = spec }
     end
     for i = #visible + 1, #tiles do
         tiles[i].convKey = nil
         tiles[i]:Hide()
     end
-    column:SetHeight(SlotY(slot) - Tiles.GAP)
+    local fullHeight = SlotY(#items + 1) - Tiles.GAP
+    -- Collapse mode places the frames itself; off, they sit in their slots as always.
+    if not (Echo.Collapse and Echo.Collapse.Layout(items, fullHeight)) then
+        plusButton:SetShown(PlusAvailable())
+        for _, item in ipairs(items) do
+            item.frame:ClearAllPoints()
+            item.frame:SetPoint("BOTTOM", column, "BOTTOM", 0, item.y)
+        end
+        column:SetHeight(fullHeight)
+    end
 
     local unrouted = Echo.Store.GetUnroutedCount()
     marker.text:SetText(unrouted > 0 and L["ECHO_IN_CHAT"]:format(unrouted) or "")
     marker:SetShown(unrouted > 0)
 end
 
+-- A tile folded into the Echo icon (collapse mode) answers with the icon.
 local function ShownTile(key)
     for _, b in ipairs(tiles) do
-        if b.convKey == key and b:IsShown() then return b end
+        if b.convKey == key then
+            if Echo.Collapse and Echo.Collapse.IsFolded(b) then return stackButton end
+            if b:IsShown() then return b end
+        end
     end
     return nil
 end
 
 --- The frame a conversation's toast (and the card's genie) points at: its tile, or the tile
--- of the group it belongs to, else nil.
+-- of the group it belongs to, else nil. A tile folded into the Echo icon gives the icon.
 -- @param convKey string  a conversation key or a group key
 -- @return Frame|nil
 function Tiles.TileFor(convKey)
@@ -749,10 +790,15 @@ end
 -- @return Button|nil
 function Tiles.StackButton() return stackButton end
 
+--- The column frame itself (HorizonSuiteEchoColumn).
+-- @return Frame|nil
+function Tiles.Column() return column end
+
 -- Test and debug handles.
 function Tiles._toast() return toast end
 function Tiles._overflow() return overflowTile end
 function Tiles._marker() return marker end
 function Tiles._stackButton() return stackButton end
 function Tiles._plusButton() return plusButton end
+function Tiles._tiles() return tiles end
 function Tiles._savePosition() SavePosition() end

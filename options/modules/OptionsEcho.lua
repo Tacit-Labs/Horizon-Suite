@@ -95,6 +95,13 @@ local options = {
       get = function() return getDB("echoFrameStrata", D.echoFrameStrata) end,
       set = function(v) setDB("echoFrameStrata", v) end },
     IntSlider("echoMaxTiles", L["ECHO_MAX_TILES"], L["ECHO_MAX_TILES_DESC"], 1),
+    { type = "dropdown", name = L["ECHO_COLLAPSE"], desc = L["ECHO_COLLAPSE_DESC"], dbKey = "echoCollapse",
+      options = {
+          { L["ECHO_COLLAPSE_OFF"], "off" }, { L["ECHO_COLLAPSE_ALL"], "all" },
+          { L["ECHO_COLLAPSE_KEEPNEW"], "keepnew" },
+      }, preserveOrder = true,
+      get = function() return getDB("echoCollapse", D.echoCollapse) end,
+      set = function(v) setDB("echoCollapse", v) end },
 
     Section(L["ECHO_SECTION_NOTIFICATIONS"]),
     { type = "dropdown", name = L["ECHO_TOAST_STYLE"], desc = L["ECHO_TOAST_STYLE_DESC"], dbKey = "echoToastStyle",

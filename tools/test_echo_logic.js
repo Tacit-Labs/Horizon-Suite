@@ -134,6 +134,7 @@ const FILES = [
   'modules/Echo/EchoRedraw.lua',
   'modules/Echo/EchoLinks.lua',
   'modules/Echo/EchoTiles.lua',
+  'modules/Echo/EchoCollapse.lua',
   'modules/Echo/EchoStack.lua',
   'modules/Echo/EchoMenu.lua',
   'modules/Echo/EchoCompose.lua',
@@ -9621,6 +9622,270 @@ run(`
   A.GetDB, A.ECHO_DEFAULTS = saved.getDB, saved.defaults
   S.Reset()
 `, 'echo-all-final');
+
+// --- Collapse: the column folds into the Echo icon (plan 13, Task 2) --------------------
+// Shared set-up for the collapse sections: a settings table, MenuUtil (so the + shows),
+// alpha recording on every frame, and helpers to find tiles and drive the column's clock.
+run(`
+  local Echo = HorizonSuite.Echo
+  COLLAPSE_DB = {}
+  COLLAPSE_SAVED = { getDB = HorizonSuite.GetDB, menu = MenuUtil, newTimer = C_Timer.NewTimer, column = _G.HorizonSuiteEchoColumn,
+                     combat = InCombatLockdown }
+  InCombatLockdown = function() return false end
+  HorizonSuite.GetDB = function(k, d) if COLLAPSE_DB[k] ~= nil then return COLLAPSE_DB[k] end return d end
+  MenuUtil = { CreateContextMenu = function() end }
+  local function Alpha(f) f.SetAlpha = function(self, a) self.alpha = a end; return f end
+  CreateFrame = function(...) return Alpha(STUB_CREATE_FRAME(...)) end
+  local T = Echo.Tiles
+  T.Enable()
+  for _, b in ipairs(T._tiles and T._tiles() or {}) do Alpha(b) end
+  Alpha(T._overflow()); Alpha(T._plusButton()); Alpha(T._stackButton())
+  -- An earlier section leaves the column's global cleared; the stack button's parent is the column.
+  _G.HorizonSuiteEchoColumn = T._stackButton().parent
+  _G.HorizonSuiteEchoColumn.SetHeight = function(self, h) self.height = h end
+  CT = {}
+  function CT.tile(key)
+    for _, b in ipairs(T._tiles()) do if b.convKey == key then return b end end
+  end
+  function CT.y(f) local p = f.points[#f.points]; return p and p[5] end
+  function CT.tick(dt) local c = _G.HorizonSuiteEchoColumn; c.scripts.OnUpdate(c, dt) end
+  function CT.hover(on) _G.HorizonSuiteEchoColumn.IsMouseOver = function() return on end end
+  -- Bottom-up keys (slot 1 first), the order the column stacks them.
+  function CT.bottomUp()
+    local list, out = Echo.Store.List(), {}
+    for i = #list, 1, -1 do out[#out + 1] = list[i].key end
+    return out
+  end
+  function CT.expand()
+    local icon = T._stackButton()
+    CT.hover(true)
+    icon.scripts.OnEnter(icon)
+    CT.tick(0.2)
+    CT.tick(1)
+  end
+`, 'collapse-setup');
+
+run(`
+  local Echo = HorizonSuite.Echo
+  local S, T, C = Echo.Store, Echo.Tiles, Echo.Collapse
+  check("collapse: the module exists", type(C) == "table" and C.OPEN_DELAY == 0.15 and C.CLOSE_DELAY == 0.6, type(C))
+  if type(C) ~= "table" then return end
+  S.Reset()
+  COLLAPSE_DB.echoCollapse = "all"
+  local column = _G.HorizonSuiteEchoColumn
+  local icon, plus = T._stackButton(), T._plusButton()
+  S.Add({ convKey = "party", text = "pull", sender = "Tank-Horizon" })
+  S.Add({ convKey = "party", text = "now", sender = "Tank-Horizon" })
+  S.Add({ convKey = "raid", text = "a", sender = "Lead-Horizon" })
+  S.Add({ convKey = "raid", text = "b", sender = "Lead-Horizon" })
+  S.Add({ convKey = "raid", text = "c", sender = "Lead-Horizon" })
+  T.Refresh()
+  check("collapse all: every tile is folded away", CT.tile("party").shown == false and CT.tile("raid").shown == false,
+        tostring(CT.tile("party").shown) .. "/" .. tostring(CT.tile("raid").shown))
+  check("collapse all: the + is hidden", plus.shown == false, tostring(plus.shown))
+  check("collapse all: collapsed means progress 0", C.expanded == false and C.progress == 0, tostring(C.progress))
+  check("collapse all: the icon shows the folded tiles' summed count", icon.countPill and icon.countPill.shown == true and icon.count.text == "5",
+        icon.count and icon.count.text)
+  check("collapse all: with no dot among them", icon.dot and icon.dot.shown == false, "dot shown")
+  check("collapse all: the column's hit area is only the icon", column.height == T.TILE_SIZE, column.height)
+  check("collapse all: TileFor gives the icon for a folded tile", T.TileFor("party") == icon, tostring(T.TileFor("party")))
+
+  S.Add({ convKey = "w:Brisa-Horizon", text = "hi", sender = "Brisa-Horizon" })
+  check("collapse all: a folded dot tile turns the icon's badge into a dot", icon.dot.shown == true and icon.countPill.shown == false,
+        tostring(icon.dot.shown) .. "/" .. tostring(icon.countPill.shown))
+  local toast = T._toast()
+  check("collapse all: a folded tile's toast comes from the icon", toast and toast.shown and toast.anchor == icon, toast and tostring(toast.anchor))
+  if toast then toast:Hide() end
+
+  -- Hovering the icon opens after the delay; the tiles slide up one by one.
+  local keys = CT.bottomUp()
+  local low, mid, top = CT.tile(keys[1]), CT.tile(keys[2]), CT.tile(keys[3])
+  CT.hover(true)
+  icon.scripts.OnEnter(icon)
+  CT.tick(0.1)
+  check("collapse: not open before the delay", C.expanded == false and low.shown == false, tostring(C.expanded))
+  CT.tick(0.06)
+  check("collapse: open once the delay has passed", C.expanded == true, tostring(C.expanded))
+  check("collapse: the icon's badge goes as it opens", icon.dot.shown == false and icon.countPill.shown == false, "badge shown")
+  CT.tick(0.03)
+  local y1, a1 = CT.y(low), low.alpha
+  check("collapse: the lowest tile leaves the icon first", low.shown == true and y1 > 0 and y1 < T.TilesBottom(), tostring(y1))
+  check("collapse: fading in", a1 ~= nil and a1 > 0 and a1 < 1, tostring(a1))
+  check("collapse: the next tile waits its stagger", mid.shown == false, tostring(mid.shown))
+  CT.tick(0.03)
+  check("collapse: then the next tile follows", mid.shown == true and CT.y(mid) > 0 and CT.y(mid) < T.TilesBottom() + T.TILE_SIZE + T.GAP, tostring(CT.y(mid)))
+  check("collapse: the first keeps rising and brightening", CT.y(low) > y1 and low.alpha > a1, tostring(CT.y(low)))
+  check("collapse: the top tile is still waiting", top.shown == false, tostring(top.shown))
+  CT.tick(1)
+  local step = T.TILE_SIZE + T.GAP
+  check("collapse: every tile ends in its slot", CT.y(low) == T.TilesBottom() and CT.y(mid) == T.TilesBottom() + step
+        and CT.y(top) == T.TilesBottom() + 2 * step, CT.y(low) .. "/" .. CT.y(mid) .. "/" .. CT.y(top))
+  check("collapse: fully opaque", low.alpha == 1 and mid.alpha == 1 and top.alpha == 1, tostring(top.alpha))
+  check("collapse: progress is 1 when fully out", C.progress == 1, tostring(C.progress))
+  local pp = plus.points[#plus.points]
+  check("collapse: the + is back above the icon", plus.shown == true and pp[2] == icon and pp[5] == T.GAP, pp and tostring(pp[5]))
+  check("collapse: the hit area covers the open column", column.height == T.TilesBottom() + 3 * step - T.GAP, column.height)
+  check("collapse: TileFor gives the tile itself once out", T.TileFor(keys[1]) == low, tostring(T.TileFor(keys[1])))
+
+  -- Leaving folds after the close delay, top tile first.
+  CT.hover(false)
+  icon.scripts.OnLeave(icon)
+  CT.tick(0.5)
+  check("collapse: still open before the close delay", C.expanded == true, tostring(C.expanded))
+  CT.tick(0.15)
+  check("collapse: folding once the close delay has passed", C.expanded == false, tostring(C.expanded))
+  CT.tick(0.03)
+  check("collapse: the top tile goes first", CT.y(top) < T.TilesBottom() + 2 * step and CT.y(low) == T.TilesBottom(),
+        CT.y(top) .. "/" .. CT.y(low))
+  CT.tick(1)
+  check("collapse: folded away again", low.shown == false and mid.shown == false and top.shown == false and plus.shown == false, "shown")
+  check("collapse: the icon's badge is back", icon.dot.shown == true, tostring(icon.dot.shown))
+  check("collapse: progress back to 0", C.progress == 0 and column.height == T.TILE_SIZE, tostring(C.progress))
+
+  -- Leaving the icon before the delay cancels the open.
+  CT.hover(true)
+  icon.scripts.OnEnter(icon)
+  CT.tick(0.1)
+  CT.hover(false)
+  icon.scripts.OnLeave(icon)
+  CT.tick(0.1)
+  check("collapse: leaving the icon before the delay cancels the open", C.expanded == false, tostring(C.expanded))
+
+  -- Re-entering cancels a pending fold.
+  CT.expand()
+  CT.hover(false)
+  icon.scripts.OnLeave(icon)
+  CT.tick(0.4)
+  CT.hover(true)
+  low.scripts.OnEnter(low)
+  CT.tick(0.4)
+  check("collapse: entering a tile cancels the pending fold", C.expanded == true, tostring(C.expanded))
+  CT.hover(false)
+  low.scripts.OnLeave(low)
+  CT.tick(0.4)
+  check("collapse: the close delay restarts from the new leave", C.expanded == true, tostring(C.expanded))
+  CT.tick(0.3)
+  check("collapse: and then it folds", C.expanded == false, tostring(C.expanded))
+  CT.tick(1)
+
+  -- No fold while the card or stack is up, or during a drag.
+  CT.expand()
+  CT.hover(false)
+  Echo.Card.Open("party")
+  CT.tick(1)
+  check("collapse: no fold while the card is shown", C.expanded == true, tostring(C.expanded))
+  Echo.Card.Hide()
+  CT.tick(0.5)
+  check("collapse: the close delay starts when the card hides", C.expanded == true, tostring(C.expanded))
+  CT.tick(0.15)
+  check("collapse: and it folds after it", C.expanded == false, tostring(C.expanded))
+  CT.tick(1)
+
+  CT.expand()
+  CT.hover(false)
+  Echo.Stack.Open("party")
+  CT.tick(1)
+  check("collapse: no fold while the stack is shown", C.expanded == true, tostring(C.expanded))
+  Echo.Stack.Hide()
+  CT.tick(0.5)
+  check("collapse: the close delay starts when the stack hides", C.expanded == true, tostring(C.expanded))
+  CT.tick(0.15)
+  check("collapse: and it folds after it", C.expanded == false, tostring(C.expanded))
+  CT.tick(1)
+
+  CT.expand()
+  CT.hover(false)
+  column.moving = true
+  CT.tick(1)
+  check("collapse: no fold during a drag", C.expanded == true, tostring(C.expanded))
+  column.moving = false
+  CT.tick(1)
+  check("collapse: folds after the drag ends", C.expanded == false, tostring(C.expanded))
+  CT.tick(1)
+
+  -- Switching to off lays everything out at once.
+  COLLAPSE_DB.echoCollapse = "off"
+  T.Refresh()
+  check("collapse off: every tile is back in its slot at once", low.shown and mid.shown and top.shown
+        and CT.y(low) == T.TilesBottom() and CT.y(top) == T.TilesBottom() + 2 * step and low.alpha == 1, tostring(low.shown))
+  check("collapse off: the + is back", plus.shown == true and plus.points[#plus.points][5] == T.GAP, tostring(plus.shown))
+  check("collapse off: the icon carries no badge", icon.dot.shown == false and icon.countPill.shown == false, "badge")
+  check("collapse off: TileFor gives the tile", T.TileFor(keys[1]) == low, tostring(T.TileFor(keys[1])))
+  check("collapse off: the column is full height", column.height == T.TilesBottom() + 3 * step - T.GAP, column.height)
+  CT.tick(5)
+  check("collapse off: the clock does nothing", low.shown and CT.y(low) == T.TilesBottom(), tostring(low.shown))
+
+  -- And switching on while open snaps shut without animating.
+  COLLAPSE_DB.echoCollapse = "all"
+  T.Refresh()
+  check("collapse: switching on folds at once", low.shown == false and top.shown == false and C.progress == 0, tostring(low.shown))
+  S.Reset()
+`, 'collapse-all');
+
+run(`
+  local Echo = HorizonSuite.Echo
+  local S, T, C = Echo.Store, Echo.Tiles, Echo.Collapse
+  if type(C) ~= "table" then return end
+  S.Reset()
+  COLLAPSE_DB.echoCollapse = "keepnew"
+  local column = _G.HorizonSuiteEchoColumn
+  local icon, plus = T._stackButton(), T._plusButton()
+  S.Add({ convKey = "raid", text = "a", sender = "Lead-Horizon" })
+  S.Add({ convKey = "guild", text = "gz", sender = "Guildie-Horizon" })
+  S.Add({ convKey = "party", text = "pull", sender = "Tank-Horizon" })
+  S.Add({ convKey = "w:Brisa-Horizon", text = "hi", sender = "Brisa-Horizon" })
+  S.MarkRead("raid")
+  local toast = T._toast()
+  if toast then toast:Hide() end
+  T.Refresh()
+  local keys = CT.bottomUp()
+  local kept, folded = {}, {}
+  for _, key in ipairs(keys) do
+    if key == "party" or key == "w:Brisa-Horizon" then kept[#kept + 1] = key else folded[#folded + 1] = key end
+  end
+  check("keepnew: badged tiles stay out", CT.tile("party").shown == true and CT.tile("w:Brisa-Horizon").shown == true, "hidden")
+  check("keepnew: the rest fold", CT.tile("raid").shown == false and CT.tile("guild").shown == false, "shown")
+  check("keepnew: kept tiles pack down from the bottom slot in order",
+        CT.y(CT.tile(kept[1])) == T.TilesBottom() and CT.y(CT.tile(kept[2])) == T.TilesBottom() + T.TILE_SIZE + T.GAP,
+        tostring(CT.y(CT.tile(kept[1]))) .. "/" .. tostring(CT.y(CT.tile(kept[2]))))
+  check("keepnew: the + is hidden", plus.shown == false, tostring(plus.shown))
+  check("keepnew: no badge on the icon when no folded tile has one", icon.dot.shown == false and icon.countPill.shown == false, "badge")
+  check("keepnew: the hit area is the icon and the kept tiles",
+        column.height == T.TilesBottom() + 2 * (T.TILE_SIZE + T.GAP) - T.GAP, column.height)
+  check("keepnew: TileFor gives a kept tile itself", T.TileFor("party") == CT.tile("party"), tostring(T.TileFor("party")))
+  check("keepnew: and the icon for a folded one", T.TileFor("raid") == icon, tostring(T.TileFor("raid")))
+
+  S.Add({ convKey = "w:Vexa-Horizon", text = "gz", sender = "Vexa-Horizon" })
+  toast = T._toast()
+  check("keepnew: a kept tile's toast comes from the tile", toast and toast.shown and toast.anchor == CT.tile("w:Vexa-Horizon"),
+        toast and tostring(toast.anchor and toast.anchor.convKey))
+  if toast then toast:Hide() end
+
+  -- Opening moves the kept tiles from their packed slots to their places in the full column.
+  CT.expand()
+  local step = T.TILE_SIZE + T.GAP
+  local all = CT.bottomUp()
+  local ok = true
+  for i, key in ipairs(all) do
+    local b = CT.tile(key)
+    if not (b.shown and CT.y(b) == T.TilesBottom() + (i - 1) * step and b.alpha == 1) then ok = false end
+  end
+  check("keepnew: open, every tile sits in its normal slot", ok, "misplaced")
+  CT.hover(false)
+  CT.tick(0.7)
+  CT.tick(1)
+  check("keepnew: folding keeps the badged tiles out", CT.tile("party").shown == true and CT.tile("raid").shown == false, "wrong")
+
+  COLLAPSE_DB.echoCollapse = nil
+  T.Refresh()
+  T.Disable()
+  HorizonSuite.GetDB, MenuUtil, C_Timer.NewTimer = COLLAPSE_SAVED.getDB, COLLAPSE_SAVED.menu, COLLAPSE_SAVED.newTimer
+  T._stackButton().parent.SetHeight = nil
+  _G.HorizonSuiteEchoColumn = COLLAPSE_SAVED.column
+  InCombatLockdown = COLLAPSE_SAVED.combat
+  CreateFrame = STUB_CREATE_FRAME
+  S.Reset()
+`, 'collapse-keepnew');
 
 // --- Redraw: one repaint per frame -------------------------------------------
 run(`
