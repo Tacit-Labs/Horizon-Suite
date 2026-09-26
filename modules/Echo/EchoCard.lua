@@ -158,11 +158,48 @@ local function Glyph(button, parts)
     button:SetScript("OnLeave", function() Tint(0.55, 0.60, 0.75) end)
 end
 
-local function PaintTile(b, spec)
+-- An image face (Echo.IsImageFace) fills the tile, clipped to its rounded corners, with no
+-- fill behind it; the shown one sits just inside the accent outline so the outline still
+-- marks it. A client without mask textures keeps the inset icon on the fill.
+local function PaintTile(b, spec, shown)
     local View = Echo.View
+    local a = View.ACCENT
+    local image = Echo.SetTileMask(b, b.icon, Echo.IsImageFace(spec))
+    local inset = 3
+    if image then inset = shown and 2 or 0 end
+    Echo.InsetTileIcon(b, b.icon, inset)
     local face = { icon = b.icon, letter = b.letter, size = 12, smallSize = 8, flags = "" }
     Echo.PaintTileFace(face, spec)
-    Echo.Round.SetColor(b, View.FaceBackground(spec))
+    if image then
+        Echo.Round.SetColor(b, 0, 0, 0, 0)
+    else
+        Echo.Round.SetColor(b, View.FaceBackground(spec))
+    end
+    if shown then
+        Echo.Round.SetBorderColor(b, a.r, a.g, a.b, 1)
+    elseif image then
+        Echo.Round.SetBorderColor(b, 0, 0, 0, 0)
+    else
+        Echo.Round.SetBorderColor(b, 0, 0, 0, 0.7)
+    end
+end
+
+-- A row tile: a rounded, bordered button with a letter, an icon and an unread dot.
+local function CreateRowTile(parent)
+    local a = Echo.View.ACCENT
+    local b = CreateFrame("Button", nil, parent)
+    b:SetSize(Card.TILE, Card.TILE)
+    Echo.Round.Apply(b, { radius = Echo.Round.TILE, border = true })
+    b.letter = Echo.NewText(b, 12, "")
+    b.letter:SetPoint("CENTER", b, "CENTER", 0, 0)
+    b.icon = b:CreateTexture(nil, "ARTWORK")
+    Echo.InsetTileIcon(b, b.icon, 3)
+    b.icon:Hide()
+    -- The unread dot: one fully round texture (Echo.Round.Dot), not a full 9-slice.
+    b.dot = Echo.Round.Dot(b, 6, "OVERLAY")
+    b.dot:SetPoint("TOPRIGHT", b, "TOPRIGHT", 2, 2)
+    b.dot:SetVertexColor(a.r, a.g, a.b, 1)
+    return b
 end
 
 -- No MenuUtil (an older client), no ⋯ button: it would open nothing.
@@ -239,20 +276,8 @@ local function Create()
     menuButton:SetShown(MenuAvailable())
 
     for i = 1, Card.TILES do
-        local b = CreateFrame("Button", nil, root)
-        b:SetSize(Card.TILE, Card.TILE)
+        local b = CreateRowTile(root)
         b:SetPoint("TOPLEFT", root, "TOPLEFT", Card.PAD + (i - 1) * (Card.TILE + 6), -10)
-        Echo.Round.Apply(b, { radius = Echo.Round.TILE, border = true })
-        b.letter = Echo.NewText(b, 12, "")
-        b.letter:SetPoint("CENTER", b, "CENTER", 0, 0)
-        b.icon = b:CreateTexture(nil, "ARTWORK")
-        b.icon:SetPoint("TOPLEFT", b, "TOPLEFT", 3, -3)
-        b.icon:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", -3, 3)
-        b.icon:Hide()
-        -- The unread dot: one fully round texture (Echo.Round.Dot), not a full 9-slice.
-        b.dot = Echo.Round.Dot(b, 6, "OVERLAY")
-        b.dot:SetPoint("TOPRIGHT", b, "TOPRIGHT", 2, 2)
-        b.dot:SetVertexColor(a.r, a.g, a.b, 1)
         b:RegisterForClicks("LeftButtonUp")
         b:SetScript("OnClick", function(self)
             if self.convKey then Card.Toggle(self.convKey, self) end
@@ -787,7 +812,6 @@ end
 -- something new.
 local function PaintRow(list)
     local View = Echo.View
-    local a = View.ACCENT
     local entries = View.Entries(list)
     for i = 1, Card.TILES do
         local b, other = rowTiles[i], entries[i]
@@ -795,12 +819,7 @@ local function PaintRow(list)
             local spec = View.TileSpec(other)
             local shown = IsShownEntry(other)
             b.convKey = other.key
-            PaintTile(b, spec)
-            if shown then
-                Echo.Round.SetBorderColor(b, a.r, a.g, a.b, 1)
-            else
-                Echo.Round.SetBorderColor(b, 0, 0, 0, 0.7)
-            end
+            PaintTile(b, spec, shown)
             b.dot:SetShown(spec.badge ~= nil and not shown)
             b:Show()
         else
@@ -1673,6 +1692,8 @@ end
 function Card.ReplySlot()
     return slot
 end
+function Card._newRowTile(parent) return CreateRowTile(parent) end
+function Card._paintTile(b, spec, shown) PaintTile(b, spec, shown) end
 
 -- Test and debug handle.
 function Card._frames()

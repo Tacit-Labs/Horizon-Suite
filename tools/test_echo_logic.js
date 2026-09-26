@@ -9944,6 +9944,111 @@ run(`
   _G.HorizonSuiteEchoColumn = saved.column
   S.Reset()
 `, 'collapse-icon-hover');
+// --- Tile images: the image fills the rounded square, clipped by a mask ----------------
+{
+  const tga = fs.readFileSync(REPO + 'media/echo/tile_mask.tga');
+  const circle = fs.readFileSync(REPO + 'media/echo/circle.tga');
+  run(`check("tile mask: the TGA header matches circle.tga's format", ${tga[2] === circle[2] && tga[16] === circle[16] && tga[17] === circle[17]}, "${tga[2]},${tga[16]},${tga[17]}")
+       check("tile mask: 64x64", ${tga.readUInt16LE(12) === 64 && tga.readUInt16LE(14) === 64}, "${tga.readUInt16LE(12)}x${tga.readUInt16LE(14)}")
+       check("tile mask: the corner is clear and the centre solid", ${tga[18 + 3] === 0 && tga[18 + (32 * 64 + 32) * 4 + 3] === 255}, "?")`, 'echo-tile-mask-file');
+}
+run(`
+  local Echo = HorizonSuite.Echo
+  local T, V, Card = Echo.Tiles, Echo.View, Echo.Card
+  -- A stand-in frame on a client with mask textures: it counts masks made and added.
+  local function MaskFrame(...)
+    local f = STUB_CREATE_FRAME(...)
+    f.maskCount = 0
+    f.CreateMaskTexture = function(self)
+      self.maskCount = self.maskCount + 1
+      local m = STUB_FRAME(self)
+      m.SetTexture = function(mm, path, h, v) mm.texture, mm.wrapH, mm.wrapV = path, h, v end
+      m.SetAllPoints = function(mm, rel) mm.allPoints = rel end
+      self.lastMask = m
+      return m
+    end
+    f.CreateTexture = function(self)
+      local t = STUB_FRAME(self)
+      t.masks, t.maskAdds = {}, 0
+      t.AddMaskTexture = function(tt, m) tt.maskAdds = tt.maskAdds + 1; tt.masks[m] = true end
+      t.RemoveMaskTexture = function(tt, m) tt.masks[m] = nil end
+      return t
+    end
+    return f
+  end
+  local function Inset(icon)
+    local a, b = icon.points[1], icon.points[2]
+    if not a or not b then return "none" end
+    return table.concat({ a[1], a[4], a[5], b[1], b[4], b[5] }, ",")
+  end
+  local function FillAlpha(f) return rawget(f, "_echoRound").fill.middleBand.vertexColor[4] end
+  local function BorderAlpha(f) return rawget(f, "_echoRound").border.lines.top.vertexColor[4] end
+  local function Masked(icon) return next(icon.masks) ~= nil end
+  local loot = { kind = "loot", key = "loot", unread = 0 }
+  local party = { kind = "party", key = "party", unread = 0 }
+
+  local expected = "Interface\\\\AddOns\\\\" .. (HorizonSuite.ADDON_NAME or "HorizonSuite") .. "\\\\media\\\\echo\\\\tile_mask.tga"
+  check("tile images: the mask path uses the addon folder", T.TILE_MASK == expected, tostring(T.TILE_MASK))
+
+  CreateFrame = MaskFrame
+  local b = T._newTile()
+  T._paintTile(b, loot)
+  check("tile images: an image tile's icon fills the tile", Inset(b.icon) == "TOPLEFT,0,0,BOTTOMRIGHT,0,0", Inset(b.icon))
+  check("tile images: one mask is made", b.maskCount == 1, b.maskCount)
+  local m = b.lastMask
+  check("tile images: the mask is the rounded-square texture, clamped", m.texture == expected
+    and m.wrapH == "CLAMPTOBLACKADDITIVE" and m.wrapV == "CLAMPTOBLACKADDITIVE", tostring(m.texture))
+  check("tile images: the mask covers the icon", m.allPoints == b.icon, "?")
+  check("tile images: the mask is added to the icon", b.icon.maskAdds == 1 and b.icon.masks[m], b.icon.maskAdds)
+  check("tile images: no coloured fill behind the image", FillAlpha(b) == 0, FillAlpha(b))
+  check("tile images: no coloured border around it", BorderAlpha(b) == 0, BorderAlpha(b))
+  check("tile images: the label shade still draws above the image", b.labelShade.shown == true and b.labelShade.parent == b, "?")
+  T._paintTile(b, loot)
+  check("tile images: a repaint adds no second mask", b.maskCount == 1 and b.icon.maskAdds == 1, b.icon.maskAdds)
+
+  -- The same tile reused for a glyph face keeps its fill and drops the mask.
+  T._paintTile(b, party)
+  check("tile images: a glyph tile keeps its fill", FillAlpha(b) == V.GLYPH_BG[4], FillAlpha(b))
+  check("tile images: and its border", BorderAlpha(b) == 0.8, BorderAlpha(b))
+  check("tile images: and its icon is unmasked", not Masked(b.icon), "masked")
+  T._paintTile(b, loot)
+  check("tile images: an image again re-adds the one mask", b.maskCount == 1 and Masked(b.icon), b.maskCount)
+
+  -- The guild tabard keeps its own insets and its fill.
+  local savedTabard = V.GuildTabard
+  V.GuildTabard = function() return { emblem = 1, er = 1, eg = 1, eb = 1, br = 0.6, bg = 0.7, bb = 0.8 } end
+  T._paintTile(b, { kind = "guild", key = "guild", unread = 0 })
+  check("tile images: the tabard keeps its insets", Inset(b.icon) == "TOPLEFT,8,-3,BOTTOMRIGHT,-8,13", Inset(b.icon))
+  check("tile images: the tabard keeps its fill", FillAlpha(b) == 0.95, FillAlpha(b))
+  check("tile images: the tabard isn't masked", not Masked(b.icon), "masked")
+  V.GuildTabard = savedTabard
+
+  -- No mask support (an older client): today's 3px inset and the fill.
+  CreateFrame = STUB_CREATE_FRAME
+  local old = T._newTile()
+  T._paintTile(old, loot)
+  check("tile images: without masks the 3px inset stays", Inset(old.icon) == "TOPLEFT,3,-3,BOTTOMRIGHT,-3,3", Inset(old.icon))
+  check("tile images: and so does the fill", FillAlpha(old) == V.GLYPH_BG[4], FillAlpha(old))
+
+  -- The card's row tiles: the same treatment, and the shown tile keeps its accent outline.
+  CreateFrame = MaskFrame
+  local r = Card._newRowTile(UIParent)
+  Card._paintTile(r, V.TileSpec(loot), false)
+  check("card tiles: an image fills the tile", Inset(r.icon) == "TOPLEFT,0,0,BOTTOMRIGHT,0,0", Inset(r.icon))
+  check("card tiles: masked once", r.maskCount == 1 and r.icon.maskAdds == 1, r.maskCount)
+  check("card tiles: no fill or border", FillAlpha(r) == 0 and BorderAlpha(r) == 0, FillAlpha(r))
+  Card._paintTile(r, V.TileSpec(loot), true)
+  check("card tiles: the shown image sits inside the accent outline", Inset(r.icon) == "TOPLEFT,2,-2,BOTTOMRIGHT,-2,2"
+    and BorderAlpha(r) == 1 and FillAlpha(r) == 0, Inset(r.icon))
+  Card._paintTile(r, V.TileSpec(party), false)
+  check("card tiles: a glyph keeps its fill and inset", FillAlpha(r) == V.GLYPH_BG[4]
+    and Inset(r.icon) == "TOPLEFT,3,-3,BOTTOMRIGHT,-3,3" and not Masked(r.icon), FillAlpha(r))
+  CreateFrame = STUB_CREATE_FRAME
+  local oldRow = Card._newRowTile(UIParent)
+  Card._paintTile(oldRow, V.TileSpec(loot), false)
+  check("card tiles: without masks the inset and fill stay", Inset(oldRow.icon) == "TOPLEFT,3,-3,BOTTOMRIGHT,-3,3"
+    and FillAlpha(oldRow) == V.GLYPH_BG[4], Inset(oldRow.icon))
+`, 'echo-tile-images');
 
 // --- Redraw: one repaint per frame -------------------------------------------
 run(`

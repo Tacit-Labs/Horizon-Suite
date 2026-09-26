@@ -64,6 +64,59 @@ function Echo.NewText(parent, size, flags)
     return fs
 end
 
+-- The rounded-square mask an image face is clipped to: white, with Echo.Round.TILE's corner
+-- (8 on a 40px tile) in its alpha. Resolved from the addon's own folder, like EchoRound.
+Tiles.TILE_MASK = "Interface\\AddOns\\" .. (addon.ADDON_NAME or "HorizonSuite") .. "\\media\\echo\\tile_mask.tga"
+
+--- Whether a tile face is an image (a class icon, the Battle.net logo, a channel, feed or
+-- group icon). The guild tabard is not: its emblem sits inset on the tabard's colour.
+-- @param spec table  View.TileSpec
+-- @return boolean
+function Echo.IsImageFace(spec)
+    return spec.face == "icon" or spec.face == "class"
+end
+
+--- Clip a tile's icon to the rounded square, or stop clipping it. The mask is made once
+-- per icon and added or removed as a reused tile switches between faces.
+-- @param tile Frame  the frame that owns the icon
+-- @param icon Texture
+-- @param on boolean
+-- @return boolean  true when the icon is now masked; false without mask support
+function Echo.SetTileMask(tile, icon, on)
+    -- rawget: the test stand-ins answer unknown fields with a function.
+    local mask = rawget(icon, "_echoMask")
+    if on and not mask then
+        if type(tile.CreateMaskTexture) ~= "function" or type(icon.AddMaskTexture) ~= "function" then
+            return false
+        end
+        mask = tile:CreateMaskTexture()
+        if not mask then return false end
+        mask:SetTexture(Tiles.TILE_MASK, "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+        mask:SetAllPoints(icon)
+        icon._echoMask = mask
+    end
+    if not mask then return false end
+    local applied = rawget(icon, "_echoMasked") == true
+    if on and not applied then
+        icon:AddMaskTexture(mask)
+        icon._echoMasked = true
+    elseif not on and applied then
+        if type(icon.RemoveMaskTexture) == "function" then icon:RemoveMaskTexture(mask) end
+        icon._echoMasked = false
+    end
+    return on and true or false
+end
+
+--- Anchor a tile's icon inset from every edge.
+-- @param tile Frame
+-- @param icon Texture
+-- @param inset number
+function Echo.InsetTileIcon(tile, icon, inset)
+    icon:ClearAllPoints()
+    icon:SetPoint("TOPLEFT", tile, "TOPLEFT", inset, -inset)
+    icon:SetPoint("BOTTOMRIGHT", tile, "BOTTOMRIGHT", -inset, inset)
+end
+
 --- Draw a tile spec through one host. Every tile host (column tile, card row tile,
 -- stack card tile, toast) shares this painter so a face's rules live in one place.
 -- @param face table  { bg, icon, letter, label, size, smallSize } - fields a host omits are nil
@@ -317,21 +370,28 @@ local function PaintTile(b, conv)
     b.convKey = conv.key
     local face = { icon = b.icon, letter = b.letter, label = b.label, size = 16, smallSize = 10, flags = "",
                    fitWidth = Tiles.TILE_SIZE - 4, labelMax = Tiles.LABEL_MAX, labelMin = Tiles.LABEL_MIN }
-    -- A guild emblem sits in a centred square above the name; every other icon fills the tile.
-    b.icon:ClearAllPoints()
+    -- A guild emblem sits in a centred square above the name. Any other image fills the
+    -- whole tile, clipped to its rounded corners, with no fill or border around it; a
+    -- client without mask textures keeps it inset on the fill instead.
+    local image = Echo.SetTileMask(b, b.icon, Echo.IsImageFace(spec))
     if spec.face == "tabard" then
+        b.icon:ClearAllPoints()
         b.icon:SetPoint("TOPLEFT", b, "TOPLEFT", 8, -3)
         b.icon:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", -8, 13)
     else
-        b.icon:SetPoint("TOPLEFT", b, "TOPLEFT", 3, -3)
-        b.icon:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", -3, 3)
+        Echo.InsetTileIcon(b, b.icon, image and 0 or 3)
     end
     Echo.PaintTileFace(face, spec)
-    Echo.Round.SetColor(b, View.FaceBackground(spec))
-    if spec.face == "glyph" or spec.face == "icon" then
-        Echo.Round.SetBorderColor(b, spec.r, spec.g, spec.b, 0.8)
+    if image then
+        Echo.Round.SetColor(b, 0, 0, 0, 0)
+        Echo.Round.SetBorderColor(b, 0, 0, 0, 0)
     else
-        Echo.Round.SetBorderColor(b, 0, 0, 0, 0.7)
+        Echo.Round.SetColor(b, View.FaceBackground(spec))
+        if spec.face == "glyph" or spec.face == "icon" then
+            Echo.Round.SetBorderColor(b, spec.r, spec.g, spec.b, 0.8)
+        else
+            Echo.Round.SetBorderColor(b, 0, 0, 0, 0.7)
+        end
     end
     local hasLabel = spec.label ~= nil and spec.label ~= ""
     b.labelShade:SetShown(hasLabel)
@@ -806,3 +866,5 @@ function Tiles._stackButton() return stackButton end
 function Tiles._plusButton() return plusButton end
 function Tiles._tiles() return tiles end
 function Tiles._savePosition() SavePosition() end
+function Tiles._newTile() return CreateTile() end
+function Tiles._paintTile(b, conv) PaintTile(b, conv) end
