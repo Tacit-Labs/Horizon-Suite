@@ -270,10 +270,38 @@ function View.FaceBackground(spec)
     return spec.r, spec.g, spec.b, 0.95
 end
 
+-- Badge strength, loudest last.
+local BADGE_RANK = { count = 1, dot = 2 }
+
+--- What a group entry's tile shows (View.Entries): the group icon and short name, the
+-- members' unread summed, and the loudest of their badges.
+-- @param entry table  a group entry
+-- @return table  see View.TileSpec
+function View.GroupTileSpec(entry)
+    local name = Echo.Groups and Echo.Groups.Name(entry.group) or ""
+    local spec = {
+        face = "icon", icon = View.GROUP_ICON, glyph = true, letter = "",
+        label = View.ShortName(name, 6),
+        r = View.ACCENT.r, g = View.ACCENT.g, b = View.ACCENT.b,
+        count = 0,
+    }
+    local rank = 0
+    for _, conv in ipairs(entry.members or {}) do
+        spec.count = spec.count + (conv.unread or 0)
+        local badge = View.Badge(conv)
+        if badge and BADGE_RANK[badge] > rank then
+            rank = BADGE_RANK[badge]
+            spec.badge = badge
+        end
+    end
+    return spec
+end
+
 --- What a tile shows.
 -- @param conv table
 -- @return table  see Docs/Engineering/2026-09-25-echo-looks-plan.md, "One description of a tile"
 function View.TileSpec(conv)
+    if conv.kind == "group" then return View.GroupTileSpec(conv) end
     local kind, key = conv.kind, conv.key
     local spec = { count = conv.unread or 0, letter = "" }
 
@@ -347,16 +375,44 @@ function View.TileSpec(conv)
     return spec
 end
 
---- Which conversations get a tile. Past maxTiles, the last slot becomes a +N tile.
+--- The column's entries, in Store order: each ungrouped conversation as itself, and each
+-- group (Echo.Groups) as one entry where its first member stands; later members fold into
+-- it. A group entry is { key = "grp:i", kind = "group", group = i, members = {...}, open = true }.
+-- @param list table  Store.List()
+-- @return table entries
+function View.Entries(list)
+    local Groups = Echo.Groups
+    local entries, byGroup = {}, {}
+    for _, conv in ipairs(list) do
+        local index = Groups and Groups.Of(conv.key)
+        if index then
+            local entry = byGroup[index]
+            if entry then
+                entry.members[#entry.members + 1] = conv
+            else
+                entry = { key = Groups.Key(index), kind = "group", group = index, members = { conv }, open = true }
+                byGroup[index] = entry
+                entries[#entries + 1] = entry
+            end
+        else
+            entries[#entries + 1] = conv
+        end
+    end
+    return entries
+end
+
+--- Which entries (View.Entries) get a tile. Past maxTiles, the last slot becomes a +N tile
+-- counting the entries left over.
 -- @param list table  Store.List()
 -- @param maxTiles number|nil
--- @return table visible, number overflow
+-- @return table visible, number overflow, table entries (every entry, visible or not)
 function View.Column(list, maxTiles)
     maxTiles = math.max(1, maxTiles or 8)
-    if #list <= maxTiles then return list, 0 end
+    local entries = View.Entries(list)
+    if #entries <= maxTiles then return entries, 0, entries end
     local visible = {}
-    for i = 1, maxTiles - 1 do visible[i] = list[i] end
-    return visible, #list - (maxTiles - 1)
+    for i = 1, maxTiles - 1 do visible[i] = entries[i] end
+    return visible, #entries - (maxTiles - 1), entries
 end
 
 --- The conversation with the most recent loud message, else the first one. A feed is never

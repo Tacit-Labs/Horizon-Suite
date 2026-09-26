@@ -125,6 +125,7 @@ const FILES = [
   'modules/Echo/EchoSound.lua',
   'modules/Echo/EchoSend.lua',
   'modules/Echo/EchoView.lua',
+  'modules/Echo/EchoGroups.lua',
   'modules/Echo/EchoRound.lua',
   'modules/Echo/EchoGenie.lua',
   'modules/Echo/EchoClass.lua',
@@ -3962,7 +3963,9 @@ run(`
   local keys = {}
   for _, opt in ipairs(cat.options) do if opt.dbKey then keys[opt.dbKey] = opt end end
   for key in pairs(A.ECHO_DEFAULTS) do
-    if key ~= "echoHoverDelay" then check("on the page: " .. key, keys[key] ~= nil, key) end
+    -- Task 4 adds these (the group settings) to the page.
+    local later = { echoGroupsEnabled = true, echoGroupNames = true, echoGroupOf = true }
+    if key ~= "echoHoverDelay" and not later[key] then check("on the page: " .. key, keys[key] ~= nil, key) end
   end
   keys.echoScale.set(250)
   check("scale slider clamps", A.OptionsData_GetDB("echoScale") == 1.6, A.OptionsData_GetDB("echoScale"))
@@ -4708,6 +4711,125 @@ run(`
       tostring(ringTex))
   end
 `, 'echo-round');
+
+// --- Groups: named groups of chats in the column ------------------------------
+run(read('options/modules/defaults/OptionsDefaultsEcho.lua'), 'echo-defaults-groups');
+run(`
+  local A = HorizonSuite
+  local Echo = A.Echo
+  local G, V, S = Echo.Groups, Echo.View, Echo.Store
+  S.Reset()
+
+  check("groups on by default", A.ECHO_DEFAULTS.echoGroupsEnabled == true, tostring(A.ECHO_DEFAULTS.echoGroupsEnabled))
+  local names = A.ECHO_DEFAULTS.echoGroupNames
+  check("four group names, the first is Channels",
+    type(names) == "table" and #names == 4 and names[1] == "Channels" and names[2] == "" and names[4] == "", "?")
+  local of = A.ECHO_DEFAULTS.echoGroupOf
+  check("default group holds the five public channels",
+    of["ch:General"] == 1 and of["ch:Trade"] == 1 and of["ch:Trade (Services)"] == 1
+      and of["ch:LocalDefense"] == 1 and of["ch:LookingForGroup"] == 1 and of["ch:WorldDefense"] == nil, "?")
+  check("group settings are routed", A.ECHO_KEYS.echoGroupsEnabled and A.ECHO_KEYS.echoGroupNames and A.ECHO_KEYS.echoGroupOf, "?")
+
+  -- Defaults alone: the five channels are in group 1.
+  check("defaults put Trade in group 1", G.Of("ch:Trade") == 1, tostring(G.Of("ch:Trade")))
+  check("defaults leave guild alone", G.Of("guild") == nil, tostring(G.Of("guild")))
+
+  local db = {}
+  A.GetDB = function(k, d) if db[k] ~= nil then return db[k] end return d end
+  db.echoGroupsEnabled = true
+  db.echoGroupNames = { "Channels", "Crew", "", "   " }
+  db.echoGroupOf = { ["ch:Trade"] = 1, ["ch:*"] = 2, guild = 2, party = 3, officer = 4, raid = 5,
+                     loot = 1, ["w:Brisa-Horizon"] = 1, ["bn:7"] = 1, ["grp:1"] = 1 }
+  local namesBefore, ofBefore = db.echoGroupNames, db.echoGroupOf
+
+  check("exact channel id", G.Of("ch:Trade") == 1, tostring(G.Of("ch:Trade")))
+  check("another channel falls back to ch:*", G.Of("ch:Crafters") == 2, tostring(G.Of("ch:Crafters")))
+  check("a named kind", G.Of("guild") == 2, tostring(G.Of("guild")))
+  check("a feed", G.Of("loot") == 1, tostring(G.Of("loot")))
+  check("a blank name leaves the group unused", G.Of("party") == nil, tostring(G.Of("party")))
+  check("a whitespace name leaves the group unused", G.Of("officer") == nil, tostring(G.Of("officer")))
+  check("an index out of range is no group", G.Of("raid") == nil, tostring(G.Of("raid")))
+  check("a whisper is never grouped", G.Of("w:Brisa-Horizon") == nil, tostring(G.Of("w:Brisa-Horizon")))
+  check("battle.net is never grouped", G.Of("bn:7") == nil, tostring(G.Of("bn:7")))
+  check("a group key is never grouped", G.Of("grp:1") == nil, tostring(G.Of("grp:1")))
+  check("nonsense is no group", G.Of(nil) == nil and G.Of(42) == nil and G.Of("zzz") == nil, "?")
+  db.echoGroupNames = { SECRET("x"), "Crew", "", "" }
+  check("an unreadable name leaves the group unused", G.Of("ch:Trade") == nil, tostring(G.Of("ch:Trade")))
+  check("an unreadable name reads as blank", G.Name(1) == "", tostring(G.Name(1)))
+  db.echoGroupNames = namesBefore
+  db.echoGroupsEnabled = false
+  check("switched off, nothing is grouped", G.Of("ch:Trade") == nil and G.Of("guild") == nil, tostring(G.Of("ch:Trade")))
+  db.echoGroupsEnabled = true
+  db.echoGroupOf = { ["ch:Trade"] = 1, ["ch:*"] = 2 }
+  db.echoGroupOf["ch:Crafters"] = false
+  check("an exact entry of false is no group, not ch:*", G.Of("ch:Crafters") == nil, tostring(G.Of("ch:Crafters")))
+  db.echoGroupOf = ofBefore
+
+  check("name of a group", G.Name(2) == "Crew", G.Name(2))
+  check("name out of range is blank", G.Name(9) == "" and G.Name(nil) == "", "?")
+  check("group key", G.Key(3) == "grp:3", G.Key(3))
+  check("index of a group key", G.IndexOf("grp:3") == 3, tostring(G.IndexOf("grp:3")))
+  check("index of other keys is nil", G.IndexOf("grp:9") == nil and G.IndexOf("ch:Trade") == nil and G.IndexOf(nil) == nil, "?")
+
+  -- Column: members merge into one entry at the first member's position.
+  local trade = { key = "ch:Trade", kind = "channel", open = true, unread = 2 }
+  local brisa = { key = "w:Brisa-Horizon", kind = "whisper", open = true, unread = 1 }
+  local crafters = { key = "ch:Crafters", kind = "channel", open = true, unread = 3 }
+  local guild = { key = "guild", kind = "guild", open = true, unread = 0 }
+  local loot = { key = "loot", kind = "loot", open = true, unread = 4 }
+  local list = { brisa, trade, crafters, guild, loot }
+  local visible, overflow = V.Column(list, 8)
+  check("column merges groups into entries", #visible == 3 and overflow == 0, #visible .. "/" .. overflow)
+  check("an ungrouped chat stays an entry", visible[1] == brisa, visible[1] and visible[1].key)
+  local g1, g2 = visible[2], visible[3]
+  check("group 1 sits at Trade's position", g1.key == "grp:1" and g1.kind == "group" and g1.group == 1 and g1.open == true, g1.key)
+  check("group 1 members in Store order", #g1.members == 2 and g1.members[1] == trade and g1.members[2] == loot, #g1.members)
+  check("group 2 sits at Crafters' position", g2.key == "grp:2" and #g2.members == 2 and g2.members[1] == crafters and g2.members[2] == guild, g2.key)
+  check("members of a group", #G.Members(2, list) == 2 and G.Members(2, list)[1] == crafters, #G.Members(2, list))
+  local closed = { key = "guild", kind = "guild", open = false }
+  check("a closed chat is not a member", #G.Members(2, { crafters, closed }) == 1, #G.Members(2, { crafters, closed }))
+
+  visible, overflow = V.Column(list, 2)
+  check("overflow counts entries", #visible == 1 and overflow == 2 and visible[1] == brisa, #visible .. "/" .. overflow)
+  local _, _, entries = V.Column(list, 2)
+  check("column hands back every entry", #entries == 3 and entries[2].key == "grp:1", entries and #entries)
+
+  db.echoGroupsEnabled = false
+  visible, overflow = V.Column(list, 8)
+  check("switched off, the column is one entry per chat", #visible == 5 and visible[2] == trade, #visible)
+  db.echoGroupsEnabled = true
+
+  -- A group tile.
+  S.SetTier("guild", "loud")
+  local spec = V.TileSpec(g1)
+  check("group face is the group icon", spec.face == "icon" and spec.icon == V.GROUP_ICON and spec.glyph == true, spec.face)
+  check("group label is its short name", spec.label == V.ShortName("Channels", 6), spec.label)
+  check("group accent colour", spec.r == V.ACCENT.r and spec.g == V.ACCENT.g and spec.b == V.ACCENT.b, spec.r)
+  check("group count sums its members", spec.count == 6, spec.count)
+  check("quiet members give no badge", spec.badge == nil, tostring(spec.badge))
+  S.SetTier("loot", "count")
+  spec = V.TileSpec(g1)
+  check("a count member gives a count badge", spec.badge == "count", tostring(spec.badge))
+  guild.unread = 1
+  S.SetTier("loot", nil)
+  S.SetTier("ch:Trade", "count")
+  local mixed = { key = "grp:2", kind = "group", group = 2, open = true, members = { trade, guild } }
+  spec = V.TileSpec(mixed)
+  check("the loudest badge wins", spec.badge == "dot" and spec.count == 3, tostring(spec.badge))
+  S.SetTier("guild", nil)
+  S.SetTier("ch:Trade", nil)
+
+  check("settings tables are not mutated", db.echoGroupNames == namesBefore and #namesBefore == 4
+    and namesBefore[2] == "Crew" and db.echoGroupOf == ofBefore and ofBefore.raid == 5 and ofBefore["ch:*"] == 2, "?")
+  local dnames, dof = A.ECHO_DEFAULTS.echoGroupNames, A.ECHO_DEFAULTS.echoGroupOf
+  local n = 0
+  for _ in pairs(dof) do n = n + 1 end
+  check("default tables are not mutated", #dnames == 4 and dnames[1] == "Channels" and n == 5, n)
+
+  A.GetDB = nil
+  A.ECHO_DEFAULTS, A.ECHO_KEYS, A.ECHO_LIMITS = nil, nil, nil
+  S.Reset()
+`, 'echo-groups');
 
 // --- Redraw: one repaint per frame -------------------------------------------
 run(`

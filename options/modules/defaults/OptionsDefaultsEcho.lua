@@ -43,6 +43,15 @@ addon.ECHO_DEFAULTS = {
     echoCardTextSize       = 11,
     echoFontPath           = "__global__",
     echoAnimateCard        = true,
+    -- Chat groups (modules/Echo/EchoGroups.lua). A blank name leaves the group unused;
+    -- echoGroupOf maps a member id to its group index. Read through Echo.Setting; never
+    -- mutate these tables in place.
+    echoGroupsEnabled      = true,
+    echoGroupNames         = { "Channels", "", "", "" },
+    echoGroupOf            = {
+        ["ch:General"] = 1, ["ch:Trade"] = 1, ["ch:Trade (Services)"] = 1,
+        ["ch:LocalDefense"] = 1, ["ch:LookingForGroup"] = 1,
+    },
 }
 
 addon.ECHO_LIMITS = {

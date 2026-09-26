@@ -359,10 +359,12 @@ function Tiles.Refresh()
     if not column or not column:IsShown() then return end
     local View = Echo.View
     local list = Echo.Store.List()
-    local visible, overflow = View.Column(list, math.max(2, tonumber(Echo.Setting("echoMaxTiles")) or 8))
+    local visible, overflow, entries = View.Column(list, math.max(2, tonumber(Echo.Setting("echoMaxTiles")) or 8))
     local slot = 1
     if overflow > 0 then
-        overflowTile.convKey = list[#visible + 1].key
+        -- The first hidden entry; a group stands in for its first member (a real conversation).
+        local first = entries[#visible + 1]
+        overflowTile.convKey = (first.members and first.members[1] or first).key
         overflowTile.letter:SetText("+" .. overflow)
         PaintGlyphFrame(overflowTile, View.ACCENT.r, View.ACCENT.g, View.ACCENT.b)
         overflowTile.letter:SetTextColor(0.85, 0.87, 0.95, 1)
