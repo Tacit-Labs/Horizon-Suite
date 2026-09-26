@@ -2968,3 +2968,4 @@ L["ECHO_NEW_BELOW"]                                           = "%d new below"
 L["ECHO_FEED_SHORT_LOOT"]                                     = "Loot"
 L["ECHO_FEED_SHORT_PROGRESS"]                                 = "Prog"
 L["ECHO_FEED_SHORT_SYSTEM"]                                   = "Sys"
+L["ECHO_GROUP_TITLE"]                                         = "%s · %s"  -- group name · member name

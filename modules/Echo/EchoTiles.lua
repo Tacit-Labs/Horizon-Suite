@@ -1,8 +1,8 @@
 --[[
     Horizon Suite - Echo - Tiles
-    The collapsed column: a tile per open conversation on a screen edge (top conversation
-    highest), a +N overflow tile, the stack button (the drag handle when unlocked), the
-    "n in chat" marker for messages Echo could not file, and the preview toast.
+    The collapsed column: a tile per open conversation or group (Echo.Groups) on a screen
+    edge (top entry highest), a +N overflow tile, the stack button (the drag handle when
+    unlocked), the "n in chat" marker for messages Echo could not file, and the preview toast.
     Blizzard: CreateFrame, FCF_SelectDockFrame. Shared: Augment toast chrome and motion.
 ]]
 
@@ -137,9 +137,18 @@ function Echo.FitText(fs, text, width, maxSize, minSize, flags)
     return minSize
 end
 
+-- The conversation a tile stands for: its own key, or for a group tile the group's newest
+-- member (Groups.Newest). The stack isn't grouped, so it only ever sees conversations.
+local function MemberKey(key)
+    local index = Echo.Groups and Echo.Groups.IndexOf(key)
+    if not index then return key end
+    local newest = Echo.Groups.Newest(index)
+    return newest and newest.key or nil
+end
+
 -- A tile hovers its own conversation to the front; the chat button hovers none (top card).
 local function HoverEnter(self)
-    if Echo.Stack then Echo.Stack.HoverEnter(self and self.convKey) end
+    if Echo.Stack then Echo.Stack.HoverEnter(MemberKey(self and self.convKey)) end
 end
 
 local function HoverLeave()
@@ -200,7 +209,7 @@ local function CreateTile()
         if Echo.Card then
             Echo.Card.Toggle(self.convKey, self)
         elseif Echo.Stack then
-            Echo.Stack.Open(self.convKey)
+            Echo.Stack.Open(MemberKey(self.convKey))
         end
     end)
     b:SetScript("OnEnter", HoverEnter)
@@ -404,13 +413,22 @@ function Tiles.Refresh()
     marker:SetShown(unrouted > 0)
 end
 
---- The frame a conversation's toast points at: its tile, else nil.
--- @param convKey string
+local function ShownTile(key)
+    for _, b in ipairs(tiles) do
+        if b.convKey == key and b:IsShown() then return b end
+    end
+    return nil
+end
+
+--- The frame a conversation's toast (and the card's genie) points at: its tile, or the tile
+-- of the group it belongs to, else nil.
+-- @param convKey string  a conversation key or a group key
 -- @return Frame|nil
 function Tiles.TileFor(convKey)
-    for _, b in ipairs(tiles) do
-        if b.convKey == convKey and b:IsShown() then return b end
-    end
+    local tile = ShownTile(convKey)
+    if tile then return tile end
+    local index = Echo.Groups and Echo.Groups.Of(convKey)
+    if index then return ShownTile(Echo.Groups.Key(index)) end
     return nil
 end
 

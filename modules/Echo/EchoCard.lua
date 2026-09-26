@@ -1,10 +1,13 @@
 --[[
     Horizon Suite - Echo - Card
     The expanded card: one conversation in full. A row of tiles for the open conversations
-    across the top (the current one outlined), the ⋯ menu and a collapse chevron; the name
+    and groups across the top (the current one outlined), the ⋯ menu and a collapse chevron; the name
     with class, relationship and online status; message bubbles, theirs on the left and
     yours on the right; a status line under your newest message; and a reply box with a
     send button. Opened by clicking a tile, a toast, or the stack's Open button.
+    A group (Echo.Groups) opens as one card with a tab per open member under the header;
+    everything below the tabs shows the selected member, so drafts, the scroll position
+    and read-marking all stay per member.
     Bubbles are laid out newest-first from the bottom of a clipped area and the wheel
     scrolls by message. Readable text is measured; a secret gets the widest bubble and a
     fixed three lines, so nothing ever reads a size from a FontString holding a secret.
@@ -38,13 +41,19 @@ Card.LINE_HEIGHT = 14
 Card.TEXT_SIZE = 11  -- message text; echoCardTextSize
 Card.FEED_TIME_WIDTH = 40
 Card.FEED_GAP = 2
+Card.TAB_HEIGHT = 18
+Card.TAB_GAP = 4
+Card.TAB_STRIP = Card.TAB_HEIGHT + Card.TAB_GAP  -- how far a group card's area moves down
 
 local root, nameText, metaText, area, edit, send, menuButton, chevron, statusLine, hint, rule
-local rowTiles, bubbles, labels = {}, {}, {}
+local rowTiles, bubbles, labels, tabs = {}, {}, {}, {}
+local tabStrip
 -- Forward-declared: Create()'s OnHide handler (defined further down) needs to stop the
 -- genie, which is defined later in the file.
 local StopEffects
 local currentKey, renderedKey
+local groupIndex      -- the group the card shows, or nil for a lone conversation
+local selected = {}   -- group index -> the member last selected there this session
 local offset = 0  -- newest messages scrolled past
 local newBelow = 0  -- messages added while scrolled up, shown by the hint
 local areaHeight = Card.AREA_HEIGHT  -- the message area's height for the card now shown
@@ -126,14 +135,15 @@ local function MenuAvailable()
     return Echo.Menu ~= nil and Echo.Menu.Available()
 end
 
--- The message area runs from under the header to the reply box, or, on a read-only feed
--- card with no reply box, down to the card's bottom padding.
-local function AnchorArea(feed)
+-- The message area runs from under the header (and a group card's tabs) to the reply box,
+-- or, on a read-only feed card with no reply box, down to the card's bottom padding.
+local function AnchorArea(feed, grouped)
+    local top = Card.AREA_TOP + (grouped and Card.TAB_STRIP or 0)
     local bottom = feed and Card.PAD or Card.AREA_BOTTOM
     area:ClearAllPoints()
-    area:SetPoint("TOPLEFT", root, "TOPLEFT", Card.PAD, -Card.AREA_TOP)
+    area:SetPoint("TOPLEFT", root, "TOPLEFT", Card.PAD, -top)
     area:SetPoint("BOTTOMRIGHT", root, "BOTTOMRIGHT", -Card.PAD, bottom)
-    areaHeight = Card.HEIGHT - Card.AREA_TOP - bottom
+    areaHeight = Card.HEIGHT - top - bottom
 end
 
 local function Create()
@@ -223,8 +233,15 @@ local function Create()
     metaText:SetPoint("TOPLEFT", nameText, "BOTTOMLEFT", 0, -4)
     metaText:SetTextColor(0.55, 0.60, 0.75, 1)
 
+    -- A group card's tabs, one per open member, between the header and the messages.
+    tabStrip = CreateFrame("Frame", nil, root)
+    tabStrip:SetHeight(Card.TAB_HEIGHT)
+    tabStrip:SetPoint("TOPLEFT", root, "TOPLEFT", Card.PAD, -Card.AREA_TOP)
+    tabStrip:SetPoint("TOPRIGHT", root, "TOPRIGHT", -Card.PAD, -Card.AREA_TOP)
+    tabStrip:Hide()
+
     area = CreateFrame("Frame", nil, root)
-    AnchorArea(false)
+    AnchorArea(false, false)
     area:SetClipsChildren(true)
     area:EnableMouseWheel(true)
     area:SetScript("OnMouseWheel", function(_, delta) Card.Scroll(delta) end)
@@ -505,23 +522,32 @@ local function RenderMessages(conv)
     for j = usedLabels + 1, #labels do labels[j]:Hide() end
 end
 
--- The row of tiles across the top: the open conversations, the shown one outlined, the
--- others dotted when they have something new.
-local function PaintRow(list, shownKey)
+-- Whether a column entry (a conversation or a group) is the one the card shows.
+local function IsShownEntry(entry)
+    if entry.kind == "group" then return entry.group == groupIndex end
+    return groupIndex == nil and entry.key == renderedKey
+end
+
+-- The row of tiles across the top: the column's entries (View.Entries: groups and
+-- ungrouped conversations), the shown one outlined, the others dotted when they have
+-- something new.
+local function PaintRow(list)
     local View = Echo.View
     local a = View.ACCENT
+    local entries = View.Entries(list)
     for i = 1, Card.TILES do
-        local b, other = rowTiles[i], list[i]
+        local b, other = rowTiles[i], entries[i]
         if other then
             local spec = View.TileSpec(other)
+            local shown = IsShownEntry(other)
             b.convKey = other.key
             PaintTile(b, spec)
-            if other.key == shownKey then
+            if shown then
                 Echo.Round.SetBorderColor(b, a.r, a.g, a.b, 1)
             else
                 Echo.Round.SetBorderColor(b, 0, 0, 0, 0.7)
             end
-            b.dot:SetShown(spec.badge ~= nil and other.key ~= shownKey)
+            b.dot:SetShown(spec.badge ~= nil and not shown)
             b:Show()
         else
             b.convKey = nil
@@ -530,17 +556,152 @@ local function PaintRow(list, shownKey)
     end
 end
 
+local function Tab(i)
+    local t = tabs[i]
+    if t then return t end
+    t = CreateFrame("Button", nil, tabStrip)
+    t:SetHeight(Card.TAB_HEIGHT)
+    Echo.Round.Apply(t, { radius = Echo.Round.SMALL })
+    t.text = Echo.NewText(t, 10, "")
+    t.text:SetPoint("LEFT", t, "LEFT", 7, 0)
+    t.text:SetPoint("RIGHT", t, "RIGHT", -7, 0)
+    t.text:SetWordWrap(false)
+    local a = Echo.View.ACCENT
+    t.dot = Echo.Round.Dot(t, 5, "OVERLAY")
+    t.dot:SetPoint("TOPRIGHT", t, "TOPRIGHT", 1, 1)
+    t.dot:SetVertexColor(a.r, a.g, a.b, 1)
+    t:RegisterForClicks("LeftButtonUp")
+    t:SetScript("OnClick", function(self)
+        if self.convKey then Card.SelectMember(self.convKey) end
+    end)
+    tabs[i] = t
+    return t
+end
+
+-- A member's tab text: its tile's short name, else the first letters of its name.
+local function TabLabel(conv)
+    local View = Echo.View
+    local label = View.TileSpec(conv).label
+    if Echo.IsSecret(label) or type(label) ~= "string" or label == "" then
+        label = View.ShortName(View.DisplayName(conv), 8)
+    end
+    return label
+end
+
+-- The tab strip for a group card: a small rounded tab per open member, the selected one
+-- filled with the accent, the others dim, an unread one dotted. Tabs share the strip's
+-- width when their names don't fit side by side. Hidden for a lone conversation.
+local function PaintTabs(members)
+    if not members then
+        tabStrip:Hide()
+        for _, t in ipairs(tabs) do
+            t.convKey = nil
+            t:Hide()
+        end
+        return
+    end
+    local a = Echo.View.ACCENT
+    local widths, total = {}, 0
+    for i, conv in ipairs(members) do
+        local t = Tab(i)
+        t.convKey = conv.key
+        t.text:SetText(TabLabel(conv))
+        local w = t.text.GetStringWidth and t.text:GetStringWidth()
+        if Echo.IsSecret(w) or type(w) ~= "number" or w <= 0 then w = 30 end
+        widths[i] = math.ceil(w) + 14
+        total = total + widths[i] + (i > 1 and Card.TAB_GAP or 0)
+    end
+    local avail = Card.WIDTH - Card.PAD * 2
+    local even
+    if total > avail then
+        even = math.floor((avail - Card.TAB_GAP * (#members - 1)) / #members)
+    end
+    local x = 0
+    for i, conv in ipairs(members) do
+        local t = tabs[i]
+        local w = even or widths[i]
+        t:SetWidth(w)
+        t:ClearAllPoints()
+        t:SetPoint("TOPLEFT", tabStrip, "TOPLEFT", x, 0)
+        Echo.Round.Layout(t)
+        x = x + w + Card.TAB_GAP
+        local isSelected = conv.key == renderedKey
+        if isSelected then
+            Echo.Round.SetColor(t, a.r, a.g, a.b, 0.9)
+            t.text:SetTextColor(0.05, 0.05, 0.07, 1)
+        else
+            Echo.Round.SetColor(t, 0.11, 0.11, 0.15, 0.95)
+            t.text:SetTextColor(0.55, 0.60, 0.75, 1)
+        end
+        t.dot:SetShown((conv.unread or 0) > 0 and not isSelected)
+        t:Show()
+    end
+    for i = #members + 1, #tabs do
+        tabs[i].convKey = nil
+        tabs[i]:Hide()
+    end
+    tabStrip:Show()
+end
+
+-- The open members of the shown group, or nil for a lone conversation.
+local function ShownMembers(list)
+    if not groupIndex then return nil end
+    return Echo.Groups.Members(groupIndex, list)
+end
+
+-- Aim the card at a key: a group key opens that group on its remembered member; a member
+-- key opens its group with that member selected; any other key (or nil, the top
+-- conversation) opens alone. Card.Render resolves what is actually shown.
+local function Target(key)
+    local Groups = Echo.Groups
+    local asGroup = Groups and Groups.IndexOf(key)
+    local ofGroup = not asGroup and Groups and key and Groups.Of(key)
+    groupIndex = asGroup or ofGroup or nil
+    if ofGroup then selected[ofGroup] = key end
+    currentKey = not asGroup and key or nil
+end
+
 --- Redraw the card around its conversation, and mark that conversation read.
 function Card.Render()
     if not root or not root:IsShown() then return end
     local View, Store = Echo.View, Echo.Store
+    local Groups = Echo.Groups
     local list = Store.List()
-    local conv = currentKey and Store.Get(currentKey)
-    if not conv or not conv.open then conv = list[1] end
-    if not conv then
-        Card.Hide()
-        return
+    local conv, members
+    if groupIndex then
+        members = Groups.Members(groupIndex, list)
+        if #members == 0 then
+            -- The last member closed: the card goes. A member still open here means the
+            -- group itself went (switched off or renamed blank): show it alone.
+            local own = currentKey and Store.Get(currentKey)
+            if not (own and own.open) then
+                Card.Hide()
+                return
+            end
+            groupIndex, members = nil, nil
+        else
+            local want = selected[groupIndex]
+            for _, m in ipairs(members) do
+                if m.key == want then conv = m end
+            end
+            conv = conv or Groups.Newest(groupIndex, list)
+        end
     end
+    if not groupIndex then
+        conv = currentKey and Store.Get(currentKey)
+        if not conv or not conv.open then conv = list[1] end
+        if not conv then
+            Card.Hide()
+            return
+        end
+        -- A grouped conversation always shows inside its group.
+        local index = Groups and Groups.Of(conv.key)
+        if index then
+            groupIndex = index
+            members = Groups.Members(index, list)
+        end
+    end
+    if groupIndex then selected[groupIndex] = conv.key end
     if renderedKey ~= conv.key then
         if renderedKey then Echo.ParkDraft(renderedKey, edit:GetText()) end
         edit:SetText(Echo.TakeDraft(conv.key))
@@ -551,11 +712,17 @@ function Card.Render()
     renderedKey = conv.key
     currentKey = conv.key
 
-    PaintRow(list, conv.key)
+    PaintRow(list)
+    PaintTabs(members)
     menuButton:SetShown(MenuAvailable())
 
     local spec = View.TileSpec(conv)
-    nameText:SetText(View.DisplayName(conv))
+    if groupIndex then
+        local groupName = Groups.Name(groupIndex)
+        nameText:SetText(L["ECHO_GROUP_TITLE"]:format(groupName, View.DisplayName(conv)))
+    else
+        nameText:SetText(View.DisplayName(conv))
+    end
     nameText:SetTextColor(spec.r, spec.g, spec.b, 1)
     metaText:SetText(View.Upper(View.CardMeta(conv)))
     if conv.kind == "whisper" then
@@ -570,7 +737,7 @@ function Card.Render()
     if feed then edit:ClearFocus() end
     edit:SetShown(not feed)
     send:SetShown(not feed)
-    AnchorArea(feed)
+    AnchorArea(feed, groupIndex ~= nil)
 
     RenderMessages(conv)
     Store.MarkRead(conv.key)
@@ -609,9 +776,15 @@ local function Animated()
     return Echo.Genie ~= nil and Echo.Setting("echoAnimateCard") and true or false
 end
 
--- The sheet's colour at the neck: the tile's face colour (a class tile's is its class colour).
+-- The sheet's colour at the neck: the tile's face colour (a class tile's is its class
+-- colour; a group card's is its group tile's).
 local function GenieColor(convKey)
     local View = Echo.View
+    if groupIndex then
+        local entry = { kind = "group", group = groupIndex, members = {} }
+        local r, g, b = View.FaceBackground(View.TileSpec(entry))
+        return { r, g, b }
+    end
     local conv = convKey and Echo.Store.Get(convKey)
     if not conv then return nil end
     local r, g, b = View.FaceBackground(View.TileSpec(conv))
@@ -679,7 +852,7 @@ function Card.Open(convKey, focus, fromTile)
         StopEffects()
         if genie then root:SetAlpha(0) end
     end
-    currentKey = convKey
+    Target(convKey)
     offset = 0
     newBelow = 0
     hint:Hide()
@@ -710,17 +883,35 @@ function Card.Show(convKey, fromTile)
         return
     end
     if closing then StopEffects() end
+    Target(convKey)
+    Card.Render()
+end
+
+--- A tab click on a group card: show that member.
+-- @param convKey string  a member of the shown group
+function Card.SelectMember(convKey)
+    if not root or not root:IsShown() or not groupIndex or not convKey then return end
+    selected[groupIndex] = convKey
     currentKey = convKey
     Card.Render()
 end
 
---- A tile click: close the card if it already shows this conversation, else show it.
+-- Whether a tile's key is what the card shows now: the conversation itself, or the group
+-- the card shows.
+local function ShowsKey(convKey)
+    if convKey == nil then return false end
+    if convKey == renderedKey then return true end
+    local index = Echo.Groups and Echo.Groups.IndexOf(convKey)
+    return index ~= nil and index == groupIndex
+end
+
+--- A tile click: close the card if it already shows this conversation or group, else show it.
 -- With the setting on and the tile in view, the close collapses into the tile first; a
 -- second click on it during that close is ignored.
 -- @param convKey string
 -- @param fromTile Frame|nil  the tile clicked; the card grows out of it if it was closed
 function Card.Toggle(convKey, fromTile)
-    if root and root:IsShown() and convKey == renderedKey then
+    if root and root:IsShown() and ShowsKey(convKey) then
         if closing then return end
         local tile = Animated() and CloseTile(convKey, fromTile)
         if tile then PlayClose(tile) else Card.Hide() end
@@ -870,7 +1061,14 @@ function Card.Enable()
         if root and root:IsShown() then Card.Render() end
     end)
     Echo.Redraw.Register("cardRow", function()
-        if root and root:IsShown() and renderedKey then PaintRow(Echo.Store.List(), renderedKey) end
+        if root and root:IsShown() and renderedKey then
+            local list = Echo.Store.List()
+            PaintRow(list)
+            local members = ShownMembers(list)
+            -- A closed member only reaches here through a full render; an empty group
+            -- would be that render's to hide, so leave the tabs as they are.
+            if not members or #members > 0 then PaintTabs(members) end
+        end
     end)
 end
 
@@ -880,7 +1078,8 @@ function Card.Disable()
         Card.subscribed = false
     end
     Card.Hide()
-    renderedKey, currentKey = nil, nil
+    renderedKey, currentKey, groupIndex = nil, nil, nil
+    selected = {}
 end
 
 -- Test and debug handle.
@@ -889,5 +1088,6 @@ function Card._frames()
         root = root, rowTiles = rowTiles, name = nameText, meta = metaText, area = area,
         edit = edit, send = send, menu = menuButton, chevron = chevron,
         bubbles = bubbles, labels = labels, status = statusLine, hint = hint, rule = rule,
+        tabs = tabs, tabStrip = tabStrip,
     }
 end

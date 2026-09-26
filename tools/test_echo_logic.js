@@ -4831,6 +4831,165 @@ run(`
   S.Reset()
 `, 'echo-groups');
 
+// --- Groups: group tiles, the card's tabs, toasts and the genie ---------------
+run(read('options/modules/defaults/OptionsDefaultsEcho.lua'), 'echo-defaults-group-card');
+run(`
+  local A = HorizonSuite
+  local Echo = A.Echo
+  local S, T, K, C, G, V, Gr = Echo.Store, Echo.Tiles, Echo.Stack, Echo.Card, Echo.Genie, Echo.View, Echo.Groups
+  S.Reset()
+  G._reset()
+  Echo.ClearDrafts()
+  local savedCreateFrame = CreateFrame
+  CreateFrame = STUB_CREATE_FRAME
+  local db = { echoAnimateCard = true, echoColumnEdge = "right" }
+  A.GetDB = function(k, d) if db[k] ~= nil then return db[k] end return d end
+  T.Enable()
+  K.Enable()
+  C.Enable()
+  local f = C._frames()
+  rawset(A.L, "ECHO_GROUP_TITLE", "%s · %s")
+  local function L_FMT(_, x, y) return string.format("%s · %s", x, y) end
+  local function Fill(frame) local h = rawget(frame, "_echoRound"); return h and h.fill.topBand.vertexColor end
+  local function Border(frame) local h = rawget(frame, "_echoRound"); return h and h.border and h.border.ring.tl.vertexColor end
+  local function Geometry(frame, l, b, w, h)
+    frame.GetLeft = function() return l end
+    frame.GetBottom = function() return b end
+    frame.GetWidth = function() return w end
+    frame.GetHeight = function() return h end
+    frame.GetEffectiveScale = function() return 1 end
+  end
+  f.root.SetAlpha = function(self, a) self.alphaValue = a end
+  f.root.GetAlpha = function(self) return rawget(self, "alphaValue") or 1 end
+  Geometry(f.root, 500, 100, 360, 440)
+
+  S.Add({ convKey = "w:Brisa-Horizon", text = "hi", sender = "Brisa-Horizon" })
+  S.Add({ convKey = "ch:Trade", text = "wts", sender = "Vexa-Horizon" })
+  S.SetTier("ch:General", "loud")
+  S.Add({ convKey = "ch:General", text = "anyone?", sender = "Thorn-Horizon" })
+  S.Add({ convKey = "ch:Trade", text = "wtb", sender = "Vexa-Horizon" })
+
+  -- The column.
+  local gtile = T.TileFor("grp:1")
+  check("a group tile shows for grouped channels", gtile ~= nil and gtile:IsShown(), "no tile")
+  check("the group tile paints the group face", gtile and gtile.icon.texture == V.GROUP_ICON, gtile and tostring(gtile.icon.texture))
+  check("TileFor(member) returns the group tile", T.TileFor("ch:Trade") == gtile and T.TileFor("ch:General") == gtile, "?")
+  check("an ungrouped chat keeps its own tile", T.TileFor("w:Brisa-Horizon") ~= nil and T.TileFor("w:Brisa-Horizon") ~= gtile, "?")
+  check("the newest member is the loudest", Gr.Newest(1).key == "ch:General", Gr.Newest(1) and Gr.Newest(1).key)
+  check("no members, no newest", Gr.Newest(3) == nil, "?")
+
+  local toast = T._toast()
+  check("a member's loud message toasts at the group tile", toast and toast:IsShown() and toast.anchor == gtile and toast.convKey == "ch:General",
+    toast and tostring(toast.convKey))
+  toast:Hide()
+
+  -- Hover peeks at the stack on the newest member.
+  local hovered = "none"
+  local savedHover = K.HoverEnter
+  K.HoverEnter = function(key) hovered = key end
+  gtile.scripts.OnEnter(gtile)
+  K.HoverEnter = savedHover
+  check("hovering a group tile peeks at its newest member", hovered == "ch:General", tostring(hovered))
+
+  -- A click opens the card on the newest member, with tabs.
+  Geometry(gtile, 870, 120, 30, 30)
+  gtile.scripts.OnClick(gtile)
+  check("a group click opens the card", f.root:IsShown(), "hidden")
+  check("the genie starts from the group tile", G.IsPlaying() and G._current().from == gtile, "")
+  G._overlay().scripts.OnUpdate(G._overlay(), 1)
+  check("the card shows the newest member", C.ShownKey() == "ch:General", tostring(C.ShownKey()))
+  check("the title names the group and the member",
+    f.name.text == L_FMT("ECHO_GROUP_TITLE", "Channels", V.DisplayName(S.Get("ch:General"))), f.name.text)
+  local tabs = {}
+  for _, t in ipairs(f.tabs) do if t:IsShown() then tabs[#tabs + 1] = t end end
+  check("a tab per open member", #tabs == 2, #tabs)
+  local tradeTab, generalTab
+  for _, t in ipairs(tabs) do
+    if t.convKey == "ch:Trade" then tradeTab = t elseif t.convKey == "ch:General" then generalTab = t end
+  end
+  check("tabs carry the members", tradeTab ~= nil and generalTab ~= nil, "?")
+  check("a tab shows the member's short name", tradeTab.text.text == V.TileSpec(S.Get("ch:Trade")).label, tradeTab.text.text)
+  local a = V.ACCENT
+  local gf, tf = Fill(generalTab), Fill(tradeTab)
+  check("the selected tab is filled with the accent", gf and gf[1] == a.r and gf[2] == a.g and gf[3] == a.b, gf and gf[1])
+  check("an unselected tab is dim", tf and tf[1] ~= a.r, tf and tf[1])
+  check("a tab is rounded with the small radius", rawget(generalTab, "_echoRound") ~= nil
+    and rawget(generalTab, "_echoRound").corners.tl == Echo.Round.SMALL, "?")
+  check("an unread member shows a dot", tradeTab.dot:IsShown(), "no dot")
+  check("the selected member shows no dot", not generalTab.dot:IsShown(), "dot")
+  check("the tab strip shows", f.tabStrip:IsShown(), "hidden")
+  local top = f.area.points[1] and f.area.points[1][5]
+  check("the message area starts below the strip", top == -(C.AREA_TOP + C.TAB_STRIP), tostring(top))
+
+  -- The top row shows entries.
+  local rowGroup, rowTrade
+  for _, t in ipairs(f.rowTiles) do
+    if t:IsShown() and t.convKey == "grp:1" then rowGroup = t end
+    if t:IsShown() and t.convKey == "ch:Trade" then rowTrade = t end
+  end
+  check("the row shows a group entry", rowGroup ~= nil, "no group tile")
+  check("the row shows no member tiles", rowTrade == nil, "member tile")
+  local ob = rowGroup and Border(rowGroup)
+  check("the shown group is outlined", ob and ob[1] == a.r and ob[4] == 1, ob and ob[1])
+
+  -- Clicking a tab switches member and keeps drafts per member.
+  f.edit:SetText("general draft")
+  tradeTab.scripts.OnClick(tradeTab)
+  check("a tab click switches member", C.ShownKey() == "ch:Trade", tostring(C.ShownKey()))
+  check("the new member's box starts empty", f.edit:GetText() == "", f.edit:GetText())
+  check("the title follows the member", f.name.text == L_FMT("ECHO_GROUP_TITLE", "Channels", V.DisplayName(S.Get("ch:Trade"))), f.name.text)
+  check("the tab reads Trade as read", S.Get("ch:Trade").unread == 0, S.Get("ch:Trade").unread)
+  f.edit:SetText("trade draft")
+  for _, t in ipairs(f.tabs) do if t.convKey == "ch:General" then generalTab = t end end
+  generalTab.scripts.OnClick(generalTab)
+  check("the first member's draft comes back", f.edit:GetText() == "general draft", f.edit:GetText())
+  for _, t in ipairs(f.tabs) do if t.convKey == "ch:Trade" then tradeTab = t end end
+  tradeTab.scripts.OnClick(tradeTab)
+  check("the second member's draft comes back", f.edit:GetText() == "trade draft", f.edit:GetText())
+  f.edit:SetText("")
+
+  -- The toggle-close genie goes into the group tile; the card remembers the member.
+  gtile.scripts.OnClick(gtile)
+  check("a group toggle-close runs a reverse genie", G.IsPlaying() and G._current().reverse, "")
+  check("into the group tile", G._current().from == gtile, "")
+  G._overlay().scripts.OnUpdate(G._overlay(), 1)
+  check("and hides the card", not f.root:IsShown(), "shown")
+  C.Open("grp:1")
+  check("reopening a group keeps the member last selected", C.ShownKey() == "ch:Trade", tostring(C.ShownKey()))
+  C.Hide()
+
+  -- A member key opens its group with that tab selected.
+  C.Open("ch:General")
+  check("a member opens as its group", C.ShownKey() == "ch:General" and f.tabStrip:IsShown(), tostring(C.ShownKey()))
+  check("with the group title", f.name.text == L_FMT("ECHO_GROUP_TITLE", "Channels", V.DisplayName(S.Get("ch:General"))), f.name.text)
+
+  -- An ungrouped chat has no tabs and the normal area.
+  C.Show("w:Brisa-Horizon")
+  check("an ungrouped card hides the strip", not f.tabStrip:IsShown(), "shown")
+  top = f.area.points[1] and f.area.points[1][5]
+  check("and keeps the normal area", top == -C.AREA_TOP, tostring(top))
+  check("and the plain title", f.name.text == "Brisa", f.name.text)
+
+  -- Closing members through the menu.
+  C.Show("grp:1")
+  S.Close(C.ShownKey())
+  local left = C.ShownKey()
+  check("closing a member moves to the other", f.root:IsShown() and left ~= nil and S.Get(left).open and Gr.Of(left) == 1, tostring(left))
+  S.Close(left)
+  check("closing the last member hides the card", not f.root:IsShown(), "shown")
+
+  C.Disable()
+  K.Disable()
+  T.Disable()
+  G._reset()
+  CreateFrame = savedCreateFrame
+  rawset(A.L, "ECHO_GROUP_TITLE", nil)
+  A.GetDB = nil
+  A.ECHO_DEFAULTS, A.ECHO_KEYS, A.ECHO_LIMITS = nil, nil, nil
+  Echo.ClearDrafts()
+  S.Reset()
+`, 'echo-group-card');
+
 // --- Redraw: one repaint per frame -------------------------------------------
 run(`
   CreateFrame = STUB_CREATE_FRAME

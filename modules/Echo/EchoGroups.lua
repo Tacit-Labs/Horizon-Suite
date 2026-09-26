@@ -96,3 +96,17 @@ function Groups.IndexOf(key)
     local digits = key:match("^grp:(%d+)$")
     return ValidIndex(tonumber(digits))
 end
+
+--- The member a group opens on when nothing was chosen: the one with the most recent loud
+-- message, else the first in Store order. nil when the group has no open members.
+-- @param index number
+-- @param list table|nil  Store.List(); defaults to it
+-- @return table|nil conv
+function Groups.Newest(index, list)
+    local members = Groups.Members(index, list)
+    local best
+    for _, conv in ipairs(members) do
+        if (conv.lastLoud or 0) > 0 and (not best or conv.lastLoud > best.lastLoud) then best = conv end
+    end
+    return best or members[1]
+end
