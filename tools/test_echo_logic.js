@@ -3963,9 +3963,7 @@ run(`
   local keys = {}
   for _, opt in ipairs(cat.options) do if opt.dbKey then keys[opt.dbKey] = opt end end
   for key in pairs(A.ECHO_DEFAULTS) do
-    -- Task 4 adds these (the group settings) to the page.
-    local later = { echoGroupsEnabled = true, echoGroupNames = true, echoGroupOf = true }
-    if key ~= "echoHoverDelay" and not later[key] then check("on the page: " .. key, keys[key] ~= nil, key) end
+    if key ~= "echoHoverDelay" then check("on the page: " .. key, keys[key] ~= nil, key) end
   end
   keys.echoScale.set(250)
   check("scale slider clamps", A.OptionsData_GetDB("echoScale") == 1.6, A.OptionsData_GetDB("echoScale"))
@@ -3994,6 +3992,60 @@ run(`
   keys.echoColumnEdge.set("auto")
   check("switching to auto keeps the dragged position", A.OptionsData_GetDB("echoX") == 800 and A.OptionsData_GetDB("echoY") == 300, tostring(A.OptionsData_GetDB("echoX")))
   check("switching to auto stores auto", A.OptionsData_GetDB("echoColumnEdge") == "auto", A.OptionsData_GetDB("echoColumnEdge"))
+
+  -- Groups section (Task 4).
+  -- L is a stub here (returns the key), so the four group-name editboxes all share one
+  -- "name", as do a group dropdown and its Tiers-section namesake (e.g. "Party"). Collect
+  -- every match in list order and pick by position instead of relying on the text.
+  local function findOpt(typ, name, nth)
+    local list = {}
+    for _, opt in ipairs(cat.options) do
+      if opt.type == typ and opt.name == name then list[#list + 1] = opt end
+    end
+    return list[nth or #list]
+  end
+
+  local lootOpt = findOpt("dropdown", A.L["ECHO_KIND_LOOT"])
+  check("loot group dropdown exists", lootOpt ~= nil, "?")
+  check("loot starts at None", lootOpt.get() == "none", tostring(lootOpt.get()))
+
+  local defaultOpts = lootOpt.options()
+  local defaultLabels = {}
+  for _, o in ipairs(defaultOpts) do defaultLabels[#defaultLabels + 1] = o[1] end
+  check("dropdown lists None then the one named default group",
+    #defaultLabels == 2 and defaultLabels[1] == A.L["ECHO_GROUP_NONE"] and defaultLabels[2] == "Channels",
+    table.concat(defaultLabels, ","))
+
+  lootOpt.set(2)
+  local ofAfterAssign = A.OptionsData_GetDB("echoGroupOf")
+  check("assigning loot to group 2 writes a copy",
+    ofAfterAssign ~= A.ECHO_DEFAULTS.echoGroupOf and ofAfterAssign.loot == 2, tostring(ofAfterAssign and ofAfterAssign.loot))
+  check("default echoGroupOf is not mutated", A.ECHO_DEFAULTS.echoGroupOf.loot == nil, tostring(A.ECHO_DEFAULTS.echoGroupOf.loot))
+  check("loot now reads group 2", lootOpt.get() == 2, tostring(lootOpt.get()))
+
+  lootOpt.set("none")
+  local ofAfterClear = A.OptionsData_GetDB("echoGroupOf")
+  check("clearing back to None writes another copy",
+    ofAfterClear ~= ofAfterAssign and ofAfterClear.loot == nil, tostring(ofAfterClear and ofAfterClear.loot))
+  check("loot back at None", lootOpt.get() == "none", tostring(lootOpt.get()))
+
+  local partyOpt = findOpt("dropdown", A.L["ECHO_KIND_PARTY"])
+  partyOpt.set(3)
+  local partyOpts = partyOpt.options()
+  local partyLabels = {}
+  for _, o in ipairs(partyOpts) do partyLabels[#partyLabels + 1] = o[1] end
+  check("a blank but referenced group falls back to Group N",
+    partyLabels[3] == A.L["ECHO_GROUP_FALLBACK"]:format(3), table.concat(partyLabels, ","))
+  partyOpt.set("none")
+
+  local group2NameOpt = findOpt("editbox", A.L["ECHO_GROUP_NAME"]:format(2), 2)
+  check("group 2 name editbox exists", group2NameOpt ~= nil, "?")
+  check("group 2 name starts blank", group2NameOpt.get() == "", tostring(group2NameOpt.get()))
+  group2NameOpt.set("Crew")
+  local namesAfter = A.OptionsData_GetDB("echoGroupNames")
+  check("renaming group 2 writes a copy",
+    namesAfter ~= A.ECHO_DEFAULTS.echoGroupNames and namesAfter[1] == "Channels" and namesAfter[2] == "Crew", namesAfter and namesAfter[2])
+  check("default echoGroupNames is not mutated", A.ECHO_DEFAULTS.echoGroupNames[2] == "", A.ECHO_DEFAULTS.echoGroupNames[2])
 
   A.OptionCategories, A.OptionsData_GetDB, A.OptionsData_SetDB = nil, nil, nil
   A.Section, A.Button, A.Toggle, A.GetPerElementFontDropdownOptions = nil, nil, nil, nil

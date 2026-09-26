@@ -131,6 +131,111 @@ for _, kind in ipairs({ "loot", "progress", "system" }) do
     options[#options + 1] = tier
 end
 
+-- Groups: up to four named groups of chats (modules/Echo/EchoGroups.lua). The member ids and
+-- their order mirror the Global Constraints table in Docs/Engineering/2026-09-26-echo-groups-plan.md.
+local GROUP_MEMBERS = {
+    { id = "ch:General",             label = L["ECHO_GROUP_MEMBER_GENERAL"] },
+    { id = "ch:Trade",                label = L["ECHO_GROUP_MEMBER_TRADE"] },
+    { id = "ch:Trade (Services)",     label = L["ECHO_GROUP_MEMBER_SERVICES"] },
+    { id = "ch:LocalDefense",         label = L["ECHO_GROUP_MEMBER_LOCAL_DEFENSE"] },
+    { id = "ch:LookingForGroup",      label = L["ECHO_GROUP_MEMBER_LFG"] },
+    { id = "ch:WorldDefense",         label = L["ECHO_GROUP_MEMBER_WORLD_DEFENSE"] },
+    { id = "ch:NewcomerChat",         label = L["ECHO_GROUP_MEMBER_NEWCOMER"] },
+    { id = "ch:*",                    label = L["ECHO_GROUP_MEMBER_OTHER_CHANNELS"] },
+    { id = "guild",                   label = L["ECHO_KIND_GUILD"] },
+    { id = "officer",                 label = L["ECHO_KIND_OFFICER"] },
+    { id = "party",                   label = L["ECHO_KIND_PARTY"] },
+    { id = "raid",                    label = L["ECHO_KIND_RAID"] },
+    { id = "instance",                label = L["ECHO_KIND_INSTANCE"] },
+    { id = "loot",                    label = L["ECHO_KIND_LOOT"] },
+    { id = "progress",                label = L["ECHO_KIND_PROGRESS"] },
+    { id = "system",                  label = L["ECHO_KIND_SYSTEM"] },
+}
+
+-- A fresh copy of a 4-entry group-names table, defaulting missing/invalid entries to "".
+local function GroupNamesCopy()
+    local names = getDB("echoGroupNames", D.echoGroupNames)
+    local copy = { "", "", "", "" }
+    if type(names) == "table" then
+        for i = 1, 4 do
+            if type(names[i]) == "string" then copy[i] = names[i] end
+        end
+    end
+    return copy
+end
+
+-- A fresh copy of the member-id -> group-index table.
+local function GroupOfCopy()
+    local of = getDB("echoGroupOf", D.echoGroupOf)
+    local copy = {}
+    if type(of) == "table" then
+        for k, v in pairs(of) do copy[k] = v end
+    end
+    return copy
+end
+
+options[#options + 1] = Section(L["ECHO_SECTION_GROUPS"])
+options[#options + 1] = Toggle(L["ECHO_GROUPS_ENABLE"], L["ECHO_GROUPS_ENABLE_DESC"], "echoGroupsEnabled", D.echoGroupsEnabled)
+
+for i = 1, 4 do
+    options[#options + 1] = {
+        type = "editbox", name = L["ECHO_GROUP_NAME"]:format(i), labelText = L["ECHO_GROUP_NAME"]:format(i),
+        tooltip = L["ECHO_GROUP_NAME_DESC"], height = 24,
+        dbKey = (i == 1) and "echoGroupNames" or nil,
+        get = function()
+            local names = getDB("echoGroupNames", D.echoGroupNames)
+            if type(names) ~= "table" or type(names[i]) ~= "string" then return "" end
+            return names[i]
+        end,
+        set = function(v)
+            local copy = GroupNamesCopy()
+            copy[i] = (type(v) == "string") and v or ""
+            setDB("echoGroupNames", copy)
+        end,
+    }
+end
+
+for i, member in ipairs(GROUP_MEMBERS) do
+    local id = member.id
+    options[#options + 1] = {
+        type = "dropdown", name = member.label, desc = L["ECHO_GROUP_MEMBER_DESC"],
+        dbKey = (i == 1) and "echoGroupOf" or nil,
+        preserveOrder = true,
+        options = function()
+            local names = getDB("echoGroupNames", D.echoGroupNames)
+            local of = getDB("echoGroupOf", D.echoGroupOf)
+            local opts = { { L["ECHO_GROUP_NONE"], "none" } }
+            for gi = 1, 4 do
+                local name = (type(names) == "table") and names[gi] or nil
+                local label
+                if type(name) == "string" and name:find("%S") then
+                    label = name
+                elseif type(of) == "table" then
+                    for _, v in pairs(of) do
+                        if v == gi then
+                            label = L["ECHO_GROUP_FALLBACK"]:format(gi)
+                            break
+                        end
+                    end
+                end
+                if label then opts[#opts + 1] = { label, gi } end
+            end
+            return opts
+        end,
+        get = function()
+            local of = getDB("echoGroupOf", D.echoGroupOf)
+            local v = (type(of) == "table") and of[id] or nil
+            if v == nil then return "none" end
+            return v
+        end,
+        set = function(v)
+            local copy = GroupOfCopy()
+            if v == "none" then copy[id] = nil else copy[id] = v end
+            setDB("echoGroupOf", copy)
+        end,
+    }
+end
+
 local tail = {
     Section(L["ECHO_SECTION_HISTORY"]),
     Toggle(L["ECHO_SAVE_HISTORY"], L["ECHO_SAVE_HISTORY_DESC"], "echoSaveHistory", D.echoSaveHistory),
