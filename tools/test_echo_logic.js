@@ -8023,13 +8023,31 @@ run(`
     function r:SetAlpha(a) self.alpha = a end
     function r:GetFont() return self.font[1], self.font[2], self.font[3] end
     function r:SetFont(p, s, f) self.font = { p, s, f } end
+    r.color, r.text, r.width = { 1, 1, 1, 1 }, "", 0
+    function r:GetTextColor() return self.color[1], self.color[2], self.color[3], self.color[4] end
+    function r:SetTextColor(cr, cg, cb, ca) self.color = { cr, cg, cb, ca } end
+    function r:GetText() return self.text end
+    function r:GetStringWidth() return self.width end
+    function r:GetParentKey() return self.parentKey end
     return r
   end
   local chatFrame = STUB_FRAME()
-  local box = { calls = { focus = 0, attribute = 0 }, attrs = { chatType = "SAY" }, scale = 0.9, alpha = 1,
+  local box = { calls = { focus = 0, attribute = 0, text = 0, insets = 0 }, attrs = { chatType = "SAY" }, scale = 0.9, alpha = 1,
     shown = false, level = 5, strata = "LOW",
     points = { { "BOTTOMLEFT", chatFrame, "TOPLEFT", -5, -2 }, { "BOTTOMRIGHT", chatFrame, "TOPRIGHT", 5, -2 } } }
   local regions = { Region("Texture", 1), Region("Texture", 0.8), Region("FontString", 1) }
+  -- Blizzard's header ("Say:") and its suffix, keyed on the box as parentKey regions.
+  local header, headerSuffix = Region("FontString", 1), Region("FontString", 1)
+  header.parentKey, headerSuffix.parentKey = "header", "headerSuffix"
+  header.text, header.width, header.color = "Say:", 30, { 1, 1, 1, 1 }
+  headerSuffix.color = { 0.5, 0.5, 0.5, 1 }
+  box.header, box.headerSuffix = header, headerSuffix
+  box.text = ""
+  function box:GetText() return self.text end
+  function box:SetText() self.calls.text = self.calls.text + 1 end
+  function box:SetTextInsets() self.calls.insets = self.calls.insets + 1 end
+  function box:SetFrameLevel(v) self.level = v end
+  function box:IsInIMECompositionMode() return self.ime == true end
   function box:GetNumPoints() return #self.points end
   function box:GetPoint(i) local p = self.points[i]; return p[1], p[2], p[3], p[4], p[5] end
   function box:ClearAllPoints() self.points = {} end
@@ -8043,7 +8061,7 @@ run(`
   function box:SetShown(v) self.shown = v and true or false end
   function box:IsShown() return self.shown end
   function box:IsVisible() return self.shown and not self.parentHidden end
-  function box:GetRegions() return regions[1], regions[2], regions[3] end
+  function box:GetRegions() return regions[1], regions[2], regions[3], header, headerSuffix end
   function box:GetAttribute(k) return self.attrs[k] end
   function box:SetAttribute() self.calls.attribute = self.calls.attribute + 1 end
   function box:SetFocus() self.calls.focus = self.calls.focus + 1 end
@@ -8115,10 +8133,11 @@ run(`
     tostring(regions[3].font[1]) .. " " .. tostring(regions[3].font[2]))
   local bg = I._background()
   local bgRR = bg and rawget(bg, "_echoRound")
-  check("input: a rounded background with the SMALL radius and a border", bgRR ~= nil and bgRR.corners.tl == Echo.Round.SMALL and bgRR.border ~= nil, "?")
+  check("input: a rounded background with the SMALL radius and no border", bgRR ~= nil and bgRR.corners.tl == Echo.Round.SMALL and bgRR.border == nil, "?")
   check("input: the background sits one level below the box, in its strata", bg and bg.frameLevel == 4, bg and bg.frameLevel)
   local fill = bgRR and bgRR.fill.middleBand.vertexColor
-  check("input: the background is Echo's panel colour", fill and fill[1] == V.PANEL_BG[1] and fill[4] == V.PANEL_BG[4], fill and table.concat(fill, ","))
+  check("input: the background is the reply box's fill", C.EDIT_BG ~= nil and fill and fill[1] == C.EDIT_BG[1] and fill[2] == C.EDIT_BG[2]
+    and fill[3] == C.EDIT_BG[3] and fill[4] == C.EDIT_BG[4], fill and table.concat(fill, ","))
   check("input: the box takes the column's scale", box.scale == 1.25, box.scale)
 
   -- The anchor: the column's foot, opening on the panel side, at the card's width.
@@ -8142,10 +8161,12 @@ run(`
   S.Add({ convKey = "guild", text = "raid at 8", sender = "Vexa-Horizon" })
   C.Open("w:Brisa-Horizon")
   local root = C._frames().root
+  local slot = C.ReplySlot and C.ReplySlot()
   p1, p2 = box.points[1], box.points[2]
-  check("input: under the open card, flush with its left edge, 4px down", #box.points == 2 and p1[1] == "TOPLEFT" and p1[2] == root and p1[3] == "BOTTOMLEFT"
-    and p1[4] == 0 and p1[5] == -4, p1 and (tostring(p1[1]) .. " " .. tostring(p1[3]) .. " " .. tostring(p1[5])))
-  check("input: and with its right edge, so it is the card's width", p2 and p2[1] == "TOPRIGHT" and p2[2] == root and p2[3] == "BOTTOMRIGHT" and p2[5] == -4, p2 and p2[1])
+  check("input: over the open card's reply slot, its top left", slot ~= nil and #box.points == 2 and p1[1] == "TOPLEFT" and p1[2] == slot
+    and p1[3] == "TOPLEFT" and p1[4] == 0 and p1[5] == 0, p1 and (tostring(p1[1]) .. " " .. tostring(p1[3]) .. " " .. tostring(p1[5])))
+  check("input: and its bottom right, so it takes the slot's rect", p2 and p2[1] == "BOTTOMRIGHT" and p2[2] == slot and p2[3] == "BOTTOMRIGHT"
+    and p2[4] == 0 and p2[5] == 0, p2 and p2[1])
   C.Hide()
   check("input: back at the column's foot when the card hides", box.points[1][1] == "RIGHT" and box.points[1][2] == stackButton, box.points[1][1])
   C.Open("w:Brisa-Horizon")
@@ -8154,7 +8175,7 @@ run(`
   check("input: a card closed by Escape also sends it back", box.points[1][1] == "RIGHT", box.points[1][1])
   C.Open("w:Brisa-Horizon")
   C.Reanchor()
-  check("input: re-anchoring the card keeps it under the card", box.points[1][2] == root, "moved")
+  check("input: re-anchoring the card keeps it over the reply slot", box.points[1][2] == slot, "moved")
 
   -- Show and hide from Blizzard's own activate and deactivate.
   fire("DeactivateChat", box)
@@ -8177,17 +8198,20 @@ run(`
   check("input: always visible shows it at enable", box.shown == true, "hidden")
   db.echoInputAlwaysVisible = nil
 
-  -- The header hook colours the border from the chat type.
+  -- The header hook colours the chip from the chat type.
   local savedChan = GetChannelName
   ChatTypeInfo = { GUILD = { r = 0.25, g = 1, b = 0.25 }, CHANNEL = { r = 1, g = 0.75, b = 0.75 }, CHANNEL2 = { r = 0.9, g = 0.6, b = 0.3 } }
   GetChannelName = function(q)
     if q == 2 or q == "Trade - City" then return 2, "Trade - City", 0 end
     return 0
   end
-  local function ring() return bgRR.border.ring.tl.vertexColor end
+  local chip = I._chip and I._chip()
+  local chipRR = chip and rawget(chip, "_echoRound")
+  local function ring() return chipRR and chipRR.fill.middleBand.vertexColor or {} end
   box.attrs.chatType = "GUILD"
   fire("UpdateHeader", box)
-  check("input: the header hook colours the border with the chat type's colour", ring()[1] == 0.25 and ring()[2] == 1 and ring()[3] == 0.25, table.concat(ring(), ","))
+  check("input: the header hook colours the chip with the chat type's colour", ring()[1] == 0.25 and ring()[2] == 1 and ring()[3] == 0.25
+    and ring()[4] == 0.22, table.concat(ring(), ","))
   box.attrs.chatType, box.attrs.channelTarget = "CHANNEL", 2
   fire("UpdateHeader", box)
   check("input: a channel uses its own channel colour", ring()[1] == 0.9 and ring()[2] == 0.6, table.concat(ring(), ","))
@@ -8225,10 +8249,10 @@ run(`
   target("WHISPER", { tellTarget = "Brisa-Horizon" })
   fire("UpdateHeader", box)
   check("card: the reply box hides while the line targets this chat", not f.edit:IsShown() and not f.send:IsShown(), "shown")
-  check("card: the message area takes the reply box's space", areaBottom() == C.PAD, areaBottom())
+  check("card: the message area keeps its bottom, since the line sits in the card", areaBottom() == C.AREA_BOTTOM, areaBottom())
   target("GUILD")
   fire("UpdateHeader", box)
-  check("card: another target brings the reply box back", f.edit:IsShown() and f.send:IsShown(), "hidden")
+  check("card: another target keeps the reply box hidden", not f.edit:IsShown() and not f.send:IsShown(), "shown")
   check("card: and the area's bottom", areaBottom() == C.AREA_BOTTOM, areaBottom())
   C.Show("guild")
   check("card: switching the card to the targeted chat hides it", not f.edit:IsShown(), "shown")
@@ -8361,7 +8385,7 @@ run(`
     shows[1] and shows[1].key)
   check("follow: the conversation is started", starts[1] == "guild", tostring(starts[1]))
   check("follow: the card opens without a tile, so without a genie", shows[1] and shows[1].tile == nil, "a tile")
-  check("follow: a card opened by the line still takes the line under it", box.points[1] and box.points[1][2] == C._frames().root,
+  check("follow: a card opened by the line still takes the line in its reply slot", box.points[1] and box.points[1][2] == (C.ReplySlot and C.ReplySlot()),
     box.points[1] and tostring(box.points[1][1]))
   fire("UpdateHeader", box)
   check("follow: the same target opens it only once", #shows == 1, #shows)
@@ -8477,6 +8501,104 @@ run(`
   fire("ActivateChat", box)
   C.Show("w:Brisa-Horizon")
 
+  -- Plan 13, Task 1: the line takes the card's reply-box place and look.
+  local fr = C._frames()
+  local rslot = C.ReplySlot and C.ReplySlot()
+  check("look: the card exposes its reply slot", rslot ~= nil, "none")
+  local sp1, sp2 = rslot and rslot.points[1], rslot and rslot.points[2]
+  check("look: the slot runs from the reply box's left edge", sp1 and sp1[1] == "BOTTOMLEFT" and sp1[2] == fr.root and sp1[4] == C.PAD and sp1[5] == 12,
+    sp1 and tostring(sp1[1]))
+  check("look: to the send button's right edge", sp2 and sp2[1] == "BOTTOMRIGHT" and sp2[2] == fr.root and sp2[4] == -C.PAD and sp2[5] == 12,
+    sp2 and tostring(sp2[1]))
+  check("look: the line sits over the reply slot", box.points[1] and box.points[1][2] == rslot and box.points[2] and box.points[2][2] == rslot,
+    box.points[1] and tostring(box.points[1][2]))
+  fr.root.GetFrameLevel = function() return 20 end
+  I.Reanchor()
+  check("look: the line draws above the card", box.level > 20, box.level)
+  check("look: and its background too", bg.frameLevel ~= nil and bg.frameLevel > 20, bg.frameLevel)
+  fr.root.GetFrameLevel = nil
+  S.Start("nearby")
+  C.Show("nearby")
+  check("look: on Nearby the card's reply box, mode chip and send button all hide", not fr.edit:IsShown() and not fr.send:IsShown()
+    and not fr.mode:IsShown(), tostring(fr.mode:IsShown()))
+  check("look: the line covers the card whatever it targets", I.Covers("nearby") == true, "doesn't")
+  fire("DeactivateChat", box)
+  check("look: deactivating brings the card's own box back", fr.edit:IsShown() and fr.send:IsShown() and fr.mode:IsShown(), "hidden")
+  fire("ActivateChat", box)
+  check("look: activating covers it again", not fr.edit:IsShown() and not fr.mode:IsShown(), "shown")
+
+  -- The chip behind Blizzard's header.
+  local chip = I._chip and I._chip()
+  local chipRR = chip and rawget(chip, "_echoRound")
+  header.text, header.width = "Say:", 30
+  box.attrs = { chatType = "GUILD" }
+  fire("UpdateHeader", box)
+  check("look: the chip is rounded with the SMALL radius", chipRR ~= nil and chipRR.corners.tl == Echo.Round.SMALL, "?")
+  check("look: the chip is the header's width plus 8 each side, 22 high", chip and chip.width == 46 and chip.height == 22,
+    chip and (tostring(chip.width) .. "x" .. tostring(chip.height)))
+  local cp = chip and chip.points[1]
+  check("look: the chip sits behind the header", cp and cp[1] == "LEFT" and cp[2] == header and cp[3] == "LEFT" and cp[4] == -8, cp and tostring(cp[2]))
+  check("look: the chip is shown with the line", chip and chip.shown == true, "hidden")
+  local cfill = chipRR and chipRR.fill.middleBand.vertexColor
+  check("look: the chip takes the chat type's colour at 0.22", cfill and cfill[1] == 0.25 and cfill[2] == 1 and cfill[4] == 0.22,
+    cfill and table.concat(cfill, ","))
+  header.width = 50
+  fire("UpdateHeader", box)
+  check("look: the chip follows the header's width", chip.width == 66, chip.width)
+  header.width = SECRET(50)
+  fire("UpdateHeader", box)
+  check("look: a secret width gives a 48px chip", chip.width == 48, chip.width)
+  header.width = nil
+  fire("UpdateHeader", box)
+  check("look: an unreadable width gives a 48px chip", chip.width == 48, chip.width)
+  header.text, header.width = SECRET("Say:"), 30
+  fire("UpdateHeader", box)
+  check("look: a secret header is never measured", chip.width == 48, chip.width)
+  header.text = "Say:"
+  fire("UpdateHeader", box)
+  check("look: the header reads in the chip label colour", header.color[1] == 0.92 and header.color[2] == 0.93 and header.color[3] == 0.98,
+    table.concat(header.color, ","))
+  check("look: and so does its suffix", headerSuffix.color[1] == 0.92 and headerSuffix.color[3] == 0.98, table.concat(headerSuffix.color, ","))
+  check("look: the header takes Echo's font at 10", header.font[1] == Echo.FontPath() and header.font[2] == 10, tostring(header.font[2]))
+  check("look: and its suffix", headerSuffix.font[1] == Echo.FontPath() and headerSuffix.font[2] == 10, tostring(headerSuffix.font[2]))
+
+  -- The hint after the chip, while the box is empty.
+  local hintText = I._hint and I._hint()
+  check("look: the box's OnTextChanged is post-hooked", type(box.hookScripts.OnTextChanged) == "function", "not hooked")
+  box.text = ""
+  if box.hookScripts.OnTextChanged then box.hookScripts.OnTextChanged(box) end
+  check("look: the hint shows while the box is empty", hintText ~= nil and hintText.shown == true, "hidden")
+  check("look: it reads the reply placeholder", hintText and hintText.text == A.L["ECHO_REPLY"], hintText and hintText.text)
+  local hc = hintText and hintText.colorSet
+  local hp = hintText and hintText.points[1]
+  check("look: it sits after the chip", hp and hp[1] == "LEFT" and hp[2] == chip and hp[3] == "RIGHT", hp and tostring(hp[2]))
+  box.text = "hello"
+  box.hookScripts.OnTextChanged(box)
+  check("look: and hides once there is text", hintText.shown == false, "shown")
+  box.text = ""
+  box.ime = true
+  box.hookScripts.OnTextChanged(box)
+  check("look: and while the IME is composing", hintText.shown == false, "shown")
+  box.ime = nil
+  box.text = SECRET("")
+  box.hookScripts.OnTextChanged(box)
+  check("look: and while the text is secret", hintText.shown == false, "shown")
+  box.text = ""
+  box.hookScripts.OnTextChanged(box)
+  check("look: an empty box shows it again", hintText.shown == true, "hidden")
+
+  -- With no card shown, the line sits beside the icon in the new look.
+  C.Hide()
+  check("look: with no card, beside the Echo icon", box.points[1] and box.points[1][2] == stackButton, box.points[1] and tostring(box.points[1][1]))
+  check("look: back at Blizzard's own level once off the card", box.level == 5, box.level)
+  local nf = bgRR.fill.middleBand.vertexColor
+  check("look: with the reply box's fill behind it", nf[1] == C.EDIT_BG[1] and nf[4] == C.EDIT_BG[4] and bg.shown == true, table.concat(nf, ","))
+  check("look: never sets the box's text or insets", box.calls.text == 0 and box.calls.insets == 0, box.calls.text .. "," .. box.calls.insets)
+
+  box.attrs = { chatType = "WHISPER", tellTarget = "Brisa-Horizon" }
+  fire("ActivateChat", box)
+  C.Show("w:Brisa-Horizon")
+
   -- Toggling the setting live restores everything, and the hooks then do nothing.
   db.echoDockInput = false
   Echo.ApplyOptions()
@@ -8488,6 +8610,12 @@ run(`
   check("input: off hides the background", bg.shown == false, "shown")
   check("input: off restores the strata", box.strata == "LOW", box.strata)
   check("input: off restores the typed text's font", box.font[1] == "Fonts\\\\ARIALN.TTF" and box.font[2] == 14, box.font[1])
+  check("look: off restores the header's colour", header.color[1] == 1 and header.color[2] == 1 and header.color[3] == 1, table.concat(header.color, ","))
+  check("look: and its suffix's", headerSuffix.color[1] == 0.5 and headerSuffix.color[4] == 1, table.concat(headerSuffix.color, ","))
+  check("look: off restores the header's font", header.font[1] == "Fonts\\\\ARIALN.TTF" and header.font[2] == 14 and header.font[3] == "OUTLINE",
+    tostring(header.font[1]) .. " " .. tostring(header.font[2]))
+  check("look: off hides the chip and the hint", chip and chip.shown == false and hintText and hintText.shown == false, "shown")
+  check("look: off restores Blizzard's level", box.level == 5, box.level)
   box.shown = false
   box.hookScripts.OnShow(box)
   check("input: the OnShow hook does nothing while off", bg.shown == false, "shown")
@@ -8513,6 +8641,7 @@ run(`
 
   check("input: never focuses Blizzard's input line", box.calls.focus == 0, box.calls.focus)
   check("input: never sets its attributes", box.calls.attribute == 0, box.calls.attribute)
+  check("look: never sets its text or its insets", box.calls.text == 0 and box.calls.insets == 0, box.calls.text .. "," .. box.calls.insets)
 
   C.Disable()
   K.Disable()

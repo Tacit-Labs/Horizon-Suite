@@ -65,9 +65,11 @@ Card.NOTICE_SECONDS = 4  -- how long a shortcut's "can't do that" stays in the h
 Card.INVITED_SECONDS = 3 -- how long /inv's "Invited Name." stays in the hint
 Card.MODE_WIDTH = 42   -- Nearby's Say / Yell / Emote chip at the left end of the reply box
 Card.EDIT_INSET = 8    -- the reply box's own text inset
+Card.EDIT_BG = { 0.03, 0.03, 0.05, 0.95 }  -- the reply box's fill; the docked input line shares it
 
 local root, nameText, metaText, area, edit, send, menuButton, chevron, statusLine, hint, rule
 local modeChip
+local slot  -- the reply box's rect, edit's left edge to send's right: the docked input line sits here
 local rowTiles, bubbles, labels, tabs = {}, {}, {}, {}
 local tabStrip, pinStrip
 -- Forward-declared: Create()'s OnHide handler (defined further down) needs to stop the
@@ -169,8 +171,8 @@ local function MenuAvailable()
 end
 
 -- The message area runs from under the header (and a group card's tabs, and the pin
--- strip) to the reply box, or, with no reply box (a read-only feed, or a chat the docked
--- input line sends to), down to the card's bottom padding.
+-- strip) to the reply box, or, with no reply box (a read-only feed the docked input
+-- line isn't covering), down to the card's bottom padding.
 local function AnchorArea(noReply, grouped, pinned)
     local top = Card.AREA_TOP + (grouped and Card.TAB_STRIP or 0) + (pinned and Card.PIN_STRIP or 0)
     local bottom = noReply and Card.PAD or Card.AREA_BOTTOM
@@ -180,8 +182,8 @@ local function AnchorArea(noReply, grouped, pinned)
     areaHeight = Card.HEIGHT - top - bottom
 end
 
--- The docked input line (Echo.Input) sits under the card while it is shown, and at the
--- column's foot otherwise: tell it whenever the card shows, hides or moves.
+-- The docked input line (Echo.Input) sits in the card's reply slot while it is shown, and
+-- at the column's foot otherwise: tell it whenever the card shows, hides or moves.
 local function NotifyInput()
     if Echo.Input then Echo.Input.Reanchor() end
 end
@@ -391,7 +393,7 @@ local function Create()
     edit:SetHeight(30)
     edit:SetPoint("BOTTOMLEFT", root, "BOTTOMLEFT", Card.PAD, 12)
     edit:SetPoint("BOTTOMRIGHT", send, "BOTTOMLEFT", -6, 0)
-    Paint(edit, { 0.03, 0.03, 0.05, 0.95 }, nil, Echo.Round.SMALL, false)
+    Paint(edit, Card.EDIT_BG, nil, Echo.Round.SMALL, false)
     Echo.TrackFont(edit, 12, "")
     edit:SetTextInsets(8, 8, 0, 0)
     edit:SetAutoFocus(false)
@@ -400,6 +402,12 @@ local function Create()
     edit.placeholder:SetPoint("LEFT", edit, "LEFT", 8, 0)
     edit.placeholder:SetTextColor(0.5, 0.52, 0.6, 1)
     edit._leftInset = Card.EDIT_INSET
+
+    -- Nothing drawn: only a rect for the docked input line to anchor to.
+    slot = CreateFrame("Frame", nil, root)
+    slot:SetPoint("BOTTOMLEFT", root, "BOTTOMLEFT", Card.PAD, 12)
+    slot:SetPoint("BOTTOMRIGHT", root, "BOTTOMRIGHT", -Card.PAD, 12)
+    slot:SetHeight(30)
 
     -- Nearby's send mode: a click steps Say -> Yell -> Emote -> Say. Shown on Nearby only.
     modeChip = CreateFrame("Button", nil, edit)
@@ -1109,13 +1117,18 @@ function Card.Render()
     edit.placeholder:SetShown(edit:GetText() == "" and not edit:HasFocus())
 
     -- Feeds are read-only: no reply box or send button. Nor is there one while Blizzard's
-    -- docked input line is shown under the card and sends to this conversation.
+    -- docked input line is shown in the reply slot, whatever it sends to. The area keeps
+    -- its bottom then, since the line sits in the card.
     local feed = View.IsFeed(conv.kind)
-    local noReply = feed or (Echo.Input ~= nil and Echo.Input.Covers(conv.key))
-    if noReply then edit:ClearFocus() end
+    local covered = Echo.Input ~= nil and Echo.Input.Covers(conv.key)
+    local noReply = feed or covered
+    if noReply then
+        edit:ClearFocus()
+        modeChip:Hide()
+    end
     edit:SetShown(not noReply)
     send:SetShown(not noReply)
-    AnchorArea(noReply, groupIndex ~= nil, PaintPins(conv, groupIndex ~= nil))
+    AnchorArea(feed and not covered, groupIndex ~= nil, PaintPins(conv, groupIndex ~= nil))
 
     RenderMessages(conv)
     Store.MarkRead(conv.key)
@@ -1654,12 +1667,19 @@ function Card.Disable()
     selected = {}
 end
 
+--- The frame the docked input line anchors to: the reply box's rect, from its left edge
+-- to the send button's right edge. Nil before the card is first shown.
+-- @return Frame|nil
+function Card.ReplySlot()
+    return slot
+end
+
 -- Test and debug handle.
 function Card._frames()
     return {
         root = root, rowTiles = rowTiles, name = nameText, meta = metaText, area = area,
         edit = edit, send = send, mode = modeChip, menu = menuButton, chevron = chevron,
         bubbles = bubbles, labels = labels, status = statusLine, hint = hint, rule = rule,
-        tabs = tabs, tabStrip = tabStrip, pinStrip = pinStrip,
+        tabs = tabs, tabStrip = tabStrip, pinStrip = pinStrip, slot = slot,
     }
 end
