@@ -68,12 +68,25 @@ local function GetQuestTypeAtlas(questID, category)
     return "QuestNormal"
 end
 
+-- Matches a quest log header that names the Prey activity rather than a place, e.g.
+-- "Prey: Sureki Hive" (enUS) or "Traque : Ruche sureki" (frFR). Anchored to the start
+-- of the title and followed by a colon, so a header whose name merely contains the
+-- localized label ("Traque" is a common substring in French) is not mistaken for one.
+-- The colon may be preceded by a space or a (narrow) no-break space: French typography
+-- puts one there, and Blizzard's strings use the Unicode forms, not a plain space.
+local function IsPreyHeaderTitle(title, preyLabel)
+    if not title or not preyLabel or preyLabel == "" then return false end
+    if title:sub(1, #preyLabel) ~= preyLabel then return false end
+    local rest = title:sub(#preyLabel + 1)
+    return rest == "" or rest:sub(1, 4):find(":", 1, true) ~= nil
+end
+
 local function GetQuestZoneName(questID)
     local isWorldQuest = addon.IsQuestWorldQuest(questID)
 
     -- Helper: normalize any mapID to its zone-level (mapType==3) parent for stable zone labeling.
     local function NormalizeToZoneMapName(mapID)
-        if not mapID or not C_Map or not C_Map.GetMapInfo then return nil end
+        if not mapID or mapID == 0 or not C_Map or not C_Map.GetMapInfo then return nil end
         local info = C_Map.GetMapInfo(mapID)
         local depth = 0
         while info and info.mapType ~= 3 and info.parentMapID and info.parentMapID ~= 0 and depth < 10 do
@@ -84,47 +97,63 @@ local function GetQuestZoneName(questID)
         return info and info.name or nil
     end
 
-     -- For world quests: prefer task-quest APIs (uiMapID). C_TaskQuest.GetQuestInfoByQuestID can return nil
-     -- when quest data isn't cached (e.g. tracked WQ from another zone).
-     if isWorldQuest and C_TaskQuest and C_TaskQuest.GetQuestInfoByQuestID then
-         local info = C_TaskQuest.GetQuestInfoByQuestID(questID)
-         local mapID = info and (info.mapID or info.uiMapID)
-         local name = NormalizeToZoneMapName(mapID)
-         if name then return name end
-     end
-     -- Waypoint: for world quests when C_TaskQuest fails, waypoint gives quest location. For regular quests,
-     -- waypoint often returns player's current map, so we prefer quest log header first.
-     if isWorldQuest and C_QuestLog.GetNextWaypoint then
-         local mapID = C_QuestLog.GetNextWaypoint(questID)
-         local name = NormalizeToZoneMapName(mapID)
-         if name then return name end
-     end
+    -- Helper: call a questID -> mapID API defensively and resolve it to a zone name.
+    local function ZoneNameFromMapIDFunc(fn)
+        if type(fn) ~= "function" then return nil end
+        local ok, mapID = pcall(fn, questID)
+        if not ok or type(mapID) ~= "number" then return nil end
+        return NormalizeToZoneMapName(mapID)
+    end
 
-     -- For non-world quests: prefer quest log header (waypoint often = current zone).
-     -- Skip non-geographic headers (e.g. "Prey") so the waypoint fallback below
-     -- can resolve the actual zone name.
-     local preyLabel = L["UI_PREY"]
-     if C_QuestLog.GetLogIndexForQuestID then
-         local logIndex = C_QuestLog.GetLogIndexForQuestID(questID)
-         if logIndex then
-             for i = logIndex - 1, 1, -1 do
-                 local info = C_QuestLog.GetInfo(i)
-                 if info and info.isHeader then
-                     if not (info.title and info.title:find(preyLabel, 1, true)) then
-                         return info.title
-                     end
-                     break
-                 end
-             end
-         end
-     end
-     if C_QuestLog.GetNextWaypoint then
-         local mapID = C_QuestLog.GetNextWaypoint(questID)
-         local name = NormalizeToZoneMapName(mapID)
-         if name then return name end
-     end
-     return nil
- end
+    -- For world quests: prefer task-quest APIs (uiMapID). C_TaskQuest.GetQuestInfoByQuestID can return nil
+    -- when quest data isn't cached (e.g. tracked WQ from another zone).
+    if isWorldQuest and C_TaskQuest and C_TaskQuest.GetQuestInfoByQuestID then
+        local info = C_TaskQuest.GetQuestInfoByQuestID(questID)
+        local mapID = info and (info.mapID or info.uiMapID)
+        local name = NormalizeToZoneMapName(mapID)
+        if name then return name end
+    end
+    -- Waypoint: for world quests when C_TaskQuest fails, waypoint gives quest location. For regular quests,
+    -- waypoint often returns player's current map, so we prefer quest log header first.
+    if isWorldQuest and C_QuestLog.GetNextWaypoint then
+        local name = ZoneNameFromMapIDFunc(C_QuestLog.GetNextWaypoint)
+        if name then return name end
+    end
+
+    -- For non-world quests: prefer quest log header (waypoint often = current zone).
+    -- Skip non-geographic headers (e.g. "Prey") and stop there rather than walking on:
+    -- the next header up belongs to a different group, so it would name the wrong zone.
+    -- The map-ID fallbacks below resolve the real one.
+    local preyLabel = L["UI_PREY"]
+    if C_QuestLog.GetLogIndexForQuestID then
+        local logIndex = C_QuestLog.GetLogIndexForQuestID(questID)
+        if logIndex then
+            for i = logIndex - 1, 1, -1 do
+                local info = C_QuestLog.GetInfo(i)
+                if info and info.isHeader then
+                    if not IsPreyHeaderTitle(info.title, preyLabel) then
+                        return info.title
+                    end
+                    break
+                end
+            end
+        end
+    end
+    if C_QuestLog.GetNextWaypoint then
+        local name = ZoneNameFromMapIDFunc(C_QuestLog.GetNextWaypoint)
+        if name then return name end
+    end
+    -- Legacy quests routinely carry no waypoint or POI data, so the header walk and the
+    -- waypoint can both come up empty and the entry renders with no zone label at all.
+    -- The quest's own uiMapID still resolves for old-world content, so ask for it directly.
+    local name = ZoneNameFromMapIDFunc(_G.GetQuestUiMapID)
+    if name then return name end
+    if C_TaskQuest then
+        name = ZoneNameFromMapIDFunc(C_TaskQuest.GetQuestZoneID)
+        if name then return name end
+    end
+    return nil
+end
 -- button is useful.  This includes explicit Group quests, World Bosses,
 -- Elite World Quests, and Raid quests.
 -- @param questID number
