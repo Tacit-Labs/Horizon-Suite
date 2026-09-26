@@ -3319,6 +3319,9 @@ run(`
   BN_INLINE_TOAST_FRIEND_ONLINE = "%s has come online."
   r = E.BuildRecord("BN_INLINE_TOAST_ALERT", p("FRIEND_ONLINE", "|Kq1|k"))
   check("a battle.net alert uses Blizzard's own text", r and r.convKey == "system" and r.text == "|Kq1|k has come online." and r.chatType == "BN_INLINE_TOAST_ALERT", r and r.text)
+  check("the game's real alert event is routed too", S.EVENT_KIND.CHAT_MSG_BN_INLINE_TOAST_ALERT == "system", tostring(S.EVENT_KIND.CHAT_MSG_BN_INLINE_TOAST_ALERT))
+  r = E.BuildRecord("CHAT_MSG_BN_INLINE_TOAST_ALERT", p("FRIEND_ONLINE", "|Kq1|k"))
+  check("and handled the same way", r and r.convKey == "system" and r.text == "|Kq1|k has come online." and r.chatType == "BN_INLINE_TOAST_ALERT", r and r.text)
   local none, reason = E.BuildRecord("BN_INLINE_TOAST_ALERT", p("NOT_A_REAL_TOAST", "|Kq1|k"))
   check("an alert with no Blizzard text is ignored", none == nil and reason == "ignored", reason)
   none, reason = E.BuildRecord("BN_INLINE_TOAST_ALERT", p("FRIEND_ONLINE", SECRET("|Kq1|k")))
@@ -3363,10 +3366,12 @@ run(`
   E.Enable()
   check("feed events are registered", registered.CHAT_MSG_LOOT and registered.CHAT_MSG_ACHIEVEMENT and registered.CHAT_MSG_SYSTEM, "missing")
   check("battle.net alerts register with the capability", registered.BN_INLINE_TOAST_ALERT == true, "missing")
+  check("the real alert event registers too", registered.CHAT_MSG_BN_INLINE_TOAST_ALERT == true, "missing")
   E.Disable()
   HorizonSuite.Platform.caps.bnetWhispers = false
   E.Enable()
-  check("no battle.net alerts without the capability", registered.BN_INLINE_TOAST_ALERT == nil and registered.CHAT_MSG_LOOT == true, "registered")
+  check("no battle.net alerts without the capability", registered.BN_INLINE_TOAST_ALERT == nil and registered.CHAT_MSG_BN_INLINE_TOAST_ALERT == nil
+    and registered.CHAT_MSG_LOOT == true, "registered")
   E.Disable()
   HorizonSuite.Platform.caps.bnetWhispers = true
   fr.RegisterEvent, fr.UnregisterAllEvents = savedRegister, savedUnregister
@@ -7212,6 +7217,13 @@ run(`
 `, 'shortcut-group');
 
 
+// --- Input probe: reset says to reload (plan 12, final fixes) -------------------------------------
+{
+  const enUS = read('locales/horizon/enUS.lua');
+  const ok = enUS.includes(`L["ECHO_PROBE_INPUT_RESET"]                                   = "Echo input probe: Blizzard's input line is back to Say. Then /reload to clear any taint."`);
+  run(`check("probe input: reset says to reload to clear taint", ${ok}, "old wording")`, 'probe-reset-string');
+}
+
 // --- Chat shortcuts fix round 1 ---------------------------------------------------
 {
   const enUS = read('locales/horizon/enUS.lua');
@@ -8440,6 +8452,23 @@ run(`
   db.echoAnimateCard = nil
   T.TileFor = realTileFor
 
+  -- A target that is a member of a chat group opens the group's card on that member.
+  db.echoGroupsEnabled, db.echoGroupNames, db.echoGroupOf = true, { "Mine", "", "", "" }, { guild = 1, officer = 1 }
+  fire("DeactivateChat", box)
+  C.Hide()
+  box.shown, box.focus = true, true
+  box.attrs = { chatType = "OFFICER" }
+  fire("ActivateChat", box)
+  check("final: following a grouped member opens its group card", C.IsShown() and C._frames().tabStrip:IsShown(), C.ShownKey())
+  check("final: with that member selected", C.ShownKey() == "officer", C.ShownKey())
+  box.attrs = { chatType = "GUILD" }
+  fire("UpdateHeader", box)
+  check("final: another member of the group switches to it", C.ShownKey() == "guild" and C._frames().tabStrip:IsShown(), C.ShownKey())
+  db.echoGroupsEnabled, db.echoGroupNames, db.echoGroupOf = nil, nil, nil
+  fire("DeactivateChat", box)
+  C.Hide()
+  box.focus = nil
+
   S.Start, C.Show, C.Focus = realStart, realShow, realFocus
   C_BattleNet, BNGetNumFriends = savedBN, savedNumFriends
   box.focus = nil
@@ -9216,6 +9245,18 @@ run(`
   check("final hide: a per-character value from before is restored", cvars.whisperMode == "popout" and H.SavedCVar("whisperMode") == nil,
     cvars.whisperMode)
   HC.Disable()
+
+  -- A client without ChatTypeGroup says so, once, when hiding applies.
+  HC._reset()
+  ChatTypeGroup = nil
+  local said, savedPrint = {}, A.HSPrint
+  A.HSPrint = function(msg) said[#said + 1] = msg end
+  db.echoHideBlizzardChat = true
+  HC.Apply()
+  HC.Apply()
+  check("final hide: a missing ChatTypeGroup is reported once", #said == 1 and said[1] == "ECHO_HIDE_CHAT_NO_TYPES", #said)
+  A.HSPrint = savedPrint
+  db.echoHideBlizzardChat = false
 
   All.Disable()
   H.Unbind()

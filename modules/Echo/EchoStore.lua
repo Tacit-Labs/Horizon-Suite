@@ -76,6 +76,9 @@ Store.EVENT_KIND = {
     CHAT_MSG_ACHIEVEMENT           = "progress",
     CHAT_MSG_GUILD_ACHIEVEMENT     = "progress",
     CHAT_MSG_SYSTEM                = "system",
+    -- A Battle.net friend alert. CHAT_MSG_BN_INLINE_TOAST_ALERT is the event the game
+    -- sends; the unprefixed name is kept for any client that still has it.
+    CHAT_MSG_BN_INLINE_TOAST_ALERT = "system",
     BN_INLINE_TOAST_ALERT          = "system",
     -- Nearby (plan 11): speech you hear where you stand, players' and NPCs'.
     CHAT_MSG_SAY                   = "nearby",

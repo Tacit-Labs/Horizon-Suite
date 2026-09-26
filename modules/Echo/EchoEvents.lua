@@ -115,13 +115,16 @@ local ACHIEVEMENT_EVENTS = { CHAT_MSG_ACHIEVEMENT = true, CHAT_MSG_GUILD_ACHIEVE
 
 -- Only the Battle.net whisper events and the friend alert need the capability to be registered.
 local BNET_EVENTS = {
-    CHAT_MSG_BN_WHISPER = true, CHAT_MSG_BN_WHISPER_INFORM = true, BN_INLINE_TOAST_ALERT = true,
+    CHAT_MSG_BN_WHISPER = true, CHAT_MSG_BN_WHISPER_INFORM = true,
+    CHAT_MSG_BN_INLINE_TOAST_ALERT = true, BN_INLINE_TOAST_ALERT = true,
 }
+-- The friend alert, under the game's name and the unprefixed one: handled alike.
+local TOAST_EVENTS = { CHAT_MSG_BN_INLINE_TOAST_ALERT = true, BN_INLINE_TOAST_ALERT = true }
 
 -- A feed line: routed by event type, never outgoing, never urgent, no class.
 local function BuildFeedRecord(event, kind, text, sender)
     local textSecret = IsSecret(text)
-    if event == "BN_INLINE_TOAST_ALERT" then
+    if TOAST_EVENTS[event] then
         -- arg1 names the alert ("FRIEND_ONLINE"), arg2 is the friend's |K name. Build the
         -- line from Blizzard's own string, as Blizzard's chat does; feeds are never saved.
         if textSecret or type(text) ~= "string" or IsSecret(sender) then return nil, "ignored" end
@@ -462,8 +465,11 @@ function Events.Enable()
     end
     local hasBnet = addon.Platform and addon.Platform.Has("bnetWhispers")
     for event in pairs(Store.EVENT_KIND) do
-        -- One client may lack an event (Forever): skip it rather than abort the loop.
-        if not BNET_EVENTS[event] or hasBnet then pcall(frame.RegisterEvent, frame, event) end
+        -- One client may lack an event (Forever, or the unprefixed alert name): skip it
+        -- rather than abort the loop.
+        if (not BNET_EVENTS[event] or hasBnet) and Echo.IsEventValid(event) then
+            pcall(frame.RegisterEvent, frame, event)
+        end
     end
 end
 

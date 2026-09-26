@@ -280,8 +280,6 @@ function All.ExtraEvents()
     local window = WindowGroups()
     local function Wanted(event)
         if routed[event] ~= nil then return false end
-        -- Echo keys a few events without CHAT_MSG_ (BN_INLINE_TOAST_ALERT).
-        if routed[event:sub(10)] ~= nil then return false end
         if event:sub(1, 16) == "CHAT_MSG_COMBAT_" and not All.COMBAT_KEEP[event] then return false end
         return true
     end

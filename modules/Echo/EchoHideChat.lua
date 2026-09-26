@@ -25,6 +25,7 @@
         its whisper events so Blizzard's own code sets R's target (Echo.ApplyOptions).
       - While hiding is applied, the All view collects even when echoAllView is off
         (Echo.FeedEnabled), since chat Echo has no tile for goes only there.
+        A client without ChatTypeGroup gets one line saying that chat can't reach it.
       - With ChatFrame1's events off, chat types Echo doesn't route would vanish; the All
         view takes them, and the system events ChatFrame1 printed (EchoAll.lua,
         All.SyncEvents, run again here once applied).
@@ -73,6 +74,7 @@ local handledButtons = setmetatable({}, { __mode = "k" })  -- chat buttons alrea
 local whispersSet = false  -- whisperMode has been set this apply-session
 local boxParent           -- the input line's parent before Echo moved it onto UIParent
 local tempHooked = false   -- FCF_OpenTemporaryWindow is post-hooked
+local warnedTypes = false  -- the missing-ChatTypeGroup line has been printed this session
 
 local function Valid(event)
     return Echo.IsEventValid(event)
@@ -248,6 +250,12 @@ function HideChat.Apply()
     RescueBox()
     SetWhispersInline()
     if not HideChat.IsApplied() then return end
+    -- Without ChatTypeGroup, the All view can't know which chat types to take: say so once.
+    if type(_G.ChatTypeGroup) ~= "table" and not warnedTypes then
+        warnedTypes = true
+        local say = addon.HSPrint or print
+        say(addon.L["ECHO_HIDE_CHAT_NO_TYPES"])
+    end
     -- ChatFrame1 keeps its whisper events so Blizzard sets R's target: the whisper filter
     -- goes off (Echo.ApplyOptions keeps it off from now on).
     if Echo.Filter and Echo.Filter.active then Echo.Filter.Apply(false) end
@@ -355,5 +363,5 @@ function HideChat._reset()
     for k in pairs(hidden) do hidden[k] = nil end
     for k in pairs(kept) do kept[k] = nil end
     for k in pairs(handledButtons) do handledButtons[k] = nil end
-    combatLogHidden, whispersSet, boxParent = false, false, nil
+    combatLogHidden, whispersSet, boxParent, warnedTypes = false, false, nil, false
 end
