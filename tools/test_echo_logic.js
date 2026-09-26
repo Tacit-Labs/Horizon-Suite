@@ -5843,6 +5843,127 @@ run(`
   HorizonSuite.GetDB = nil
 `, 'panel-edge-room');
 
+// --- History & Store: pin messages in any chat (plan 10, Task 3) ------------------------
+run(`
+  local S, H = HorizonSuite.Echo.Store, HorizonSuite.Echo.History
+  S.Reset()
+  local db = {}
+  local charKey = "Kaelis-Horizon"
+  H.Bind(db, function() return charKey end)
+
+  -- Pinning a channel line saves it even though channels are never persisted.
+  local ok, reason = S.PinMessage("ch:Trade", { text = "wts widget", time = 100, sender = "Brisa-Horizon" })
+  check("a channel pin succeeds", ok == true, tostring(reason))
+  local pins = S.Pins("ch:Trade")
+  check("the channel pin is saved", #pins == 1 and pins[1].text == "wts widget" and pins[1].sender == "Brisa-Horizon", pins[1] and pins[1].text)
+  check("pins are stored under root.pins by the channel's own key", db.echoHistory.pins["Kaelis-Horizon"]["ch:Trade"][1].text == "wts widget", "missing")
+
+  -- A secret record is rejected.
+  ok, reason = S.PinMessage("ch:Trade", { text = SECRET("hush"), time = 200 })
+  check("a secret text pin is rejected", ok == false and reason == "secret", tostring(reason))
+  ok, reason = S.PinMessage("ch:Trade", { text = "ok", time = 201, secret = true })
+  check("record.secret alone is rejected", ok == false and reason == "secret", tostring(reason))
+
+  -- A duplicate pin (same t, text, s) is not added twice.
+  ok, reason = S.PinMessage("ch:Trade", { text = "wts widget", time = 100, sender = "Brisa-Horizon" })
+  check("re-pinning the same message succeeds without duplicating", ok == true, tostring(reason))
+  check("no duplicate was added", #S.Pins("ch:Trade") == 1, #S.Pins("ch:Trade"))
+
+  -- The 6th pin in one chat is rejected with "chat".
+  for i = 2, 5 do
+    S.PinMessage("ch:Trade", { text = "m" .. i, time = 100 + i })
+  end
+  check("five pins fit in one chat", #S.Pins("ch:Trade") == 5, #S.Pins("ch:Trade"))
+  ok, reason = S.PinMessage("ch:Trade", { text = "sixth", time = 900 })
+  check("the 6th pin in a chat is rejected", ok == false and reason == "chat", tostring(reason))
+
+  -- The 51st pin overall (across chats, same character) is rejected with "total".
+  for c = 2, 10 do
+    for i = 1, 5 do
+      S.PinMessage("ch:Chat" .. c, { text = "m" .. c .. "-" .. i, time = c * 1000 + i })
+    end
+  end
+  local totalBefore = 0
+  for _, list in pairs(db.echoHistory.pins["Kaelis-Horizon"]) do totalBefore = totalBefore + #list end
+  check("50 pins exist across chats", totalBefore == 50, totalBefore)
+  ok, reason = S.PinMessage("ch:Chat11", { text = "overflow", time = 99999 })
+  check("the 51st pin overall is rejected", ok == false and reason == "total", tostring(reason))
+
+  -- Unpin removes by index.
+  ok = S.UnpinMessage("ch:Trade", 1)
+  check("unpin removes the first pin", ok == true and #S.Pins("ch:Trade") == 4, ok)
+  check("unpin removed the right entry", S.Pins("ch:Trade")[1].text == "m2", S.Pins("ch:Trade")[1] and S.Pins("ch:Trade")[1].text)
+  check("an out-of-range unpin fails", S.UnpinMessage("ch:Trade", 99) == false, "removed")
+
+  -- Battle.net pins are keyed by BattleTag and never store the |K sender.
+  S.Reset()
+  db = {}
+  H.Bind(db, function() return charKey end)
+  local savedBattleNet = C_BattleNet
+  C_BattleNet = { GetAccountInfoByID = function(id) if id == 77 then return { battleTag = "Vexa#1234" } end end }
+  ok, reason = S.PinMessage("bn:77", { text = "hi there", time = 300, sender = "|Kbnet-protected-string" })
+  check("a battle.net pin succeeds", ok == true, tostring(reason))
+  local bnetPins = db.echoHistory.pins["Kaelis-Horizon"]["bt:Vexa#1234"]
+  check("battle.net pins are keyed by battletag", bnetPins and #bnetPins == 1, bnetPins and #bnetPins)
+  check("a battle.net pin never stores the sender", bnetPins[1].s == nil, bnetPins[1].s)
+  check("Store.Pins reflects the battletag key", S.Pins("bn:77")[1].text == "hi there" and S.Pins("bn:77")[1].sender == nil, "?")
+
+  -- An unreadable battletag can't be saved.
+  C_BattleNet = { GetAccountInfoByID = function() return nil end }
+  ok, reason = S.PinMessage("bn:404", { text = "no tag", time = 301 })
+  check("an unreadable battletag is unsaved", ok == false and reason == "unsaved", tostring(reason))
+  C_BattleNet = savedBattleNet
+
+  -- No character key: unsaved.
+  charKey = nil
+  ok, reason = S.PinMessage("ch:Trade", { text = "no char", time = 302 })
+  check("no character key is unsaved", ok == false and reason == "unsaved", tostring(reason))
+  charKey = "Kaelis-Horizon"
+
+  -- IsPinnedMessage matches by time, text and sender (a nil sender matches nil).
+  S.Reset()
+  db = {}
+  H.Bind(db, function() return charKey end)
+  S.PinMessage("w:Brisa-Horizon", { text = "hello", time = 500, sender = "Brisa-Horizon" })
+  check("IsPinnedMessage matches the pinned record", S.IsPinnedMessage("w:Brisa-Horizon", { text = "hello", time = 500, sender = "Brisa-Horizon" }) == true, "no match")
+  check("IsPinnedMessage rejects a different time", S.IsPinnedMessage("w:Brisa-Horizon", { text = "hello", time = 999, sender = "Brisa-Horizon" }) == false, "matched")
+  check("IsPinnedMessage rejects a different sender", S.IsPinnedMessage("w:Brisa-Horizon", { text = "hello", time = 500, sender = "Someone-Else" }) == false, "matched")
+  S.PinMessage("w:Feral-Horizon", { text = "no sender", time = 600 })
+  check("a nil sender matches nil", S.IsPinnedMessage("w:Feral-Horizon", { text = "no sender", time = 600 }) == true, "no match")
+
+  -- Pins survive History.Prune.
+  H.SetMaxAge(30)
+  local now = 40 * 86400 + 1000
+  H.Append("w:Brisa-Horizon", { text = "hello", time = now - 40 * 86400 })
+  H.Prune(now)
+  check("pins survive History.Prune", #S.Pins("w:Brisa-Horizon") == 1, #S.Pins("w:Brisa-Horizon"))
+
+  -- Pins survive a Store message-cap trim.
+  S.Reset()
+  db = {}
+  H.Bind(db, function() return charKey end)
+  S.PinMessage("w:Brisa-Horizon", { text = "keepsake", time = 1 })
+  for i = 1, 150 do S.Add({ convKey = "w:Brisa-Horizon", text = "m" .. i }) end
+  check("a message-cap trim doesn't affect pins", #S.Pins("w:Brisa-Horizon") == 1 and S.Pins("w:Brisa-Horizon")[1].text == "keepsake", #S.Pins("w:Brisa-Horizon"))
+
+  -- Pinning and unpinning notify with "update".
+  local notified = {}
+  local function listener(convKey, change) notified[#notified + 1] = { convKey, change } end
+  S.Subscribe(listener)
+  S.PinMessage("w:Brisa-Horizon", { text = "another", time = 2 })
+  check("pinning notifies update", notified[#notified][1] == "w:Brisa-Horizon" and notified[#notified][2] == "update", notified[#notified] and notified[#notified][2])
+  S.UnpinMessage("w:Brisa-Horizon", 1)
+  check("unpinning notifies update", notified[#notified][1] == "w:Brisa-Horizon" and notified[#notified][2] == "update", notified[#notified] and notified[#notified][2])
+  S.Unsubscribe(listener)
+
+  -- Clear wipes pins.
+  H.Clear()
+  check("clear wipes pins", next(db.echoHistory.pins) == nil, "kept")
+
+  H.Unbind()
+  S.Reset()
+`, 'history-store-pins');
+
 // --- Redraw: one repaint per frame -------------------------------------------
 run(`
   CreateFrame = STUB_CREATE_FRAME

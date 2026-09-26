@@ -24,6 +24,8 @@ Echo.History = History
 History.CAP = 100
 History.GUILD_CAP = 200
 History.DEFAULT_MAX_AGE = 30  -- days; matches echoHistoryDays' default. 0 means Forever.
+History.PINS_PER_CHAT = 5
+History.PINS_TOTAL = 50
 
 local root
 local characterKey = function() return nil end
@@ -40,6 +42,7 @@ function History.Bind(db, keyFn)
     root.chars = root.chars or {}
     root.bnet = root.bnet or {}
     root.guilds = root.guilds or {}
+    root.pins = root.pins or {}
     if type(keyFn) == "function" then characterKey = keyFn end
 end
 
@@ -231,6 +234,106 @@ function History.SavePref(convKey, tier, pinned)
     return true
 end
 
+-- Where a character's pins are saved: root.pins[charKey][PrefKey(convKey)] = list, the same
+-- charKey and PrefKey the conversation prefs use, so Battle.net pins are keyed by BattleTag.
+local function PinsBucket(create)
+    if not root then return nil end
+    local charKey = characterKey()
+    if not charKey then return nil end
+    if type(root.pins) ~= "table" then
+        if not create then return nil end
+        root.pins = {}
+    end
+    local bucket = root.pins[charKey]
+    if type(bucket) ~= "table" then
+        if not create then return nil end
+        bucket = {}
+        root.pins[charKey] = bucket
+    end
+    return bucket
+end
+
+--- This character's pinned messages in a conversation, oldest first, as Store records.
+-- @param convKey string
+-- @return table records  a copy; empty when there are no pins
+function History.Pins(convKey)
+    local out = {}
+    local key = PrefKey(convKey)
+    local bucket = key and PinsBucket(false)
+    local list = bucket and bucket[key]
+    if type(list) ~= "table" then return out end
+    for i, entry in ipairs(list) do
+        out[i] = {
+            convKey  = convKey,
+            text     = entry.text,
+            time     = entry.t,
+            outgoing = entry.out == true,
+            sender   = entry.s,
+        }
+    end
+    return out
+end
+
+--- Pin a message. Pins are the player's explicit choice, so they are saved whatever the
+-- history switches say, and Prune never removes them.
+-- @param convKey string
+-- @param record table  a Store record: text, time, outgoing, sender, secret
+-- @return boolean ok
+-- @return string|nil reason  "secret" | "chat" | "total" | "unsaved"; nil when ok
+function History.AddPin(convKey, record)
+    if type(record) ~= "table" then return false, "unsaved" end
+    if record.secret or Echo.IsSecret(record.text) or type(record.text) ~= "string" then
+        return false, "secret"
+    end
+
+    local key = PrefKey(convKey)
+    local bucket = key and PinsBucket(true)
+    if not key or not bucket then return false, "unsaved" end
+
+    local kind = Echo.Store.KindOf(convKey)
+    local sender = nil
+    -- A Battle.net sender is a protected |K display string: never stored, whatever the kind.
+    if kind ~= "bnet" and not Echo.IsSecret(record.sender) and type(record.sender) == "string"
+       and record.sender ~= "" and record.sender:sub(1, 2) ~= "|K" then
+        sender = record.sender
+    end
+
+    local list = bucket[key]
+    if type(list) == "table" then
+        for _, entry in ipairs(list) do
+            if entry.t == record.time and entry.text == record.text and entry.s == sender then
+                return true
+            end
+        end
+    end
+
+    if list and #list >= History.PINS_PER_CHAT then return false, "chat" end
+
+    local total = 0
+    for _, l in pairs(bucket) do total = total + #l end
+    if total >= History.PINS_TOTAL then return false, "total" end
+
+    if not list then
+        list = {}
+        bucket[key] = list
+    end
+    list[#list + 1] = { t = record.time, text = record.text, s = sender, out = record.outgoing and true or nil }
+    return true
+end
+
+--- Remove one of this character's pins.
+-- @param convKey string
+-- @param index number  1-based, into History.Pins(convKey)'s order
+-- @return boolean removed
+function History.RemovePin(convKey, index)
+    local key = PrefKey(convKey)
+    local bucket = key and PinsBucket(false)
+    local list = bucket and bucket[key]
+    if type(list) ~= "table" or type(index) ~= "number" or not list[index] then return false end
+    table.remove(list, index)
+    return true
+end
+
 local function Bucket(convKey, create)
     if not root then return nil end
     local kind = Echo.Store.KindOf(convKey)
@@ -329,6 +432,7 @@ function History.Clear()
     target.chars = {}
     target.bnet = {}
     target.guilds = {}
+    target.pins = {}
     target.session = {}
 end
 

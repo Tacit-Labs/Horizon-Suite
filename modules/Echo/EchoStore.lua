@@ -361,6 +361,58 @@ function Store.SetPinned(convKey, pinned)
     Notify(convKey, "update")
 end
 
+--- Pin a message in a conversation (a separate, capped store from its messages). Views
+-- repaint on success so the bubble marker and pin strip update.
+-- @param convKey string
+-- @param record table  a message record
+-- @return boolean ok
+-- @return string|nil reason  see History.AddPin; nil when ok
+function Store.PinMessage(convKey, record)
+    if not Echo.History then return false, "unsaved" end
+    local ok, reason = Echo.History.AddPin(convKey, record)
+    if ok then Notify(convKey, "update") end
+    return ok, reason
+end
+
+--- Unpin a message by its index in Store.Pins(convKey).
+-- @param convKey string
+-- @param index number
+-- @return boolean removed
+function Store.UnpinMessage(convKey, index)
+    if not Echo.History then return false end
+    local removed = Echo.History.RemovePin(convKey, index)
+    if removed then Notify(convKey, "update") end
+    return removed
+end
+
+--- A conversation's pinned messages, oldest first.
+-- @param convKey string
+-- @return table records
+function Store.Pins(convKey)
+    if not Echo.History then return {} end
+    return Echo.History.Pins(convKey)
+end
+
+--- Whether a record matches one of the conversation's pins, by time, text and sender (a
+-- nil sender matches nil). Used for the bubble marker.
+-- @param convKey string
+-- @param record table
+-- @return boolean
+function Store.IsPinnedMessage(convKey, record)
+    if type(record) ~= "table" then return false end
+    if Echo.IsSecret(record.text) or type(record.text) ~= "string" then return false end
+    local sender = nil
+    if not Echo.IsSecret(record.sender) and type(record.sender) == "string" and record.sender ~= "" then
+        sender = record.sender
+    end
+    for _, pin in ipairs(Store.Pins(convKey)) do
+        if pin.time == record.time and pin.text == record.text and pin.sender == sender then
+            return true
+        end
+    end
+    return false
+end
+
 --- Remove a conversation's tile. Messages are kept, so a new message reopens it with context.
 -- A feed is dismissed instead: it stays closed until Store.Reset (a /reload).
 function Store.Close(convKey)
