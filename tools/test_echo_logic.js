@@ -7994,18 +7994,30 @@ run(`
   function box:GetAttribute(k) return self.attrs[k] end
   function box:SetAttribute() self.calls.attribute = self.calls.attribute + 1 end
   function box:SetFocus() self.calls.focus = self.calls.focus + 1 end
-  function box:HasFocus() return false end
+  function box:HasFocus() return self.focus == true end
   function box:GetFrameLevel() return self.level end
   function box:GetFrameStrata() return self.strata end
+  function box:SetFrameStrata(v) self.strata = v end
+  box.font = { "Fonts\\\\ARIALN.TTF", 14, "" }
+  function box:GetFont() return self.font[1], self.font[2], self.font[3] end
+  function box:SetFont(p, sz, fl) self.font = { p, sz, fl } end
+  box.hookScripts = {}
+  function box:HookScript(n, fn) self.hookScripts[n] = fn end
   local other = { shown = false }
   function other:Show() self.shown = true end
   ChatFrame1EditBox = box
   local originalPoints = { { box:GetPoint(1) }, { box:GetPoint(2) } }
 
   local hooks = {}
+  local setPointHooks = 0
   hooksecurefunc = function(a, b, c)
     if type(a) == "table" then hooks[#hooks + 1] = { target = a, name = b, fn = c }
     else hooks[#hooks + 1] = { name = a, fn = b } end
+    -- A hook on the box's own method runs after every call, Echo's included, as in game.
+    if a == box and type(box[b]) == "function" then
+      local orig = box[b]
+      box[b] = function(...) orig(...); if b == "SetPoint" then setPointHooks = setPointHooks + 1 end; c(...) end
+    end
   end
   ChatFrameUtil = { ActivateChat = function() end, DeactivateChat = function() end, UpdateHeader = function() end }
   local function fire(name, ...)
@@ -8020,7 +8032,9 @@ run(`
   local savedColumnGlobal = _G.HorizonSuiteEchoColumn
   local column = T.StackButton().parent
   _G.HorizonSuiteEchoColumn = column
-  local savedColumn = { GetScale = rawget(column, "GetScale"), GetLeft = rawget(column, "GetLeft"), GetParent = rawget(column, "GetParent") }
+  local savedColumn = { GetScale = rawget(column, "GetScale"), GetLeft = rawget(column, "GetLeft"), GetParent = rawget(column, "GetParent"),
+    GetFrameStrata = rawget(column, "GetFrameStrata") }
+  column.GetFrameStrata = function() return "HIGH" end
   column.GetScale = function() return 1.25 end
   column.GetLeft = nil
   local stackButton = T.StackButton()
@@ -8032,9 +8046,16 @@ run(`
   I.Enable()
   local names = {}
   for _, h in ipairs(hooks) do names[#names + 1] = h.name end
-  check("input: activate, deactivate and header are hooked, once", #hooks == 3, table.concat(names, ","))
-  check("input: the hooks are post-hooks on ChatFrameUtil", hooks[1].target == ChatFrameUtil and hooks[2].target == ChatFrameUtil
-    and hooks[3].target == ChatFrameUtil, "?")
+  local utilHooks, boxHooks = 0, 0
+  for _, h in ipairs(hooks) do
+    if h.target == ChatFrameUtil then utilHooks = utilHooks + 1 end
+    if h.target == box and h.name == "SetPoint" then boxHooks = boxHooks + 1 end
+  end
+  check("input: activate, deactivate and header are hooked on ChatFrameUtil, once", utilHooks == 3, table.concat(names, ","))
+  check("input: the box's SetPoint is post-hooked, once", boxHooks == 1 and #hooks == 4, table.concat(names, ","))
+  check("input: the box's OnShow and OnHide are hooked", type(box.hookScripts.OnShow) == "function" and type(box.hookScripts.OnHide) == "function", "?")
+  check("input: the box takes the column's strata", box.strata == "HIGH", box.strata)
+  check("input: the typed text takes Echo's font at its own size", box.font[1] == Echo.FontPath() and box.font[2] == 14, tostring(box.font[1]))
   check("input: Blizzard's textures go transparent", regions[1].alpha == 0 and regions[2].alpha == 0, regions[1].alpha .. "," .. regions[2].alpha)
   check("input: its FontStrings keep their alpha", regions[3].alpha == 1, regions[3].alpha)
   check("input: its FontStrings take Echo's font at their own size", regions[3].font[1] == Echo.FontPath() and regions[3].font[2] == 14,
@@ -8163,6 +8184,51 @@ run(`
   fire("ActivateChat", box)
   check("card: activating the line hides it again", not f.edit:IsShown(), "shown")
 
+  -- Kept in place and in style (fix round 1).
+  C.Hide()
+  local bgStrata
+  bg.SetFrameStrata = function(self, v) bgStrata = v end
+  I.Reanchor()
+  check("input: the background shares the column's strata", bgStrata == "HIGH", bgStrata)
+  local before = setPointHooks
+  local ok = pcall(box.SetPoint, box, "BOTTOMLEFT", chatFrame, "TOPLEFT", -5, -2)
+  check("input: a foreign SetPoint is undone", ok and #box.points == 2 and box.points[1][2] == stackButton and box.points[2][2] == stackButton,
+    box.points[1] and tostring(box.points[1][1]))
+  check("input: Echo's own SetPoints don't loop back", setPointHooks - before == 3, setPointHooks - before)
+  before = setPointHooks
+  I.Reanchor()
+  check("input: Echo's re-anchor passes through the hook without re-anchoring", setPointHooks - before == 2 and #box.points == 2, #box.points)
+  regions[1].alpha, regions[2].alpha = 0.6, 1
+  fire("ActivateChat", box)
+  check("input: activate fades Blizzard's textures again", regions[1].alpha == 0 and regions[2].alpha == 0, regions[1].alpha)
+  regions[1].alpha = 0.6
+  fire("UpdateHeader", box)
+  check("input: the header hook fades them again too", regions[1].alpha == 0, regions[1].alpha)
+  box.shown = false
+  box.hookScripts.OnHide(box)
+  check("input: the background hides with the box", bg.shown == false, "shown")
+  box.shown = true
+  box.hookScripts.OnShow(box)
+  check("input: and shows with it", bg.shown == true, "hidden")
+
+  -- Undocking hides a box that only always-visible put on screen.
+  db.echoInputAlwaysVisible = true
+  fire("DeactivateChat", box)
+  I.Disable()
+  check("input: undocking hides an always-visible box", box.shown == false, "shown")
+  I.Enable()
+  box.focus = true
+  I.Disable()
+  check("input: but not one being typed in", box.shown == true, "hidden")
+  box.focus = nil
+  db.echoInputAlwaysVisible = nil
+  I.Enable()
+  box.shown = false
+  box.hookScripts.OnShow(box)
+  box.shown = true
+  fire("ActivateChat", box)
+  C.Show("w:Brisa-Horizon")
+
   -- Toggling the setting live restores everything, and the hooks then do nothing.
   db.echoDockInput = false
   Echo.ApplyOptions()
@@ -8172,6 +8238,11 @@ run(`
   check("input: off restores the texture alphas", regions[1].alpha == 1 and regions[2].alpha == 0.8, regions[1].alpha .. "," .. regions[2].alpha)
   check("input: off restores the font", regions[3].font[1] == "Fonts\\\\ARIALN.TTF" and regions[3].font[3] == "OUTLINE", regions[3].font[1])
   check("input: off hides the background", bg.shown == false, "shown")
+  check("input: off restores the strata", box.strata == "LOW", box.strata)
+  check("input: off restores the typed text's font", box.font[1] == "Fonts\\\\ARIALN.TTF" and box.font[2] == 14, box.font[1])
+  box.shown = false
+  box.hookScripts.OnShow(box)
+  check("input: the OnShow hook does nothing while off", bg.shown == false, "shown")
   check("card: off brings the reply box back", f.edit:IsShown(), "hidden")
   box.shown = true
   fire("DeactivateChat", box)
@@ -8188,7 +8259,7 @@ run(`
   db.echoDockInput = true
   Echo.ApplyOptions()
   check("input: on again docks it", box.points[1][2] == stackButton and regions[1].alpha == 0, box.points[1] and tostring(box.points[1][1]))
-  check("input: the hooks are still installed only once", #hooks == 3, #hooks)
+  check("input: the hooks are still installed only once", #hooks == 4, #hooks)
   I.Disable()
   check("input: disable restores the points again", box.points[1][2] == chatFrame and box.scale == 0.9, box.scale)
 
@@ -8199,6 +8270,7 @@ run(`
   K.Disable()
   T.Disable()
   column.GetScale, column.GetLeft, column.GetParent = savedColumn.GetScale, savedColumn.GetLeft, savedColumn.GetParent
+  column.GetFrameStrata = savedColumn.GetFrameStrata
   _G.HorizonSuiteEchoColumn = savedColumnGlobal
   GetChannelName = savedChan
   hooksecurefunc, ChatFrameUtil, ChatFrame1EditBox, ChatTypeInfo = saved.hook, saved.util, saved.box, saved.info

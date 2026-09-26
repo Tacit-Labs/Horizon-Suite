@@ -2,17 +2,20 @@
     Horizon Suite - Echo - Input
     Blizzard's own input line, ChatFrame1EditBox, docked under Echo and restyled to match.
     Enter, /, R and Blizzard's Whisper keep working because the box is still the game's:
-    Echo only moves it, re-fonts its FontStrings, fades its border textures, and draws a
-    rounded background behind it, and puts every one of those back when docking goes off.
+    Echo only moves it, lifts it to the column's strata, re-fonts it and its FontStrings,
+    fades its border textures, and draws a rounded background behind it, and puts every one
+    of those back when docking goes off. A SetPoint from anyone else while docked is undone.
     Under an open card it sits flush with the card's bottom edge at the card's width; with
     no card it sits beside the Echo icon at the column's foot, on the side panels open to.
     The card hides its own reply box while the shown line sends to the card's conversation.
     Blizzard's chat code is only observed: hooksecurefunc post-hooks on the activate,
-    deactivate and header functions. Echo never calls them, never focuses the box and never
+    deactivate and header functions and on the box's SetPoint, and HookScript post-hooks on
+    its OnShow and OnHide. Echo never calls them, never focuses the box and never
     sets its attributes (Task 1's probe in EchoSlash.lua is the one exception).
     Blizzard: ChatFrame1EditBox (GetPoint, GetNumPoints, GetScale, GetRegions, GetAttribute,
-    GetFrameLevel, GetFrameStrata, ClearAllPoints, SetPoint, SetScale; Show, SetShown and
-    SetAlpha only from the activate and deactivate post-hooks and at enable), hooksecurefunc,
+    GetFrameLevel, GetFrameStrata, GetFont, ClearAllPoints, SetPoint, SetScale,
+    SetFrameStrata, SetFont, HookScript; Show, SetShown and SetAlpha from the activate and
+    deactivate post-hooks and at enable; Hide at disable), hooksecurefunc,
     ChatFrameUtil.ActivateChat / DeactivateChat / UpdateHeader or the ChatEdit_ equivalents,
     ChatTypeInfo, GetChannelName (through Send.ChannelKeyForSlot).
 ]]
@@ -33,6 +36,8 @@ local active = false  -- docked now
 local saved           -- what enable changed on the box: points, scale, texture alphas, fonts
 local background      -- Echo's rounded panel behind the box
 local hooked = false  -- the post-hooks are installed once and stay
+local anchoring = false  -- Echo's own SetPoint calls on the box are running; its hook lets them by
+local alwaysShown = false  -- always-visible put the box on screen, not Blizzard's own activate
 
 -- The conversation each chat type sends to, for the types keyed by kind alone.
 local KIND_OF = {
@@ -122,6 +127,13 @@ function Input.PaintBorder()
     Echo.Round.SetBorderColor(background, r, g, b, 1)
 end
 
+-- Blizzard's border and focus textures go transparent; activate and the header can bring
+-- them back, so both hooks fade them again.
+local function FadeTextures()
+    if not saved then return end
+    for texture in pairs(saved.alphas) do texture:SetAlpha(0) end
+end
+
 local function SyncBackground(box)
     if background then background:SetShown(active and box:IsShown()) end
 end
@@ -160,8 +172,11 @@ function Input.Reanchor()
     if not active then return end
     local box, column = Box(), _G.HorizonSuiteEchoColumn
     if not box or not column then return end
+    anchoring = true
     box:ClearAllPoints()
     box:SetScale(ColumnScale(box, column))
+    local strata = column:GetFrameStrata()
+    if type(strata) == "string" then box:SetFrameStrata(strata) end
     local card = _G.HorizonSuiteEchoCard
     if card and Echo.Card.IsShown() then
         box:SetPoint("TOPLEFT", card, "BOTTOMLEFT", 0, -Input.GAP)
@@ -178,6 +193,7 @@ function Input.Reanchor()
             box:SetPoint("LEFT", icon, "LEFT", side.dx - width, 0)
         end
     end
+    anchoring = false
     local bg = Background(box)
     if type(bg.SetScale) == "function" then bg:SetScale(column:GetScale() or 1) end
     SyncBackground(box)
@@ -187,6 +203,8 @@ local function OnActivate(editBox)
     if not active or editBox ~= Box() then return end
     -- Blizzard's own chat-frame layout can re-anchor the box; take it back as typing starts.
     Input.Reanchor()
+    FadeTextures()
+    alwaysShown = false  -- Blizzard's own flow has it now
     editBox:Show()
     SyncBackground(editBox)
     RefreshCard()
@@ -197,14 +215,27 @@ local function OnDeactivate(editBox)
     local always = Echo.Setting("echoInputAlwaysVisible") == true
     editBox:SetShown(always)
     if always then editBox:SetAlpha(1) end
+    alwaysShown = always
     SyncBackground(editBox)
     RefreshCard()
 end
 
 local function OnHeader(editBox)
     if not active or editBox ~= Box() then return end
+    FadeTextures()
     Input.PaintBorder()
     RefreshCard()
+end
+
+-- Blizzard's layout moved the box while it is docked: put it back. Echo's own calls pass.
+local function OnSetPoint(editBox)
+    if not active or anchoring or editBox ~= Box() then return end
+    Input.Reanchor()
+end
+
+local function OnBoxShown(editBox)
+    if not active or editBox ~= Box() then return end
+    SyncBackground(editBox)
 end
 
 -- Post-hook table[name] when it is a function; true when hooked.
@@ -230,6 +261,11 @@ local function Hook(box)
     if not HookMethod(box, "UpdateHeader", OnHeader) and not HookMethod(util, "UpdateHeader", OnHeader) then
         HookGlobal("ChatEdit_UpdateHeader", OnHeader)
     end
+    HookMethod(box, "SetPoint", OnSetPoint)
+    if type(box.HookScript) == "function" then
+        box:HookScript("OnShow", OnBoxShown)
+        box:HookScript("OnHide", OnBoxShown)
+    end
 end
 
 -- Note the box's points, scale, texture alphas and fonts, so disable can put them back.
@@ -240,6 +276,11 @@ local function Record(box)
         s.points[i] = { point, rel, relPoint, x, y }
     end
     s.scale = box:GetScale()
+    s.strata = box:GetFrameStrata()
+    if type(box.GetFont) == "function" then
+        local path, size, flags = box:GetFont()
+        s.boxFont = { path, size, flags }
+    end
     for _, region in ipairs({ box:GetRegions() }) do
         if region:IsObjectType("Texture") then
             s.alphas[region] = region:GetAlpha()
@@ -252,8 +293,11 @@ local function Record(box)
 end
 
 -- Blizzard's border and focus textures go transparent; the FontStrings take Echo's font.
-local function Restyle()
-    for texture in pairs(saved.alphas) do texture:SetAlpha(0) end
+local function Restyle(box)
+    FadeTextures()
+    if saved.boxFont then
+        Echo.TrackFont(box, tonumber(saved.boxFont[2]) or Input.FONT_SIZE, saved.boxFont[3] or "")
+    end
     for fs, f in pairs(saved.fonts) do
         Echo.TrackFont(fs, tonumber(f[2]) or Input.FONT_SIZE, f[3] or "")
     end
@@ -263,6 +307,11 @@ local function Restore(box)
     box:ClearAllPoints()
     for _, p in ipairs(saved.points) do box:SetPoint(p[1], p[2], p[3], p[4], p[5]) end
     if saved.scale then box:SetScale(saved.scale) end
+    if type(saved.strata) == "string" then box:SetFrameStrata(saved.strata) end
+    if saved.boxFont then
+        Echo.UntrackFont(box)
+        if saved.boxFont[1] then box:SetFont(saved.boxFont[1], saved.boxFont[2], saved.boxFont[3]) end
+    end
     for texture, alpha in pairs(saved.alphas) do texture:SetAlpha(alpha) end
     for fs, f in pairs(saved.fonts) do
         Echo.UntrackFont(fs)
@@ -282,12 +331,13 @@ function Input.Enable()
     Hook(box)
     if not active then
         saved = Record(box)
-        Restyle()
+        Restyle(box)
         active = true
     end
-    if Echo.Setting("echoInputAlwaysVisible") == true then
+    if Echo.Setting("echoInputAlwaysVisible") == true and not box:IsShown() then
         box:Show()
         box:SetAlpha(1)
+        alwaysShown = true
     end
     Input.Reanchor()
     Input.PaintBorder()
@@ -301,6 +351,9 @@ function Input.Disable()
     local box = Box()
     if box and saved then Restore(box) end
     saved = nil
+    -- A box only always-visible kept on screen goes, so Blizzard's own flow shows it next time.
+    if box and alwaysShown and box:IsShown() and not box:HasFocus() then box:Hide() end
+    alwaysShown = false
     if background then background:Hide() end
     RefreshCard()
 end
