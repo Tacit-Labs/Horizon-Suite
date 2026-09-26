@@ -242,7 +242,8 @@ function Send.CanReach(kind)
         if not ok or Echo.IsSecret(v) then return false end
         return v and true or false
     end
-    if kind == "party" then return ask(IsInGroup) end
+    -- Home group only: in a group-finder group, party chat goes to instance chat instead.
+    if kind == "party" then return ask(IsInGroup, LE_PARTY_CATEGORY_HOME) end
     if kind == "raid" then return ask(IsInRaid) end
     if kind == "instance" then return ask(IsInGroup, LE_PARTY_CATEGORY_INSTANCE) end
     if kind == "officer" then
