@@ -96,6 +96,7 @@ run(`
       if k == "SetTexCoord" then return function(self, ...) self.texCoord = { ... } end end
       if k == "SetVertexColor" then return function(self, r, g, b, a) self.vertexColor = { r, g, b, a } end end
       if k == "SetSize" then return function(self, w, h) self.width = w; self.height = h end end
+      if k == "SetWidth" then return function(self, w) self.setWidth = w end end
       if k == "SetFrameLevel" then return function(self, lvl) self.frameLevel = lvl end end
       if k == "SetDrawLayer" then return function(self, layer, sublevel) self.drawLayer = layer; self.drawSublevel = sublevel end end
       if k == "CreateTexture" or k == "CreateFontString" then return function(self) return STUB_FRAME(self) end end
@@ -6039,9 +6040,46 @@ run(`
   check("a bubble listens for mouse-up", type(b1.scripts.OnMouseUp) == "function", "no script")
   b1.scripts.OnMouseUp(b1, "LeftButton")
   check("a left click opens no menu", opened == nil, "opened")
+  -- The menu opens a frame later, so a link click in the same frame can cancel it.
+  local savedTimer, savedGetTime = C_Timer, GetTime
+  local frameTime, deferred = 50, {}
+  GetTime = function() return frameTime end
+  C_Timer = { After = function(_, fn) deferred[#deferred + 1] = fn end, NewTimer = savedTimer.NewTimer }
+  local function Flush()
+    local q = deferred
+    deferred = {}
+    for _, fn in ipairs(q) do fn() end
+  end
+  local function LinkClick(b)
+    if b.scripts.OnHyperlinkClick then b.scripts.OnHyperlinkClick(b, "item:1", "[x]", "RightButton") end
+    if b.hookScripts.OnHyperlinkClick then b.hookScripts.OnHyperlinkClick(b, "item:1", "[x]", "RightButton") end
+  end
   b1.scripts.OnMouseUp(b1, "RightButton")
+  check("a right click waits a frame", opened == nil and #deferred == 1, #deferred)
+  Flush()
   check("a right click opens the message menu", opened ~= nil and opened[1] == b1, "not opened")
   check("links still click through", type(b1.scripts.OnHyperlinkClick) == "function", "no link click")
+  opened = nil
+  frameTime = 51
+  LinkClick(b1)
+  b1.scripts.OnMouseUp(b1, "RightButton")
+  Flush()
+  check("a link click then mouse-up opens no menu", opened == nil, "opened")
+  frameTime = 52
+  b1.scripts.OnMouseUp(b1, "RightButton")
+  LinkClick(b1)
+  Flush()
+  check("mouse-up then a link click opens no menu", opened == nil, "opened")
+  frameTime = 53
+  b1.scripts.OnMouseUp(b1, "RightButton")
+  Flush()
+  check("a later plain right-click opens it", opened ~= nil and opened[1] == b1, "not opened")
+  C_Timer = nil
+  opened = nil
+  frameTime = 54
+  b1.scripts.OnMouseUp(b1, "RightButton")
+  check("without C_Timer the menu opens at once", opened ~= nil and opened[1] == b1, "not opened")
+  C_Timer = { After = function(_, fn) deferred[#deferred + 1] = fn end, NewTimer = savedTimer.NewTimer }
   local r = FakeRoot()
   opened[2](opened[1], r)
   check("the menu offers Pin on an unpinned message", #r.items == 1 and r.items[1].label == "ECHO_PIN_MESSAGE" and r.items[1].enabled, r.items[1] and r.items[1].label)
@@ -6065,7 +6103,15 @@ run(`
   check("the pinned bubble shows the marker", f.bubbles[1].pin:IsShown(), "hidden")
   check("the marker is the pin icon, 10px, in the accent", f.bubbles[1].pin.width == 10 and f.bubbles[1].pin.texture:find("pin.tga", 1, true)
     and f.bubbles[1].pin.vertexColor[1] == a.r, "?")
-  check("the marker sits at the top corner away from the sender", f.bubbles[1].pin.points[1][1] == "TOPRIGHT", tostring(f.bubbles[1].pin.points[1][1]))
+  local mp = f.bubbles[1].pin.points[1]
+  check("the marker sits inside the top corner away from the sender", mp[1] == "TOPRIGHT" and mp[3] == "TOPRIGHT" and mp[4] == -3 and mp[5] == -3,
+    tostring(mp[1]) .. " " .. tostring(mp[4]) .. " " .. tostring(mp[5]))
+  local tp = f.bubbles[1].text.points[1]
+  check("their pinned text keeps its left inset", tp[4] == C.BUBBLE_PAD, tostring(tp[4]))
+  check("their pinned text stops short of the marker", f.bubbles[1].text.setWidth <= f.bubbles[1].width - C.BUBBLE_PAD - (3 + C.PIN_MARK + 2),
+    tostring(f.bubbles[1].text.setWidth) .. "/" .. tostring(f.bubbles[1].width))
+  check("an unpinned bubble's text uses the plain insets", f.bubbles[2].text.points[1][4] == C.BUBBLE_PAD
+    and f.bubbles[2].text.setWidth == f.bubbles[2].width - C.BUBBLE_PAD * 2, tostring(f.bubbles[2].text.setWidth))
   check("an unpinned bubble shows none", not f.bubbles[2].pin:IsShown(), "shown")
 
   -- The menu now offers Unpin, and Unpin works.
@@ -6172,7 +6218,13 @@ run(`
   -- Your own pinned bubble is marked on the left.
   S.Add({ convKey = "w:Brisa-Horizon", text = "mine", outgoing = true })
   S.PinMessage("w:Brisa-Horizon", S.Get("w:Brisa-Horizon").messages[4])
-  check("your bubble's marker sits top-left", f.bubbles[1].pin:IsShown() and f.bubbles[1].pin.points[1][1] == "TOPLEFT", tostring(f.bubbles[1].pin.points[1] and f.bubbles[1].pin.points[1][1]))
+  mp = f.bubbles[1].pin.points[1]
+  check("your bubble's marker sits inside the top-left", f.bubbles[1].pin:IsShown() and mp[1] == "TOPLEFT" and mp[4] == 3 and mp[5] == -3, tostring(mp and mp[1]))
+  check("your pinned text moves in past the marker", f.bubbles[1].text.points[1][4] >= 3 + C.PIN_MARK + 2, tostring(f.bubbles[1].text.points[1][4]))
+  S.Add({ convKey = "w:Brisa-Horizon", text = "after", outgoing = true })
+  check("a reused bubble's text goes back to the plain inset", f.bubbles[1].text.points[1][4] == C.BUBBLE_PAD
+    and not f.bubbles[1].pin:IsShown(), tostring(f.bubbles[1].text.points[1][4]))
+  check("the pinned bubble moved up keeps its inset", f.bubbles[2].pin:IsShown() and f.bubbles[2].text.points[1][4] >= 3 + C.PIN_MARK + 2, tostring(f.bubbles[2].text.points[1][4]))
 
   -- Switching conversations starts the strip on the newest pin.
   f.pinStrip.counter.scripts.OnClick(f.pinStrip.counter)
@@ -6189,6 +6241,7 @@ run(`
   local line = f.bubbles[1]
   opened = nil
   line.scripts.OnMouseUp(line, "RightButton")
+  Flush()
   check("a feed line opens the message menu", opened ~= nil and opened[1] == line, "not opened")
   r = FakeRoot()
   opened[2](opened[1], r)
@@ -6198,6 +6251,7 @@ run(`
     and line.pin.points[1][4] < line.text.points[1][4], "?")
   check("the strip shows links as their names", f.pinStrip.label.text.text == "You receive loot: |cff0070dd[Blue Thing]|r", f.pinStrip.label.text.text)
   MenuUtil = savedMenuUtil
+  C_Timer, GetTime = savedTimer, savedGetTime
 
   C.Disable()
   K.Disable()

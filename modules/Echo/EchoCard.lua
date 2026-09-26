@@ -53,6 +53,9 @@ Card.PIN_HEIGHT = 22
 Card.PIN_STRIP = Card.PIN_HEIGHT + 4  -- how far the area moves down under the pin strip
 Card.PIN_MARK = 10    -- the pin marker on a pinned bubble or feed line
 Card.PIN_ICON = 12    -- the pin on the strip
+Card.PIN_INSET = 3    -- the marker sits this far inside the bubble's top corner
+-- On a pinned bubble, the text keeps this far from the marker's side so it never runs under it.
+Card.PIN_CLEAR = Card.PIN_INSET + Card.PIN_MARK + 2
 Card.PIN_TEXTURE = "Interface\\AddOns\\" .. (addon.ADDON_NAME or "HorizonSuite") .. "\\media\\echo\\pin.tga"
 
 local root, nameText, metaText, area, edit, send, menuButton, chevron, statusLine, hint, rule
@@ -68,6 +71,11 @@ local offset = 0  -- newest messages scrolled past
 local newBelow = 0  -- messages added while scrolled up, shown by the hint
 local areaHeight = Card.AREA_HEIGHT  -- the message area's height for the card now shown
 local pinIndex  -- the pin the strip shows, an index into Store.Pins(renderedKey); nil = newest
+
+-- Point the pin strip back at the newest pin.
+local function ResetPinCursor()
+    pinIndex = nil
+end
 
 --- Take the card's width and height from the settings and re-derive the sizes built on
 -- them. The bubble width keeps the 110px the original 360px card left beside a bubble.
@@ -427,11 +435,31 @@ local function Bubble(i)
     b.pin:Hide()
     b:EnableMouse(true)
     if Echo.Links then Echo.Links.Attach(b) end
-    -- A link click goes to OnHyperlinkClick; a right-click anywhere else on the message
-    -- opens its pin menu.
+    -- A link click goes to OnHyperlinkClick and keeps Blizzard's behaviour; a right-click
+    -- anywhere else on the message opens its pin menu. WoW can dispatch the link click and
+    -- OnMouseUp in either order, so the link click stamps the frame time, and the menu opens
+    -- a frame later only if no link click was stamped in the click's frame.
+    b:HookScript("OnHyperlinkClick", function(self)
+        if type(GetTime) == "function" then self._echoLinkClickAt = GetTime() end
+    end)
     b:SetScript("OnMouseUp", function(self, button)
         if button ~= "RightButton" or not self.msgKey or not self.msg or not Echo.Menu then return end
-        Echo.Menu.OpenMessage(self, self.msgKey, self.msg)
+        local now = type(GetTime) == "function" and GetTime() or nil
+        local function LinkClicked()
+            local at = rawget(self, "_echoLinkClickAt")
+            return at ~= nil and at == now
+        end
+        if LinkClicked() then return end
+        local key, msg = self.msgKey, self.msg
+        local function Open()
+            if LinkClicked() then return end
+            Echo.Menu.OpenMessage(self, key, msg)
+        end
+        if C_Timer and type(C_Timer.After) == "function" then
+            C_Timer.After(0, Open)
+        else
+            Open()
+        end
     end)
     bubbles[i] = b
     return b
@@ -447,12 +475,16 @@ local function Label(i)
 end
 
 -- Size a bubble to its text and return its height. Readable text is measured; a secret
--- can't be, so it gets the widest bubble and a fixed number of lines.
-local function SizeBubble(b, text, secret)
+-- can't be, so it gets the widest bubble and a fixed number of lines. markSide ("left",
+-- "right" or nil) is where a pinned bubble's marker sits: the text keeps clear of it on
+-- that side only, and every call resets the insets, so a reused bubble starts plain.
+local function SizeBubble(b, text, secret, markSide)
+    local extra = markSide and math.max(0, Card.PIN_CLEAR - Card.BUBBLE_PAD) or 0
+    local maxWidth = Card.BUBBLE_MAX - extra
     b.time:Hide()
     b.text:ClearAllPoints()
-    b.text:SetPoint("TOPLEFT", b, "TOPLEFT", Card.BUBBLE_PAD, -Card.BUBBLE_PAD)
-    local inner = Card.BUBBLE_MAX - Card.BUBBLE_PAD * 2
+    b.text:SetPoint("TOPLEFT", b, "TOPLEFT", Card.BUBBLE_PAD + (markSide == "left" and extra or 0), -Card.BUBBLE_PAD)
+    local inner = maxWidth - Card.BUBBLE_PAD * 2
     b.text:SetWidth(inner)
     b.text:SetMaxLines(secret and Card.SECRET_LINES or 0)
     b.text:SetText(text)
@@ -464,11 +496,12 @@ local function SizeBubble(b, text, secret)
         local measured
         if b.text.GetUnboundedStringWidth then measured = b.text:GetUnboundedStringWidth() end
         if Echo.IsSecret(measured) or type(measured) ~= "number" or measured <= 0 then measured = nil end
-        width = Echo.View.BubbleWidth(measured, Card.BUBBLE_MAX, Card.BUBBLE_PAD)
+        width = Echo.View.BubbleWidth(measured, maxWidth, Card.BUBBLE_PAD)
         -- A measured width can round a hair short at some UI scales and wrap the last
         -- word; 2 px of slack keeps a fitted bubble on its lines.
-        if measured then width = math.min(Card.BUBBLE_MAX, width + 2) end
+        if measured then width = math.min(maxWidth, width + 2) end
         b.text:SetWidth(width - Card.BUBBLE_PAD * 2)
+        width = width + extra
         local h = b.text:GetStringHeight()
         if Echo.IsSecret(h) or type(h) ~= "number" or h <= 0 then h = Card.LINE_HEIGHT end
         height = h
@@ -519,9 +552,9 @@ local function Mark(b, pinned, outgoing)
         return
     end
     if outgoing then
-        b.pin:SetPoint("TOPLEFT", b, "TOPLEFT", -3, 3)
+        b.pin:SetPoint("TOPLEFT", b, "TOPLEFT", Card.PIN_INSET, -Card.PIN_INSET)
     else
-        b.pin:SetPoint("TOPRIGHT", b, "TOPRIGHT", 3, 3)
+        b.pin:SetPoint("TOPRIGHT", b, "TOPRIGHT", -Card.PIN_INSET, -Card.PIN_INSET)
     end
     b.pin:Show()
 end
@@ -590,8 +623,10 @@ local function RenderMessages(conv)
         local bubble = Bubble(used)
         bubble.msgKey, bubble.msg = conv.key, msg
         local secret = msg.secret or Echo.IsSecret(msg.text)
-        local height = SizeBubble(bubble, msg.text, secret)
-        Mark(bubble, Pinned(msg), msg.outgoing)
+        local pinned = Pinned(msg)
+        local markSide = pinned and (msg.outgoing and "left" or "right") or nil
+        local height = SizeBubble(bubble, msg.text, secret, markSide)
+        Mark(bubble, pinned, msg.outgoing)
         bubble:ClearAllPoints()
         local Round = Echo.Round
         local ends = EndsGroup(messages, i)
@@ -837,12 +872,12 @@ local function PaintPins(conv, grouped)
     local pins = Echo.Store.Pins(conv.key)
     local n = #pins
     if n == 0 then
-        pinIndex = nil
+        ResetPinCursor()
         pinStrip:Hide()
         return false
     end
     -- pinIndex stays nil until the counter steps, so a new pin shows as it's made.
-    if pinIndex and (pinIndex > n or pinIndex < 1) then pinIndex = nil end
+    if pinIndex and (pinIndex > n or pinIndex < 1) then ResetPinCursor() end
     local index = pinIndex or n
     local top = Card.AREA_TOP + (grouped and Card.TAB_STRIP or 0)
     pinStrip:ClearAllPoints()
@@ -926,7 +961,7 @@ function Card.Render()
         offset = 0
         newBelow = 0
         hint:Hide()
-        pinIndex = nil  -- another conversation: its strip starts on the newest pin
+        ResetPinCursor()  -- another conversation: its strip starts on the newest pin
     end
     renderedKey = conv.key
     currentKey = conv.key
@@ -1372,7 +1407,7 @@ function Card.Disable()
     end
     Card.Hide()
     renderedKey, currentKey, groupIndex = nil, nil, nil
-    pinIndex = nil
+    ResetPinCursor()
     selected = {}
 end
 
