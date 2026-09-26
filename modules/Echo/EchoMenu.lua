@@ -309,8 +309,9 @@ end
 local function AfterHideChat()
     local hideChat = Echo.HideChat
     local applied = hideChat and hideChat.IsApplied and hideChat.IsApplied()
-    if addon._moduleReloadRecommended == true
-        or (applied and Echo.Setting("echoHideBlizzardChat") ~= true) then
+    -- Only on switching off: the popup's text is about bringing Blizzard's chat back.
+    if Echo.Setting("echoHideBlizzardChat") == true then return end
+    if addon._moduleReloadRecommended == true or applied then
         Menu.AskReload()
     end
 end

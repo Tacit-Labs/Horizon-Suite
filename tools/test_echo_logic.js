@@ -10736,6 +10736,12 @@ run(`
     check("icon: the popup is registered once", StaticPopupDialogs.HORIZON_ECHO_RELOAD == dlg, "replaced")
     hide.setSel(hide.data)
     check("icon: switching it back on asks nothing more", #popups == 2 and db.echoHideBlizzardChat == true, #popups)
+    -- An unrelated reload already due (a module toggle) doesn't make switching it on ask.
+    db.echoHideBlizzardChat = false
+    A._moduleReloadRecommended = true
+    hide.setSel(hide.data)
+    check("icon: switching it on with another reload due asks nothing", #popups == 2 and db.echoHideBlizzardChat == true, #popups)
+    A._moduleReloadRecommended = false
     HC.IsApplied = function() return false end
     db.echoHideBlizzardChat = true
     hide.setSel(hide.data)
