@@ -7858,6 +7858,97 @@ run(`
   S.Reset()
 `, 'echo-invite');
 
+// --- Input probe: point Blizzard's input line at a chat (plan 12, Task 1) --------------------
+run(`
+  local A = HorizonSuite
+  PROBE_SAVED = { reg = A.RegisterSlashHandler, print = A.HSPrint, enabled = A.IsModuleEnabled,
+    strtrim = strtrim, box = ChatFrame1EditBox, combat = InCombatLockdown }
+  PROBE_OUT = {}
+  A.RegisterSlashHandler = function(key, fn) if key == "echo" then PROBE_HANDLER = fn end end
+  A.HSPrint = function(s) PROBE_OUT[#PROBE_OUT + 1] = tostring(s) end
+  A.IsModuleEnabled = function() return true end
+  strtrim = strtrim or function(s) return (s:match("^%s*(.-)%s*$")) end
+  InCombatLockdown = function() return false end
+`, 'probe-input-stubs');
+run(read('modules/Echo/EchoSlash.lua'), 'modules/Echo/EchoSlash.lua (probe input)');
+run(`
+  local A = HorizonSuite
+  local calls = {}
+  local attrs = {}
+  ChatFrame1EditBox = {
+    SetAttribute = function(_, k, v) calls[#calls + 1] = k .. "=" .. tostring(v); attrs[k] = v end,
+    GetAttribute = function(_, k) return attrs[k] end,
+  }
+  local function printed(key)
+    for _, s in ipairs(PROBE_OUT) do if s:find(key, 1, true) then return true end end
+    return false
+  end
+  check("probe input: the slash handler is registered", type(PROBE_HANDLER) == "function", type(PROBE_HANDLER))
+
+  PROBE_HANDLER("probe input guild")
+  check("probe input guild: chatType is GUILD", attrs.chatType == "GUILD", attrs.chatType)
+  check("probe input guild: prints the four steps", printed("ECHO_PROBE_INPUT_STEP1") and printed("ECHO_PROBE_INPUT_STEP2")
+    and printed("ECHO_PROBE_INPUT_STEP3") and printed("ECHO_PROBE_INPUT_STEP4"), table.concat(PROBE_OUT, " | "))
+
+  PROBE_HANDLER("probe input SAY")
+  check("probe input say: chatType is SAY, whatever the case", attrs.chatType == "SAY", attrs.chatType)
+
+  PROBE_HANDLER("probe input Brisa-Horizon")
+  check("probe input whisper: chatType is WHISPER", attrs.chatType == "WHISPER", attrs.chatType)
+  check("probe input whisper: tellTarget keeps the name as typed", attrs.tellTarget == "Brisa-Horizon", attrs.tellTarget)
+
+  PROBE_OUT = {}
+  PROBE_HANDLER("probe input reset")
+  check("probe input reset: chatType back to SAY", attrs.chatType == "SAY", attrs.chatType)
+  check("probe input reset: says so", printed("ECHO_PROBE_INPUT_RESET"), table.concat(PROBE_OUT, " | "))
+
+  local before = #calls
+  PROBE_OUT = {}
+  PROBE_HANDLER("probe input Brisa")
+  check("probe input: a name without a realm is refused", #calls == before and printed("ECHO_PROBE_INPUT_USAGE"), #calls - before)
+  PROBE_HANDLER("probe input")
+  check("probe input: no target is refused", #calls == before, #calls - before)
+
+  InCombatLockdown = function() return true end
+  PROBE_OUT = {}
+  PROBE_HANDLER("probe input guild")
+  check("probe input: refused in combat", #calls == before and printed("ECHO_PROBE_INPUT_COMBAT"), #calls - before)
+  PROBE_HANDLER("probe input reset")
+  check("probe input reset: refused in combat too", #calls == before, #calls - before)
+  InCombatLockdown = function() return false end
+
+  ChatFrame1EditBox = nil
+  PROBE_OUT = {}
+  check("probe input: no input line is reported, not an error", pcall(PROBE_HANDLER, "probe input guild") and printed("ECHO_PROBE_INPUT_NONE"), table.concat(PROBE_OUT, " | "))
+
+  PROBE_OUT = {}
+  PROBE_HANDLER("help")
+  check("probe input: listed in the help", printed("ECHO_SLASH_HELP_PROBE_INPUT"), table.concat(PROBE_OUT, " | "))
+
+  A.RegisterSlashHandler, A.HSPrint, A.IsModuleEnabled = PROBE_SAVED.reg, PROBE_SAVED.print, PROBE_SAVED.enabled
+  strtrim, ChatFrame1EditBox, InCombatLockdown = PROBE_SAVED.strtrim, PROBE_SAVED.box, PROBE_SAVED.combat
+  PROBE_SAVED, PROBE_OUT, PROBE_HANDLER = nil, nil, nil
+`, 'probe-input');
+{
+  // The probe is the only code that may call SetAttribute on Blizzard's input line: no other
+  // Echo source calls SetAttribute at all, and in EchoSlash.lua every call sits inside the
+  // probe's own function, which names ChatFrame1EditBox.
+  const sources = fs.readdirSync(REPO + 'modules/Echo').filter(f => f.endsWith('.lua'))
+    .map(f => 'modules/Echo/' + f);
+  const callers = sources.filter(f => read(f).includes('SetAttribute('));
+  const slash = read('modules/Echo/EchoSlash.lua');
+  const start = slash.indexOf('local function ProbeInput(');
+  const end = start >= 0 ? slash.indexOf('\nend', start) : -1;
+  const body = start >= 0 && end > start ? slash.slice(start, end) : '';
+  const outside = (slash.slice(0, Math.max(start, 0)) + (end > 0 ? slash.slice(end) : '')).split('SetAttribute(').length - 1;
+  run(`
+    check("probe input: only EchoSlash.lua calls SetAttribute", ${JSON.stringify(callers.join(','))} == "modules/Echo/EchoSlash.lua",
+      ${JSON.stringify(callers.join(','))})
+    check("probe input: every SetAttribute in EchoSlash.lua is the probe's", ${outside} == 0 and ${body.includes('SetAttribute(')}, ${outside})
+    check("probe input: the probe names ChatFrame1EditBox", ${body.includes('ChatFrame1EditBox')}, "not named")
+  `, 'probe-input-grep');
+}
+
 // --- Redraw: one repaint per frame -------------------------------------------
 run(`
   CreateFrame = STUB_CREATE_FRAME

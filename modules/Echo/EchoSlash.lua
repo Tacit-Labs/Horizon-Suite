@@ -1,6 +1,8 @@
 --[[
     Horizon Suite - Horizon Echo (Slash)
-    /h echo commands: toggle, status, probe, test, clearhistory.
+    /h echo commands: toggle, status, probe, probe input, test, clearhistory.
+    Blizzard: ChatFrame1EditBox:SetAttribute, from the input probe only. No other Echo code
+    may call SetAttribute on the input line.
 ]]
 
 local addon = _G.HorizonSuite
@@ -64,6 +66,49 @@ local function StartProbe(rest)
     HSPrint(L["ECHO_SLASH_PROBE_START"]:format(count))
 end
 
+-- The input probe's targets: a word, or a whisper Name-Realm.
+local PROBE_TARGETS = { guild = "GUILD", say = "SAY" }
+
+--- /h echo probe input <target>: point Blizzard's input line at a chat by its attributes,
+-- so a test in game can show whether an addon may do that without tainting the box.
+-- The only code in Echo that calls SetAttribute on ChatFrame1EditBox. Out of combat only.
+-- @param target string  "guild", "say", a whisper "Name-Realm", or "reset"
+local function ProbeInput(target)
+    if InCombatLockdown() then
+        HSPrint(L["ECHO_PROBE_INPUT_COMBAT"])
+        return
+    end
+    target = target or ""
+    local word = target:lower()
+    local chatType = PROBE_TARGETS[word]
+    local whisper = not chatType and word ~= "reset" and target:match("^[^%s%-|]+%-[^%s|]+$")
+    if word ~= "reset" and not chatType and not whisper then
+        HSPrint(L["ECHO_PROBE_INPUT_USAGE"])
+        return
+    end
+    local box = _G.ChatFrame1EditBox
+    if not box or type(box.SetAttribute) ~= "function" then
+        HSPrint(L["ECHO_PROBE_INPUT_NONE"])
+        return
+    end
+    if word == "reset" then
+        box:SetAttribute("chatType", "SAY")
+        HSPrint(L["ECHO_PROBE_INPUT_RESET"])
+        return
+    end
+    if whisper then
+        chatType = "WHISPER"
+        box:SetAttribute("tellTarget", whisper)
+    end
+    box:SetAttribute("chatType", chatType)
+    local shown = whisper or chatType
+    HSPrint(L["ECHO_PROBE_INPUT_SET"]:format(shown))
+    HSPrint(L["ECHO_PROBE_INPUT_STEP1"])
+    HSPrint(L["ECHO_PROBE_INPUT_STEP2"]:format(shown))
+    HSPrint(L["ECHO_PROBE_INPUT_STEP3"])
+    HSPrint(L["ECHO_PROBE_INPUT_STEP4"])
+end
+
 local function HandleEchoSlash(msg)
     local cmd, rest = strtrim(msg or ""):match("^(%S*)%s*(.-)$")
     cmd = (cmd or ""):lower()
@@ -85,7 +130,12 @@ local function HandleEchoSlash(msg)
     if cmd == "status" then
         PrintStatus()
     elseif cmd == "probe" then
-        StartProbe(rest)
+        local sub, target = (rest or ""):match("^(%S*)%s*(.-)$")
+        if sub and sub:lower() == "input" then
+            ProbeInput(target)
+        else
+            StartProbe(rest)
+        end
     elseif cmd == "test" then
         Echo.InjectTestConversations()
         HSPrint(L["ECHO_SLASH_TEST"])
@@ -103,6 +153,7 @@ local function HandleEchoSlash(msg)
         HSPrint(L["ECHO_SLASH_HELP_TOGGLE"])
         HSPrint(L["ECHO_SLASH_HELP_STATUS"])
         HSPrint(L["ECHO_SLASH_HELP_PROBE"])
+        HSPrint(L["ECHO_SLASH_HELP_PROBE_INPUT"])
         HSPrint(L["ECHO_SLASH_HELP_UNLOCK"])
         HSPrint(L["ECHO_SLASH_HELP_LOCK"])
         HSPrint(L["ECHO_SLASH_HELP_RESET"])
