@@ -26,6 +26,9 @@ addon:RegisterModule("augment", {
             local atOn     = (not GetDB or GetDB("augmentAchievementTrackerEnabled", false) ~= false)
                              and not (addon.IsModuleEnabled and addon:IsModuleEnabled("focus"))
             local alertsOn = not GetDB or GetDB("augmentAlertsEnabled",              true)  ~= false
+            -- Loot rolls default OFF pending a live test pass on both clients
+            -- (see options/modules/defaults/augment/OptionsDefaultsAugmentLootRoll.lua).
+            local rollOn   = GetDB and GetDB("augmentLootRollEnabled",              false) ~= false
             if addon.Augment.InitFrames then addon.Augment.InitFrames() end
             -- Loot Frame mini-module: only register loot events + suppress Blizzard toasts when on.
             if lootOn then
@@ -42,6 +45,7 @@ addon:RegisterModule("augment", {
             if addon.Augment.UpdateTalkingHead then addon.Augment.UpdateTalkingHead() end
             if atOn and addon.Augment.AchievementTracker then addon.Augment.AchievementTracker.Enable() end
             if alertsOn and addon.Augment.Alerts then addon.Augment.Alerts.Enable() end
+            if rollOn and addon.Augment.Roll then addon.Augment.Roll.Enable() end
         end
     end,
 
@@ -51,6 +55,10 @@ addon:RegisterModule("augment", {
             if addon.Augment.SelfHighlight then addon.Augment.SelfHighlight.Disable() end
             if addon.Augment.AchievementTracker then addon.Augment.AchievementTracker.Disable() end
             if addon.Augment.Alerts then addon.Augment.Alerts.Disable() end
+            -- Disable before the rest: it must put GroupLootContainer_AddRoll
+            -- back, or Blizzard's roll frames stay suppressed with nothing
+            -- drawing in their place.
+            if addon.Augment.Roll then addon.Augment.Roll.Disable() end
             if addon.Augment.DisableTalkingHead then addon.Augment.DisableTalkingHead() end
             if addon.Augment.DisableEvents then addon.Augment.DisableEvents() end
             if addon.Augment.RestoreBlizzard then addon.Augment.RestoreBlizzard() end

@@ -38,7 +38,9 @@
         /h debug logger clear  -- wipe the ring buffer
 
     Registered tag → DB key mappings (add new module debug keys here):
-        "presence"  →  "presenceDebugLive"
+        "presence"         →  "presenceDebugLive"
+        "augmentAlerts"    →  "alertsDebugLive"
+        "augmentLootRoll"  →  "lootRollDebugLive"
 ]]
 
 local addon = _G.HorizonSuite

@@ -82,6 +82,25 @@ globals = {
 
 -- WoW API globals (we read these, not write)
 read_globals = {
+    -- Group loot rolls (Augment/LootRoll). Present on Retail and WoW: Forever;
+    -- which buttons a roll offers comes from GetLootRollItemInfo's can* flags.
+    "GetLootRollItemInfo",
+    "GetLootRollItemLink",
+    "GetLootRollTimeLeft",
+    "RollOnLoot",
+    "GetLootMethod",
+    "GetLootThreshold",
+
+    -- Widely used elsewhere in the addon but previously unlisted, so every call
+    -- site warned. Added while filling in the gaps this list's own comment
+    -- anticipates (see .github/workflows/luacheck.yml).
+    "GetInventoryItemLink",
+    "ChatEdit_InsertLink",
+    "StaticPopup_Hide",
+    "EventRegistry",
+    "GameFontNormalLarge",
+    "NumberFontNormalSmall",
+
     -- C_* namespaces
     "C_AddOns",
     "C_AreaPoiInfo",
@@ -98,6 +117,7 @@ read_globals = {
     "C_Housing",
     "C_HousingCatalog",
     "C_HousingDecor",
+    "C_LootHistory",
     "C_Item",
     "C_LFGList",
     "C_Map",
@@ -221,6 +241,7 @@ read_globals = {
     "UnitFactionGroup",
     "UnitAffectingCombat",
     "IsInGroup",
+    "C_Texture",
     "GetNumGroupMembers",
     "GetUnitName",
     "GetGuildInfo",

@@ -56,8 +56,17 @@ local ABSENT_ON_FOREVER = {
 -- recipe schematics), content tracking enums. Still open: nothing on the beta has yet
 -- shown a task quest or a scenario, so both stay flagged until one is seen.
 Platform.unverified = {
-    worldQuests = true,
-    scenarios   = true,
+    worldQuests    = true,
+    scenarios      = true,
+    -- Group loot: every call is tagged for both Midnight 12.1.5 and Forever
+    -- 1.60.1. The 2026-09-24 probes found Forever defaulting to method=Group (3)
+    -- where Retail defaults to Personal (5) — the one value that differs by
+    -- client; threshold and enum are identical on both. Still flagged,
+    -- because nobody has watched a roll actually open: configuration being
+    -- right is not the same as the system firing, and a present namespace has
+    -- proven nothing here before (see the delve note above).
+    groupLootRolls = true,
+    lootHistory    = true,
 }
 
 local detected = {
@@ -74,6 +83,17 @@ local detected = {
     professions     = C_TradeSkillUI ~= nil,
     adventureGuide  = HasFunction(C_PerksActivities, "GetPerksActivitiesInfo"),  -- Traveler's Log
     contentTracking = C_ContentTracking ~= nil,
+    -- Group loot rolls: the roll frame needs only these three globals. Which
+    -- *buttons* a given roll offers is answered per-item by GetLootRollItemInfo's
+    -- can* flags, not by this key (see Augment/LootRoll).
+    groupLootRolls  = type(RollOnLoot) == "function"
+                      and type(GetLootRollItemInfo) == "function"
+                      and type(GetLootRollTimeLeft) == "function",
+    -- Loot history backs the live roll tally only. Kept separate from
+    -- groupLootRolls so a client that rolls but reports no history loses the
+    -- tally row and keeps the working buttons.
+    lootHistory     = HasFunction(C_LootHistory, "GetSortedDropsForEncounter")
+                      and HasFunction(C_LootHistory, "GetSortedInfoForDrop"),
 }
 
 Platform.has = {}
@@ -207,6 +227,82 @@ local PROBES = {
         return ("task quests on map: %s, quest log entries: %d, IsWorldQuest=%s, GetQuestClassification=%s"):format(
             onMap and #onMap or "nil", entries, type(C_QuestLog.IsWorldQuest),
             type(C_QuestInfoSystem and C_QuestInfoSystem.GetQuestClassification))
+    end },
+    -- Group loot. Namespace presence is already in the capability table; what
+    -- this probe adds is whether the client has anything to SAY. On a client
+    -- with no group loot the globals still answer (that is the whole reason
+    -- Platform exists) — but rolls in progress and encounter count stay at 0
+    -- forever, including immediately after a dungeon boss dies. Run it once
+    -- standing over a fresh group-loot corpse on each client.
+    { "groupLootRolls", function()
+        -- Roll IDs are server-assigned and increment across the session, so
+        -- they cannot be guessed. Blizzard's own frames carry the live ones.
+        local open = 0
+        for i = 1, 4 do
+            local frame = _G["GroupLootFrame" .. i]
+            if frame and frame.rollID and frame:IsShown() then open = open + 1 end
+        end
+        local horizon = 0
+        local R = addon.Augment and addon.Augment.Roll
+        if R and R.HasActiveRows and R.HasActiveRows() then horizon = 1 end
+        -- Distinguish "no such function" from "the function answered nil". On a
+        -- client being probed for a system it may not have, those mean opposite
+        -- things, and collapsing both into "?" throws the answer away.
+        local function Ask(fn)
+            if type(fn) ~= "function" then return "ABSENT" end
+            local ok, value = pcall(fn)
+            if not ok then return "threw" end
+            if value == nil then return "nil" end
+            return tostring(value)
+        end
+
+        -- The loot method, via C_PartyInfo. The bare GetLootMethod global was
+        -- removed in 11.2.0, so asking for it reports ABSENT on Retail and
+        -- Forever alike and says nothing about either — a probe that answers
+        -- the same on a client with the system and one without is not a probe.
+        local method = "ABSENT"
+        if C_PartyInfo and type(C_PartyInfo.GetLootMethod) == "function" then
+            local ok, value = pcall(C_PartyInfo.GetLootMethod)
+            if not ok then
+                method = "threw"
+            elseif value == nil then
+                method = "nil"
+            else
+                method = tostring(value)
+                for name, enumValue in pairs((Enum and Enum.LootMethod) or {}) do
+                    if enumValue == value then method = ("%s (%s)"):format(name, value) end
+                end
+            end
+        end
+
+        -- Which loot methods this client's enum even knows about. Group and
+        -- Needbeforegreed are the two that produce Need/Greed rolls; a client
+        -- with neither cannot roll, whatever the roll functions claim.
+        local methods = {}
+        for name in pairs((Enum and Enum.LootMethod) or {}) do methods[#methods + 1] = name end
+        table.sort(methods)
+
+        local grouped = (IsInGroup and IsInGroup()) and "yes" or "no"
+        return ("RollOnLoot=%s GetLootRollItemInfo=%s, method=%s, threshold=%s, grouped=%s, frames open=%d, Horizon drawing=%s\n                   LootMethod enum: %s"):format(
+            type(RollOnLoot), type(GetLootRollItemInfo),
+            method, Ask(GetLootThreshold), grouped,
+            open, horizon == 1 and "yes" or "no",
+            #methods > 0 and table.concat(methods, ", ") or "|cFFFF4444MISSING|r")
+    end },
+    { "lootHistory", function()
+        local infos = C_LootHistory.GetAllEncounterInfos and C_LootHistory.GetAllEncounterInfos() or {}
+        local drops, unfinished = 0, 0
+        for _, info in ipairs(infos) do
+            local list = C_LootHistory.GetSortedDropsForEncounter and
+                C_LootHistory.GetSortedDropsForEncounter(info.encounterID) or {}
+            drops = drops + #list
+            for _, drop in ipairs(list) do
+                if not (drop.winner or drop.allPassed) then unfinished = unfinished + 1 end
+            end
+        end
+        return ("%d encounters, %d drops (%d still rolling), RollState enum=%s"):format(
+            #infos, drops, unfinished,
+            (Enum and Enum.EncounterLootDropRollState) and "present" or "MISSING")
     end },
     { "reputation", function()
         local n = C_Reputation and C_Reputation.GetNumFactions and C_Reputation.GetNumFactions() or -1

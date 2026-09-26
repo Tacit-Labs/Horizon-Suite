@@ -1,0 +1,319 @@
+--[[
+    Horizon Suite - Augment / Loot Roll - State
+    Constants, DB key registry and accessors for the group loot roll frames.
+
+    Roll types are Blizzard's button IDs, taken from GroupLootFrame.xml where
+    each LootRollButtonTemplate calls RollOnLoot(rollID, self:GetID()):
+    Pass 0 · Need 1 · Greed 2 · Disenchant 3 · Transmog 4. These are NOT the
+    same numbers as Enum.EncounterLootDropRollState, which describes a roll
+    already made and is handled in AugmentRollTally.lua.
+]]
+
+local addon = _G.HorizonSuite
+if not addon or not addon.Augment then return end
+
+local Y = addon.Augment
+Y.Roll = Y.Roll or {}
+local R = Y.Roll
+
+-- ============================================================================
+-- DB KEY REGISTRY
+-- Registered into Augment's shared routing table so OptionsData.lua dispatches
+-- writes without its own allowlist (same as Alerts does in AugmentAlertsState).
+-- ============================================================================
+
+Y.DB_KEYS.augmentLootRollEnabled = true
+Y.DB_KEYS.lootRollScale          = true
+Y.DB_KEYS.lootRollOpacity        = true
+Y.DB_KEYS.lootRollToastStyle     = true
+Y.DB_KEYS.lootRollFontPath       = true
+Y.DB_KEYS.lootRollFontSize       = true
+Y.DB_KEYS.lootRollTextOutlineType = true
+Y.DB_KEYS.lootRollIconSize       = true
+Y.DB_KEYS.lootRollIconGap        = true
+Y.DB_KEYS.lootRollIconSide       = true
+Y.DB_KEYS.lootRollGrowDirection  = true
+Y.DB_KEYS.lootRollMaxVisible     = true
+Y.DB_KEYS.lootRollWidth          = true
+Y.DB_KEYS.lootRollShowTally      = true
+Y.DB_KEYS.lootRollShowBadgeAppearance = true
+Y.DB_KEYS.lootRollShowBadgeItemLevel  = true
+Y.DB_KEYS.lootRollShowBadgeBind       = true
+Y.DB_KEYS.lootRollMinQuality     = true
+Y.DB_KEYS.lootRollEditModeShow   = true
+Y.DB_KEYS.lootRollDebugLive      = true
+Y.DB_KEYS.lootRollPoint          = true
+Y.DB_KEYS.lootRollRelPoint       = true
+Y.DB_KEYS.lootRollX              = true
+Y.DB_KEYS.lootRollY              = true
+
+-- ============================================================================
+-- CONSTANTS
+-- ============================================================================
+
+-- Blizzard button IDs for RollOnLoot's rollType argument.
+R.ROLL_PASS       = 0
+R.ROLL_NEED       = 1
+R.ROLL_GREED      = 2
+R.ROLL_DISENCHANT = 3
+R.ROLL_TRANSMOG   = 4
+
+-- Blizzard shows at most 4 group loot frames (NUM_GROUP_LOOT_FRAMES) and
+-- queues the rest. We pool the same number for the same reason: more than
+-- four simultaneous rolls on screen is unreadable, not more useful.
+R.POOL_SIZE    = 4
+
+-- Fallback only; R.GetWidth() is the live value. Measured, not guessed: on the
+-- Forever demo at 420 the text column was ~257 units and held ~39 characters,
+-- about 6.6 units each at the default font. The longest tally line, "2 Need
+-- 1 Greed  1 Pass   Sarah leads with 91", is 46 characters, ~304 units — too
+-- wide for 420 even on a line of its own. 480 leaves ~320.
+R.WIDTH        = 480
+R.ICON_SIZE    = 40
+R.ICON_BG_PAD  = 1
+R.ICON_GAP     = 10
+R.LINE_SPACING = 6
+R.TIMER_HEIGHT = 4
+R.BUTTON_SIZE  = 26
+R.BUTTON_GAP   = 4
+-- Vertical gap between the three text lines (name, badges, tally), added to
+-- the font size to give a line height. Rows are sized for all three lines
+-- whether or not each has text, so a row does not grow mid-roll as the tally
+-- fills in, and a stack of rows stays even.
+R.TEXT_LINE_GAP = 3
+
+R.DEFAULT_ANCHOR = "CENTER"
+R.DEFAULT_X      = 0
+R.DEFAULT_Y      = 180
+
+-- Button art. Blizzard's own, so the icons read as the same action even though
+-- the chrome around them is ours.
+--
+-- The modern UI draws these from ATLASES (GroupLootFrame.xml), not texture
+-- paths. The legacy Interface\Buttons\UI-GroupLoot-* paths still resolve for
+-- dice, coin, DE and pass — but there has never been a legacy transmog one,
+-- because transmog rolls postdate that art. Using the paths alone therefore
+-- produced a button that laid out, took a click, and drew nothing at all.
+-- Atlas first, legacy path only as a fallback.
+R.BUTTON_ATLASES = {
+    [R.ROLL_NEED]       = "lootroll-toast-icon-need-up",
+    [R.ROLL_GREED]      = "lootroll-toast-icon-greed-up",
+    [R.ROLL_DISENCHANT] = "lootroll-toast-icon-de-up",
+    [R.ROLL_TRANSMOG]   = "lootroll-toast-icon-transmog-up",
+    [R.ROLL_PASS]       = "lootroll-toast-icon-pass-up",
+}
+
+R.BUTTON_HIGHLIGHT_ATLASES = {
+    [R.ROLL_NEED]       = "lootroll-toast-icon-need-highlight",
+    [R.ROLL_GREED]      = "lootroll-toast-icon-greed-highlight",
+    [R.ROLL_DISENCHANT] = "lootroll-toast-icon-de-highlight",
+    [R.ROLL_TRANSMOG]   = "lootroll-toast-icon-transmog-highlight",
+    [R.ROLL_PASS]       = "lootroll-toast-icon-pass-highlight",
+}
+
+R.BUTTON_TEXTURES = {
+    [R.ROLL_NEED]       = "Interface\\Buttons\\UI-GroupLoot-Dice-Up",
+    [R.ROLL_GREED]      = "Interface\\Buttons\\UI-GroupLoot-Coin-Up",
+    [R.ROLL_DISENCHANT] = "Interface\\Buttons\\UI-GroupLoot-DE-Up",
+    -- No legacy transmog art exists; the atlas is the only source.
+    [R.ROLL_TRANSMOG]   = nil,
+    [R.ROLL_PASS]       = "Interface\\Buttons\\UI-GroupLoot-Pass-Up",
+}
+
+--- Apply a roll button's art, preferring the atlas the modern UI uses.
+--- @param texture Texture
+--- @param rollType number
+--- @param atlasTable table  R.BUTTON_ATLASES or R.BUTTON_HIGHLIGHT_ATLASES
+--- @return boolean applied
+function R.ApplyButtonArt(texture, rollType, atlasTable)
+    local atlas = atlasTable and atlasTable[rollType]
+    if atlas and C_Texture and C_Texture.GetAtlasInfo and C_Texture.GetAtlasInfo(atlas) then
+        texture:SetAtlas(atlas)
+        return true
+    end
+    local path = R.BUTTON_TEXTURES[rollType]
+    if path then
+        texture:SetTexture(path)
+        return true
+    end
+    return false
+end
+
+R.QUALITY_COLORS = Y.QUALITY_COLORS
+
+-- ============================================================================
+-- DB ACCESSORS
+-- ============================================================================
+
+-- Explicit nil-check so a stored `false` is not replaced by the default.
+local function getDB(k, d)
+    if not addon.GetDB then return d end
+    local v = addon.GetDB(k, d)
+    if v == nil then return d end
+    return v
+end
+R.GetDB = getDB
+
+local function clamped(key, fallback)
+    local D = addon.AUGMENT_DEFAULTS
+    local lim = addon.AUGMENT_LIMITS and addon.AUGMENT_LIMITS[key]
+    local v = tonumber(getDB(key, D[key])) or fallback
+    if lim then return math.max(lim.min, math.min(lim.max, v)) end
+    return v
+end
+
+--- @return string styleID "compact", "framed", or "accent"
+function R.GetToastStyle()
+    local D = addon.AUGMENT_DEFAULTS
+    local raw = getDB("lootRollToastStyle", D.lootRollToastStyle)
+    local TS = Y.ToastStyles
+    return (TS and TS.Normalize and TS.Normalize(raw)) or "framed"
+end
+
+--- @return number
+function R.GetWidth() return clamped("lootRollWidth", R.WIDTH) end
+
+--- @return number
+function R.GetIconSize() return clamped("lootRollIconSize", 40) end
+
+--- @return number
+function R.GetIconGap() return clamped("lootRollIconGap", 10) end
+
+--- @return number
+function R.GetScale() return clamped("lootRollScale", 1.0) end
+
+--- @return number 0..1
+function R.GetOpacity()
+    return math.max(0.1, math.min(1.0, clamped("lootRollOpacity", 100) / 100))
+end
+
+--- @return string "left"|"right"
+function R.GetIconSide()
+    local D = addon.AUGMENT_DEFAULTS
+    return (getDB("lootRollIconSide", D.lootRollIconSide) == "right") and "right" or "left"
+end
+
+--- @return string "up"|"down"
+function R.GetGrowDirection()
+    local D = addon.AUGMENT_DEFAULTS
+    return (getDB("lootRollGrowDirection", D.lootRollGrowDirection) == "up") and "up" or "down"
+end
+
+-- Vertical attach edge for roll rows. Mirrors Alerts' GetEntryAttachPoint.
+--- @return string "TOP"|"BOTTOM"
+function R.GetEntryAttachPoint()
+    return (R.GetGrowDirection() == "up") and "BOTTOM" or "TOP"
+end
+
+--- @return number
+function R.GetMaxVisible()
+    return math.max(1, math.min(R.POOL_SIZE, clamped("lootRollMaxVisible", 4)))
+end
+
+--- Minimum item quality a roll must be to get a Horizon frame. Rolls below it
+--- fall through to Blizzard's own frame rather than vanishing — see
+--- AugmentRollEvents.lua, which only suppresses what it is going to draw.
+--- @return number
+function R.GetMinQuality()
+    local D = addon.AUGMENT_DEFAULTS
+    return tonumber(getDB("lootRollMinQuality", D.lootRollMinQuality)) or 0
+end
+
+--- @return boolean
+function R.IsTallyEnabled()
+    local D = addon.AUGMENT_DEFAULTS
+    if not (addon.Platform and addon.Platform.Has("lootHistory")) then return false end
+    return getDB("lootRollShowTally", D.lootRollShowTally) ~= false
+end
+
+--- @param which string "Appearance"|"ItemLevel"|"Bind"
+--- @return boolean
+function R.IsBadgeEnabled(which)
+    local D = addon.AUGMENT_DEFAULTS
+    local key = "lootRollShowBadge" .. which
+    return getDB(key, D[key]) ~= false
+end
+
+-- ============================================================================
+-- FONT
+-- Resolution order matches Alerts and Loot: per-element key → global font DB →
+-- addon default → Blizzard fallback.
+-- ============================================================================
+
+local FONT_USE_GLOBAL = "__global__"
+
+--- @return string
+function R.GetFontPath()
+    local global = addon.GetActiveGlobalFont and addon.GetActiveGlobalFont()
+    if global then return global end
+    local D = addon.AUGMENT_DEFAULTS
+    local raw = getDB("lootRollFontPath", D.lootRollFontPath)
+    if raw == FONT_USE_GLOBAL or raw == nil or raw == "" then
+        raw = (addon.GetDB and addon.GetDB("fontPath", nil)) or nil
+    end
+    if not raw or raw == "" or raw == FONT_USE_GLOBAL then
+        return (addon.GetDefaultFontPath and addon.GetDefaultFontPath()) or "Fonts\\FRIZQT__.TTF"
+    end
+    if addon.ResolveFontPath then
+        local resolved = addon.ResolveFontPath(raw)
+        if resolved and resolved ~= "" then return resolved end
+    end
+    return raw
+end
+
+--- @return number
+function R.GetFontSize() return clamped("lootRollFontSize", 13) end
+
+--- @return string
+function R.GetFontFlags()
+    local D = addon.AUGMENT_DEFAULTS
+    return getDB("lootRollTextOutlineType", D.lootRollTextOutlineType) or "OUTLINE"
+end
+
+-- ============================================================================
+-- POSITION
+-- Own keys, so the roll stack anchors independently of both the loot toast
+-- stack (augmentPoint/…) and the Alerts stack (alertsPoint/…).
+-- ============================================================================
+
+function R.GetPosition()
+    if not addon.GetDB then
+        return nil, nil, R.DEFAULT_X, R.DEFAULT_Y
+    end
+    return addon.GetDB("lootRollPoint", nil),
+           addon.GetDB("lootRollRelPoint", nil),
+           addon.GetDB("lootRollX", R.DEFAULT_X),
+           addon.GetDB("lootRollY", R.DEFAULT_Y)
+end
+
+function R.SavePosition(point, relPoint, x, y)
+    if not addon.SetDB then return end
+    addon.SetDB("lootRollPoint", point)
+    addon.SetDB("lootRollRelPoint", relPoint)
+    addon.SetDB("lootRollX", x)
+    addon.SetDB("lootRollY", y)
+end
+
+function R.ClearPosition()
+    if not addon.SetDB then return end
+    addon.SetDB("lootRollPoint", nil)
+    addon.SetDB("lootRollRelPoint", nil)
+    addon.SetDB("lootRollX", nil)
+    addon.SetDB("lootRollY", nil)
+end
+
+-- ============================================================================
+-- SAFE STRING
+-- WoW can hand event payloads "secret string" values that throw on any string
+-- method. Player names from loot history arrive from the server and go through
+-- here before any concat. Same contract as A.SafeString in Alerts.
+-- ============================================================================
+
+function R.SafeString(v)
+    if v == nil then return "" end
+    local ok, s = pcall(tostring, v)
+    if not ok or type(s) ~= "string" then return "" end
+    local ok2, cleaned = pcall(function() return (s:gsub("%z", "")) end)
+    if ok2 and type(cleaned) == "string" then return cleaned end
+    return ""
+end
