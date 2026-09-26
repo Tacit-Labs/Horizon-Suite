@@ -9887,6 +9887,64 @@ run(`
   S.Reset()
 `, 'collapse-keepnew');
 
+// --- Collapse: the Echo icon's hover only unfolds the column -----------------------------
+run(`
+  local Echo = HorizonSuite.Echo
+  local S, T, K = Echo.Store, Echo.Tiles, Echo.Stack
+  S.Reset()
+  CreateFrame = STUB_CREATE_FRAME
+  local db = { echoCollapse = "all" }
+  local saved = { getDB = HorizonSuite.GetDB, newTimer = C_Timer.NewTimer, column = _G.HorizonSuiteEchoColumn, combat = InCombatLockdown }
+  HorizonSuite.GetDB = function(k, d) if db[k] ~= nil then return db[k] end return d end
+  InCombatLockdown = function() return false end
+  T.Enable()
+  K.Enable()
+  K.Hide()  -- clears any hover-open timer an earlier section left pending
+  local f = K._frames()
+  local icon = T._stackButton()
+  local column = icon.parent
+  _G.HorizonSuiteEchoColumn = column
+  column.IsMouseOver = function() return true end
+  S.Add({ convKey = "w:Brisa-Horizon", text = "hi", sender = "Brisa-Horizon" })
+  T.Refresh()
+  local fire
+  C_Timer.NewTimer = function(_, fn) fire = fn; return { Cancel = function() end } end
+
+  icon.scripts.OnEnter(icon)
+  if fire then fire() end
+  check("collapse icon: hovering the icon while collapsing starts no stack open", fire == nil, type(fire))
+  check("collapse icon: and the stack stays shut after the hover delay", not f.root:IsShown(), tostring(f.root:IsShown()))
+
+  -- Tiles keep their stack peek.
+  column.scripts.OnUpdate(column, 0.2)
+  column.scripts.OnUpdate(column, 1)
+  icon.scripts.OnLeave(icon)
+  local tile = T.TileFor("w:Brisa-Horizon")
+  check("collapse icon: the hover unfolded the column", tile ~= icon and HorizonSuite.Echo.Collapse.expanded == true, tostring(tile == icon))
+  fire = nil
+  tile.scripts.OnEnter(tile)
+  check("collapse icon: a tile still starts the stack peek", type(fire) == "function", type(fire))
+  if fire then fire() end
+  check("collapse icon: which opens the stack", f.root:IsShown(), tostring(f.root:IsShown()))
+  K.Hide()
+
+  db.echoCollapse = "off"
+  T.Refresh()
+  fire = nil
+  icon.scripts.OnEnter(icon)
+  check("collapse off: hovering the icon still starts the stack open", type(fire) == "function", type(fire))
+  if fire then fire() end
+  check("collapse off: and the stack opens after the hover delay", f.root:IsShown(), tostring(f.root:IsShown()))
+
+  K.Hide()
+  K.Disable()
+  T.Disable()
+  column.IsMouseOver = nil
+  HorizonSuite.GetDB, C_Timer.NewTimer, InCombatLockdown = saved.getDB, saved.newTimer, saved.combat
+  _G.HorizonSuiteEchoColumn = saved.column
+  S.Reset()
+`, 'collapse-icon-hover');
+
 // --- Redraw: one repaint per frame -------------------------------------------
 run(`
   CreateFrame = STUB_CREATE_FRAME

@@ -198,7 +198,11 @@ end
 -- A tile hovers its own conversation to the front; the chat button hovers none (top card).
 -- Collapse mode (Echo.Collapse) hears every enter and leave in the column too.
 local function HoverEnter(self)
-    if Echo.Collapse then Echo.Collapse.Enter(self) end
+    if Echo.Collapse then
+        Echo.Collapse.Enter(self)
+        -- Collapsing, the Echo icon's hover only unfolds the column; tiles keep their peek.
+        if self ~= nil and self == stackButton and Echo.Collapse.Mode() ~= "off" then return end
+    end
     if Echo.Stack then Echo.Stack.HoverEnter(MemberKey(self and self.convKey)) end
 end
 
