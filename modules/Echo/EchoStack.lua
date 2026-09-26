@@ -24,6 +24,7 @@ Stack.BEHIND = 2        -- cards drawn behind the top card
 Stack.LINES = 3         -- messages on the top card
 Stack.FEED_TIME_WIDTH = 36  -- a feed line's time column, left of its text
 Stack.HOVER_CLOSE = 0.4
+Stack.NOTICE_SECONDS = 4    -- how long a shortcut's "can't do that" stays up
 
 local root, card, edit, more, rule
 local behind = {}
@@ -33,6 +34,8 @@ local renderedKey           -- the conversation last drawn onto the shared reply
 local openTimer
 local hoverKey              -- the tile hovered last while the open delay runs
 local armed, away, pollAccum = false, 0, 0   -- hover-close poll state
+local notice                -- the quick reply's "can't do that" line for a shortcut
+local noticeCount, activeNotice = 0, nil
 
 local function Paint(frame, alpha, radius, withBorder)
     local bg, border = Echo.View.PANEL_BG, Echo.View.PANEL_BORDER
@@ -82,6 +85,11 @@ local function CreateEdit()
         local conv = list[cursor]
         if text == "" or not conv then
             self:ClearFocus()
+            return
+        end
+        local shortcut = Echo.Send.ParseShortcut(text, conv.key)
+        if shortcut then
+            Stack.FollowShortcut(shortcut, text)
             return
         end
         -- A send that can't route keeps its text in the box, so nothing typed is lost.
@@ -241,6 +249,24 @@ local function Create()
 
     CreateEdit()
 
+    -- Covers the lines above the reply box while it shows, like the card's hint; a click
+    -- dismisses it.
+    notice = CreateFrame("Button", nil, card)
+    notice:SetSize(Stack.WIDTH - 24, 34)
+    notice:SetPoint("BOTTOMLEFT", edit, "TOPLEFT", 0, 6)
+    Paint(notice, nil, Echo.Round.SMALL, true)
+    notice:SetFrameLevel(card:GetFrameLevel() + 5)
+    notice.text = Echo.NewText(notice, 11, "")
+    notice.text:SetPoint("CENTER", notice, "CENTER", 0, 0)
+    notice.text:SetWidth(Stack.WIDTH - 40)
+    notice.text:SetTextColor(a.r, a.g, a.b, 1)
+    notice:RegisterForClicks("LeftButtonUp")
+    notice:SetScript("OnClick", function(self)
+        activeNotice = nil
+        self:Hide()
+    end)
+    notice:Hide()
+
     card.open = CreateFrame("Button", nil, card)
     card.open:SetSize(60, 26)
     card.open:SetPoint("BOTTOMRIGHT", card, "BOTTOMRIGHT", -12, 12)
@@ -259,6 +285,46 @@ local function Create()
     more = Echo.NewText(root, 10, "")
     more:SetPoint("BOTTOMRIGHT", root, "TOPRIGHT", 0, -12)
     more:SetTextColor(0.55, 0.60, 0.75, 1)
+end
+
+-- Say why a shortcut went nowhere, for Stack.NOTICE_SECONDS.
+local function ShowNotice(key)
+    notice.text:SetText(L[key])
+    notice:Show()
+    noticeCount = noticeCount + 1
+    local token = noticeCount
+    activeNotice = token
+    C_Timer.After(Stack.NOTICE_SECONDS, function()
+        if activeNotice == token and notice then
+            activeNotice = nil
+            notice:Hide()
+        end
+    end)
+end
+
+--- A chat shortcut typed in the quick reply (Echo.Send.ParseShortcut). A slash command,
+-- or a shortcut with nowhere to go, stays in the box and says why; one that goes
+-- somewhere opens the card on its conversation, which sends the rest.
+-- @param shortcut table
+-- @param text string  what was typed, put back if the card can't follow it
+function Stack.FollowShortcut(shortcut, text)
+    if shortcut.blocked == "command" then
+        ShowNotice("ECHO_SHORTCUT_COMMAND")
+        return
+    end
+    if shortcut.blocked == "nowhere" or not Echo.Card then
+        ShowNotice("ECHO_SHORTCUT_NOWHERE")
+        return
+    end
+    -- Empty the box first, so the shortcut isn't parked as the top card's draft.
+    edit:SetText("")
+    local keep = currentKey
+    Stack.Hide()
+    if not Echo.Card.FollowShortcut(shortcut) then
+        Stack.Open(keep, true)
+        edit:SetText(text)
+        ShowNotice("ECHO_SHORTCUT_NOWHERE")
+    end
 end
 
 --- Redraw the stack from the Store around the current card, and mark that card read.
@@ -443,6 +509,8 @@ function Stack.Hide()
     -- keeps the harness's stand-in frames, which don't fire OnHide on Hide(), correct.
     ParkDraft()
     if edit then edit:ClearFocus() end
+    activeNotice = nil
+    if notice then notice:Hide() end
     if root then root:Hide() end
 end
 
@@ -560,5 +628,5 @@ end
 
 -- Test and debug handle.
 function Stack._frames()
-    return { root = root, card = card, edit = edit, more = more, behind = behind, rule = rule }
+    return { root = root, card = card, edit = edit, more = more, behind = behind, rule = rule, notice = notice }
 end

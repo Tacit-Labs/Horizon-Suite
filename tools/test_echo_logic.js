@@ -6830,6 +6830,359 @@ run(`
   A.ECHO_DEFAULTS, A.ECHO_KEYS, A.ECHO_LIMITS = nil, nil, nil
 `, 'nearby-options-check');
 
+// --- Start chat: Store.Start ---------------------------------------------------
+run(`
+  local Echo = HorizonSuite.Echo
+  local S = Echo.Store
+  S.Reset()
+  local notes = {}
+  local function spy(key, change) notes[#notes + 1] = tostring(key) .. ":" .. tostring(change) end
+  S.Subscribe(spy)
+
+  S.Add({ convKey = "w:Vexa-Horizon", text = "hi", sender = "Vexa-Horizon" })
+  S.SetTier("guild", "loud")
+  S.Add({ convKey = "guild", text = "loud line", sender = "Thorn-Horizon" })
+  notes = {}
+  local conv = S.Start("w:Brisa-Horizon")
+  check("start: creates the conversation", conv ~= nil and S.Get("w:Brisa-Horizon") == conv, tostring(conv))
+  check("start: with no message", conv and #conv.messages == 0, conv and #conv.messages)
+  check("start: open", conv and conv.open == true, conv and tostring(conv.open))
+  check("start: first in List", S.List()[1] == conv, S.List()[1] and S.List()[1].key)
+  check("start: notifies update", notes[#notes] == "w:Brisa-Horizon:update", notes[#notes])
+  check("start: no unread", conv.unread == 0, conv.unread)
+
+  S.Add({ convKey = "guild", text = "later loud line", sender = "Thorn-Horizon" })
+  check("start: a later loud line goes above it", S.List()[1].key == "guild", S.List()[1].key)
+  S.Close("w:Vexa-Horizon")
+  local again = S.Start("w:Vexa-Horizon")
+  check("start: reopens a closed conversation", again and again.open == true and #again.messages == 1, again and tostring(again.open))
+  check("start: a reopened one is first", S.List()[1].key == "w:Vexa-Horizon", S.List()[1].key)
+
+  S.SetPinned("guild", true)
+  S.Start("w:Brisa-Horizon")
+  check("start: pinned conversations stay above", S.List()[1].key == "guild" and S.List()[2].key == "w:Brisa-Horizon",
+        S.List()[1].key .. "," .. S.List()[2].key)
+  S.SetPinned("guild", false)
+
+  S.Restore({ "w:Old-Horizon" })
+  S.Start("party")
+  check("start: above a restored conversation", S.List()[1].key == "party", S.List()[1].key)
+
+  S.Add({ convKey = "nearby", text = "hi", sender = "Brisa-Horizon", style = "say" })
+  S.Close("nearby")
+  S.Get("nearby").dismissed = true
+  S.Start("nearby")
+  check("start: clears dismissed", S.Get("nearby").dismissed == nil and S.Get("nearby").open, tostring(S.Get("nearby").dismissed))
+
+  notes = {}
+  check("start: rejects a feed", S.Start("loot") == nil and S.Get("loot") == nil, "accepted")
+  check("start: rejects an invalid key", S.Start("w:") == nil and S.Start("bogus") == nil and S.Start(nil) == nil
+        and S.Start(42) == nil, "accepted")
+  check("start: a rejection notifies nothing", #notes == 0, #notes)
+  S.Unsubscribe(spy)
+  S.Reset()
+`, 'start-store');
+
+// --- Chat shortcuts: Send.ParseShortcut --------------------------------------------
+run(`
+  local Echo = HorizonSuite.Echo
+  local S, Send = Echo.Store, Echo.Send
+  S.Reset()
+  local saved = { IsInGroup = IsInGroup, IsInRaid = IsInRaid, IsInGuild = IsInGuild, GetChannelName = GetChannelName,
+                  LE = LE_PARTY_CATEGORY_INSTANCE }
+  LE_PARTY_CATEGORY_INSTANCE = 2
+  IsInGroup = function(cat) return true end
+  IsInRaid = function() return true end
+  IsInGuild = function() return true end
+  local P = Send.ParseShortcut
+  local function sends(text, key, rest, mode)
+    local r = P(text, "w:Vexa-Horizon")
+    local ok = r and r.convKey == key and r.text == rest and r.mode == mode and r.blocked == nil
+    check("shortcut: " .. text .. " -> " .. key, ok, r and (tostring(r.convKey) .. "|" .. tostring(r.text) .. "|" .. tostring(r.mode) .. "|" .. tostring(r.blocked)) or "nil")
+  end
+  for _, c in ipairs({ "s", "say", "S", "SAY" }) do sends("/" .. c .. " hi", "nearby", "hi", "SAY") end
+  for _, c in ipairs({ "y", "yell", "sh", "shout" }) do sends("/" .. c .. " hi", "nearby", "hi", "YELL") end
+  for _, c in ipairs({ "e", "em", "emote", "me" }) do sends("/" .. c .. " waves", "nearby", "waves", "EMOTE") end
+  for _, c in ipairs({ "g", "guild" }) do sends("/" .. c .. " hi", "guild", "hi") end
+  for _, c in ipairs({ "o", "officer" }) do sends("/" .. c .. " hi", "officer", "hi") end
+  for _, c in ipairs({ "p", "party" }) do sends("/" .. c .. " hi", "party", "hi") end
+  for _, c in ipairs({ "ra", "raid", "rw" }) do sends("/" .. c .. " pull", "raid", "pull") end
+  for _, c in ipairs({ "i", "instance", "bg" }) do sends("/" .. c .. " hi", "instance", "hi") end
+  for _, c in ipairs({ "w", "whisper", "t", "tell" }) do sends("/" .. c .. " Brisa hi there", "w:Brisa-Horizon", "hi there") end
+  sends("/w Brisa-Argent hi", "w:Brisa-Argent", "hi")
+  sends("/g   spaced out  ", "guild", "spaced out  ")
+
+  -- Empty shortcuts switch and keep the box empty.
+  local r = P("/g", "party")
+  check("shortcut: /g alone is empty", r and r.blocked == "empty" and r.convKey == "guild", r and r.blocked)
+  r = P("/y  ", "party")
+  check("shortcut: /y alone is empty on Nearby, in Yell", r and r.blocked == "empty" and r.convKey == "nearby" and r.mode == "YELL", r and r.blocked)
+  r = P("/w Brisa", "party")
+  check("shortcut: /w Name alone is empty on that whisper", r and r.blocked == "empty" and r.convKey == "w:Brisa-Horizon", r and r.convKey)
+
+  -- Nowhere.
+  r = P("/w", "party")
+  check("shortcut: /w with no name is nowhere", r and r.blocked == "nowhere", r and r.blocked)
+  r = P("/w |Kq12|k hi", "party")
+  check("shortcut: a Battle.net name is never parsed", r and r.blocked == "nowhere" and r.convKey == nil, r and r.blocked)
+  r = P("/r hi", "party")
+  check("shortcut: /r with no whisper is nowhere", r and r.blocked == "nowhere", r and r.blocked)
+  IsInGroup = function(cat) return false end
+  IsInRaid = function() return false end
+  IsInGuild = function() return false end
+  for _, c in ipairs({ "p", "ra", "rw", "i", "g", "o" }) do
+    r = P("/" .. c .. " hi", "party")
+    check("shortcut: /" .. c .. " outside the group is nowhere", r and r.blocked == "nowhere", r and r.blocked)
+  end
+  IsInGroup = function(cat) return cat == LE_PARTY_CATEGORY_INSTANCE end
+  r = P("/i hi", "party")
+  check("shortcut: instance chat asks about the instance group", r and r.convKey == "instance", r and r.blocked)
+  r = P("/p hi", "party")
+  check("shortcut: party asks about the home group", r and r.blocked == "nowhere", r and r.convKey)
+  IsInGroup = function() return true end
+  IsInRaid = function() return true end
+  IsInGuild = function() return true end
+
+  -- Commands.
+  for _, t in ipairs({ "/cast Fireball", "/dance", "/foo", "/reload", "/10 hi", "/shello" }) do
+    r = P(t, "party")
+    check("shortcut: " .. t .. " is a command", r and r.blocked == "command", r and (r.blocked or r.convKey))
+  end
+  check("shortcut: a plain message is nil", P("hello there", "party") == nil, "parsed")
+  check("shortcut: a leading space then / is nil", P(" /dance", "party") == nil, "parsed")
+  check("shortcut: an empty text is nil", P("", "party") == nil, "parsed")
+  check("shortcut: a secret text is nil", P(SECRET("/dance"), "party") == nil, "parsed")
+
+  -- /r: the newest incoming whisper or Battle.net whisper.
+  S.Add({ convKey = "w:Brisa-Horizon", text = "old", sender = "Brisa-Horizon" })
+  S.Add({ convKey = "bn:7", text = "newer", sender = "Friend" })
+  S.Add({ convKey = "w:Vexa-Horizon", text = "mine", outgoing = true })
+  S.Add({ convKey = "guild", text = "not a whisper", sender = "Thorn-Horizon" })
+  sends("/r yes", "bn:7", "yes")
+  S.Add({ convKey = "w:Brisa-Horizon", text = "newest", sender = "Brisa-Horizon" })
+  sends("/reply ok", "w:Brisa-Horizon", "ok")
+  S.Close("w:Brisa-Horizon")
+  sends("/r still", "w:Brisa-Horizon", "still")
+  r = P("/r", "party")
+  check("shortcut: /r alone is empty on the whisper", r and r.blocked == "empty" and r.convKey == "w:Brisa-Horizon", r and r.convKey)
+  S.Reset()
+
+  -- /1 to /9: the joined channel in that slot.
+  GetChannelName = function(n)
+    if n == 1 then return 1, "General - Stormwind City", 1 end
+    if n == 2 then return 2, "Trade - City", 2 end
+    if n == 5 then return 5, "Crafters", nil end
+    return 0, nil
+  end
+  sends("/1 hello", "ch:General", "hello")
+  sends("/2 wts", "ch:Trade", "wts")
+  sends("/5 hi", "ch:Crafters", "hi")
+  r = P("/3 hi", "party")
+  check("shortcut: an empty slot is nowhere", r and r.blocked == "nowhere", r and r.blocked)
+  r = P("/5", "party")
+  check("shortcut: /5 alone is empty on that channel", r and r.blocked == "empty" and r.convKey == "ch:Crafters", r and r.convKey)
+  GetChannelName = function() return 4, SECRET("Hidden") end
+  r = P("/4 hi", "party")
+  check("shortcut: a secret channel name is nowhere", r and r.blocked == "nowhere", r and r.blocked)
+  GetChannelName = nil
+  r = P("/1 hi", "party")
+  check("shortcut: no GetChannelName is nowhere", r and r.blocked == "nowhere", r and r.blocked)
+
+  -- Localised globals.
+  SLASH_SAY1 = "/SAGEN"
+  SLASH_GUILD2 = "/Gilde"
+  SLASH_WHISPER3 = "/flüstern"
+  SLASH_REPLY1 = "/antworten"
+  SLASH_RAID_WARNING1 = "/rw"
+  sends("/sagen hallo", "nearby", "hallo", "SAY")
+  sends("/gilde hallo", "guild", "hallo")
+  sends("/flüstern Brisa hallo", "w:Brisa-Horizon", "hallo")
+  r = P("/antworten x", "party")
+  check("shortcut: a localised reply is honoured", r and r.blocked == "nowhere", r and (r.blocked or r.convKey))
+  SLASH_SAY1, SLASH_GUILD2, SLASH_WHISPER3, SLASH_REPLY1, SLASH_RAID_WARNING1 = nil, nil, nil, nil, nil
+
+  IsInGroup, IsInRaid, IsInGuild, GetChannelName = saved.IsInGroup, saved.IsInRaid, saved.IsInGuild, saved.GetChannelName
+  LE_PARTY_CATEGORY_INSTANCE = saved.LE
+  S.Reset()
+`, 'shortcut-parse');
+
+// --- Chat shortcuts: the card and the stack --------------------------------------
+run(`
+  local Echo = HorizonSuite.Echo
+  local S, C, K, Send = Echo.Store, Echo.Card, Echo.Stack, Echo.Send
+  S.Reset()
+  Echo.ClearDrafts()
+  CreateFrame = STUB_CREATE_FRAME
+  local saved = { IsInGroup = IsInGroup, IsInRaid = IsInRaid, IsInGuild = IsInGuild, C_Timer = C_Timer }
+  IsInGroup = function() return true end
+  IsInRaid = function() return false end
+  IsInGuild = function() return true end
+  local timers = {}
+  C_Timer = { After = function(sec, fn) timers[#timers + 1] = { sec = sec, fn = fn } end,
+              NewTimer = function() return { Cancel = function() end } end }
+  local wire = {}
+  C_ChatInfo = { SendChatMessage = function(msg, chatType, _, target)
+    wire[#wire + 1] = chatType .. ":" .. tostring(target) .. ":" .. msg end }
+  local realSend = Send.Send
+  local calls = {}
+  Send.Send = function(key, text) calls[#calls + 1] = key .. ":" .. text; return realSend(key, text) end
+
+  C.Enable()
+  local f = C._frames()
+  S.Add({ convKey = "w:Brisa-Horizon", text = "hi", sender = "Brisa-Horizon" })
+  C.Open("w:Brisa-Horizon")
+
+  -- A blocked command keeps its text and never reaches Send.Send.
+  for _, t in ipairs({ "/cast Fireball", "/dance", "/foo" }) do
+    calls, wire = {}, {}
+    f.hint:Hide()
+    f.edit:SetText(t)
+    f.edit.scripts.OnEnterPressed(f.edit)
+    check("shortcut card: " .. t .. " is never sent", #calls == 0 and #wire == 0, calls[1] or wire[1])
+    check("shortcut card: " .. t .. " stays in the box", f.edit:GetText() == t, f.edit:GetText())
+    check("shortcut card: " .. t .. " explains itself", f.hint.shown and f.hint.text.text == "ECHO_SHORTCUT_COMMAND", f.hint.text.text)
+    check("shortcut card: " .. t .. " keeps the card", C.ShownKey() == "w:Brisa-Horizon", tostring(C.ShownKey()))
+  end
+  local hideAt = timers[#timers]
+  check("shortcut card: the hint lasts 4 seconds", hideAt and hideAt.sec == 4, hideAt and hideAt.sec)
+  hideAt.fn()
+  check("shortcut card: then goes", f.hint.shown == false, "shown")
+
+  -- A stale timer doesn't hide a newer hint.
+  f.edit:SetText("/dance")
+  C.Submit()
+  local first = timers[#timers]
+  f.edit:SetText("/dance")
+  C.Submit()
+  first.fn()
+  check("shortcut card: an older timer leaves a newer hint", f.hint.shown, "hidden")
+  timers[#timers].fn()
+
+  -- Nowhere keeps the text.
+  calls = {}
+  f.edit:SetText("/r hi")
+  S.Reset()
+  S.Add({ convKey = "guild", text = "hi", sender = "Thorn-Horizon" })
+  C.Open("guild")
+  f.edit:SetText("/o hi")
+  IsInGuild = function() return false end
+  C.Submit()
+  check("shortcut card: nowhere keeps the text", f.edit:GetText() == "/o hi" and #calls == 0, f.edit:GetText())
+  check("shortcut card: nowhere explains itself", f.hint.shown and f.hint.text.text == "ECHO_SHORTCUT_NOWHERE", f.hint.text.text)
+  IsInGuild = function() return true end
+
+  -- A send switches the card, starts the conversation and sends.
+  calls, wire = {}, {}
+  f.edit:SetText("/w Vexa see you there")
+  C.Submit()
+  check("shortcut card: switches to the whisper", C.ShownKey() == "w:Vexa-Horizon", tostring(C.ShownKey()))
+  check("shortcut card: sends the rest there", calls[1] == "w:Vexa-Horizon:see you there" and wire[1] == "WHISPER:Vexa-Horizon:see you there", calls[1])
+  check("shortcut card: the box empties", f.edit:GetText() == "", f.edit:GetText())
+  check("shortcut card: the shortcut is not parked on the old conversation", Echo.TakeDraft("guild") == "", Echo.TakeDraft("guild"))
+  check("shortcut card: the new conversation is first", S.List()[1].key == "w:Vexa-Horizon", S.List()[1].key)
+
+  -- Nearby with a mode.
+  calls, wire = {}, {}
+  f.edit:SetText("/y over here")
+  C.Submit()
+  check("shortcut card: /y switches to Nearby", C.ShownKey() == "nearby", tostring(C.ShownKey()))
+  check("shortcut card: in Yell", S.SendModeOf("nearby") == "YELL" and wire[1] == "YELL:nil:over here", wire[1])
+  check("shortcut card: the chip follows", f.mode.text.text == "ECHO_MODE_YELL", f.mode.text.text)
+
+  -- Empty: switch and keep the box empty.
+  calls = {}
+  f.edit:SetText("/g")
+  C.Submit()
+  check("shortcut card: /g alone switches", C.ShownKey() == "guild", tostring(C.ShownKey()))
+  check("shortcut card: and empties the box", f.edit:GetText() == "" and #calls == 0, f.edit:GetText())
+
+  -- A plain message still goes to the shown conversation.
+  calls = {}
+  f.edit:SetText("plain")
+  C.Submit()
+  check("shortcut card: a plain message goes to the shown conversation", calls[1] == "guild:plain", calls[1])
+
+  -- The stack's quick reply: the same, but a switch opens the card.
+  C.Hide()
+  K.Enable()
+  local k = K._frames()
+  K.Open("guild")
+  calls = {}
+  k.edit:SetText("/dance")
+  k.edit.scripts.OnEnterPressed(k.edit)
+  check("shortcut stack: a command is never sent", #calls == 0, calls[1])
+  check("shortcut stack: and stays in the box", k.edit:GetText() == "/dance", k.edit:GetText())
+  check("shortcut stack: and explains itself", k.notice and k.notice.shown and k.notice.text.text == "ECHO_SHORTCUT_COMMAND",
+        k.notice and tostring(k.notice.text.text))
+  timers[#timers].fn()
+  check("shortcut stack: the notice goes after its time", k.notice.shown == false and timers[#timers].sec == 4, timers[#timers].sec)
+  k.edit:SetText("/r hi")
+  k.edit.scripts.OnEnterPressed(k.edit)
+  check("shortcut stack: nowhere keeps the text", k.edit:GetText() == "/r hi" and k.notice.text.text == "ECHO_SHORTCUT_NOWHERE", k.notice.text.text)
+  k.edit:SetText("/p ready")
+  k.edit.scripts.OnEnterPressed(k.edit)
+  check("shortcut stack: a switch sends there", calls[1] == "party:ready", calls[1])
+  check("shortcut stack: and opens the card on it", C.IsShown() and C.ShownKey() == "party" and not k.root.shown, tostring(C.ShownKey()))
+  check("shortcut stack: the shortcut is not parked", Echo.TakeDraft("guild") == "", Echo.TakeDraft("guild"))
+  C.Hide()
+  K.Open("guild")
+  calls = {}
+  k.edit:SetText("/s")
+  k.edit.scripts.OnEnterPressed(k.edit)
+  check("shortcut stack: an empty shortcut opens the card there", C.IsShown() and C.ShownKey() == "nearby" and #calls == 0, tostring(C.ShownKey()))
+  check("shortcut stack: /s sets Say", S.SendModeOf("nearby") == "SAY", S.SendModeOf("nearby"))
+  check("shortcut stack: the card's box is empty", f.edit:GetText() == "", f.edit:GetText())
+  C.Hide()
+  K.Open("guild")
+  calls = {}
+  k.edit:SetText("plain")
+  k.edit.scripts.OnEnterPressed(k.edit)
+  check("shortcut stack: a plain message goes to the top card", calls[1] == "guild:plain" and k.edit:GetText() == "", calls[1])
+
+  K.Disable()
+  C.Disable()
+  Send.Send = realSend
+  C_ChatInfo = nil
+  IsInGroup, IsInRaid, IsInGuild, C_Timer = saved.IsInGroup, saved.IsInRaid, saved.IsInGuild, saved.C_Timer
+  S.Reset()
+`, 'shortcut-card');
+
+// --- Chat shortcuts: a grouped member opens in its group ----------------------------
+run(read('options/modules/defaults/OptionsDefaultsEcho.lua'), 'shortcut-group-defaults');
+run(`
+  local A = HorizonSuite
+  local Echo = A.Echo
+  local S, C = Echo.Store, Echo.Card
+  S.Reset()
+  Echo.ClearDrafts()
+  CreateFrame = STUB_CREATE_FRAME
+  local savedGetDB = A.GetDB
+  local db = { echoGroupNames = { "Channels" }, echoGroupOf = { ["ch:*"] = 1 } }
+  A.GetDB = function(k, d) if db[k] ~= nil then return db[k] end return d end
+  local savedChan = GetChannelName
+  GetChannelName = function(n)
+    if n == 1 then return 1, "General - City", 1 end
+    if n == 2 or n == "Trade" then return 2, "Trade - City", 2 end
+    return 0, nil
+  end
+  C_ChatInfo = { SendChatMessage = function() end }
+  C.Enable()
+  local f = C._frames()
+  S.Add({ convKey = "ch:General", text = "hi", sender = "Thorn-Horizon", channelIndex = 1 })
+  S.Add({ convKey = "w:Brisa-Horizon", text = "hi", sender = "Brisa-Horizon" })
+  C.Open("w:Brisa-Horizon")
+  f.edit:SetText("/2 wts ore")
+  C.Submit()
+  check("shortcut group: a grouped channel opens in its group", C.ShownKey() == "ch:Trade" and f.tabStrip:IsShown(), tostring(C.ShownKey()))
+  check("shortcut group: and the message is filed there", S.Get("ch:Trade") and S.Get("ch:Trade").messages[1].text == "wts ore", "missing")
+  C.Disable()
+  C_ChatInfo = nil
+  GetChannelName = savedChan
+  A.GetDB = savedGetDB
+  A.ECHO_DEFAULTS, A.ECHO_KEYS, A.ECHO_LIMITS = nil, nil, nil
+  S.Reset()
+`, 'shortcut-group');
+
 // --- Redraw: one repaint per frame -------------------------------------------
 run(`
   CreateFrame = STUB_CREATE_FRAME

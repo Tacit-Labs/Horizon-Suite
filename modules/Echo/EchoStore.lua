@@ -487,6 +487,47 @@ function Store.Close(convKey)
     Notify(convKey, "closed")
 end
 
+--- Start a conversation from Echo (a shortcut, or the + menu): create or reopen it with no
+-- message, clear a feed-style dismissal, and put it first among unpinned conversations.
+-- It moves up the way a loud message does (lastLoud), so pins stay above it and the next
+-- loud message goes above it in turn.
+-- @param convKey string
+-- @return table|nil conv  nil for an invalid key or a feed
+function Store.Start(convKey)
+    local kind = Store.KindOf(convKey)
+    if not kind or Store.FEED_KINDS[kind] then return nil end
+    local conv = GetOrCreate(convKey)
+    conv.open = true
+    conv.dismissed = nil
+    seq = seq + 1
+    conv.lastLoud = seq
+    Notify(convKey, "update")
+    return conv
+end
+
+--- The whisper or Battle.net conversation with the newest incoming message, open or
+-- closed: where /r replies. Lines from this session beat saved ones (seq 0), which are
+-- compared by time.
+-- @return string|nil convKey
+function Store.NewestIncomingWhisper()
+    local bestKey, bestSeq, bestTime
+    for key, conv in pairs(conversations) do
+        if conv.kind == "whisper" or conv.kind == "bnet" then
+            for i = #conv.messages, 1, -1 do
+                local m = conv.messages[i]
+                if not m.outgoing then
+                    local s, t = m.seq or 0, m.time or 0
+                    if not bestKey or s > bestSeq or (s == bestSeq and t > bestTime) then
+                        bestKey, bestSeq, bestTime = key, s, t
+                    end
+                    break
+                end
+            end
+        end
+    end
+    return bestKey
+end
+
 --- Clear a feed's dismissal so its next line reopens the tile. Doesn't reopen or notify
 -- by itself; the next filed line does that as usual.
 -- @param convKey string

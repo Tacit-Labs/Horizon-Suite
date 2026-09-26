@@ -190,3 +190,119 @@ function Send.ExpireNearby()
     if failed > 0 and Echo.Card and Echo.Card.NoteNearbyBlocked then Echo.Card.NoteNearbyBlocked() end
     return failed
 end
+
+-- Chat shortcuts typed in a reply box ------------------------------------------------
+
+-- The English forms of each shortcut, lower case, without the slash.
+local SHORTCUTS = {
+    s = "say", say = "say",
+    y = "yell", yell = "yell", sh = "yell", shout = "yell",
+    e = "emote", em = "emote", emote = "emote", me = "emote",
+    g = "guild", guild = "guild",
+    o = "officer", officer = "officer",
+    p = "party", party = "party",
+    ra = "raid", raid = "raid", rw = "raid",
+    i = "instance", instance = "instance", bg = "instance",
+    w = "whisper", whisper = "whisper", t = "whisper", tell = "whisper",
+    r = "reply", reply = "reply",
+}
+
+-- Blizzard's localised SLASH_<NAME><n> globals for each shortcut. They add to the English
+-- forms and never replace one. Numbering can have gaps, so every n up to 20 is read.
+local SLASH_GLOBALS = {
+    SAY = "say", YELL = "yell", EMOTE = "emote", GUILD = "guild", OFFICER = "officer",
+    PARTY = "party", RAID = "raid", RAID_WARNING = "raid", INSTANCE_CHAT = "instance",
+    WHISPER = "whisper", REPLY = "reply",
+}
+
+local NEARBY_MODE = { say = "SAY", yell = "YELL", emote = "EMOTE" }
+
+-- The shortcut a command word names, or nil. word is lower case, without the slash.
+local function ShortcutFor(word)
+    if SHORTCUTS[word] then return SHORTCUTS[word] end
+    for name, target in pairs(SLASH_GLOBALS) do
+        for n = 1, 20 do
+            local g = _G["SLASH_" .. name .. n]
+            if g ~= nil and not Echo.IsSecret(g) and type(g) == "string" and g:lower() == "/" .. word then return target end
+        end
+    end
+    return nil
+end
+
+--- Whether the player can reach a group conversation now. Tests replace it; each check
+-- reads the client when it has the function and counts a missing one as reachable.
+-- @param kind string  "party" | "raid" | "instance" | "guild" | "officer"
+-- @return boolean
+function Send.CanReach(kind)
+    local function ask(fn, ...)
+        if type(fn) ~= "function" then return true end
+        local ok, v = pcall(fn, ...)
+        if not ok or Echo.IsSecret(v) then return false end
+        return v and true or false
+    end
+    if kind == "party" then return ask(IsInGroup) end
+    if kind == "raid" then return ask(IsInRaid) end
+    if kind == "instance" then return ask(IsInGroup, LE_PARTY_CATEGORY_INSTANCE) end
+    if kind == "guild" or kind == "officer" then return ask(IsInGuild) end
+    return true
+end
+
+-- The channel conversation joined in slot n, or nil. A zone channel's joined name carries
+-- the zone ("General - Stormwind City"), which its key leaves out, as Events does.
+local function ChannelKeyForSlot(n)
+    if type(GetChannelName) ~= "function" then return nil end
+    local ok, id, name = pcall(GetChannelName, n)
+    if not ok or Echo.IsSecret(id) or Echo.IsSecret(name) then return nil end
+    if type(id) ~= "number" or id <= 0 or type(name) ~= "string" or name == "" then return nil end
+    local zone = name:find(" - ", 1, true) and 1 or nil
+    local keyName = Echo.Events.ChannelKeyName(name, zone)
+    return keyName and Store.KeyFor("channel", keyName) or nil
+end
+
+-- A switch result: send rest to key, or just switch when rest is blank.
+local function Result(key, rest, mode)
+    if rest == "" then return { blocked = "empty", convKey = key, mode = mode } end
+    return { convKey = key, text = rest, mode = mode }
+end
+
+--- Read a chat shortcut at the start of a reply box's text. Text that doesn't start with
+-- "/" is not a shortcut; any other slash command is blocked, never sent as chat.
+-- @param text string
+-- @param currentKey string|nil  the conversation the box belongs to (unused for now)
+-- @return table|nil result  nil: send as typed. { convKey, text, mode|nil }: send text
+--   there. { blocked = "command" }, { blocked = "empty", convKey, mode|nil } or
+--   { blocked = "nowhere" }.
+function Send.ParseShortcut(text, currentKey)
+    if Echo.IsSecret(text) or type(text) ~= "string" or text:sub(1, 1) ~= "/" then return nil end
+    local word, rest = text:match("^/(%S*)%s*(.*)$")
+    word = (word or ""):lower()
+    rest = rest or ""
+
+    local slot = word:match("^([1-9])$")
+    if slot then
+        local key = ChannelKeyForSlot(tonumber(slot))
+        if not key then return { blocked = "nowhere" } end
+        return Result(key, rest)
+    end
+
+    local target = ShortcutFor(word)
+    if not target then return { blocked = "command" } end
+    if NEARBY_MODE[target] then return Result("nearby", rest, NEARBY_MODE[target]) end
+    if GROUP_CHAT_TYPE[target] then
+        if not Send.CanReach(target) then return { blocked = "nowhere" } end
+        return Result(target, rest)
+    end
+    if target == "reply" then
+        local key = Store.NewestIncomingWhisper()
+        if not key then return { blocked = "nowhere" } end
+        return Result(key, rest)
+    end
+    -- A whisper: the name runs to the first space. A name with "|" in it (a Battle.net
+    -- |K name, a link) is never parsed.
+    local name, message = rest:match("^(%S+)%s*(.*)$")
+    if not name or name:find("|", 1, true) then return { blocked = "nowhere" } end
+    local full = Echo.Events.NormaliseName(name)
+    local key = full and Store.KeyFor("whisper", full)
+    if not key then return { blocked = "nowhere" } end
+    return Result(key, message or "")
+end

@@ -59,6 +59,7 @@ Card.LINK_WINDOW = 0.3  -- seconds: a link click this close to a right-click kee
 Card.PIN_CLEAR = Card.PIN_INSET + Card.PIN_MARK + 2
 Card.PIN_TEXTURE = "Interface\\AddOns\\" .. (addon.ADDON_NAME or "HorizonSuite") .. "\\media\\echo\\pin.tga"
 
+Card.NOTICE_SECONDS = 4  -- how long a shortcut's "can't do that" stays in the hint
 Card.MODE_WIDTH = 42   -- Nearby's Say / Yell / Emote chip at the left end of the reply box
 Card.EDIT_INSET = 8    -- the reply box's own text inset
 
@@ -77,6 +78,7 @@ local offset = 0  -- newest messages scrolled past
 local newBelow = 0  -- messages added while scrolled up, shown by the hint
 local areaHeight = Card.AREA_HEIGHT  -- the message area's height for the card now shown
 local pinIndex  -- the pin the strip shows, an index into Store.Pins(renderedKey); nil = newest
+local activeNotice  -- the shortcut notice the hint shows now, so only its own timer hides it
 
 -- Point the pin strip back at the newest pin.
 local function ResetPinCursor()
@@ -1278,6 +1280,7 @@ end
 -- Show the hint raised above the message area, so it never sits under a bubble, with its
 -- text set to the given count.
 local function ShowHint(n)
+    activeNotice = nil
     hint:SetSize(90, 20)
     hint.text:SetWidth(0)
     hint.text:SetText(L["ECHO_NEW_BELOW"]:format(n))
@@ -1285,15 +1288,37 @@ local function ShowHint(n)
     hint:Show()
 end
 
--- The game refused a Nearby send: say why in the hint, widened to hold the sentence.
--- A click dismisses it (and, as for the count, returns to the newest message).
-local function ShowBlockedHint()
+-- A sentence in the hint, widened to hold it. A click dismisses it (and, as for the
+-- count, returns to the newest message).
+local function ShowWideHint(text)
+    activeNotice = nil
     local width = Card.WIDTH - Card.PAD * 2 - 16
     hint:SetSize(width, 38)
     hint.text:SetWidth(width - 16)
-    hint.text:SetText(L["ECHO_SEND_BLOCKED_NEARBY"])
+    hint.text:SetText(text)
     hint:SetFrameLevel(area:GetFrameLevel() + 5)
     hint:Show()
+end
+
+-- The game refused a Nearby send: say why in the hint.
+local function ShowBlockedHint()
+    ShowWideHint(L["ECHO_SEND_BLOCKED_NEARBY"])
+end
+
+-- A shortcut the card won't follow: say why for Card.NOTICE_SECONDS. A later hint replaces
+-- it, and the older timer then leaves that one alone.
+local noticeCount = 0
+local function ShowNotice(key)
+    ShowWideHint(L[key])
+    noticeCount = noticeCount + 1
+    local token = noticeCount
+    activeNotice = token
+    C_Timer.After(Card.NOTICE_SECONDS, function()
+        if activeNotice == token and hint then
+            activeNotice = nil
+            hint:Hide()
+        end
+    end)
 end
 
 --- The mouse wheel over the messages: up (+1) shows older ones. Scrolling back down past
@@ -1392,10 +1417,58 @@ function Card.NoteNearbyBlocked()
     ShowBlockedHint()
 end
 
---- Send the reply box's text to the card's conversation.
+--- Follow a chat shortcut that goes somewhere (Echo.Send.ParseShortcut): start its
+-- conversation, set Nearby's mode, show it on the card (opening the card, box focused,
+-- when it is closed), and send its text there. The reply box then holds the destination's
+-- own draft, if it had one; a text that couldn't be sent is put back in an empty box.
+-- @param shortcut table  { convKey, text, mode|nil } or { blocked = "empty", convKey, mode|nil }
+-- @return boolean followed  false when the conversation couldn't be started
+function Card.FollowShortcut(shortcut)
+    local Store = Echo.Store
+    if not shortcut or not Store.Start(shortcut.convKey) then return false end
+    if shortcut.mode then Store.SetSendMode(shortcut.convKey, shortcut.mode) end
+    if root and root:IsShown() then
+        Card.Show(shortcut.convKey)
+    else
+        Card.Open(shortcut.convKey, true)
+    end
+    if shortcut.blocked == "empty" or not root or not root:IsShown() then return true end
+    offset = 0
+    newBelow = 0
+    hint:Hide()
+    local sent, problem = Echo.Send.Send(shortcut.convKey, shortcut.text)
+    if sent then
+        if problem == "blocked" then ShowBlockedHint() end
+    else
+        if edit:GetText() == "" then edit:SetText(shortcut.text) end
+        Card.Render()
+    end
+    return true
+end
+
+--- Send the reply box's text to the card's conversation. A chat shortcut ("/g hi") sends
+-- to its conversation instead; a slash command is never sent, and stays in the box.
 function Card.Submit()
     local text = edit and edit:GetText()
     if not currentKey or not text or text == "" then return end
+    local shortcut = Echo.Send.ParseShortcut(text, currentKey)
+    if shortcut then
+        if shortcut.blocked == "command" then
+            ShowNotice("ECHO_SHORTCUT_COMMAND")
+            return
+        end
+        if shortcut.blocked == "nowhere" then
+            ShowNotice("ECHO_SHORTCUT_NOWHERE")
+            return
+        end
+        -- Empty the box first, so the shortcut isn't parked as this conversation's draft.
+        edit:SetText("")
+        if not Card.FollowShortcut(shortcut) then
+            edit:SetText(text)
+            ShowNotice("ECHO_SHORTCUT_NOWHERE")
+        end
+        return
+    end
     -- Back to the newest before sending: Send.Send's Store.AddPending marks "card" for
     -- the render that draws the new bubble, which runs on the next frame, so it must
     -- draw at the bottom, not scrolled past.
