@@ -159,4 +159,7 @@
   - [ ] A pop-up from Trade slides out from the Channels tile.
   - [ ] Rename a group and move Loot into it on the options page; the column updates without a reload.
   - [ ] Channel icons show, not blank squares, on Retail and Forever.
+  - [ ] The guild tile shows your guild's emblem in its colours.
+  - [ ] The Echo icon shows at the foot of the column and on the dashboard.
+  - [ ] Setting a channel to None while "Other channels" is grouped keeps that channel on its own.
 - **Commit:** `docs(echo): record chat groups and channel icons`.

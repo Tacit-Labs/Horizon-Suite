@@ -186,6 +186,36 @@ Echo's square boxes became rounded squares and chat-app bubbles, drawn by one he
 - **How rounding is drawn:** `media/echo/circle.tga` (a filled circle) and `media/echo/ring.tga` (a circle outline), both 128×128 and pre-generated. Each corner is a texture quadrant sized to that corner's radius; edges and the middle are plain colour textures; a border (where Echo already drew one — panels, and tiles whose face is a glyph or icon) adds ring quarters plus 1px lines along the edges. This is a manual 9-slice: `Echo.Round.Apply` builds the pieces once per frame, `Echo.Round.Layout` re-lays them out for the frame's current size (hooked onto `OnSizeChanged` via `HookScript`, so a host's own resize handler still runs), and `Echo.Round.SetColor`/`SetBorderColor` tint them. Fill draws at draw-layer sublevel -8 and the border at -7, so the border always sits above the fill and a host's own child textures (left at the default sublevel) sit above both — otherwise a child (the unread count, a tile's name label) would draw under its own tile's fill regardless of layer, since a child always draws over its parent's regions. The unread dot uses `Echo.Round.Dot`, a single full-circle texture, instead of the full 9-slice, since a dot has no straight edges to fill.
 - **Toast:** unchanged for now — it keeps Augment's own toast chrome (`BackdropTemplate` plus `AugmentToastStyles.ApplyChrome`), not `Echo.Round`.
 
+### Chat groups and channel icons (plan 9, 2026-09-26)
+
+**Groups.** Up to four named groups combine chats into one tile in the column, opening as a card with a tab per member. `modules/Echo/EchoGroups.lua` owns the rules:
+
+- Settings: `echoGroupsEnabled` (default on), `echoGroupNames` (`{ "Channels", "", "", "" }`; a blank name leaves the group unused), `echoGroupOf` (member id → group index; an absent entry means none).
+- A member id is `ch:<name>` for a channel (matching its exact id first, then `ch:*` for "any other channel"), or one of `guild`, `officer`, `party`, `raid`, `instance`, `loot`, `progress`, `system`. Whispers and Battle.net conversations are never grouped.
+- **None beats "Other channels."** For an exact channel id (`ch:<name>`, not the `ch:*` wildcard), choosing None on the options page writes `false`, not a removed entry — so a channel set to None stays ungrouped even while `ch:*` is grouped. `Echo.Groups.Of` treats a `false` entry as "not grouped, no `ch:*` fallback." Every other member id's None just removes its entry (so it can fall through to a kind-level or `ch:*` default again).
+- **Blank groups aren't offered.** The options page's per-chat dropdown lists None plus only the groups whose name isn't blank — never a "Group N" placeholder for an unnamed group, even if something is (stale-)assigned to it.
+- **Group keys are view-only.** `Echo.Groups.Key(index)` returns `"grp:<index>"`. It is a key `Echo.View.Entries` and the card use to address a group tile; it never enters the Store, History or Send, and `Echo.Groups.Of`/`IndexOf` refuse it as a member id.
+- A group tile's badge counts only its **counted** members: a member joins the sum (and can set the badge) only when its own tile would show a badge (loud → dot, count → count). A quiet or muted member's unread never inflates the group's count.
+- The card's tab strip never shrinks a tab below 24px. Past that floor, as many tabs as fit are shown — always keeping the selected member visible — plus a trailing "+N" tab that selects the next hidden member.
+
+**Icons with a short name.** `View.CHANNEL_ICONS` maps a channel's short key (`CHANNEL_SHORT`, the name with spaces removed) to an `Interface\Icons\` path:
+
+| Channel | Icon |
+|---|---|
+| General | `Ability_Warrior_RallyingCry` |
+| Trade | `INV_Misc_Coin_01` |
+| `Trade(Services)` / Services | `Trade_BlackSmithing` |
+| LocalDefense | `INV_Shield_06` |
+| LookingForGroup | `INV_Misc_GroupNeedMore` |
+| WorldDefense | `Ability_Warrior_DefensiveStance` |
+| NewcomerChat | `INV_Misc_Book_09` |
+
+Any other channel keeps the glyph face with its short name. A channel or feed tile with an icon also shows its label (`Gen`, `Trade`, `Loot`, `Prog`, `Sys`, …) on the dark tile. `View.GROUP_ICON` (`Spell_Holy_PrayerOfSpirit`) is the icon a group tile shows.
+
+**Guild emblem.** The Guild tile's face is your own guild's tabard when `View.GuildTabard()` can read one (`C_GuildInfo.GetGuildTabardInfo("player")`, cached 5 seconds and cleared on `PLAYER_GUILD_UPDATE`/`GUILD_ROSTER_UPDATE`): the tile paints the emblem in its colours, background tinted from the tabard's background colour. Not in a guild, no such API (Forever), or an unreadable/zero emblem falls back to the plain "G" glyph. `IsInGuild`'s truthiness is read leniently — any truthy, non-secret value counts as "yes," not only literal `true` — since some clients hand back a value that isn't a plain boolean. Because the tabard can change without the game reloading Echo, `Echo.Class`'s roster-event handler marks `"tiles"` and `"cardRow"` unconditionally on `PLAYER_GUILD_UPDATE` and after clearing the cache on `GUILD_ROSTER_UPDATE`, not only when a classless whisper also happens to be open.
+
+**The Echo icon.** The column's chat/stack button and the dashboard's Echo module tile both show the same director-provided art, `media/echo/echo_icon.tga` (a 128×128 rounded tile with transparent corners), exposed as `Echo.View.ECHO_ICON`. The column button shows the icon filling the button (inset 1px) with no rounded panel fill or border behind it — the icon already carries its own rounded tile — and brightens on hover via an additive `OVERLAY` highlight texture (same art, `SetBlendMode("ADD")`, alpha 0.25) shown on enter and hidden on leave. The dashboard's module-icon helper (`options/dashboard/DashboardHomeWelcome.lua`) uses a `MODULE_ICONS` value as a full path unchanged when it already contains a backslash, rather than always prefixing `Interface\Icons\`.
+
 ## Storage
 
 Settings live in the profile through `OptionsDefaultsEcho.lua`.
