@@ -904,6 +904,12 @@ run(`
   check("a stale battle.net list is pruned by its bt: key", db.echoHistory.bnet["bt:Vexa#1234"] == nil, "kept")
   check("prune returns the number of lists removed", removed == 2, removed)
 
+  -- Fix round 1, item 5: strict > at the cutoff (a list exactly at the cutoff is kept).
+  H.Append("w:AtCutoff-Horizon", { text = "boundary", time = now - 30 * 86400 })
+  local removedAtBoundary = H.Prune(now)
+  check("a list exactly at the cutoff is kept (strict >)", mine["w:AtCutoff-Horizon"] ~= nil, "removed")
+  check("nothing removed at the exact boundary", removedAtBoundary == 0, removedAtBoundary)
+
   -- An empty character bucket is removed once its only list goes stale.
   S.Reset()
   charKey = "Solo-Horizon"
@@ -942,6 +948,19 @@ run(`
   end
 
   check("guild key falls back to the player's own realm", H.GuildKey() == "Dawnrise-Horizon", H.GuildKey())
+
+  -- Fix round 1, item 1: a secret name or realm never reaches a comparison other than == nil.
+  do
+    local realName = guildName
+    guildName = SECRET("Hidden")
+    check("a secret guild name gives nil", H.GuildKey() == nil, tostring(H.GuildKey()))
+    guildName = realName
+
+    local realRealm = guildRealm
+    guildRealm = SECRET("HiddenRealm")
+    check("a secret guild realm gives nil", H.GuildKey() == nil, tostring(H.GuildKey()))
+    guildRealm = realRealm
+  end
 
   S.SetPersisted("guild", true)
   S.Add({ convKey = "guild", text = "guild line" })
@@ -1011,6 +1030,47 @@ run(`
   msgs = S.Get("guild").messages
   check("the late load only happens once", #msgs == 4 and msgs[4].text == "third line", #msgs)
 
+  -- The live toggle (fix round 1, item 2): an officer conversation created while saving is
+  -- off still backfills its saved history once saving is turned on, in order.
+  S.Reset()
+  local dbToggle = {}
+  H.Bind(dbToggle, function() return charKey end)
+  guildName = "Dawnrise"
+  S.SetPersisted("officer", false)
+  S.Add({ convKey = "officer", text = "typed with saving off" })
+  check("saving off: nothing saved, but the line still shows this session",
+        S.Get("officer").messages[1].text == "typed with saving off" and next(dbToggle.echoHistory.guilds) == nil, "?")
+
+  dbToggle.echoHistory.guilds["Dawnrise-Horizon"] = { officer = { { t = 1, text = "a" }, { t = 2, text = "b" } } }
+  S.SetPersisted("officer", true)
+  S.Add({ convKey = "officer", text = "typed with saving on" })
+  local toggleMsgs = S.Get("officer").messages
+  check("turning saving on backfills the saved lines once, in order",
+        #toggleMsgs == 4 and toggleMsgs[1].text == "a" and toggleMsgs[2].text == "b"
+        and toggleMsgs[3].text == "typed with saving off" and toggleMsgs[4].text == "typed with saving on",
+        #toggleMsgs)
+
+  S.Add({ convKey = "officer", text = "one more" })
+  toggleMsgs = S.Get("officer").messages
+  check("the backfill only happens once", #toggleMsgs == 5 and toggleMsgs[5].text == "one more", #toggleMsgs)
+
+  -- Within the cap: a large backfill merged with the current session is trimmed to
+  -- Store.MaxMessages("officer") (200), keeping the newest lines.
+  S.Reset()
+  local dbCap = {}
+  H.Bind(dbCap, function() return charKey end)
+  local bigList = {}
+  for i = 1, 205 do bigList[i] = { t = i, text = "old" .. i } end
+  dbCap.echoHistory.guilds["Dawnrise-Horizon"] = { officer = bigList }
+  S.SetPersisted("officer", false)
+  S.Add({ convKey = "officer", text = "typed with saving off" })
+  S.SetPersisted("officer", true)
+  S.Add({ convKey = "officer", text = "new line" })
+  local cappedMsgs = S.Get("officer").messages
+  check("the backfilled merge respects the message cap", #cappedMsgs == 200, #cappedMsgs)
+  check("the cap keeps the newest lines", cappedMsgs[#cappedMsgs].text == "new line"
+        and cappedMsgs[#cappedMsgs - 1].text == "typed with saving off", cappedMsgs[#cappedMsgs].text)
+
   -- SessionKeys carries guild and officer only while they are persisted.
   S.Reset()
   local dbSession = {}
@@ -1055,6 +1115,24 @@ run(`
   local removed2 = H.Prune(now2)
   check("prune removed both stale guild lists", removed2 == 2, removed2)
   check("an emptied guild bucket is dropped", dbPrune.echoHistory.guilds["Dawnrise-Horizon"] == nil, "kept")
+
+  -- Fix round 1, item 3: pinning "guild" protects the current guild's list, never a stale
+  -- list left behind under a different guild key.
+  S.Reset()
+  local dbPin = {}
+  H.Bind(dbPin, function() return charKey end)
+  H.SetMaxAge(30)
+  local now3 = 40 * 86400 + 1000
+  guildName = "Dawnrise"
+  H.Append("guild", { text = "current guild line", time = now3 - 40 * 86400 })
+  H.SavePref("guild", nil, true)
+  dbPin.echoHistory.guilds["Oldguild-Horizon"] = { guild = { { t = now3 - 40 * 86400, text = "stale from an old guild" } } }
+  local removed3 = H.Prune(now3)
+  check("the current guild's pinned list survives", dbPin.echoHistory.guilds["Dawnrise-Horizon"] ~= nil
+        and dbPin.echoHistory.guilds["Dawnrise-Horizon"].guild ~= nil, "removed")
+  check("a stale list under a different guild key is pruned despite the pin",
+        dbPin.echoHistory.guilds["Oldguild-Horizon"] == nil, "kept")
+  check("only the other guild's list was removed", removed3 == 1, removed3)
 
   GetGuildInfo = savedGetGuildInfo
   S.SetPersisted("guild", false)

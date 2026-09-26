@@ -68,12 +68,20 @@ function History.GuildKey()
     if type(api) ~= "function" then return nil end
     local ok, guildName, _, _, guildRealm = pcall(api, "player")
     if not ok then return nil end
-    if Echo.IsSecret(guildName) or type(guildName) ~= "string" or guildName == "" then return nil end
+    if Echo.IsSecret(guildName) then return nil end
+    if type(guildName) ~= "string" or guildName == "" then return nil end
+    if Echo.IsSecret(guildRealm) then return nil end
     if guildRealm == nil or guildRealm == "" then
         local realmApi = GetNormalizedRealmName
-        guildRealm = type(realmApi) == "function" and realmApi() or nil
+        if type(realmApi) == "function" then
+            local okRealm, realm = pcall(realmApi)
+            guildRealm = okRealm and realm or nil
+        else
+            guildRealm = nil
+        end
+        if Echo.IsSecret(guildRealm) then return nil end
     end
-    if Echo.IsSecret(guildRealm) or type(guildRealm) ~= "string" or guildRealm == "" then return nil end
+    if type(guildRealm) ~= "string" or guildRealm == "" then return nil end
     return guildName .. "-" .. guildRealm
 end
 
@@ -346,8 +354,11 @@ local function ListAge(list, now)
 end
 
 --- Age-based cleanup: drop a whisper, Battle.net or guild/officer list whose newest entry is
--- older than echoHistoryDays (History.SetMaxAge). A list any character has pinned is always
--- kept. Forever (days == 0) removes nothing. Runs once when Echo enables.
+-- older than echoHistoryDays (History.SetMaxAge). A whisper or Battle.net list any character
+-- has pinned is always kept. A guild/officer list is exempt the same way only for the
+-- current guild (History.GuildKey()); a stale list left behind under a guild the player has
+-- since left is pruned by age alone, even though "guild"/"officer" is pinned for the guild
+-- the player is in now. Forever (days == 0) removes nothing. Runs once when Echo enables.
 -- @param now number
 -- @return number removed
 function History.Prune(now)
@@ -356,11 +367,11 @@ function History.Prune(now)
     local cutoff = maxAgeDays * 86400
     local removed = 0
 
-    local function pruneList(parent, key)
+    local function pruneList(parent, key, checkPinned)
         local list = parent[key]
         if type(list) ~= "table" then return end
-        if AnyCharPinned(key) then return end
-        if ListAge(list, now) >= cutoff then
+        if checkPinned and AnyCharPinned(key) then return end
+        if ListAge(list, now) > cutoff then
             parent[key] = nil
             removed = removed + 1
         end
@@ -368,18 +379,20 @@ function History.Prune(now)
 
     for charKey, bucket in pairs(root.chars) do
         if type(bucket) == "table" then
-            for convKey in pairs(bucket) do pruneList(bucket, convKey) end
+            for convKey in pairs(bucket) do pruneList(bucket, convKey, true) end
             if next(bucket) == nil then root.chars[charKey] = nil end
         end
     end
 
-    for key in pairs(root.bnet) do pruneList(root.bnet, key) end
+    for key in pairs(root.bnet) do pruneList(root.bnet, key, true) end
 
     if type(root.guilds) == "table" then
+        local currentGuildKey = History.GuildKey()
         for guildKey, entry in pairs(root.guilds) do
             if type(entry) == "table" then
-                pruneList(entry, "guild")
-                pruneList(entry, "officer")
+                local isCurrent = guildKey == currentGuildKey
+                pruneList(entry, "guild", isCurrent)
+                pruneList(entry, "officer", isCurrent)
                 if next(entry) == nil then root.guilds[guildKey] = nil end
             end
         end

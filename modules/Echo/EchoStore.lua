@@ -230,15 +230,19 @@ local function GetOrCreate(convKey)
         pinned     = false,
         open       = true,
     }
-    if Store.IsPersisted(conv.kind) and Echo.History then
-        conv.messages = Echo.History.Load(convKey)
-        if conv.kind == "guild" or conv.kind == "officer" then
-            -- The guild can be unknown when this conversation is first created; historyLoaded
-            -- stays false so Store.Add retries the load once a guild key becomes available.
-            conv.historyLoaded = Echo.History.GuildKey() ~= nil
-        else
+    if conv.kind == "guild" or conv.kind == "officer" then
+        -- Saving might be off, or the guild unknown, when this conversation is first
+        -- created; historyLoaded stays false so Store.Add retries the load once both are
+        -- true (the live toggle: turning saving on backfills an already-open tile).
+        if Store.IsPersisted(conv.kind) and Echo.History and Echo.History.GuildKey() ~= nil then
+            conv.messages = Echo.History.Load(convKey)
             conv.historyLoaded = true
+        else
+            conv.historyLoaded = false
         end
+    elseif Store.IsPersisted(conv.kind) and Echo.History then
+        conv.messages = Echo.History.Load(convKey)
+        conv.historyLoaded = true
     end
     local pref = Echo.History and Echo.History.LoadPref(convKey)
     if pref then
@@ -270,11 +274,10 @@ end
 function Store.Add(record)
     if type(record) ~= "table" or not Store.KindOf(record.convKey) then return nil end
     local conv = GetOrCreate(record.convKey)
-    -- The guild was unknown when this conversation was created; try again now, so a saved
-    -- guild history still arrives once the guild key resolves.
+    -- Saving was off, or the guild was unknown, when this conversation was created; try
+    -- again now, so a saved guild history still arrives once both are true.
     if conv.historyLoaded == false and (conv.kind == "guild" or conv.kind == "officer") and Echo.History then
-        local guildKey = Echo.History.GuildKey()
-        if guildKey then
+        if Store.IsPersisted(conv.kind) and Echo.History.GuildKey() ~= nil then
             local loaded = Echo.History.Load(record.convKey)
             for i = #loaded, 1, -1 do table.insert(conv.messages, 1, loaded[i]) end
             conv.historyLoaded = true
