@@ -51,13 +51,20 @@ function Echo.PaintTileFace(face, spec)
         face.bg:SetColorTexture(Echo.View.FaceBackground(spec))
     end
     if face.icon then
-        if spec.face == "icon" then
+        if spec.face == "tabard" then
+            local t = spec.tabard
+            face.icon:SetTexture(t.emblem)
+            face.icon:SetTexCoord(0, 1, 0, 1)
+            face.icon:SetVertexColor(t.er, t.eg, t.eb, 1)
+            face.icon:Show()
+        elseif spec.face == "icon" then
             face.icon:SetTexture(spec.icon)
             if spec.iconFull then
                 face.icon:SetTexCoord(0, 1, 0, 1)
             else
                 face.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
             end
+            face.icon:SetVertexColor(1, 1, 1, 1)
             face.icon:Show()
         elseif spec.face == "class" then
             local classIcon = spec.classIcon
@@ -67,8 +74,10 @@ function Echo.PaintTileFace(face, spec)
                 face.icon:SetTexture(classIcon.path)
                 face.icon:SetTexCoord(0, 1, 0, 1)
             end
+            face.icon:SetVertexColor(1, 1, 1, 1)
             face.icon:Show()
         else
+            face.icon:SetVertexColor(1, 1, 1, 1)
             face.icon:Hide()
         end
     end

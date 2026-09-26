@@ -91,6 +91,76 @@ View.CHANNEL_ICONS = {
 -- The icon a group tile shows (Task 3).
 View.GROUP_ICON = "Interface\\Icons\\Spell_Holy_PrayerOfSpirit"
 
+-- ---------------------------------------------------------------------------
+-- Guild tabard: your own guild emblem on the Guild tile
+-- ---------------------------------------------------------------------------
+
+-- How long a read of C_GuildInfo.GetGuildTabardInfo is trusted before the next repaint
+-- asks again.
+View.GUILD_TABARD_CACHE_SECONDS = 5
+
+local guildTabardCache = { checkedAt = nil, tabard = nil }
+
+--- Forgets the cached guild tabard, so the next View.GuildTabard() call re-reads the API.
+-- Called by Echo.Class on PLAYER_GUILD_UPDATE and GUILD_ROSTER_UPDATE.
+function View.ClearGuildTabardCache()
+    guildTabardCache.checkedAt = nil
+    guildTabardCache.tabard = nil
+end
+
+--- One colour's r, g, b, read from either a colour object (:GetRGB()) or a plain table
+-- (r/g/b fields). Every value is IsSecret-checked before it's typed or compared.
+-- @param color table|nil
+-- @return number|nil r, number|nil g, number|nil b
+local function ColorRGB(color)
+    if Echo.IsSecret(color) or type(color) ~= "table" then return nil end
+    if type(color.GetRGB) == "function" then
+        local ok, r, g, b = pcall(color.GetRGB, color)
+        if not ok then return nil end
+        if Echo.IsSecret(r) or Echo.IsSecret(g) or Echo.IsSecret(b) then return nil end
+        if type(r) ~= "number" or type(g) ~= "number" or type(b) ~= "number" then return nil end
+        return r, g, b
+    end
+    local r, g, b = color.r, color.g, color.b
+    if Echo.IsSecret(r) or Echo.IsSecret(g) or Echo.IsSecret(b) then return nil end
+    if type(r) ~= "number" or type(g) ~= "number" or type(b) ~= "number" then return nil end
+    return r, g, b
+end
+
+--- The player's own guild emblem, for the Guild tile's face. Reads
+-- C_GuildInfo.GetGuildTabardInfo("player") and caches the result for
+-- View.GUILD_TABARD_CACHE_SECONDS so repaints don't call the API every frame. nil when not
+-- in a guild, the API doesn't exist (Forever), or the emblem is missing, secret or 0.
+-- @return table|nil { emblem, er, eg, eb, br, bg, bb }
+function View.GuildTabard()
+    local now = (type(GetTime) == "function") and GetTime() or 0
+    if guildTabardCache.checkedAt and (now - guildTabardCache.checkedAt) < View.GUILD_TABARD_CACHE_SECONDS then
+        return guildTabardCache.tabard
+    end
+    guildTabardCache.checkedAt = now
+    guildTabardCache.tabard = nil
+
+    if type(IsInGuild) ~= "function" then return nil end
+    local ok, inGuild = pcall(IsInGuild)
+    if not ok or Echo.IsSecret(inGuild) or inGuild ~= true then return nil end
+
+    local api = type(C_GuildInfo) == "table" and C_GuildInfo.GetGuildTabardInfo
+    if type(api) ~= "function" then return nil end
+    local infoOk, info = pcall(api, "player")
+    if not infoOk or Echo.IsSecret(info) or type(info) ~= "table" then return nil end
+
+    local emblem = info.emblemFileID
+    if Echo.IsSecret(emblem) then return nil end
+    if (type(emblem) ~= "string" and type(emblem) ~= "number") or emblem == 0 then return nil end
+
+    local er, eg, eb = ColorRGB(info.emblemColor)
+    local br, bg, bb = ColorRGB(info.backgroundColor)
+    if not er or not br then return nil end
+
+    guildTabardCache.tabard = { emblem = emblem, er = er, eg = eg, eb = eb, br = br, bg = bg, bb = bb }
+    return guildTabardCache.tabard
+end
+
 -- ChatTypeInfo keys, so each kind uses Blizzard's own chat colour.
 View.CHAT_TYPE = {
     whisper = "WHISPER", bnet = "BN_WHISPER", party = "PARTY", raid = "RAID",
@@ -263,6 +333,10 @@ function View.FaceBackground(spec)
     if spec.face == "icon" and spec.icon == View.BNET_LOGO then
         return View.BNET.r, View.BNET.g, View.BNET.b, 0.95
     end
+    if spec.face == "tabard" then
+        local t = spec.tabard
+        return t.br, t.bg, t.bb, 0.95
+    end
     if spec.face == "glyph" or spec.face == "icon" then
         local bg = View.GLYPH_BG
         return bg[1], bg[2], bg[3], bg[4]
@@ -363,6 +437,20 @@ function View.TileSpec(conv)
             spec.letter = short
         end
         spec.r, spec.g, spec.b = View.ChatColor(kind)
+    elseif kind == "guild" then
+        local tabard = View.GuildTabard()
+        if tabard then
+            spec.face = "tabard"
+            spec.tabard = tabard
+            spec.label = L["ECHO_KIND_GUILD"]
+            spec.r, spec.g, spec.b = tabard.br, tabard.bg, tabard.bb
+            spec.glyph = true
+        else
+            spec.face = "glyph"
+            spec.glyph = true
+            spec.letter = View.GLYPHS.guild
+            spec.r, spec.g, spec.b = View.ChatColor(kind)
+        end
     else
         spec.face = "glyph"
         spec.glyph = true

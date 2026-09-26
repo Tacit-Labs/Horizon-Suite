@@ -212,6 +212,7 @@ end
 
 local ROSTER_EVENTS = { "GROUP_ROSTER_UPDATE", "GUILD_ROSTER_UPDATE", "FRIENDLIST_UPDATE" }
 local BNET_EVENT = "BN_FRIEND_INFO_CHANGED"
+local GUILD_TABARD_EVENT = "PLAYER_GUILD_UPDATE"
 
 local frame
 
@@ -276,6 +277,9 @@ end
 --- @param _ Frame  the event frame (unused)
 -- @param event string
 local function OnRosterEvent(_, event)
+    if event == GUILD_TABARD_EVENT or event == "GUILD_ROSTER_UPDATE" then
+        if Echo.View and Echo.View.ClearGuildTabardCache then Echo.View.ClearGuildTabardCache() end
+    end
     if event == BNET_EVENT then
         HandleRosterEvent(BnetConversations())
     else
@@ -303,6 +307,7 @@ function Class.Enable()
         frame:SetScript("OnEvent", OnRosterEvent)
     end
     for _, event in ipairs(ROSTER_EVENTS) do pcall(frame.RegisterEvent, frame, event) end
+    pcall(frame.RegisterEvent, frame, GUILD_TABARD_EVENT)
     if addon.Platform and addon.Platform.Has("bnetWhispers") then
         pcall(frame.RegisterEvent, frame, BNET_EVENT)
     end

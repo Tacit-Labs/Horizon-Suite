@@ -5042,6 +5042,200 @@ run(`
   S.Reset()
 `, 'echo-group-card');
 
+// --- Guild tabard: your own guild emblem on the Guild tile ------------------------------
+run(`
+  local Echo = HorizonSuite.Echo
+  local V = Echo.View
+  local saved = { IsInGuild = IsInGuild, C_GuildInfo = C_GuildInfo, GetTime = GetTime }
+
+  local now = 1000
+  GetTime = function() return now end
+
+  -- Not in a guild: nil, no API call attempted.
+  IsInGuild = function() return false end
+  C_GuildInfo = { GetGuildTabardInfo = function() error("should not be called") end }
+  V.ClearGuildTabardCache()
+  check("not in a guild reads nil", V.GuildTabard() == nil, "?")
+
+  -- No API on this client (Forever): nil.
+  IsInGuild = function() return true end
+  C_GuildInfo = nil
+  V.ClearGuildTabardCache()
+  check("no C_GuildInfo.GetGuildTabardInfo reads nil", V.GuildTabard() == nil, "?")
+
+  -- A colour object exposing :GetRGB().
+  local function ColorObj(r, g, b) return { GetRGB = function(self) return self.r, self.g, self.b end, r = r, g = g, b = b } end
+  C_GuildInfo = {
+    GetGuildTabardInfo = function(unit)
+      if unit ~= "player" then return nil end
+      return {
+        emblemFileID = 12345,
+        emblemColor = ColorObj(0.2, 0.4, 0.6),
+        backgroundColor = ColorObj(0.9, 0.1, 0.3),
+      }
+    end,
+  }
+  V.ClearGuildTabardCache()
+  local t1 = V.GuildTabard()
+  check("tabard read via GetRGB: emblem", t1 and t1.emblem == 12345, t1)
+  check("tabard read via GetRGB: emblem colour", t1 and t1.er == 0.2 and t1.eg == 0.4 and t1.eb == 0.6, t1)
+  check("tabard read via GetRGB: background colour", t1 and t1.br == 0.9 and t1.bg == 0.1 and t1.bb == 0.3, t1)
+
+  -- A cache hit within 5 seconds returns the same table without calling the API again.
+  local calls = 0
+  C_GuildInfo = {
+    GetGuildTabardInfo = function()
+      calls = calls + 1
+      return { emblemFileID = 1, emblemColor = { r = 1, g = 1, b = 1 }, backgroundColor = { r = 1, g = 1, b = 1 } }
+    end,
+  }
+  now = 1002
+  local cached = V.GuildTabard()
+  check("cache hit within 5s: same table", rawequal(cached, t1), "?")
+  check("cache hit within 5s: API not called again", calls == 0, calls)
+
+  now = 1005.5
+  local refreshed = V.GuildTabard()
+  check("cache expires after 5s: API called", calls == 1, calls)
+  check("cache expires after 5s: new tabard reflects the fresh read", refreshed and refreshed.emblem == 1, refreshed)
+
+  -- An event clears the cache immediately, before the 5s window elapses.
+  now = 1005.6
+  C_GuildInfo = {
+    GetGuildTabardInfo = function()
+      return { emblemFileID = 2, emblemColor = { r = 0, g = 0, b = 0 }, backgroundColor = { r = 0, g = 0, b = 0 } }
+    end,
+  }
+  local stillCached = V.GuildTabard()
+  check("still within the window: unchanged", stillCached and stillCached.emblem == 1, stillCached)
+  V.ClearGuildTabardCache()
+  local afterEvent = V.GuildTabard()
+  check("cache cleared by an event: refreshes immediately", afterEvent and afterEvent.emblem == 2, afterEvent)
+
+  -- A colour given as plain r/g/b fields (no :GetRGB()).
+  C_GuildInfo = {
+    GetGuildTabardInfo = function()
+      return {
+        emblemFileID = "tabard-path",
+        emblemColor = { r = 0.5, g = 0.5, b = 0.25 },
+        backgroundColor = { r = 0.1, g = 0.2, b = 0.3 },
+      }
+    end,
+  }
+  V.ClearGuildTabardCache()
+  local t2 = V.GuildTabard()
+  check("tabard read via r/g/b fields: emblem path", t2 and t2.emblem == "tabard-path", t2)
+  check("tabard read via r/g/b fields: emblem colour", t2 and t2.er == 0.5 and t2.eg == 0.5 and t2.eb == 0.25, t2)
+  check("tabard read via r/g/b fields: background colour", t2 and t2.br == 0.1 and t2.bg == 0.2 and t2.bb == 0.3, t2)
+
+  -- A secret emblem ID: nil, never compared or typed.
+  C_GuildInfo = {
+    GetGuildTabardInfo = function()
+      return { emblemFileID = SECRET(1), emblemColor = { r = 1, g = 1, b = 1 }, backgroundColor = { r = 1, g = 1, b = 1 } }
+    end,
+  }
+  V.ClearGuildTabardCache()
+  check("a secret emblem reads nil", V.GuildTabard() == nil, "?")
+
+  -- emblemFileID missing or 0: nil.
+  C_GuildInfo = {
+    GetGuildTabardInfo = function()
+      return { emblemFileID = 0, emblemColor = { r = 1, g = 1, b = 1 }, backgroundColor = { r = 1, g = 1, b = 1 } }
+    end,
+  }
+  V.ClearGuildTabardCache()
+  check("emblemFileID 0 reads nil", V.GuildTabard() == nil, "?")
+  C_GuildInfo = {
+    GetGuildTabardInfo = function() return { emblemColor = { r = 1, g = 1, b = 1 }, backgroundColor = { r = 1, g = 1, b = 1 } } end,
+  }
+  V.ClearGuildTabardCache()
+  check("missing emblemFileID reads nil", V.GuildTabard() == nil, "?")
+
+  IsInGuild, C_GuildInfo, GetTime = saved.IsInGuild, saved.C_GuildInfo, saved.GetTime
+  V.ClearGuildTabardCache()
+`, 'echo-guild-tabard');
+
+// --- Guild tile: the tabard face, its label, and the fallback G glyph -------------------
+run(`
+  local Echo = HorizonSuite.Echo
+  local S, V = Echo.Store, Echo.View
+  S.Reset()
+  V.ClearGuildTabardCache()
+  local saved = { IsInGuild = IsInGuild, C_GuildInfo = C_GuildInfo, GetTime = GetTime }
+
+  -- No API at all (Forever): the G glyph, unchanged.
+  IsInGuild = nil
+  C_GuildInfo = nil
+  GetTime = nil
+  S.Add({ convKey = "guild", text = "gz" })
+  local fallbackSpec = V.TileSpec(S.Get("guild"))
+  check("no guild API: still the G glyph", fallbackSpec.face == "glyph" and fallbackSpec.letter == "G", fallbackSpec.face)
+
+  -- A real tabard: face "tabard", the Guild label, and the background colour on the spec.
+  local now = 2000
+  GetTime = function() return now end
+  IsInGuild = function() return true end
+  C_GuildInfo = {
+    GetGuildTabardInfo = function()
+      return {
+        emblemFileID = 999,
+        emblemColor = { r = 0.25, g = 0.5, b = 0.75 },
+        backgroundColor = { r = 0.6, g = 0.7, b = 0.8 },
+      }
+    end,
+  }
+  V.ClearGuildTabardCache()
+  local tabardSpec = V.TileSpec(S.Get("guild"))
+  check("with a tabard: face is tabard", tabardSpec.face == "tabard", tabardSpec.face)
+  check("with a tabard: carries the tabard table", tabardSpec.tabard and tabardSpec.tabard.emblem == 999, "?")
+  check("with a tabard: labelled Guild", tabardSpec.label == HorizonSuite.L["ECHO_KIND_GUILD"], tabardSpec.label)
+  check("with a tabard: background colour on the spec", tabardSpec.r == 0.6 and tabardSpec.g == 0.7 and tabardSpec.b == 0.8, "?")
+
+  -- FaceBackground follows the tabard's background colour at alpha 0.95 (the genie colour
+  -- rides on this automatically, EchoCard.GenieColor -> FaceBackground).
+  local fr, fg, fb, fa = V.FaceBackground(tabardSpec)
+  check("FaceBackground: tabard background colour", fr == 0.6 and fg == 0.7 and fb == 0.8, "?")
+  check("FaceBackground: alpha 0.95", fa == 0.95, fa)
+
+  IsInGuild, C_GuildInfo, GetTime = saved.IsInGuild, saved.C_GuildInfo, saved.GetTime
+  V.ClearGuildTabardCache()
+  S.Reset()
+`, 'echo-guild-tile-tabard');
+
+// --- Painter: the tabard face paints the emblem, and a later paint resets the tint ------
+run(`
+  CreateFrame = STUB_CREATE_FRAME
+  local Echo = HorizonSuite.Echo
+  local icon = STUB_FRAME()
+  local face = { icon = icon }
+
+  local tabardSpec = {
+    face = "tabard",
+    tabard = { emblem = "Interface\\\\TabardEmblems\\\\Emblem_1", er = 0.3, eg = 0.6, eb = 0.9 },
+  }
+  Echo.PaintTileFace(face, tabardSpec)
+  check("tabard paint: texture is the emblem", icon.texture == tabardSpec.tabard.emblem, icon.texture)
+  check("tabard paint: full texcoords", icon.texCoord and icon.texCoord[1] == 0 and icon.texCoord[2] == 1, "?")
+  check("tabard paint: vertex colour is the emblem colour", icon.vertexColor
+        and icon.vertexColor[1] == 0.3 and icon.vertexColor[2] == 0.6 and icon.vertexColor[3] == 0.9
+        and icon.vertexColor[4] == 1, icon.vertexColor)
+  check("tabard paint: shown", icon.shown == true, "?")
+
+  -- A recycled tile painting something else afterwards loses the emblem tint.
+  local iconSpec = { face = "icon", icon = "Interface\\\\Icons\\\\INV_Misc_Coin_01" }
+  Echo.PaintTileFace(face, iconSpec)
+  check("a later icon paint resets the vertex colour to white", icon.vertexColor
+        and icon.vertexColor[1] == 1 and icon.vertexColor[2] == 1 and icon.vertexColor[3] == 1
+        and icon.vertexColor[4] == 1, icon.vertexColor)
+
+  Echo.PaintTileFace(face, tabardSpec)
+  local letterSpec = { face = "letter", letter = "B", r = 1, g = 1, b = 1 }
+  Echo.PaintTileFace(face, letterSpec)
+  check("a later non-icon paint also resets the vertex colour to white", icon.vertexColor
+        and icon.vertexColor[1] == 1 and icon.vertexColor[2] == 1 and icon.vertexColor[3] == 1
+        and icon.vertexColor[4] == 1, icon.vertexColor)
+`, 'echo-tabard-painter');
+
 // --- Redraw: one repaint per frame -------------------------------------------
 run(`
   CreateFrame = STUB_CREATE_FRAME
