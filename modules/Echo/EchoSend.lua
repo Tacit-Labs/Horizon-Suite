@@ -274,6 +274,7 @@ local function ChannelKeyForSlot(n)
     local keyName = Echo.Events.ChannelKeyName(name, zone)
     return keyName and Store.KeyFor("channel", keyName) or nil
 end
+Send.ChannelKeyForSlot = ChannelKeyForSlot
 
 --- The whisper conversation key for a typed name. The realm is added when none is given.
 -- An existing whisper wins whatever the case typed; a new name gets a capital first letter

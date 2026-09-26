@@ -178,6 +178,7 @@ modules/Echo/EchoStack.lua
 modules/Echo/EchoMenu.lua
 modules/Echo/EchoCompose.lua
 modules/Echo/EchoCard.lua
+modules/Echo/EchoInput.lua
 modules/Echo/EchoOptions.lua
 modules/Echo/EchoSlash.lua
 modules/Echo/EchoModule.lua

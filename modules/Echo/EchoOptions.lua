@@ -70,6 +70,12 @@ function Echo.TrackFont(obj, size, flags)
     obj:SetFont(Echo.FontPath(), size, flags)
 end
 
+--- Stop re-fonting an object on font changes (a borrowed Blizzard FontString given back).
+-- @param obj FontString|EditBox
+function Echo.UntrackFont(obj)
+    tracked[obj] = nil
+end
+
 local appliedPath  -- the path last pushed to every tracked object; Echo.ApplyFont skips a no-op call
 
 --- Re-font every tracked object. Does nothing when the resolved path is unchanged.
@@ -116,4 +122,6 @@ function Echo.ApplyOptions()
     if Echo.Redraw then Echo.Redraw.Mark("tiles") end
     local filterOn = Echo.Setting("echoHideStoredWhispers") == true
     if filterOn ~= Echo.Filter.active then Echo.Filter.Apply(filterOn) end
+    -- Dock or undock Blizzard's input line, and re-anchor it to the new card size and edge.
+    if Echo.Input then Echo.Input.Enable() end
 end

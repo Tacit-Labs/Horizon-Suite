@@ -164,15 +164,21 @@ local function MenuAvailable()
 end
 
 -- The message area runs from under the header (and a group card's tabs, and the pin
--- strip) to the reply box, or, on a read-only feed card with no reply box, down to the
--- card's bottom padding.
-local function AnchorArea(feed, grouped, pinned)
+-- strip) to the reply box, or, with no reply box (a read-only feed, or a chat the docked
+-- input line sends to), down to the card's bottom padding.
+local function AnchorArea(noReply, grouped, pinned)
     local top = Card.AREA_TOP + (grouped and Card.TAB_STRIP or 0) + (pinned and Card.PIN_STRIP or 0)
-    local bottom = feed and Card.PAD or Card.AREA_BOTTOM
+    local bottom = noReply and Card.PAD or Card.AREA_BOTTOM
     area:ClearAllPoints()
     area:SetPoint("TOPLEFT", root, "TOPLEFT", Card.PAD, -top)
     area:SetPoint("BOTTOMRIGHT", root, "BOTTOMRIGHT", -Card.PAD, bottom)
     areaHeight = Card.HEIGHT - top - bottom
+end
+
+-- The docked input line (Echo.Input) sits under the card while it is shown, and at the
+-- column's foot otherwise: tell it whenever the card shows, hides or moves.
+local function NotifyInput()
+    if Echo.Input then Echo.Input.Reanchor() end
 end
 
 local function Create()
@@ -192,6 +198,7 @@ local function Create()
         ParkDraft()
         if edit then edit:ClearFocus() end
         StopEffects()
+        NotifyInput()
     end)
 
     rule = root:CreateTexture(nil, "OVERLAY")
@@ -1061,12 +1068,14 @@ function Card.Render()
     PaintMode(conv)
     edit.placeholder:SetShown(edit:GetText() == "" and not edit:HasFocus())
 
-    -- Feeds are read-only: no reply box or send button.
+    -- Feeds are read-only: no reply box or send button. Nor is there one while Blizzard's
+    -- docked input line is shown under the card and sends to this conversation.
     local feed = View.IsFeed(conv.kind)
-    if feed then edit:ClearFocus() end
-    edit:SetShown(not feed)
-    send:SetShown(not feed)
-    AnchorArea(feed, groupIndex ~= nil, PaintPins(conv, groupIndex ~= nil))
+    local noReply = feed or (Echo.Input ~= nil and Echo.Input.Covers(conv.key))
+    if noReply then edit:ClearFocus() end
+    edit:SetShown(not noReply)
+    send:SetShown(not noReply)
+    AnchorArea(noReply, groupIndex ~= nil, PaintPins(conv, groupIndex ~= nil))
 
     RenderMessages(conv)
     Store.MarkRead(conv.key)
@@ -1086,7 +1095,10 @@ local function Anchor()
     end
 end
 
-function Card.Reanchor() Anchor() end
+function Card.Reanchor()
+    Anchor()
+    NotifyInput()
+end
 
 -- The open and close effect: Echo.Genie pours a sheet out of the clicked tile (or back
 -- into it); the genie itself fades the card in over the sheet's last stretch.
@@ -1187,6 +1199,7 @@ function Card.Open(convKey, focus, fromTile)
     hint:Hide()
     Anchor()
     root:Show()
+    NotifyInput()
     Card.Render()
     if genie then PlayOpen(fromTile) end
     if focus then Card.Focus() end
@@ -1259,6 +1272,7 @@ function HideNow()
     if hint then hint:Hide() end
     StopEffects()
     root:Hide()
+    NotifyInput()
 end
 
 --- Close the card at once: Escape, the chevron and combat all need it immediate, so this

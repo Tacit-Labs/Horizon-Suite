@@ -298,6 +298,9 @@ local tail = {
 
     Section(L["ECHO_SECTION_BLIZZARD_CHAT"]),
     Toggle(L["ECHO_HIDE_STORED"], L["ECHO_HIDE_STORED_DESC"], "echoHideStoredWhispers", D.echoHideStoredWhispers),
+    Toggle(L["ECHO_DOCK_INPUT"], L["ECHO_DOCK_INPUT_DESC"], "echoDockInput", D.echoDockInput),
+    Toggle(L["ECHO_INPUT_ALWAYS_VISIBLE"], L["ECHO_INPUT_ALWAYS_VISIBLE_DESC"], "echoInputAlwaysVisible", D.echoInputAlwaysVisible,
+        { visibleWhen = function() return getDB("echoDockInput", D.echoDockInput) ~= false end }),
 
     Section(L["ECHO_SECTION_CARD"]),
     IntSlider("echoCardWidth",  L["ECHO_CARD_WIDTH"],  L["ECHO_CARD_SIZE_DESC"], 10),

@@ -100,6 +100,7 @@ function Echo.Init()
     Echo.Tiles.Enable()
     Echo.Stack.Enable()
     Echo.Card.Enable()
+    Echo.Input.Enable()
     Echo.Links.Hook()
     Echo.ApplyOptions()
     if not lifecycle then
@@ -122,6 +123,7 @@ function Echo.Disable()
     if lifecycle then lifecycle:UnregisterAllEvents() end
     Echo.Redraw.Clear()
     restoredAt = nil
+    Echo.Input.Disable()
     Echo.Card.Disable()
     Echo.Stack.Disable()
     Echo.Tiles.Disable()

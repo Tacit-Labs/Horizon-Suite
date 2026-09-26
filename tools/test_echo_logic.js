@@ -137,6 +137,7 @@ const FILES = [
   'modules/Echo/EchoMenu.lua',
   'modules/Echo/EchoCompose.lua',
   'modules/Echo/EchoCard.lua',
+  'modules/Echo/EchoInput.lua',
   'modules/Echo/EchoOptions.lua',
   'modules/Echo/EchoSlash.lua',
 ];
@@ -7948,6 +7949,262 @@ run(`
     check("probe input: the probe names ChatFrame1EditBox", ${body.includes('ChatFrame1EditBox')}, "not named")
   `, 'probe-input-grep');
 }
+
+// --- Input: Blizzard's input line, docked under Echo and restyled (plan 12, Task 2) -----------
+run(`
+  local A, Echo = HorizonSuite, HorizonSuite.Echo
+  local S, T, K, C, I, V = Echo.Store, Echo.Tiles, Echo.Stack, Echo.Card, Echo.Input, Echo.View
+  local saved = { hook = hooksecurefunc, util = ChatFrameUtil, box = ChatFrame1EditBox, info = ChatTypeInfo,
+    chan = GetChannelName, getDB = A.GetDB, setDB = A.SetDB, create = CreateFrame, defaults = A.ECHO_DEFAULTS }
+  local db = {}
+  A.GetDB = function(k, d) if db[k] ~= nil then return db[k] end return d end
+  A.SetDB = function(k, v) db[k] = v end
+  A.ECHO_DEFAULTS = nil
+  CreateFrame = STUB_CREATE_FRAME
+  check("input: EchoInput.lua is loaded", I ~= nil, "no Echo.Input")
+
+  -- A stand-in for Blizzard's ChatFrame1EditBox that records every call Echo makes.
+  local function Region(kind, alpha)
+    local r = { kind = kind, alpha = alpha, font = { "Fonts\\\\ARIALN.TTF", 14, "OUTLINE" } }
+    function r:IsObjectType(t) return t == self.kind end
+    function r:GetAlpha() return self.alpha end
+    function r:SetAlpha(a) self.alpha = a end
+    function r:GetFont() return self.font[1], self.font[2], self.font[3] end
+    function r:SetFont(p, s, f) self.font = { p, s, f } end
+    return r
+  end
+  local chatFrame = STUB_FRAME()
+  local box = { calls = { focus = 0, attribute = 0 }, attrs = { chatType = "SAY" }, scale = 0.9, alpha = 1,
+    shown = false, level = 5, strata = "LOW",
+    points = { { "BOTTOMLEFT", chatFrame, "TOPLEFT", -5, -2 }, { "BOTTOMRIGHT", chatFrame, "TOPRIGHT", 5, -2 } } }
+  local regions = { Region("Texture", 1), Region("Texture", 0.8), Region("FontString", 1) }
+  function box:GetNumPoints() return #self.points end
+  function box:GetPoint(i) local p = self.points[i]; return p[1], p[2], p[3], p[4], p[5] end
+  function box:ClearAllPoints() self.points = {} end
+  function box:SetPoint(...) self.points[#self.points + 1] = { ... } end
+  function box:GetScale() return self.scale end
+  function box:SetScale(s) self.scale = s end
+  function box:GetAlpha() return self.alpha end
+  function box:SetAlpha(a) self.alpha = a end
+  function box:Show() self.shown = true end
+  function box:Hide() self.shown = false end
+  function box:SetShown(v) self.shown = v and true or false end
+  function box:IsShown() return self.shown end
+  function box:GetRegions() return regions[1], regions[2], regions[3] end
+  function box:GetAttribute(k) return self.attrs[k] end
+  function box:SetAttribute() self.calls.attribute = self.calls.attribute + 1 end
+  function box:SetFocus() self.calls.focus = self.calls.focus + 1 end
+  function box:HasFocus() return false end
+  function box:GetFrameLevel() return self.level end
+  function box:GetFrameStrata() return self.strata end
+  local other = { shown = false }
+  function other:Show() self.shown = true end
+  ChatFrame1EditBox = box
+  local originalPoints = { { box:GetPoint(1) }, { box:GetPoint(2) } }
+
+  local hooks = {}
+  hooksecurefunc = function(a, b, c)
+    if type(a) == "table" then hooks[#hooks + 1] = { target = a, name = b, fn = c }
+    else hooks[#hooks + 1] = { name = a, fn = b } end
+  end
+  ChatFrameUtil = { ActivateChat = function() end, DeactivateChat = function() end, UpdateHeader = function() end }
+  local function fire(name, ...)
+    for _, h in ipairs(hooks) do if h.name == name then h.fn(...) end end
+  end
+
+  S.Reset()
+  T.Enable()
+  K.Enable()
+  C.Enable()
+  -- An earlier section leaves the column's global cleared; the stack button's parent is the column.
+  local savedColumnGlobal = _G.HorizonSuiteEchoColumn
+  local column = T.StackButton().parent
+  _G.HorizonSuiteEchoColumn = column
+  local savedColumn = { GetScale = rawget(column, "GetScale"), GetLeft = rawget(column, "GetLeft"), GetParent = rawget(column, "GetParent") }
+  column.GetScale = function() return 1.25 end
+  column.GetLeft = nil
+  local stackButton = T.StackButton()
+  check("input: Tiles.StackButton is the Echo icon", stackButton == T._stackButton(), "?")
+
+  -- Enable records and restyles.
+  db.echoColumnEdge = "right"
+  I.Enable()
+  I.Enable()
+  local names = {}
+  for _, h in ipairs(hooks) do names[#names + 1] = h.name end
+  check("input: activate, deactivate and header are hooked, once", #hooks == 3, table.concat(names, ","))
+  check("input: the hooks are post-hooks on ChatFrameUtil", hooks[1].target == ChatFrameUtil and hooks[2].target == ChatFrameUtil
+    and hooks[3].target == ChatFrameUtil, "?")
+  check("input: Blizzard's textures go transparent", regions[1].alpha == 0 and regions[2].alpha == 0, regions[1].alpha .. "," .. regions[2].alpha)
+  check("input: its FontStrings keep their alpha", regions[3].alpha == 1, regions[3].alpha)
+  check("input: its FontStrings take Echo's font at their own size", regions[3].font[1] == Echo.FontPath() and regions[3].font[2] == 14,
+    tostring(regions[3].font[1]) .. " " .. tostring(regions[3].font[2]))
+  local bg = I._background()
+  local bgRR = bg and rawget(bg, "_echoRound")
+  check("input: a rounded background with the SMALL radius and a border", bgRR ~= nil and bgRR.corners.tl == Echo.Round.SMALL and bgRR.border ~= nil, "?")
+  check("input: the background sits one level below the box, in its strata", bg and bg.frameLevel == 4, bg and bg.frameLevel)
+  local fill = bgRR and bgRR.fill.middleBand.vertexColor
+  check("input: the background is Echo's panel colour", fill and fill[1] == V.PANEL_BG[1] and fill[4] == V.PANEL_BG[4], fill and table.concat(fill, ","))
+  check("input: the box takes the column's scale", box.scale == 1.25, box.scale)
+
+  -- The anchor: the column's foot, opening on the panel side, at the card's width.
+  local W = C.WIDTH
+  local p1, p2 = box.points[1], box.points[2]
+  check("input: right edge, beside the icon on its left", #box.points == 2 and p1[1] == "RIGHT" and p1[2] == stackButton and p1[3] == "LEFT" and p1[4] == -8,
+    p1 and (tostring(p1[1]) .. " " .. tostring(p1[3]) .. " " .. tostring(p1[4])))
+  check("input: right edge, the card's width wide", p2 and p2[1] == "LEFT" and p2[2] == stackButton and p2[3] == "LEFT" and p2[4] == -8 - W, p2 and p2[4])
+  db.echoColumnEdge = "left"
+  Echo.ApplyOptions()
+  p1, p2 = box.points[1], box.points[2]
+  check("input: left edge, beside the icon on its right", #box.points == 2 and p1[1] == "LEFT" and p1[2] == stackButton and p1[3] == "RIGHT" and p1[4] == 8,
+    p1 and (tostring(p1[1]) .. " " .. tostring(p1[3]) .. " " .. tostring(p1[4])))
+  check("input: left edge, the card's width wide", p2 and p2[1] == "RIGHT" and p2[3] == "RIGHT" and p2[4] == 8 + W, p2 and p2[4])
+  db.echoColumnEdge = "right"
+  T.ApplyPosition()
+  check("input: a column move re-anchors it", box.points[1][1] == "RIGHT", box.points[1][1])
+
+  -- The anchor follows the card: shown, hidden, the column foot again.
+  S.Add({ convKey = "w:Brisa-Horizon", text = "got the leather", sender = "Brisa-Horizon" })
+  S.Add({ convKey = "guild", text = "raid at 8", sender = "Vexa-Horizon" })
+  C.Open("w:Brisa-Horizon")
+  local root = C._frames().root
+  p1, p2 = box.points[1], box.points[2]
+  check("input: under the open card, flush with its left edge, 4px down", #box.points == 2 and p1[1] == "TOPLEFT" and p1[2] == root and p1[3] == "BOTTOMLEFT"
+    and p1[4] == 0 and p1[5] == -4, p1 and (tostring(p1[1]) .. " " .. tostring(p1[3]) .. " " .. tostring(p1[5])))
+  check("input: and with its right edge, so it is the card's width", p2 and p2[1] == "TOPRIGHT" and p2[2] == root and p2[3] == "BOTTOMRIGHT" and p2[5] == -4, p2 and p2[1])
+  C.Hide()
+  check("input: back at the column's foot when the card hides", box.points[1][1] == "RIGHT" and box.points[1][2] == stackButton, box.points[1][1])
+  C.Open("w:Brisa-Horizon")
+  root.shown = false  -- Escape hides the root directly; the stand-in doesn't fire OnHide itself
+  root.scripts.OnHide(root)
+  check("input: a card closed by Escape also sends it back", box.points[1][1] == "RIGHT", box.points[1][1])
+  C.Open("w:Brisa-Horizon")
+  C.Reanchor()
+  check("input: re-anchoring the card keeps it under the card", box.points[1][2] == root, "moved")
+
+  -- Show and hide from Blizzard's own activate and deactivate.
+  fire("DeactivateChat", box)
+  check("input: deactivate hides it", box.shown == false, "shown")
+  check("input: and its background", bg.shown == false, "shown")
+  fire("ActivateChat", box)
+  check("input: activate shows it", box.shown == true, "hidden")
+  check("input: and its background", bg.shown == true, "hidden")
+  fire("DeactivateChat", box)
+  fire("ActivateChat", other)
+  check("input: another edit box's activate is ignored", box.shown == false and other.shown == false, "touched")
+  db.echoInputAlwaysVisible = true
+  box.alpha = 0.35
+  fire("DeactivateChat", box)
+  check("input: always visible keeps it shown on deactivate", box.shown == true and bg.shown == true, "hidden")
+  check("input: at full alpha", box.alpha == 1, box.alpha)
+  I.Disable()
+  box:Hide()
+  I.Enable()
+  check("input: always visible shows it at enable", box.shown == true, "hidden")
+  db.echoInputAlwaysVisible = nil
+
+  -- The header hook colours the border from the chat type.
+  local savedChan = GetChannelName
+  ChatTypeInfo = { GUILD = { r = 0.25, g = 1, b = 0.25 }, CHANNEL = { r = 1, g = 0.75, b = 0.75 }, CHANNEL2 = { r = 0.9, g = 0.6, b = 0.3 } }
+  GetChannelName = function(q)
+    if q == 2 or q == "Trade - City" then return 2, "Trade - City", 0 end
+    return 0
+  end
+  local function ring() return bgRR.border.ring.tl.vertexColor end
+  box.attrs.chatType = "GUILD"
+  fire("UpdateHeader", box)
+  check("input: the header hook colours the border with the chat type's colour", ring()[1] == 0.25 and ring()[2] == 1 and ring()[3] == 0.25, table.concat(ring(), ","))
+  box.attrs.chatType, box.attrs.channelTarget = "CHANNEL", 2
+  fire("UpdateHeader", box)
+  check("input: a channel uses its own channel colour", ring()[1] == 0.9 and ring()[2] == 0.6, table.concat(ring(), ","))
+  box.attrs.chatType = "GUILD"
+  fire("UpdateHeader", other)
+  check("input: another box's header is ignored", ring()[1] == 0.9, table.concat(ring(), ","))
+
+  -- Input.TargetKey: the conversation the line sends to.
+  local function target(chatType, extra)
+    box.attrs = { chatType = chatType }
+    for k, v in pairs(extra or {}) do box.attrs[k] = v end
+    return I.TargetKey()
+  end
+  check("target: a whisper matches its conversation whatever the case", target("WHISPER", { tellTarget = "brisa-horizon" }) == "w:Brisa-Horizon", I.TargetKey())
+  check("target: a whisper without a realm gets yours", target("WHISPER", { tellTarget = "Vexa" }) == "w:Vexa-Horizon", I.TargetKey())
+  check("target: guild", target("GUILD") == "guild", I.TargetKey())
+  check("target: officer", target("OFFICER") == "officer", I.TargetKey())
+  check("target: party", target("PARTY") == "party", I.TargetKey())
+  check("target: raid", target("RAID") == "raid", I.TargetKey())
+  check("target: instance", target("INSTANCE_CHAT") == "instance", I.TargetKey())
+  check("target: say is Nearby", target("SAY") == "nearby", I.TargetKey())
+  check("target: yell is Nearby", target("YELL") == "nearby", I.TargetKey())
+  check("target: emote is Nearby", target("EMOTE") == "nearby", I.TargetKey())
+  check("target: a channel by its joined name", target("CHANNEL", { channelTarget = 2 }) == "ch:Trade", I.TargetKey())
+  check("target: a channel not joined has none", target("CHANNEL", { channelTarget = 7 }) == nil, I.TargetKey())
+  check("target: Battle.net is Task 3's", target("BN_WHISPER", { tellTarget = "Friend" }) == nil, I.TargetKey())
+  check("target: a secret chat type has none", target(SECRET("GUILD")) == nil, "keyed")
+  check("target: a secret whisper name has none", target("WHISPER", { tellTarget = SECRET("Brisa-Horizon") }) == nil, "keyed")
+
+  -- The card hides its reply box while the line targets its conversation.
+  local f = C._frames()
+  local function areaBottom() return f.area.points[2] and f.area.points[2][5] end
+  C.Show("w:Brisa-Horizon")
+  fire("ActivateChat", box)
+  target("WHISPER", { tellTarget = "Brisa-Horizon" })
+  fire("UpdateHeader", box)
+  check("card: the reply box hides while the line targets this chat", not f.edit:IsShown() and not f.send:IsShown(), "shown")
+  check("card: the message area takes the reply box's space", areaBottom() == C.PAD, areaBottom())
+  target("GUILD")
+  fire("UpdateHeader", box)
+  check("card: another target brings the reply box back", f.edit:IsShown() and f.send:IsShown(), "hidden")
+  check("card: and the area's bottom", areaBottom() == C.AREA_BOTTOM, areaBottom())
+  C.Show("guild")
+  check("card: switching the card to the targeted chat hides it", not f.edit:IsShown(), "shown")
+  fire("DeactivateChat", box)
+  check("card: a hidden line never replaces the reply box", f.edit:IsShown() and f.send:IsShown(), "hidden")
+  fire("ActivateChat", box)
+  check("card: activating the line hides it again", not f.edit:IsShown(), "shown")
+
+  -- Toggling the setting live restores everything, and the hooks then do nothing.
+  db.echoDockInput = false
+  Echo.ApplyOptions()
+  check("input: off restores the exact points", #box.points == 2 and box.points[1][1] == originalPoints[1][1] and box.points[1][2] == chatFrame
+    and box.points[1][4] == -5 and box.points[2][3] == "TOPRIGHT" and box.points[2][4] == 5 and box.points[2][5] == -2, box.points[1] and box.points[1][1])
+  check("input: off restores the scale", box.scale == 0.9, box.scale)
+  check("input: off restores the texture alphas", regions[1].alpha == 1 and regions[2].alpha == 0.8, regions[1].alpha .. "," .. regions[2].alpha)
+  check("input: off restores the font", regions[3].font[1] == "Fonts\\\\ARIALN.TTF" and regions[3].font[3] == "OUTLINE", regions[3].font[1])
+  check("input: off hides the background", bg.shown == false, "shown")
+  check("card: off brings the reply box back", f.edit:IsShown(), "hidden")
+  box.shown = true
+  fire("DeactivateChat", box)
+  check("input: the hooks do nothing while off", box.shown == true, "hidden")
+  fire("UpdateHeader", box)
+  C.Hide()
+  check("input: a card hiding doesn't move it while off", #box.points == 2 and box.points[1][2] == chatFrame, box.points[1] and tostring(box.points[1][2]))
+  local fontBefore = regions[3].font[1]
+  db.echoFontPath = "Fonts\\\\SKURRI.TTF"
+  Echo.ApplyFont()
+  check("input: an untracked FontString keeps Blizzard's font", regions[3].font[1] == fontBefore, regions[3].font[1])
+  db.echoFontPath = nil
+  Echo.ApplyFont()
+  db.echoDockInput = true
+  Echo.ApplyOptions()
+  check("input: on again docks it", box.points[1][2] == stackButton and regions[1].alpha == 0, box.points[1] and tostring(box.points[1][1]))
+  check("input: the hooks are still installed only once", #hooks == 3, #hooks)
+  I.Disable()
+  check("input: disable restores the points again", box.points[1][2] == chatFrame and box.scale == 0.9, box.scale)
+
+  check("input: never focuses Blizzard's input line", box.calls.focus == 0, box.calls.focus)
+  check("input: never sets its attributes", box.calls.attribute == 0, box.calls.attribute)
+
+  C.Disable()
+  K.Disable()
+  T.Disable()
+  column.GetScale, column.GetLeft, column.GetParent = savedColumn.GetScale, savedColumn.GetLeft, savedColumn.GetParent
+  _G.HorizonSuiteEchoColumn = savedColumnGlobal
+  GetChannelName = savedChan
+  hooksecurefunc, ChatFrameUtil, ChatFrame1EditBox, ChatTypeInfo = saved.hook, saved.util, saved.box, saved.info
+  A.GetDB, A.SetDB, CreateFrame, A.ECHO_DEFAULTS = saved.getDB, saved.setDB, saved.create, saved.defaults
+  S.Reset()
+`, 'echo-input');
 
 // --- Redraw: one repaint per frame -------------------------------------------
 run(`

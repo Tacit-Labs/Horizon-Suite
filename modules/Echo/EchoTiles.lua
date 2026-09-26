@@ -352,6 +352,8 @@ function Tiles.ApplyPosition()
     else
         column:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", -24 / scale, 240 / scale)
     end
+    -- The docked input line sits beside the Echo icon; follow the column's move.
+    if Echo.Input then Echo.Input.Reanchor() end
 end
 
 function Tiles.ResetPosition()
@@ -742,6 +744,10 @@ function Tiles.Disable()
     pending = {}
     Tiles.holding = false
 end
+
+--- The Echo icon at the column's foot (the stack button); the docked input line sits beside it.
+-- @return Button|nil
+function Tiles.StackButton() return stackButton end
 
 -- Test and debug handles.
 function Tiles._toast() return toast end
