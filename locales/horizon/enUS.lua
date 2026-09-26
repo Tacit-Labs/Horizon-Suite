@@ -3022,6 +3022,7 @@ L["ECHO_PIN_BLOCKED_SECRET"]                                  = "Can't pin a hid
 L["ECHO_PIN_BLOCKED_CHAT"]                                    = "This chat has 5 pins"
 L["ECHO_PIN_BLOCKED_TOTAL"]                                   = "You have 50 pins"
 L["ECHO_PIN_BLOCKED_UNSAVED"]                                 = "Can't save this chat yet"
+L["ECHO_PIN_ALL"]                                             = "Pin it in its own chat"
 L["ECHO_PIN_COUNTER"]                                         = "%d/%d"
 L["ECHO_NEARBY"]                                              = "Nearby"
 L["ECHO_NEARBY_SHORT"]                                        = "Near"

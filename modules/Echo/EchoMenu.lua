@@ -114,13 +114,19 @@ local BLOCKED = {
     chat    = "ECHO_PIN_BLOCKED_CHAT",
     total   = "ECHO_PIN_BLOCKED_TOTAL",
     unsaved = "ECHO_PIN_BLOCKED_UNSAVED",
+    all     = "ECHO_PIN_ALL",
 }
 
 -- The pin entry for one message: Pin message, Unpin message, or a disabled button saying
--- why it can't be pinned.
+-- why it can't be pinned. An All line mirrored from a chat pins its source record, in
+-- that chat; a printed All line can't be pinned.
 local function AddPinEntry(rootDescription, convKey, record)
     local Store = Echo.Store
     local L = addon.L
+    if Store.KindOf(convKey) == "all" and type(record.sourceRecord) == "table" and record.sourceKey
+        and Store.KindOf(record.sourceKey) ~= "all" then
+        convKey, record = record.sourceKey, record.sourceRecord
+    end
     local pins = Store.Pins(convKey)
     if Store.PinIndex(convKey, record, pins) then
         rootDescription:CreateButton(L["ECHO_UNPIN_MESSAGE"], function()

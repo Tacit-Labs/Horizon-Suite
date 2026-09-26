@@ -24,6 +24,17 @@ function Echo.IsSecret(v)
     return ok and secret == true
 end
 
+--- True when this client has the event (C_EventUtils.IsEventValid); true on a client
+-- without that API, where registering is pcalled anyway.
+-- @param event string
+-- @return boolean
+function Echo.IsEventValid(event)
+    local utils = _G.C_EventUtils
+    if not utils or type(utils.IsEventValid) ~= "function" then return true end
+    local ok, valid = pcall(utils.IsEventValid, event)
+    return ok and valid == true
+end
+
 Store.MAX_MESSAGES = 100
 Store.ALL_CAP = 500  -- the All view keeps more: it holds every chat's lines at once
 
@@ -416,6 +427,7 @@ end
 -- @return boolean ok
 -- @return string|nil reason  see History.AddPin; nil when ok
 function Store.PinMessage(convKey, record)
+    if Store.KindOf(convKey) == "all" then return false, "all" end
     if not Echo.History then return false, "unsaved" end
     local ok, reason = Echo.History.AddPin(convKey, record)
     if ok then Notify(convKey, "update") end
@@ -446,6 +458,8 @@ end
 -- @param record table
 -- @return string|nil reason  see History.AddPin; nil when pinning would succeed
 function Store.PinBlockReason(convKey, record)
+    -- The All view keeps no pins: a line is pinned in its own chat (EchoMenu.lua).
+    if Store.KindOf(convKey) == "all" then return "all" end
     if not Echo.History then return "unsaved" end
     return Echo.History.PinBlockReason(convKey, record)
 end

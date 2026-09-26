@@ -355,20 +355,11 @@ local function SettleProcess(args, ok, first, ...)
     return Settle(args, true, false, first, ...)
 end
 
---- Run other addons' message filters over a chat event's arguments, as Blizzard's chat
--- does for each window: ChatFrameUtil.ProcessMessageEventFilters where it exists, else a
--- loop over ChatFrame_GetMessageEventFilters. Each call is protected, so a broken filter
--- keeps the arguments it was given. Echo's own whisper filter (EchoFilter.lua) stands
--- aside meanwhile: it hides lines from Blizzard's windows, never from Echo.
--- @param event string
--- @return boolean blocked
--- @return table args  { n = count, ... }: the arguments to file
-function Events.RunFilters(event, ...)
+-- The filters themselves; RunFilters wraps this so Filter.passing is always reset.
+local function Run(event, ...)
     local args = Pack(...)
     local frame = _G.ChatFrame1 or _G.DEFAULT_CHAT_FRAME
     local util = _G.ChatFrameUtil
-    local own = Echo.Filter
-    if own then own.passing = true end
     local blocked = false
     if util and type(util.ProcessMessageEventFilters) == "function" then
         blocked, args = SettleProcess(args, pcall(util.ProcessMessageEventFilters, frame, event, Unpack(args)))
@@ -385,7 +376,29 @@ function Events.RunFilters(event, ...)
             end
         end
     end
+    return blocked, args
+end
+
+--- Run other addons' message filters over a chat event's arguments, as Blizzard's chat
+-- does for each window: ChatFrameUtil.ProcessMessageEventFilters where it exists, else a
+-- loop over ChatFrame_GetMessageEventFilters. Each call is protected, so a broken filter
+-- keeps the arguments it was given. Echo's own whisper filter (EchoFilter.lua) stands
+-- aside meanwhile: it hides lines from Blizzard's windows, never from Echo. Whatever
+-- happens, Filter.passing is reset afterwards; an error of Echo's own here is reported
+-- and the original arguments are filed.
+-- @param event string
+-- @return boolean blocked
+-- @return table args  { n = count, ... }: the arguments to file
+function Events.RunFilters(event, ...)
+    local own = Echo.Filter
+    if own then own.passing = true end
+    local ok, blocked, args = pcall(Run, event, ...)
     if own then own.passing = false end
+    if not ok then
+        local handler = geterrorhandler and geterrorhandler()
+        if handler then handler(blocked) end
+        return false, Pack(...)
+    end
     return blocked, args
 end
 

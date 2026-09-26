@@ -131,6 +131,8 @@ function Echo.ApplyOptions()
     -- Hide Blizzard's chat windows, or ask for a reload to bring them back. First, as hiding
     -- turns docking on.
     if Echo.HideChat then Echo.HideChat.Refresh() end
+    -- The All view's own events follow whether it collects.
+    if Echo.All and Echo.All.SyncEvents then Echo.All.SyncEvents() end
     -- Dock or undock Blizzard's input line, and re-anchor it to the new card size and edge.
     if Echo.Input then Echo.Input.Enable() end
 end

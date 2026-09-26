@@ -8857,6 +8857,7 @@ run(`
   A.Dashboard_Refresh = function() refreshes = refreshes + 1 end
   A._moduleReloadRecommended = nil
 
+  All.Enable()
   HC.Enable()
   local frame = HC._frame()
   local function fire(event, ...) frame.scripts.OnEvent(frame, event, ...) end
@@ -8905,27 +8906,29 @@ run(`
   RunTimers()
   check("hide: applying again never saves inline over it", H.SavedAccountCVar("whisperMode") == "popout", tostring(H.SavedAccountCVar("whisperMode")))
 
-  -- Chat types Echo doesn't route come to Echo's own frame instead.
+  -- Chat types Echo doesn't route come to the All view's own frame instead.
+  local allFrame = All._frame() or { events = {}, scripts = {} }
+  local function fireAll(event, ...) if allFrame.scripts.OnEvent then allFrame.scripts.OnEvent(allFrame, event, ...) end end
   check("hide: unrouted chat types are registered",
-      frame.events.CHAT_MSG_AFK and frame.events.CHAT_MSG_DND and frame.events.CHAT_MSG_TRADESKILLS
-      and frame.events.CHAT_MSG_IGNORED and frame.events.CHAT_MSG_BG_SYSTEM_HORDE and frame.events.CHAT_MSG_RAID_BOSS_EMOTE
-      and frame.events.CHAT_MSG_BN_INLINE_TOAST_BROADCAST, Keys(frame.events))
-  check("hide: honour gains are kept", frame.events.CHAT_MSG_COMBAT_HONOR_GAIN == true, Keys(frame.events))
-  check("hide: routed chat types are left to Echo", not frame.events.CHAT_MSG_SYSTEM and not frame.events.CHAT_MSG_WHISPER
-      and not frame.events.CHAT_MSG_COMBAT_XP_GAIN and not frame.events.CHAT_MSG_BN_INLINE_TOAST_ALERT, Keys(frame.events))
-  check("hide: other combat types and non-chat events are skipped", not frame.events.CHAT_MSG_COMBAT_MISC_INFO
-      and not frame.events.TIME_PLAYED_MSG, Keys(frame.events))
-  check("hide: an event the client lacks is skipped", not frame.events.CHAT_MSG_PING, Keys(frame.events))
+      allFrame.events.CHAT_MSG_AFK and allFrame.events.CHAT_MSG_DND
+      and allFrame.events.CHAT_MSG_IGNORED and allFrame.events.CHAT_MSG_BG_SYSTEM_HORDE and allFrame.events.CHAT_MSG_RAID_BOSS_EMOTE
+      and allFrame.events.CHAT_MSG_BN_INLINE_TOAST_BROADCAST, Keys(allFrame.events))
+  check("hide: honour gains are kept", allFrame.events.CHAT_MSG_COMBAT_HONOR_GAIN == true, Keys(allFrame.events))
+  check("hide: routed chat types are left to Echo", not allFrame.events.CHAT_MSG_SYSTEM and not allFrame.events.CHAT_MSG_WHISPER
+      and not allFrame.events.CHAT_MSG_COMBAT_XP_GAIN and not allFrame.events.CHAT_MSG_BN_INLINE_TOAST_ALERT, Keys(allFrame.events))
+  check("hide: other combat types and non-chat events are skipped", not allFrame.events.CHAT_MSG_COMBAT_MISC_INFO
+      and not allFrame.events.TIME_PLAYED_MSG, Keys(allFrame.events))
+  check("hide: an event the client lacks is skipped", not allFrame.events.CHAT_MSG_PING, Keys(allFrame.events))
 
-  All.Enable()
   S.Reset()
+  fire = fireAll
   fire("CHAT_MSG_AFK", "back in 5", "Brisa-Horizon")
   local all = S.Get("all")
   local line = all and all.messages[1] or {}
   check("hide: an unrouted line is added to All", line.text == "back in 5" and line.convKey == "all" and line.feed == true, tostring(line.text))
   check("hide: prefixed with the sender's short name", line.prefix == "Brisa:", tostring(line.prefix))
   check("hide: in its chat type's colour", line.r == 1 and line.g == 0.5 and line.b == 0, tostring(line.r))
-  fire("CHAT_MSG_TRADESKILLS", "You create Bread.", "")
+  fire("CHAT_MSG_BG_SYSTEM_HORDE", "You create Bread.", "")
   line = all and all.messages[2] or {}
   check("hide: no sender, no prefix; no colour, white", line.text == "You create Bread." and line.prefix == nil
       and line.r == 1 and line.g == 1 and line.b == 1, tostring(line.prefix))
@@ -8945,6 +8948,8 @@ run(`
   fire("CHAT_MSG_BN_INLINE_TOAST_BROADCAST", "hello all", "|Kq1|k")
   line = all and all.messages[#all.messages] or {}
   check("hide: a battle.net name is used whole, never cut", line.prefix == "|Kq1|k:", tostring(line.prefix))
+
+  fire = function(event, ...) frame.scripts.OnEvent(frame, event, ...) end
 
   -- Echo.ApplyOptions pushes the setting, before docking is applied.
   local realRefresh, realInput = HC.Refresh, Echo.Input.Enable
@@ -9228,6 +9233,219 @@ run(`
   HC._reset()
   S.Reset()
 `, 'echo-hide-chat-final');
+
+// --- All: completeness, formatting and pins (plan 12, final fixes) ------------------------------
+run(`
+  local A, Echo = HorizonSuite, HorizonSuite.Echo
+  local S, H, E, All, M, HC = Echo.Store, Echo.History, Echo.Events, Echo.All, Echo.Menu, Echo.HideChat
+  local G = { "TIME_PLAYED_TOTAL", "TIME_PLAYED_LEVEL", "SecondsToTime", "GUILD_MOTD_TEMPLATE",
+    "CHAT_SERVER_DISCONNECTED_MESSAGE", "CHAT_SERVER_RECONNECTED_MESSAGE", "BN_CHAT_CONNECTED", "BN_CHAT_DISCONNECTED",
+    "ERR_CHAT_REGIONAL_SEND_FAILED", "CHAT_YOU_JOINED_NOTICE", "CHAT_YOU_JOINED_NOTICE_BN", "CHAT_OWNER_CHANGED_NOTICE",
+    "CHAT_AFK_GET", "CHAT_DND_GET", "CHAT_IGNORED", "CHAT_FILTERED", "CHAT_RESTRICTED_TRIAL", "GetChatWindowMessages",
+    "ChatTypeGroup", "ChatTypeInfo", "C_EventUtils", "ChatFrameUtil", "ChatFrame_GetMessageEventFilters", "CreateFrame",
+    "debugstack", "geterrorhandler" }
+  local saved = { getDB = A.GetDB, defaults = A.ECHO_DEFAULTS, applied = HC.IsApplied }
+  for _, name in ipairs(G) do saved[name] = _G[name] end
+  local db = {}
+  A.GetDB = function(k, d) if db[k] ~= nil then return db[k] end return d end
+  A.ECHO_DEFAULTS = nil
+  CreateFrame = function(...)
+    local f = STUB_CREATE_FRAME(...)
+    f.events = {}
+    f.RegisterEvent = function(self, e) self.events[e] = true end
+    f.UnregisterEvent = function(self, e) self.events[e] = nil end
+    f.UnregisterAllEvents = function(self) self.events = {} end
+    return f
+  end
+  local invalid = { BN_DISCONNECTED = true }
+  C_EventUtils = { IsEventValid = function(e) return not invalid[e] end }
+  ChatTypeGroup = {
+    SYSTEM = { "CHAT_MSG_SYSTEM" }, AFK = { "CHAT_MSG_AFK" }, DND = { "CHAT_MSG_DND" },
+    TRADESKILLS = { "CHAT_MSG_TRADESKILLS" }, PET_INFO = { "CHAT_MSG_PET_INFO" },
+    CHANNEL = { "CHAT_MSG_CHANNEL_JOIN", "CHAT_MSG_CHANNEL_LEAVE", "CHAT_MSG_CHANNEL_NOTICE", "CHAT_MSG_CHANNEL_NOTICE_USER" },
+    IGNORED = { "CHAT_MSG_IGNORED" }, FILTERED = { "CHAT_MSG_FILTERED" }, RESTRICTED = { "CHAT_MSG_RESTRICTED" },
+    MONSTER_WHISPER = { "CHAT_MSG_MONSTER_WHISPER" }, BG_HORDE = { "CHAT_MSG_BG_SYSTEM_HORDE" },
+  }
+  ChatTypeInfo = { SYSTEM = { r = 1, g = 1, b = 0 }, GUILD = { r = 0.25, g = 1, b = 0.25 }, CHANNEL1 = { r = 1, g = 0.75, b = 0.75 },
+    AFK = { r = 1, g = 0.5, b = 1 } }
+  ChatFrameUtil, ChatFrame_GetMessageEventFilters = nil, nil
+  debugstack = function() return "Interface/AddOns/SomeAddon/Core.lua:1: in main chunk" end
+  local hiding = false
+  HC.IsApplied = function() return hiding end
+  S.Reset()
+  All.Enable()
+
+  -- Unrouted chat types come to All whenever it collects, hiding or not; system events don't.
+  TIME_PLAYED_TOTAL, TIME_PLAYED_LEVEL = "Total time played: %s", "Time played this level: %s"
+  SecondsToTime = function(n) return n .. " sec" end
+  GUILD_MOTD_TEMPLATE = "Guild Message of the Day: %s"
+  CHAT_SERVER_DISCONNECTED_MESSAGE = "Chat is down."
+  BN_CHAT_CONNECTED, BN_CHAT_DISCONNECTED = "Battle.net is back.", "Battle.net is down."
+  All.SyncEvents()
+  local f = All._frame()
+  local function Keys(t) local o = {} for k in pairs(t or {}) do o[#o + 1] = k end table.sort(o) return table.concat(o, ",") end
+  local ev = f and f.events or {}
+  check("all fix: unrouted chat types register without hiding", ev.CHAT_MSG_AFK and ev.CHAT_MSG_IGNORED and ev.CHAT_MSG_CHANNEL_NOTICE, Keys(ev))
+  check("all fix: communities channels are taken too", ev.CHAT_MSG_COMMUNITIES_CHANNEL == true, Keys(ev))
+  check("all fix: no system events while Blizzard's chat is shown", not ev.TIME_PLAYED_MSG and not ev.GUILD_MOTD, Keys(ev))
+  check("all fix: routed types are never taken", not ev.CHAT_MSG_SYSTEM, Keys(ev))
+  local function fire(event, ...) if f then f.scripts.OnEvent(f, event, ...) end end
+  fire("TIME_PLAYED_MSG", 100, 10)
+  check("all fix: a system event while shown files nothing", S.Get("all") == nil, "filed")
+
+  -- While hiding: the system events whose strings exist, each where the client has it.
+  hiding = true
+  All.SyncEvents()
+  check("all fix: system events register while hiding", ev.TIME_PLAYED_MSG and ev.GUILD_MOTD and ev.CHAT_SERVER_DISCONNECTED and ev.BN_CONNECTED, Keys(ev))
+  check("all fix: not without their strings", not ev.CHAT_SERVER_RECONNECTED and not ev.CHAT_REGIONAL_SEND_FAILED, Keys(ev))
+  check("all fix: not where the client lacks the event", not ev.BN_DISCONNECTED, Keys(ev))
+  local function last() local a = S.Get("all"); return a and a.messages[#a.messages] or {} end
+  local function count() local a = S.Get("all"); return a and #a.messages or 0 end
+  fire("TIME_PLAYED_MSG", 100, 10)
+  local a = S.Get("all")
+  check("all fix: /played files its two lines", a and #a.messages == 2 and a.messages[1].text == "Total time played: 100 sec"
+    and a.messages[2].text == "Time played this level: 10 sec", a and a.messages[1] and a.messages[1].text)
+  check("all fix: in the system colour", a and a.messages[1].r == 1 and a.messages[1].g == 1 and a.messages[1].b == 0, "colour")
+  fire("GUILD_MOTD", "raid at 8")
+  check("all fix: the guild's message of the day", last().text == "Guild Message of the Day: raid at 8" and last().g == 1 and last().r == 0.25, last().text)
+  local n = count()
+  fire("GUILD_MOTD", "")
+  fire("GUILD_MOTD", SECRET("x"))
+  check("all fix: an empty or secret message of the day files nothing", count() == n, count() - n)
+  fire("CHAT_SERVER_DISCONNECTED", false)
+  check("all fix: chat going down", last().text == "Chat is down.", last().text)
+  n = count()
+  fire("BN_CONNECTED", true)
+  check("all fix: a suppressed Battle.net notice files nothing", count() == n, count() - n)
+  fire("BN_CONNECTED", false)
+  check("all fix: a Battle.net notice", last().text == "Battle.net is back.", last().text)
+  hiding = false
+  All.SyncEvents()
+  check("all fix: shown again, the system events go", not ev.TIME_PLAYED_MSG and ev.CHAT_MSG_AFK, Keys(ev))
+  db.echoAllView = false
+  All.SyncEvents()
+  check("all fix: not collecting, nothing is registered", next(ev) == nil, Keys(ev))
+  db.echoAllView = nil
+  All.SyncEvents()
+
+  -- Code-only types come from Blizzard's templates, or not at all.
+  S.Reset()
+  CHAT_YOU_JOINED_NOTICE = "Joined Channel: [%s. %s]"
+  fire("CHAT_MSG_CHANNEL_NOTICE", "YOU_JOINED", "", "", "General - City", "", "", 1, 1, "General")
+  check("all fix: a channel notice from its template", last().text == "Joined Channel: [1. General - City]", tostring(last().text))
+  check("all fix: in its channel's colour", last().r == 1 and last().g == 0.75, tostring(last().g))
+  CHAT_YOU_JOINED_NOTICE_BN = "Joined [%s. %s]"
+  fire("CHAT_MSG_CHANNEL_NOTICE", "YOU_JOINED", "", "", "General - City", "", "", 1, 1, "General")
+  check("all fix: the Battle.net template wins", last().text == "Joined [1. General - City]", tostring(last().text))
+  CHAT_OWNER_CHANGED_NOTICE = "[%s. %s] Owner changed to %s."
+  fire("CHAT_MSG_CHANNEL_NOTICE_USER", "OWNER_CHANGED", "Brisa-Horizon", "", "Trade - City", "", "", 2, 2, "Trade")
+  check("all fix: a notice about a user names them", last().text == "[2. Trade - City] Owner changed to Brisa-Horizon.", tostring(last().text))
+  n = count()
+  fire("CHAT_MSG_CHANNEL_NOTICE", "NOT_A_CODE", "", "", "General - City", "", "", 1, 1, "General")
+  fire("CHAT_MSG_CHANNEL_NOTICE", SECRET("YOU_JOINED"), "", "", "General - City", "", "", 1, 1, "General")
+  fire("CHAT_MSG_CHANNEL_NOTICE", "YOU_JOINED", "", "", SECRET("General"), "", "", 1, 1, "General")
+  check("all fix: a code without a template, or secret parts, files nothing", count() == n, tostring(last().text))
+  CHAT_AFK_GET = "%s is Away From Keyboard: "
+  fire("CHAT_MSG_AFK", "back in 5", "Brisa-Horizon")
+  check("all fix: an away line's prefix is Blizzard's", last().prefix == "Brisa is Away From Keyboard:" and last().text == "back in 5", tostring(last().prefix))
+  fire("CHAT_MSG_DND", "busy", "Brisa-Horizon")
+  check("all fix: without the template, the short name", last().prefix == "Brisa:" and last().text == "busy", tostring(last().prefix))
+  n = count()
+  fire("CHAT_MSG_IGNORED", "", "Brisa-Horizon")
+  check("all fix: an ignored notice needs its template", count() == n, tostring(last().text))
+  CHAT_IGNORED, CHAT_RESTRICTED_TRIAL = "%s is ignoring you.", "Trial accounts can't do that."
+  fire("CHAT_MSG_IGNORED", "", "Brisa-Horizon")
+  check("all fix: an ignored notice names who", last().text == "Brisa-Horizon is ignoring you." and last().prefix == nil, tostring(last().text))
+  n = count()
+  fire("CHAT_MSG_IGNORED", "", SECRET("Brisa-Horizon"))
+  check("all fix: not with a secret name", count() == n, count() - n)
+  fire("CHAT_MSG_RESTRICTED", "", "")
+  check("all fix: a trial notice", last().text == "Trial accounts can't do that.", tostring(last().text))
+
+  -- %s is filled in only for NPC and boss speech.
+  fire("CHAT_MSG_MONSTER_WHISPER", "%s whispers: run", "Onyxia")
+  check("all fix: NPC speech names its speaker", last().text == "Onyxia whispers: run" and last().prefix == nil, tostring(last().text))
+  fire("CHAT_MSG_BG_SYSTEM_HORDE", "The %s flag", "")
+  check("all fix: other types keep a literal %s", last().text == "The %s flag", tostring(last().text))
+
+  -- ChatFrame1's message groups decide which types are taken.
+  GetChatWindowMessages = nil
+  local list = table.concat(All.ExtraEvents(), ",")
+  check("all fix: with no groups to read, the noisy groups are left out",
+    not list:find("TRADESKILLS", 1, true) and not list:find("PET_INFO", 1, true) and list:find("CHAT_MSG_DND", 1, true) ~= nil, list)
+  check("all fix: channel joins and leaves are left out", not list:find("CHANNEL_JOIN", 1, true) and not list:find("CHANNEL_LEAVE", 1, true)
+    and list:find("CHAT_MSG_CHANNEL_NOTICE", 1, true) ~= nil, list)
+  GetChatWindowMessages = function(i) if i == 1 then return "AFK", "TRADESKILLS", "CHANNEL" end end
+  list = table.concat(All.ExtraEvents(), ",")
+  check("all fix: ChatFrame1's groups are honoured", list:find("CHAT_MSG_AFK", 1, true) ~= nil and not list:find("CHAT_MSG_DND", 1, true)
+    and not list:find("IGNORED", 1, true), list)
+  check("all fix: a noisy group the player shows is taken", list:find("CHAT_MSG_TRADESKILLS", 1, true) ~= nil, list)
+  check("all fix: channel joins still need their own type named", list:find("CHAT_MSG_CHANNEL_NOTICE", 1, true) ~= nil
+    and not list:find("CHANNEL_JOIN", 1, true), list)
+  GetChatWindowMessages = function() end
+  list = table.concat(All.ExtraEvents(), ",")
+  check("all fix: an empty group list takes every group", list:find("CHAT_MSG_DND", 1, true) ~= nil and list:find("IGNORED", 1, true) ~= nil, list)
+  GetChatWindowMessages = nil
+
+  -- Lines copy outgoing and their source; All keeps no pins of its own.
+  S.Reset()
+  local mine = { convKey = "w:Brisa-Horizon", text = "on my way", outgoing = true }
+  S.Add(mine)
+  local line = last()
+  check("all fix: an All line copies outgoing", line.outgoing == true, tostring(line.outgoing))
+  check("all fix: and names its source", line.sourceKey == "w:Brisa-Horizon" and rawequal(line.sourceRecord, mine), tostring(line.sourceKey))
+  S.Add({ convKey = "w:Brisa-Horizon", text = "ok", sender = "Brisa-Horizon" })
+  check("all fix: an incoming one isn't outgoing", last().outgoing == false, tostring(last().outgoing))
+  All.OnAddMessage(nil, "an addon line")
+  local printed = last()
+  check("all fix: All refuses pins", S.PinBlockReason("all", printed) == "all" and S.PinMessage("all", printed) == false, S.PinBlockReason("all", printed))
+  local function Root()
+    local root = { buttons = {} }
+    function root:CreateButton(text, fn)
+      local b = { text = text, fn = fn, enabled = true }
+      function b:SetEnabled(v) self.enabled = v end
+      self.buttons[#self.buttons + 1] = b
+      return b
+    end
+    function root:CreateDivider() end
+    return root
+  end
+  local root = Root()
+  M.BuildMessage(root, "all", printed)
+  check("all fix: a printed line offers a disabled pin", root.buttons[1] and root.buttons[1].text == "ECHO_PIN_ALL" and root.buttons[1].enabled == false,
+    root.buttons[1] and root.buttons[1].text)
+  local pinDB = {}
+  H.Bind(pinDB, function() return "Kaelis-Horizon" end)
+  local mirrored = S.Get("all").messages[2]
+  root = Root()
+  M.BuildMessage(root, "all", mirrored)
+  check("all fix: a mirrored line offers Pin", root.buttons[1] and root.buttons[1].text == "ECHO_PIN_MESSAGE" and root.buttons[1].enabled == true,
+    root.buttons[1] and root.buttons[1].text)
+  if root.buttons[1] then root.buttons[1].fn() end
+  check("all fix: which pins the source in its own chat", S.IsPinnedMessage("w:Brisa-Horizon", mirrored.sourceRecord) and #S.Pins("all") == 0,
+    #S.Pins("w:Brisa-Horizon"))
+  root = Root()
+  M.BuildMessage(root, "all", mirrored)
+  check("all fix: and then offers Unpin", root.buttons[1] and root.buttons[1].text == "ECHO_UNPIN_MESSAGE", root.buttons[1] and root.buttons[1].text)
+  H.Unbind()
+
+  -- RunFilters always lets Echo's whisper filter act again, even after an error of its own.
+  local reported
+  geterrorhandler = function() return function(err) reported = err end end
+  ChatFrameUtil = setmetatable({}, { __index = function() error("filters broke") end })
+  local blocked, args = E.RunFilters("CHAT_MSG_GUILD", "hi", "Brisa-Horizon")
+  check("all fix: an error in RunFilters resets passing", Echo.Filter.passing == false, tostring(Echo.Filter.passing))
+  check("all fix: and keeps the original arguments", blocked == false and args.n == 2 and args[1] == "hi" and args[2] == "Brisa-Horizon", tostring(args and args[1]))
+  check("all fix: and reports the error", reported ~= nil and tostring(reported):find("filters broke", 1, true) ~= nil, tostring(reported))
+  ChatFrameUtil = nil
+
+  All.Disable()
+  check("all fix: disabling drops All's events", f and next(f.events) == nil, f and Keys(f.events))
+  HC.IsApplied = saved.applied
+  for _, name in ipairs(G) do _G[name] = saved[name] end
+  A.GetDB, A.ECHO_DEFAULTS = saved.getDB, saved.defaults
+  S.Reset()
+`, 'echo-all-final');
 
 // --- Redraw: one repaint per frame -------------------------------------------
 run(`
