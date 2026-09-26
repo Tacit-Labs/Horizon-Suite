@@ -253,6 +253,63 @@ HorizonDB.echoHistory = {
 - The strip shows one pin's text on one line, with links shown as their names. Clicking the text scrolls the card to that message while it is still in the conversation. Hovering it shows the full message, its sender and its time. The × unpins the shown pin.
 - With two or more pins, a counter steps to the next older pin and wraps round. It counts from the newest pin, so `1/n` is the newest. The strip starts on the newest pin whenever the card switches conversation or tab.
 
+### Start a chat, Nearby and chat shortcuts (plan 11, 2026-09-26)
+
+**Nearby.** One conversation, key `"nearby"`, for speech heard where you stand. Its default tier is `quiet` (`echoTierNearby`), it is never saved, and it can't join a chat group. Its tile shows the Battle Shout icon labelled "Near" in the Say colour, and its card is titled "Nearby". These events route to it, each filed with a `record.style`:
+
+| Event | Style | Drawn as |
+|---|---|---|
+| `CHAT_MSG_SAY` | `say` | a bubble in the Say colour |
+| `CHAT_MSG_YELL` | `yell` | a bubble in the Yell colour |
+| `CHAT_MSG_EMOTE` | `emote` | a full-width line, `<sender> <text>`, in the Emote colour |
+| `CHAT_MSG_TEXT_EMOTE` | `textemote` | a full-width line, the text only (it already names the sender) |
+| `CHAT_MSG_MONSTER_SAY` | `npc` | a bubble in the NPC Say colour |
+| `CHAT_MSG_MONSTER_YELL` | `npcyell` | a bubble in the NPC Yell colour |
+| `CHAT_MSG_MONSTER_EMOTE` | `npcemote` | a full-width line in the NPC Emote colour |
+
+- The colours come from `ChatTypeInfo`, with fallbacks. Group-style sender names sit above each run of bubbles. A secret emote shows its text alone, with no name joined to it.
+- A player line is outgoing when its sender is you, as in group chat. An NPC line is never outgoing, and never counts as a mention of your name.
+- The card's mode chip, shown only for Nearby, cycles Say, Yell and Emote. `Send.RouteFor("nearby")` sends in that mode. The mode is held in memory only and resets to Say on reload.
+- **Pending expiry.** A Nearby line still pending 8 seconds after it was sent (`Store.NEARBY_CONFIRM_SECONDS`) is marked failed, because the game can drop an addon's Say or Yell without an error and no echo ever arrives. The card then shows "The game only lets addons speak nearby inside instances. Use Blizzard's chat for this." A send that throws is failed at once with the same hint. Other kinds never expire.
+
+**Say and Yell need a hardware event.** Outdoors, the game only accepts an addon's `SAY` or `YELL` when a key press or mouse click is in the same call stack. Inside instances it accepts them without one. Every Echo send path satisfies this: Enter in the card or stack reply box, the send button, and the retry click all start from a hardware event, and `Echo.Send` sends synchronously within it. Nothing sends from a timer or an event handler. This comes from API knowledge and hasn't been confirmed in game; the in-game checklist in the plan covers it, and the pending expiry above catches a silent drop.
+
+**Chat shortcuts.** Text typed in the card's or the stack's reply box that starts with `/` is read by `Send.ParseShortcut` before anything is sent:
+
+| Shortcut | Goes to |
+|---|---|
+| `/s`, `/say` | Nearby, mode Say |
+| `/y`, `/yell`, `/sh`, `/shout` | Nearby, mode Yell |
+| `/e`, `/em`, `/emote`, `/me` | Nearby, mode Emote |
+| `/g`, `/guild` | Guild |
+| `/o`, `/officer` | Officer, only with officer rights |
+| `/p`, `/party` | Party, only in a home group |
+| `/ra`, `/raid`, `/rw` | Raid, only in a home raid (`/rw` is sent as a raid message) |
+| `/i`, `/instance`, `/bg` | Instance |
+| `/w`, `/whisper`, `/t`, `/tell` + name | a whisper to that name |
+| `/r`, `/reply` | the conversation with the newest incoming whisper or Battle.net whisper |
+| `/1` to `/9` | the channel joined in that slot (`GetChannelName(n)`) |
+
+- **Rulings.**
+  - Leading spaces are trimmed first, so `" /dance"` is still a command.
+  - Commands match case-insensitively, and Blizzard's localised `SLASH_*` globals are accepted alongside the English forms.
+  - `/w` matches an existing whisper case-insensitively (`Store.WhisperKeyLike`). A new name gets your realm when it has none, and a capital first letter when that letter is ASCII a to z. The name runs to the first space. A name containing `|` (a Battle.net `|K` name) is never parsed, so Battle.net friends are reached from the + menu instead.
+  - Officer needs `C_GuildInfo.CanSpeakInOfficerChat`, falling back to `CanEditOfficerNote` and then to guild membership.
+  - Party and Raid count only the home group (`LE_PARTY_CATEGORY_HOME`). A group-finder group, LFR included, talks in Instance. Without `LE_PARTY_CATEGORY_INSTANCE`, Instance is never reachable.
+- A shortcut with a message switches the card to its conversation, opening it with `Store.Start`, and sends the message there. One with no message only switches. The stack's quick reply does the same, opening the card to switch.
+- **Commands are never sent as chat.** Any other text starting with `/`, such as `/cast`, `/dance`, `/reload` or `/foo`, never reaches `Echo.Send`. It stays in the box, and the hint says "Echo can't run commands yet. Use Blizzard's chat for this." A shortcut with nowhere to go (`/r` with no whisper yet, `/1` with no channel in slot 1, `/p` outside a group) also stays in the box, with "There's nowhere to send that right now." A retry of a failed line skips the parser on purpose: that text was vetted when it was first sent.
+
+**`Store.Start(convKey)`.** Creates or reopens a conversation with no message. It sets `open`, clears `dismissed`, stamps `startedSeq` from the Store's sequence so `Store.List` puts it first, and notifies `"update"`. Pinned tiles stay above it, and a later loud message goes above it, because `startedSeq` orders the list without counting as a loud message. It rejects invalid keys and the feed kinds, which are read-only. A started conversation with no messages has a tile like any other, and closing it removes the tile.
+
+**The + menu.** A 20×20 round button (`Echo.Round.SMALL`) sits just above the Echo icon, with a `+` and the tooltip "Start a chat". It is a child of the column, so it follows the column's edge, scale and lock, and it drags the column when unlocked. The tiles stack above it (`Tiles.TilesBottom()`). Without `MenuUtil` the button stays hidden and the tiles drop back to one step above the Echo icon. A click opens `Compose.Open`, a MenuUtil context menu built by `Compose.Build`:
+
+- **Whisper…** opens the `HORIZON_ECHO_NEW_WHISPER` StaticPopup, registered on first use. It suggests names through `GetAutoCompleteResults` with the `AUTOCOMPLETE_LIST.WHISPER` include and exclude masks. The name goes through the same rule as `/w` (`Send.WhisperKeyFor`).
+- **Friends online**, a submenu of up to 20 online character friends, then Battle.net friends when the client has Battle.net whispers. A Battle.net friend is labelled with its account name, a `|K` string shown whole and never parsed, and keyed `bn:<accountID>`. The submenu is left out when empty.
+- **Nearby**; **Guild**, **Officer**, **Party**, **Raid** and **Instance** by the same checks as the shortcuts (`Send.CanReach`).
+- **Channels**, a submenu of every enabled joined channel from `GetChannelList()`, keyed like incoming channel chat and showing the channel's icon when it has one.
+- Choosing an entry calls `Store.Start`, then opens the card on it with the reply box focused, growing from its tile or its group's tile.
+- Every Blizzard call is protected with `pcall` and every value checked with `IsSecret`. Opening a menu is protected too: a refused `MenuUtil.CreateContextMenu` makes `Compose.Open`, `Menu.Open` and `Menu.OpenMessage` return false instead of raising.
+
 ## Towards replacing Blizzard chat (roadmap, decided 2026-09-26)
 
 The director wants Echo to be able to replace Blizzard's chat windows entirely. Four gaps stand in the way; each has a planned answer.

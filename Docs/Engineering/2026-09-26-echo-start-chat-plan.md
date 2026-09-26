@@ -192,3 +192,19 @@
   - [ ] **+** lists Whisper…, your online friends, Nearby, Guild, your group and your channels. Picking Trade opens an empty Trade card ready to type.
   - [ ] The Whisper… prompt suggests names as you type.
 - **Commit:** `docs(echo): record starting chats, Nearby and chat shortcuts`.
+
+---
+
+## In-game checklist (plan 11, 2026-09-26)
+
+Echo gains a file, `EchoCompose.lua`, so restart the game rather than reloading.
+
+- [ ] Say something in a city. It appears in the Nearby tile. Yells show in the yell colour, and emotes as lines.
+- [ ] An NPC's speech shows in Nearby.
+- [ ] The mode chip cycles Say, Yell and Emote, and each sends. Or, if the game blocks addon Say outdoors, the hint explains it within 8 seconds.
+- [ ] In any card, `/g hello` sends to guild and switches the card, and `/1 hi` sends to General.
+- [ ] `/w Name hi` opens a whisper to Name, and `/r` answers the last whisper.
+- [ ] `/dance` or `/reload` typed in Echo does nothing except show the hint. It is never sent as chat.
+- [ ] **+** lists Whisper…, your online friends, Nearby, Guild, your group and your channels. Picking Trade opens an empty Trade card ready to type.
+- [ ] The Whisper… prompt suggests names as you type.
+- [ ] In an LFR raid, + offers Instance, not Raid or Party.
