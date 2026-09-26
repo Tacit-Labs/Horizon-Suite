@@ -231,8 +231,8 @@ end
 
 --- Whether the player can reach a group conversation now. Tests replace it; each check
 -- reads the client when it has the function and counts a missing one as reachable.
--- Officer chat asks C_GuildInfo.CanSpeakInOfficerChat where the client has it, else only
--- whether you are in a guild.
+-- Officer chat asks C_GuildInfo.CanSpeakInOfficerChat where the client has it, else
+-- CanEditOfficerNote (C_GuildInfo's or the global), else only whether you are in a guild.
 -- @param kind string  "party" | "raid" | "instance" | "guild" | "officer"
 -- @return boolean
 function Send.CanReach(kind)
@@ -248,6 +248,8 @@ function Send.CanReach(kind)
     if kind == "officer" then
         local canSpeak = C_GuildInfo and C_GuildInfo.CanSpeakInOfficerChat
         if type(canSpeak) == "function" then return ask(canSpeak) end
+        local canEdit = (C_GuildInfo and C_GuildInfo.CanEditOfficerNote) or _G.CanEditOfficerNote
+        if type(canEdit) == "function" then return ask(canEdit) end
         return ask(IsInGuild)
     end
     if kind == "guild" then return ask(IsInGuild) end
@@ -264,6 +266,26 @@ local function ChannelKeyForSlot(n)
     local zone = name:find(" - ", 1, true) and 1 or nil
     local keyName = Echo.Events.ChannelKeyName(name, zone)
     return keyName and Store.KeyFor("channel", keyName) or nil
+end
+
+--- The whisper conversation key for a typed name. The realm is added when none is given.
+-- An existing whisper wins whatever the case typed; a new name gets a capital first letter
+-- when it is ASCII a-z, and is otherwise left as typed. A name with "|" in it (a
+-- Battle.net |K name, a link) or with a space is never parsed.
+-- Shared by /w and the + menu's Whisper... prompt.
+-- @param name string
+-- @return string|nil convKey
+function Send.WhisperKeyFor(name)
+    if Echo.IsSecret(name) or type(name) ~= "string" or name == "" then return nil end
+    if name:find("|", 1, true) or name:find("%s") then return nil end
+    local full = Echo.Events.NormaliseName(name)
+    local typed = full and Store.KeyFor("whisper", full)
+    if not typed then return nil end
+    local key = Store.WhisperKeyLike(typed)
+    if key then return key end
+    local first = full:sub(1, 1)
+    if first:match("^[a-z]$") then full = first:upper() .. full:sub(2) end
+    return Store.KeyFor("whisper", full)
 end
 
 -- A switch result: send rest to key, or just switch when rest is blank.
@@ -310,17 +332,7 @@ function Send.ParseShortcut(text, currentKey)
     -- A whisper: the name runs to the first space. A name with "|" in it (a Battle.net
     -- |K name, a link) is never parsed.
     local name, message = rest:match("^(%S+)%s*(.*)$")
-    if not name or name:find("|", 1, true) then return { blocked = "nowhere" } end
-    -- An existing whisper wins whatever the case typed; a new name gets a capital first
-    -- letter when it is ASCII a-z, and is otherwise left as typed.
-    local full = Echo.Events.NormaliseName(name)
-    local typed = full and Store.KeyFor("whisper", full)
-    if not typed then return { blocked = "nowhere" } end
-    local key = Store.WhisperKeyLike(typed)
-    if not key then
-        local first = full:sub(1, 1)
-        if first:match("^[a-z]$") then full = first:upper() .. full:sub(2) end
-        key = Store.KeyFor("whisper", full)
-    end
+    local key = Send.WhisperKeyFor(name)
+    if not key then return { blocked = "nowhere" } end
     return Result(key, message or "")
 end

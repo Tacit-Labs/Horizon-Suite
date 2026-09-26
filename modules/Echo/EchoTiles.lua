@@ -2,7 +2,8 @@
     Horizon Suite - Echo - Tiles
     The collapsed column: a tile per open conversation or group (Echo.Groups) on a screen
     edge (top entry highest), a +N overflow tile, the stack button (the drag handle when
-    unlocked), the "n in chat" marker for messages Echo could not file, and the preview toast.
+    unlocked), the + button above it that starts a chat (Echo.Compose), the "n in chat"
+    marker for messages Echo could not file, and the preview toast.
     Blizzard: CreateFrame, FCF_SelectDockFrame. Shared: Augment toast chrome and motion.
 ]]
 
@@ -22,10 +23,18 @@ Tiles.LABEL_MAX = 10  -- a whisper tile's name, shrunk from this size...
 Tiles.LABEL_MIN = 7   -- ...down to this before any letters are dropped
 Tiles.TOAST_WIDTH = 240
 Tiles.TOAST_HEIGHT = 48
+Tiles.PLUS_SIZE = 20  -- the + button that starts a chat, just above the stack button
 
 local STEP = Tiles.TILE_SIZE + Tiles.GAP
+-- Where the lowest tile's bottom edge sits: above the stack button and the + button.
+Tiles.TILES_BOTTOM = STEP + Tiles.PLUS_SIZE + Tiles.GAP
 
-local column, stackButton, overflowTile, marker, toast
+-- The column offset of the tile in slot n (1 = lowest).
+local function SlotY(n)
+    return Tiles.TILES_BOTTOM + (n - 1) * STEP
+end
+
+local column, stackButton, plusButton, overflowTile, marker, toast
 local tiles = {}
 local pending = {}          -- keys to toast after combat, newest first
 local queue                 -- View toast queue, made on first Enable
@@ -341,6 +350,65 @@ function Tiles.ResetPosition()
     Tiles.ApplyPosition()
 end
 
+-- Drag handlers shared by the stack button and the + button: either moves the column when
+-- it is unlocked.
+local function DragStart()
+    if InCombatLockdown() or Echo.Setting("echoLockPosition") then return end
+    column.moving = true
+    column:StartMoving()
+end
+
+local function DragStop()
+    if not column.moving then return end
+    column.moving = false
+    column:StopMovingOrSizing()
+    SavePosition()
+    -- An Auto edge may have flipped sides; Echo.ApplyOptions re-anchors the column
+    -- and re-anchors any open stack or card to match (Tiles.ApplyPosition alone
+    -- would leave them on the old side).
+    Echo.ApplyOptions()
+end
+
+-- The + button: a small round button just above the stack button. It is the column's
+-- child, so it follows its edge, scale and strata; it drags the column like the stack
+-- button does, and a click opens the menu of places to talk.
+local function CreatePlusButton()
+    local View = Echo.View
+    local b = CreateFrame("Button", nil, column)
+    b:SetSize(Tiles.PLUS_SIZE, Tiles.PLUS_SIZE)
+    b:SetPoint("BOTTOM", stackButton, "TOP", 0, Tiles.GAP)
+    Echo.Round.Apply(b, { radius = Echo.Round.SMALL, border = true })
+    local a = View.ACCENT
+    PaintGlyphFrame(b, a.r, a.g, a.b)
+    b.glyph = Echo.NewText(b, 14, "")
+    b.glyph:SetPoint("CENTER", b, "CENTER", 0, 0)
+    b.glyph:SetText("+")
+    b.glyph:SetTextColor(0.85, 0.87, 0.95, 1)
+    b:RegisterForClicks("LeftButtonUp")
+    b:RegisterForDrag("LeftButton")
+    b:SetScript("OnClick", function(self)
+        if GameTooltip and type(GameTooltip.Hide) == "function" then GameTooltip:Hide() end
+        if Echo.Compose then Echo.Compose.Open(self) end
+    end)
+    b:SetScript("OnDragStart", DragStart)
+    b:SetScript("OnDragStop", DragStop)
+    b:SetScript("OnEnter", function(self)
+        b.glyph:SetTextColor(1, 1, 1, 1)
+        if GameTooltip and type(GameTooltip.SetOwner) == "function" then
+            -- Open away from the screen edge, like the stack and card.
+            local edge = Echo.View.PanelEdge(200)
+            GameTooltip:SetOwner(self, edge == "left" and "ANCHOR_RIGHT" or "ANCHOR_LEFT")
+            GameTooltip:SetText(L["ECHO_NEW_CHAT"])
+            GameTooltip:Show()
+        end
+    end)
+    b:SetScript("OnLeave", function()
+        b.glyph:SetTextColor(0.85, 0.87, 0.95, 1)
+        if GameTooltip and type(GameTooltip.Hide) == "function" then GameTooltip:Hide() end
+    end)
+    return b
+end
+
 local function CreateColumn()
     local View = Echo.View
     column = CreateFrame("Frame", "HorizonSuiteEchoColumn", UIParent)
@@ -374,21 +442,8 @@ local function CreateColumn()
     stackButton:SetScript("OnClick", function()
         if Echo.Stack then Echo.Stack.Toggle() end
     end)
-    stackButton:SetScript("OnDragStart", function()
-        if InCombatLockdown() or Echo.Setting("echoLockPosition") then return end
-        column.moving = true
-        column:StartMoving()
-    end)
-    stackButton:SetScript("OnDragStop", function()
-        if not column.moving then return end
-        column.moving = false
-        column:StopMovingOrSizing()
-        SavePosition()
-        -- An Auto edge may have flipped sides; Echo.ApplyOptions re-anchors the column
-        -- and re-anchors any open stack or card to match (Tiles.ApplyPosition alone
-        -- would leave them on the old side).
-        Echo.ApplyOptions()
-    end)
+    stackButton:SetScript("OnDragStart", DragStart)
+    stackButton:SetScript("OnDragStop", DragStop)
     stackButton:SetScript("OnEnter", function(self)
         highlight:Show()
         HoverEnter(self)
@@ -397,6 +452,8 @@ local function CreateColumn()
         highlight:Hide()
         HoverLeave()
     end)
+
+    plusButton = CreatePlusButton()
 
     marker = CreateFrame("Button", nil, column)
     marker:SetSize(90, 16)
@@ -435,7 +492,7 @@ function Tiles.Refresh()
         overflowTile.label:SetText("")
         overflowTile.labelShade:Hide()
         overflowTile:ClearAllPoints()
-        overflowTile:SetPoint("BOTTOM", column, "BOTTOM", 0, slot * STEP)
+        overflowTile:SetPoint("BOTTOM", column, "BOTTOM", 0, SlotY(slot))
         overflowTile:Show()
         slot = slot + 1
     else
@@ -450,14 +507,14 @@ function Tiles.Refresh()
         end
         PaintTile(b, visible[i])
         b:ClearAllPoints()
-        b:SetPoint("BOTTOM", column, "BOTTOM", 0, slot * STEP)
+        b:SetPoint("BOTTOM", column, "BOTTOM", 0, SlotY(slot))
         slot = slot + 1
     end
     for i = #visible + 1, #tiles do
         tiles[i].convKey = nil
         tiles[i]:Hide()
     end
-    column:SetHeight(slot * STEP - Tiles.GAP)
+    column:SetHeight(SlotY(slot) - Tiles.GAP)
 
     local unrouted = Echo.Store.GetUnroutedCount()
     marker.text:SetText(unrouted > 0 and L["ECHO_IN_CHAT"]:format(unrouted) or "")
@@ -680,4 +737,5 @@ function Tiles._toast() return toast end
 function Tiles._overflow() return overflowTile end
 function Tiles._marker() return marker end
 function Tiles._stackButton() return stackButton end
+function Tiles._plusButton() return plusButton end
 function Tiles._savePosition() SavePosition() end

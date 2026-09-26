@@ -1491,6 +1491,8 @@ end
 -- @param msg table  the failed record
 function Card.Retry(msg)
     if not currentKey or not msg or msg.status ~= "failed" then return end
+    -- Deliberately no Send.ParseShortcut: a failed part starting with "/" is literal text
+    -- (a split fragment) that was already vetted as chat when it was first sent.
     local sent, problem = Echo.Send.Send(currentKey, msg.text)
     if sent then
         if problem == "blocked" then ShowBlockedHint() end

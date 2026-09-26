@@ -135,6 +135,7 @@ const FILES = [
   'modules/Echo/EchoTiles.lua',
   'modules/Echo/EchoStack.lua',
   'modules/Echo/EchoMenu.lua',
+  'modules/Echo/EchoCompose.lua',
   'modules/Echo/EchoCard.lua',
   'modules/Echo/EchoOptions.lua',
   'modules/Echo/EchoSlash.lua',
@@ -7249,6 +7250,308 @@ run(`
   IsInGuild, C_GuildInfo, CreateFrame = saved.IsInGuild, saved.C_GuildInfo, saved.CreateFrame
   S.Reset()
 `, 'shortcut-fix-1');
+
+// --- Start a chat: the + button and the compose menu ---------------------------------------
+{
+  const enUS = read('locales/horizon/enUS.lua');
+  const ok = /L\["ECHO_NEW_CHAT"\]\s+= "Start a chat"/.test(enUS);
+  run(`check("compose: the + tooltip string", ${ok}, "missing")`, 'compose-string');
+  const toc = read('HorizonSuite.toc');
+  const tocOk = /modules\/Echo\/EchoMenu\.lua\r?\nmodules\/Echo\/EchoCompose\.lua/.test(toc);
+  run(`check("compose: EchoCompose.lua loads after EchoMenu.lua", ${tocOk}, "toc order")`, 'compose-toc');
+}
+run(`
+  local Echo = HorizonSuite.Echo
+  local S, T, V = Echo.Store, Echo.Tiles, Echo.View
+  local Co = Echo.Compose
+  check("compose: the module exists", type(Co) == "table" and type(Co.Build) == "function" and type(Co.Open) == "function", type(Co))
+  S.Reset()
+  CreateFrame = STUB_CREATE_FRAME
+  local saved = {
+    IsInGuild = IsInGuild, C_GuildInfo = C_GuildInfo, IsInGroup = IsInGroup, IsInRaid = IsInRaid,
+    GetChannelList = GetChannelList, C_FriendList = C_FriendList, BNGetNumFriends = BNGetNumFriends,
+    C_BattleNet = C_BattleNet, HOME = LE_PARTY_CATEGORY_HOME, INST = LE_PARTY_CATEGORY_INSTANCE,
+    StaticPopupDialogs = StaticPopupDialogs, StaticPopup_Show = StaticPopup_Show, GameTooltip = GameTooltip,
+    MenuUtil = MenuUtil, CardOpen = Echo.Card.Open, ComposeOpen = Co.Open,
+    GetAutoCompleteResults = GetAutoCompleteResults, AUTOCOMPLETE_LIST = AUTOCOMPLETE_LIST,
+  }
+  T.Enable()
+
+  -- The + button: a small round button just above the Echo icon.
+  local plus = T._plusButton and T._plusButton()
+  local sb = T._stackButton()
+  check("compose: the + button exists", plus ~= nil, "missing")
+  check("compose: it is 20x20", plus and plus.width == 20 and plus.height == 20, plus and (tostring(plus.width) .. "x" .. tostring(plus.height)))
+  local rr = plus and rawget(plus, "_echoRound")
+  check("compose: it is rounded with the SMALL radius", rr ~= nil and rr.corners.tl == Echo.Round.SMALL, "?")
+  local pt = plus and plus.points[1]
+  check("compose: it sits directly above the Echo icon", pt and pt[1] == "BOTTOM" and pt[2] == sb and pt[3] == "TOP", pt and tostring(pt[1]) .. "/" .. tostring(pt[3]))
+  check("compose: it shows a + glyph", plus and plus.glyph and plus.glyph.text == "+", plus and plus.glyph and plus.glyph.text)
+  check("compose: it drags the column like the Echo icon", plus and plus.scripts.OnDragStart == sb.scripts.OnDragStart
+        and plus.scripts.OnDragStop == sb.scripts.OnDragStop, "different")
+
+  -- The column reserves room for it: the lowest tile sits above the + button.
+  S.Add({ convKey = "w:Vexa-Horizon", text = "hi", sender = "Vexa-Horizon" })
+  T.Refresh()
+  local tile = T.TileFor("w:Vexa-Horizon")
+  local y = tile and tile.points[#tile.points][5]
+  check("compose: the tiles' bottom limit moved up past the + button", y == T.TILES_BOTTOM
+        and T.TILES_BOTTOM >= T.TILE_SIZE + T.GAP + 20 + T.GAP, tostring(y) .. " vs " .. tostring(T.TILES_BOTTOM))
+
+  -- Tooltip and click.
+  local tip = {}
+  GameTooltip = { SetOwner = function(_, o) tip.owner = o end, SetText = function(_, t) tip.text = t end,
+                  Show = function() tip.shown = true end, Hide = function() tip.shown = false end }
+  plus.scripts.OnEnter(plus)
+  check("compose: the tooltip says Start a chat", tip.text == "ECHO_NEW_CHAT" and tip.owner == plus and tip.shown, tostring(tip.text))
+  plus.scripts.OnLeave(plus)
+  check("compose: leaving hides the tooltip", tip.shown == false, "shown")
+  local openedFrom
+  Co.Open = function(owner) openedFrom = owner; return true end
+  plus.scripts.OnClick(plus)
+  check("compose: clicking opens the compose menu from the button", openedFrom == plus, tostring(openedFrom))
+  Co.Open = saved.ComposeOpen
+  local ctx
+  MenuUtil = { CreateContextMenu = function(owner, gen) ctx = { owner, gen } end }
+  check("compose: Open uses MenuUtil", Co.Open(plus) == true and ctx and ctx[1] == plus and type(ctx[2]) == "function", "?")
+  MenuUtil = nil
+  check("compose: without MenuUtil it does not open", Co.Open(plus) == false, "opened")
+  MenuUtil = saved.MenuUtil
+
+  -- A started, empty conversation shows a tile; closing it removes the tile.
+  S.Start("w:Empty-Horizon")
+  T.Refresh()
+  check("compose: a started empty conversation has a tile", T.TileFor("w:Empty-Horizon") ~= nil, "no tile")
+  S.Close("w:Empty-Horizon")
+  T.Refresh()
+  check("compose: closing it removes the tile", T.TileFor("w:Empty-Horizon") == nil, "still shown")
+
+  -- A fake MenuUtil root with submenus.
+  local function FakeRoot()
+    local r = { items = {} }
+    function r:CreateButton(label, fn)
+      local b = FakeRoot()
+      b.label, b.fn = label, fn
+      self.items[#self.items + 1] = b
+      return b
+    end
+    function r:CreateTitle(label) self.items[#self.items + 1] = { label = label, title = true, items = {} } end
+    function r:CreateDivider() self.items[#self.items + 1] = { divider = true, items = {} } end
+    return r
+  end
+  local function Build()
+    local r = FakeRoot()
+    Co.Build(r)
+    return r.items
+  end
+  local function Find(items, label)
+    for _, it in ipairs(items) do
+      if type(it.label) == "string" and it.label:find(label, 1, true) then return it end
+    end
+    return nil
+  end
+  local function Labels(items)
+    local out = {}
+    for _, it in ipairs(items) do if it.label then out[#out + 1] = tostring(it.label) end end
+    return table.concat(out, ",")
+  end
+
+  -- Out of everything.
+  LE_PARTY_CATEGORY_HOME, LE_PARTY_CATEGORY_INSTANCE = 1, 2
+  local state = { guild = false, officer = false, home = false, inst = false, raid = false }
+  IsInGuild = function() return state.guild end
+  C_GuildInfo = { CanSpeakInOfficerChat = function() return state.officer end }
+  IsInGroup = function(cat)
+    if cat == 1 then return state.home end
+    if cat == 2 then return state.inst end
+    return state.home or state.inst
+  end
+  IsInRaid = function() return state.raid end
+  GetChannelList = function() end
+  C_FriendList = { GetNumFriends = function() return 0 end, GetFriendInfoByIndex = function() return nil end }
+  BNGetNumFriends = function() return 0 end
+  C_BattleNet = { GetFriendAccountInfo = function() return nil end }
+
+  local items = Build()
+  check("compose: alone, only Whisper and Nearby", Labels(items) == "ECHO_COMPOSE_WHISPER,ECHO_NEARBY", Labels(items))
+  check("compose: no empty Friends submenu", Find(items, "ECHO_COMPOSE_FRIENDS") == nil, "shown")
+  check("compose: no empty Channels submenu", Find(items, "ECHO_COMPOSE_CHANNELS") == nil, "shown")
+
+  state.guild = true
+  items = Build()
+  check("compose: in a guild, Guild shows", Find(items, "ECHO_KIND_GUILD") ~= nil, Labels(items))
+  check("compose: without officer rights, no Officer", Find(items, "ECHO_KIND_OFFICER") == nil, Labels(items))
+  state.officer = true
+  items = Build()
+  check("compose: with officer rights, Officer shows", Find(items, "ECHO_KIND_OFFICER") ~= nil, Labels(items))
+  C_GuildInfo = { CanEditOfficerNote = function() return false end }
+  items = Build()
+  check("compose: the officer-note fallback hides Officer", Find(items, "ECHO_KIND_OFFICER") == nil, Labels(items))
+  C_GuildInfo = { CanEditOfficerNote = function() return true end }
+  items = Build()
+  check("compose: the officer-note fallback shows Officer", Find(items, "ECHO_KIND_OFFICER") ~= nil, Labels(items))
+
+  state.inst = true
+  items = Build()
+  check("compose: an instance group alone is not a party", Find(items, "ECHO_KIND_PARTY") == nil, Labels(items))
+  check("compose: an instance group shows Instance", Find(items, "ECHO_KIND_INSTANCE") ~= nil, Labels(items))
+  state.inst, state.home = false, true
+  items = Build()
+  check("compose: a home group shows Party", Find(items, "ECHO_KIND_PARTY") ~= nil, Labels(items))
+  check("compose: not in a raid, no Raid", Find(items, "ECHO_KIND_RAID") == nil, Labels(items))
+  check("compose: no instance group, no Instance", Find(items, "ECHO_KIND_INSTANCE") == nil, Labels(items))
+  state.raid = true
+  items = Build()
+  check("compose: in a raid, Raid shows", Find(items, "ECHO_KIND_RAID") ~= nil, Labels(items))
+  IsInRaid = function() error("boom") end
+  items = Build()
+  check("compose: a throwing check hides the entry", Find(items, "ECHO_KIND_RAID") == nil, Labels(items))
+  IsInRaid = function() return SECRET(true) end
+  items = Build()
+  check("compose: a secret answer hides the entry", Find(items, "ECHO_KIND_RAID") == nil, Labels(items))
+  IsInRaid = function() return state.raid end
+
+  -- Channels.
+  GetChannelList = function()
+    return 1, "General", false, 2, "Trade - City", false, 4, "Hidden", true, 5, SECRET("Secret"), false, 6, "mychan", false
+  end
+  items = Build()
+  local ch = Find(items, "ECHO_COMPOSE_CHANNELS")
+  check("compose: joined channels are a submenu", ch ~= nil and #ch.items == 3, ch and Labels(ch.items))
+  local trade = ch and Find(ch.items, "Trade")
+  check("compose: a zone channel drops its zone", trade ~= nil and not trade.label:find("City", 1, true), trade and trade.label)
+  check("compose: a known channel shows its icon", trade and trade.label:find(V.CHANNEL_ICONS.Trade, 1, true) ~= nil, trade and trade.label)
+  local custom = ch and Find(ch.items, "mychan")
+  check("compose: a custom channel has no icon", custom and not custom.label:find("|T", 1, true), custom and custom.label)
+  check("compose: disabled and secret channels are skipped", ch and Find(ch.items, "Hidden") == nil and Find(ch.items, "Secret") == nil, ch and Labels(ch.items))
+  GetChannelList = function() error("boom") end
+  items = Build()
+  check("compose: a throwing channel list shows no submenu", Find(items, "ECHO_COMPOSE_CHANNELS") == nil, Labels(items))
+
+  -- Choosing Trade starts ch:Trade and opens the card focused, from its tile.
+  GetChannelList = function() return 2, "Trade - City", false end
+  items = Build()
+  trade = Find(Find(items, "ECHO_COMPOSE_CHANNELS").items, "Trade")
+  local opened
+  Echo.Card.Open = function(key, focus, fromTile) opened = { key = key, focus = focus, fromTile = fromTile } end
+  trade.fn()
+  local tradeConv = S.Get("ch:Trade")
+  check("compose: choosing Trade starts ch:Trade", tradeConv ~= nil and tradeConv.open == true and #tradeConv.messages == 0, tostring(tradeConv))
+  check("compose: it is first", S.List()[1].key == "ch:Trade", S.List()[1].key)
+  check("compose: and opens the card focused", opened and opened.key == "ch:Trade" and opened.focus == true, opened and tostring(opened.key))
+  check("compose: anchored to its tile", opened and opened.fromTile ~= nil and opened.fromTile == T.TileFor("ch:Trade"), opened and tostring(opened.fromTile))
+  opened = nil
+  Find(items, "ECHO_NEARBY").fn()
+  check("compose: Nearby starts the Say conversation", opened and opened.key == "nearby" and S.Get("nearby").open, opened and opened.key)
+
+  -- Friends online.
+  local chars = {
+    { connected = true, name = "Brisa" },
+    { connected = false, name = "Offline" },
+    { connected = true, name = "vexa-Argent" },
+    { connected = true, name = SECRET("Hidden") },
+    { connected = SECRET(true), name = "Maybe" },
+    { connected = true, name = "|Kq9|k" },
+  }
+  C_FriendList = { GetNumFriends = function() return #chars end, GetFriendInfoByIndex = function(i) return chars[i] end }
+  local bnLabel = "|Kq12|k"
+  local bns = {
+    { bnetAccountID = 7, accountName = bnLabel, gameAccountInfo = { isOnline = true } },
+    { bnetAccountID = 8, accountName = "|Kq13|k", gameAccountInfo = { isOnline = false } },
+    { bnetAccountID = SECRET(9), accountName = "|Kq14|k", gameAccountInfo = { isOnline = true } },
+  }
+  BNGetNumFriends = function() return #bns, 1 end
+  C_BattleNet = { GetFriendAccountInfo = function(i) return bns[i] end }
+  items = Build()
+  local fr = Find(items, "ECHO_COMPOSE_FRIENDS")
+  check("compose: online friends are a submenu", fr ~= nil and #fr.items == 3, fr and Labels(fr.items))
+  check("compose: offline, secret and |K character friends are skipped", fr and Find(fr.items, "Offline") == nil
+        and Find(fr.items, "Maybe") == nil and Find(fr.items, "q9") == nil and Find(fr.items, "q14") == nil, fr and Labels(fr.items))
+  local bn = fr and Find(fr.items, "q12")
+  check("compose: a Battle.net friend is labelled with its |K name, whole", bn and bn.label == bnLabel, bn and bn.label)
+  opened = nil
+  bn.fn()
+  check("compose: choosing a Battle.net friend starts bn:<id>", opened and opened.key == "bn:7" and S.Get("bn:7") ~= nil, opened and opened.key)
+  opened = nil
+  Find(fr.items, "vexa").fn()
+  check("compose: a character friend starts a whisper with a realm and a capital", opened and opened.key == "w:Vexa-Argent", opened and opened.key)
+  S.Add({ convKey = "w:Brisa-Horizon", text = "hi", sender = "Brisa-Horizon" })
+  S.Close("w:Brisa-Horizon")
+  opened = nil
+  Find(fr.items, "Brisa").fn()
+  check("compose: a friend reopens their existing whisper", opened and opened.key == "w:Brisa-Horizon", opened and opened.key)
+  HorizonSuite.Platform.caps.bnetWhispers = false
+  items = Build()
+  fr = Find(items, "ECHO_COMPOSE_FRIENDS")
+  check("compose: without Battle.net whispers, no Battle.net friends", fr and #fr.items == 2 and Find(fr.items, "q12") == nil, fr and Labels(fr.items))
+  HorizonSuite.Platform.caps.bnetWhispers = true
+  local many = {}
+  for i = 1, 25 do many[i] = { connected = true, name = "Friend" .. i } end
+  C_FriendList = { GetNumFriends = function() return #many end, GetFriendInfoByIndex = function(i) return many[i] end }
+  items = Build()
+  fr = Find(items, "ECHO_COMPOSE_FRIENDS")
+  check("compose: at most 20 friends", fr and #fr.items == 20, fr and #fr.items)
+  C_FriendList = { GetNumFriends = function() error("boom") end }
+  BNGetNumFriends = function() error("boom") end
+  items = Build()
+  check("compose: throwing friends lists show no submenu", Find(items, "ECHO_COMPOSE_FRIENDS") == nil, Labels(items))
+
+  -- Whisper...: a StaticPopup with an edit box, registered on first use.
+  StaticPopupDialogs = {}
+  local shownWhich
+  StaticPopup_Show = function(which) shownWhich = which end
+  GetAutoCompleteResults = function() end
+  AUTOCOMPLETE_LIST = { WHISPER = { include = 1, exclude = 2 } }
+  check("compose: the popup isn't registered before use", StaticPopupDialogs.HORIZON_ECHO_NEW_WHISPER == nil, "registered")
+  Find(Build(), "ECHO_COMPOSE_WHISPER").fn()
+  local dlg = StaticPopupDialogs.HORIZON_ECHO_NEW_WHISPER
+  check("compose: Whisper... shows the popup", shownWhich == "HORIZON_ECHO_NEW_WHISPER" and dlg ~= nil, tostring(shownWhich))
+  check("compose: it has an edit box, accept and enter", dlg and dlg.hasEditBox and type(dlg.OnAccept) == "function"
+        and type(dlg.EditBoxOnEnterPressed) == "function", "?")
+  check("compose: it suggests names", dlg and dlg.autoCompleteSource == GetAutoCompleteResults and type(dlg.autoCompleteArgs) == "table"
+        and dlg.autoCompleteArgs[1] == 1 and dlg.autoCompleteArgs[2] == 2, dlg and tostring(dlg.autoCompleteArgs))
+  local function Popup(text, field)
+    local box = { GetText = function() return text end }
+    return { [field or "editBox"] = box }, box
+  end
+  opened = nil
+  dlg.OnAccept(Popup("  thorn  "))
+  check("compose: accepting a name normalises it and starts the whisper", S.Get("w:Thorn-Horizon") and S.Get("w:Thorn-Horizon").open
+        and opened and opened.key == "w:Thorn-Horizon" and opened.focus == true, opened and opened.key)
+  opened = nil
+  dlg.OnAccept(Popup("brisa", "EditBox"))
+  check("compose: the new EditBox field works, and matches an existing whisper", opened and opened.key == "w:Brisa-Horizon", opened and opened.key)
+  local hidden
+  local popup, box = Popup("Kael-Argent")
+  box.GetParent = function() return { Hide = function() hidden = true end } end
+  opened = nil
+  dlg.EditBoxOnEnterPressed(box)
+  check("compose: Enter accepts too, and closes the popup", opened and opened.key == "w:Kael-Argent" and hidden, opened and opened.key)
+  opened = nil
+  dlg.OnAccept(Popup("|Kq12|k"))
+  check("compose: a |K name is never parsed", opened == nil and S.Get("w:|Kq12|k-Horizon") == nil, opened and opened.key)
+  dlg.OnAccept(Popup(SECRET("Brisa")))
+  dlg.OnAccept(Popup(""))
+  dlg.OnAccept(Popup("two words"))
+  check("compose: secret, blank and spaced names start nothing", opened == nil, opened and opened.key)
+  local first = dlg
+  Find(Build(), "ECHO_COMPOSE_WHISPER").fn()
+  check("compose: the popup is registered once", StaticPopupDialogs.HORIZON_ECHO_NEW_WHISPER == first, "replaced")
+  AUTOCOMPLETE_LIST, GetAutoCompleteResults = nil, nil
+  StaticPopupDialogs = {}
+  Find(Build(), "ECHO_COMPOSE_WHISPER").fn()
+  dlg = StaticPopupDialogs.HORIZON_ECHO_NEW_WHISPER
+  check("compose: without autocomplete the popup still works", dlg and dlg.autoCompleteSource == nil and dlg.autoCompleteArgs == nil, "?")
+
+  Echo.Card.Open = saved.CardOpen
+  IsInGuild, C_GuildInfo, IsInGroup, IsInRaid = saved.IsInGuild, saved.C_GuildInfo, saved.IsInGroup, saved.IsInRaid
+  GetChannelList, C_FriendList, BNGetNumFriends, C_BattleNet = saved.GetChannelList, saved.C_FriendList, saved.BNGetNumFriends, saved.C_BattleNet
+  LE_PARTY_CATEGORY_HOME, LE_PARTY_CATEGORY_INSTANCE = saved.HOME, saved.INST
+  StaticPopupDialogs, StaticPopup_Show, GameTooltip, MenuUtil = saved.StaticPopupDialogs, saved.StaticPopup_Show, saved.GameTooltip, saved.MenuUtil
+  GetAutoCompleteResults, AUTOCOMPLETE_LIST = saved.GetAutoCompleteResults, saved.AUTOCOMPLETE_LIST
+  T.Disable()
+  S.Reset()
+`, 'compose');
 
 // --- Redraw: one repaint per frame -------------------------------------------
 run(`
