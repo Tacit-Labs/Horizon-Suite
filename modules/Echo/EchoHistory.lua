@@ -1,13 +1,15 @@
 --[[
     Horizon Suite - Echo - History
     Whisper history in HorizonDB.echoHistory: per character for whispers, account-wide
-    for Battle.net. A bnetAccountID only lasts one session, so Battle.net history is
-    keyed by the friend's BattleTag ("bt:Name#1234"); when the BattleTag cannot be read
-    (no API, no friend, secret) nothing is written or loaded for that conversation.
+    for Battle.net, per guild for guild and officer chat. A bnetAccountID only lasts one
+    session, so Battle.net history is keyed by the friend's BattleTag ("bt:Name#1234");
+    when the BattleTag cannot be read (no API, no friend, secret) nothing is written or
+    loaded for that conversation. Guild chat is keyed by "Guild Name-Realm"; with no
+    readable guild, nothing is written or loaded for guild/officer either.
     Never writes secret, pending, failed or demo messages. Channels are never persisted.
     Old conversations are dropped by History.Prune, on a timer the player sets
     (echoHistoryDays); a pinned conversation is always kept.
-    Blizzard: C_BattleNet.GetAccountInfoByID.
+    Blizzard: C_BattleNet.GetAccountInfoByID, GetGuildInfo, GetNormalizedRealmName.
 ]]
 
 local addon = _G.HorizonSuite
@@ -20,6 +22,7 @@ local History = {}
 Echo.History = History
 
 History.CAP = 100
+History.GUILD_CAP = 200
 History.DEFAULT_MAX_AGE = 30  -- days; matches echoHistoryDays' default. 0 means Forever.
 
 local root
@@ -36,6 +39,7 @@ function History.Bind(db, keyFn)
     root = db.echoHistory
     root.chars = root.chars or {}
     root.bnet = root.bnet or {}
+    root.guilds = root.guilds or {}
     if type(keyFn) == "function" then characterKey = keyFn end
 end
 
@@ -53,6 +57,24 @@ end
 -- @param days number  0 means Forever; an unreadable value is ignored
 function History.SetMaxAge(days)
     if type(days) == "number" and days >= 0 then maxAgeDays = days end
+end
+
+--- The player's guild, "Guild Name-Realm". GetGuildInfo's realm return is nil for a guild on
+-- your own realm, so that case falls back to GetNormalizedRealmName. nil when either value
+-- can't be read, is secret, or the account has no guild.
+-- @return string|nil
+function History.GuildKey()
+    local api = GetGuildInfo
+    if type(api) ~= "function" then return nil end
+    local ok, guildName, _, _, guildRealm = pcall(api, "player")
+    if not ok then return nil end
+    if Echo.IsSecret(guildName) or type(guildName) ~= "string" or guildName == "" then return nil end
+    if guildRealm == nil or guildRealm == "" then
+        local realmApi = GetNormalizedRealmName
+        guildRealm = type(realmApi) == "function" and realmApi() or nil
+    end
+    if Echo.IsSecret(guildRealm) or type(guildRealm) ~= "string" or guildRealm == "" then return nil end
+    return guildName .. "-" .. guildRealm
 end
 
 --- The friend's BattleTag for a "bn:<accountID>" conversation.
@@ -110,6 +132,8 @@ function History.SaveSession(keys, now)
         elseif kind == "bnet" then
             local tag = History.BattleTagFor(key)
             if tag then saved[#saved + 1] = "bt:" .. tag end
+        elseif (kind == "guild" or kind == "officer") and Echo.Store.IsPersisted(kind) then
+            saved[#saved + 1] = key
         end
     end
     root.session = root.session or {}
@@ -134,6 +158,8 @@ function History.SessionKeys(now, maxAge)
             local id = History.AccountIDForTag(key:sub(4))
             if id then out[#out + 1] = "bn:" .. id end
         elseif Echo.Store.KindOf(key) == "whisper" then
+            out[#out + 1] = key
+        elseif key == "guild" or key == "officer" then
             out[#out + 1] = key
         end
     end
@@ -214,6 +240,16 @@ local function Bucket(convKey, create)
             parent = {}
             root.chars[charKey] = parent
         end
+    elseif kind == "guild" or kind == "officer" then
+        local guildKey = History.GuildKey()
+        if not guildKey then return nil end
+        root.guilds = root.guilds or {}
+        parent = root.guilds[guildKey]
+        if not parent and create then
+            parent = {}
+            root.guilds[guildKey] = parent
+        end
+        listKey = kind
     end
     if not parent then return nil end
     local list = parent[listKey]
@@ -224,7 +260,7 @@ local function Bucket(convKey, create)
     return list
 end
 
---- Persist one whisper. Rejections are silent: the message still shows this session.
+--- Persist one message. Rejections are silent: the message still shows this session.
 -- @param convKey string
 -- @param record table
 -- @return boolean written
@@ -233,10 +269,20 @@ function History.Append(convKey, record)
     if record.secret or record.demo then return false end
     if record.status == "pending" or record.status == "failed" then return false end
     if Echo.IsSecret(record.text) or type(record.text) ~= "string" then return false end
+    local kind = Echo.Store.KindOf(convKey)
     local list = Bucket(convKey, true)
     if not list then return false end
-    list[#list + 1] = { t = record.time, out = record.outgoing and true or nil, text = record.text }
-    while #list > History.CAP do table.remove(list, 1) end
+    local entry = { t = record.time, out = record.outgoing and true or nil, text = record.text }
+    -- A Battle.net sender is a protected |K display string: safe to show, never stored.
+    if kind ~= "bnet" and not Echo.IsSecret(record.sender) and type(record.sender) == "string" and record.sender ~= "" then
+        entry.s = record.sender
+    end
+    if not Echo.IsSecret(record.class) and type(record.class) == "string" and record.class ~= "" then
+        entry.c = record.class
+    end
+    list[#list + 1] = entry
+    local cap = (kind == "guild" or kind == "officer") and History.GUILD_CAP or History.CAP
+    while #list > cap do table.remove(list, 1) end
     return true
 end
 
@@ -254,6 +300,8 @@ function History.Load(convKey)
             time        = entry.t,
             outgoing    = entry.out == true,
             status      = entry.out and "sent" or nil,
+            sender      = entry.s,
+            class       = entry.c,
             fromHistory = true,
             seq         = 0,
         }
@@ -261,7 +309,8 @@ function History.Load(convKey)
     return out
 end
 
---- Wipe all saved whispers, for every character and Battle.net, and the saved session.
+--- Wipe all saved whispers, for every character, Battle.net, guild and officer, and the
+-- saved session.
 function History.Clear()
     local target = root
     if not target then
@@ -271,12 +320,13 @@ function History.Clear()
     if not target then return end
     target.chars = {}
     target.bnet = {}
+    target.guilds = {}
     target.session = {}
 end
 
 -- True when some character has pinned this conversation key. Pins (root.prefs) are keyed
--- the same way conversations are (PrefKey), so a whisper or Battle.net list checks the
--- matching entry across every character's saved prefs.
+-- the same way conversations are (PrefKey), so a whisper, Battle.net or guild/officer list
+-- checks the matching entry across every character's saved prefs.
 local function AnyCharPinned(key)
     if type(root.prefs) ~= "table" then return false end
     for _, bucket in pairs(root.prefs) do
@@ -295,9 +345,9 @@ local function ListAge(list, now)
     return now - t
 end
 
---- Age-based cleanup: drop a whisper or Battle.net list whose newest entry is older than
--- echoHistoryDays (History.SetMaxAge). A list any character has pinned is always kept.
--- Forever (days == 0) removes nothing. Runs once when Echo enables.
+--- Age-based cleanup: drop a whisper, Battle.net or guild/officer list whose newest entry is
+-- older than echoHistoryDays (History.SetMaxAge). A list any character has pinned is always
+-- kept. Forever (days == 0) removes nothing. Runs once when Echo enables.
 -- @param now number
 -- @return number removed
 function History.Prune(now)
@@ -324,6 +374,16 @@ function History.Prune(now)
     end
 
     for key in pairs(root.bnet) do pruneList(root.bnet, key) end
+
+    if type(root.guilds) == "table" then
+        for guildKey, entry in pairs(root.guilds) do
+            if type(entry) == "table" then
+                pruneList(entry, "guild")
+                pruneList(entry, "officer")
+                if next(entry) == nil then root.guilds[guildKey] = nil end
+            end
+        end
+    end
 
     return removed
 end

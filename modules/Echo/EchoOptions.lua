@@ -85,6 +85,8 @@ function Echo.ApplyOptions()
     Echo.History.SetEnabledCheck(function() return Echo.Setting("echoSaveHistory") ~= false end)
     Echo.History.SetMaxAge(Echo.Setting("echoHistoryDays"))
     local Store = Echo.Store
+    Store.SetPersisted("guild", Echo.Setting("echoSaveGuild") == true)
+    Store.SetPersisted("officer", Echo.Setting("echoSaveOfficer") == true)
     for kind in pairs(Store.DEFAULT_TIERS) do
         local tier = Echo.Setting(Echo.TierKey(kind))
         if not Store.VALID_TIERS[tier] then tier = nil end

@@ -282,6 +282,10 @@ end
 local tail = {
     Section(L["ECHO_SECTION_HISTORY"]),
     Toggle(L["ECHO_SAVE_HISTORY"], L["ECHO_SAVE_HISTORY_DESC"], "echoSaveHistory", D.echoSaveHistory),
+    Toggle(L["ECHO_SAVE_GUILD"], L["ECHO_SAVE_GUILD_DESC"], "echoSaveGuild", D.echoSaveGuild,
+        { visibleWhen = function() return getDB("echoSaveHistory", D.echoSaveHistory) ~= false end }),
+    Toggle(L["ECHO_SAVE_OFFICER"], L["ECHO_SAVE_OFFICER_DESC"], "echoSaveOfficer", D.echoSaveOfficer,
+        { visibleWhen = function() return getDB("echoSaveHistory", D.echoSaveHistory) ~= false end }),
     { type = "dropdown", name = L["ECHO_HISTORY_DAYS"], desc = L["ECHO_HISTORY_DAYS_DESC"], dbKey = "echoHistoryDays",
       options = HISTORY_DAYS_OPTIONS, preserveOrder = true,
       get = function() return getDB("echoHistoryDays", D.echoHistoryDays) end,

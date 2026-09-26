@@ -63,8 +63,37 @@ Store.EVENT_KIND = {
     BN_INLINE_TOAST_ALERT          = "system",
 }
 
--- Only whisper kinds are written to history.
+-- Always-persisted kinds. Kept as the base table so existing readers still work; guild and
+-- officer join through Store.SetPersisted (Echo.ApplyOptions), read via Store.IsPersisted.
 Store.PERSISTED_KINDS = { whisper = true, bnet = true }
+local persistedOverrides = {}
+
+--- Whether a kind's conversations are written to History. whisper and bnet always are;
+-- guild and officer follow the player's echoSaveGuild / echoSaveOfficer settings.
+-- @param kind string
+-- @return boolean
+function Store.IsPersisted(kind)
+    if Store.PERSISTED_KINDS[kind] then return true end
+    return persistedOverrides[kind] == true
+end
+
+--- Options (plan 10) pushes echoSaveGuild / echoSaveOfficer through this.
+-- @param kind string
+-- @param on boolean
+function Store.SetPersisted(kind, on)
+    persistedOverrides[kind] = on and true or nil
+end
+
+--- The message cap for a kind: guild and officer keep more (History.GUILD_CAP), everything
+-- else Store.MAX_MESSAGES.
+-- @param kind string
+-- @return number
+function Store.MaxMessages(kind)
+    if kind == "guild" or kind == "officer" then
+        return (Echo.History and Echo.History.GUILD_CAP) or 200
+    end
+    return Store.MAX_MESSAGES
+end
 
 -- Read-only feeds of non-conversation lines (plan 4). Routed by event type, quiet by
 -- default, never persisted or restored.
@@ -201,8 +230,15 @@ local function GetOrCreate(convKey)
         pinned     = false,
         open       = true,
     }
-    if Store.PERSISTED_KINDS[conv.kind] and Echo.History then
+    if Store.IsPersisted(conv.kind) and Echo.History then
         conv.messages = Echo.History.Load(convKey)
+        if conv.kind == "guild" or conv.kind == "officer" then
+            -- The guild can be unknown when this conversation is first created; historyLoaded
+            -- stays false so Store.Add retries the load once a guild key becomes available.
+            conv.historyLoaded = Echo.History.GuildKey() ~= nil
+        else
+            conv.historyLoaded = true
+        end
     end
     local pref = Echo.History and Echo.History.LoadPref(convKey)
     if pref then
@@ -216,11 +252,12 @@ end
 local function Append(conv, record)
     local messages = conv.messages
     messages[#messages + 1] = record
-    while #messages > Store.MAX_MESSAGES do table.remove(messages, 1) end
+    local cap = Store.MaxMessages(conv.kind)
+    while #messages > cap do table.remove(messages, 1) end
 end
 
 local function Persist(record)
-    if Echo.History and Store.PERSISTED_KINDS[Store.KindOf(record.convKey)] then
+    if Echo.History and Store.IsPersisted(Store.KindOf(record.convKey)) then
         Echo.History.Append(record.convKey, record)
     end
 end
@@ -233,6 +270,16 @@ end
 function Store.Add(record)
     if type(record) ~= "table" or not Store.KindOf(record.convKey) then return nil end
     local conv = GetOrCreate(record.convKey)
+    -- The guild was unknown when this conversation was created; try again now, so a saved
+    -- guild history still arrives once the guild key resolves.
+    if conv.historyLoaded == false and (conv.kind == "guild" or conv.kind == "officer") and Echo.History then
+        local guildKey = Echo.History.GuildKey()
+        if guildKey then
+            local loaded = Echo.History.Load(record.convKey)
+            for i = #loaded, 1, -1 do table.insert(conv.messages, 1, loaded[i]) end
+            conv.historyLoaded = true
+        end
+    end
     seq = seq + 1
     record.seq = seq
     record.time = record.time or Store.Now()
@@ -455,7 +502,7 @@ end
 function Store.OpenKeys()
     local keys = {}
     for _, conv in ipairs(Store.List()) do
-        if Store.PERSISTED_KINDS[conv.kind] then keys[#keys + 1] = conv.key end
+        if Store.IsPersisted(conv.kind) then keys[#keys + 1] = conv.key end
     end
     return keys
 end
@@ -476,7 +523,7 @@ function Store.Restore(keys)
         local existing = conversations[key]
         if existing then
             if existing.restoreRank then existing.restoreRank = i end
-        elseif Store.PERSISTED_KINDS[Store.KindOf(key)] then
+        elseif Store.IsPersisted(Store.KindOf(key)) then
             GetOrCreate(key).restoreRank = i
             restored = restored + 1
         end

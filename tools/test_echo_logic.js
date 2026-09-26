@@ -925,6 +925,144 @@ run(`
   S.Reset()
 `, 'history-prune');
 
+// --- History: save guild and officer chat (plan 10, Task 2) ------------------------------
+run(`
+  local S, H = HorizonSuite.Echo.Store, HorizonSuite.Echo.History
+  S.Reset()
+  S.SetPersisted("guild", false)
+  S.SetPersisted("officer", false)
+  local db = {}
+  local charKey = "Kaelis-Horizon"
+  H.Bind(db, function() return charKey end)
+  local savedGetGuildInfo = GetGuildInfo
+  local guildName, guildRealm = "Dawnrise", nil
+  GetGuildInfo = function(unit)
+    if unit ~= "player" then return nil end
+    return guildName, "Officer", 3, guildRealm
+  end
+
+  check("guild key falls back to the player's own realm", H.GuildKey() == "Dawnrise-Horizon", H.GuildKey())
+
+  S.SetPersisted("guild", true)
+  S.Add({ convKey = "guild", text = "guild line" })
+  local guildList = db.echoHistory.guilds["Dawnrise-Horizon"] and db.echoHistory.guilds["Dawnrise-Horizon"].guild
+  check("a guild line is written under the guild key", guildList and #guildList == 1 and guildList[1].text == "guild line", guildList and #guildList)
+
+  S.Add({ convKey = "officer", text = "officer line" })
+  local officerList = db.echoHistory.guilds["Dawnrise-Horizon"] and db.echoHistory.guilds["Dawnrise-Horizon"].officer
+  check("officer lines are not written while echoSaveOfficer is off", officerList == nil, officerList and #officerList)
+
+  S.SetPersisted("officer", true)
+  S.Add({ convKey = "officer", text = "officer line 2" })
+  officerList = db.echoHistory.guilds["Dawnrise-Horizon"].officer
+  check("officer lines are written once echoSaveOfficer is on", officerList and #officerList == 1 and officerList[1].text == "officer line 2", officerList and #officerList)
+
+  for i = 1, 210 do H.Append("guild", { text = "m" .. i, time = i }) end
+  local capped = db.echoHistory.guilds["Dawnrise-Horizon"].guild
+  check("the guild cap is 200", #capped == 200 and capped[1].text == "m11", #capped)
+
+  H.Append("guild", { text = "hi", time = 500, sender = "Brisa-Horizon", class = "DRUID" })
+  local last = capped[#capped]
+  check("sender and class are written", last.s == "Brisa-Horizon" and last.c == "DRUID", last.s)
+  local loaded = H.Load("guild")
+  check("sender and class round-trip on load", loaded[#loaded].sender == "Brisa-Horizon" and loaded[#loaded].class == "DRUID", loaded[#loaded].sender)
+
+  H.Append("guild", { text = "secret sender", time = 501, sender = SECRET("Hidden-Horizon"), class = SECRET("ROGUE") })
+  local secretEntry = capped[#capped]
+  check("a secret sender is not written", secretEntry.s == nil, secretEntry.s)
+  check("a secret class is not written", secretEntry.c == nil, secretEntry.c)
+
+  -- A battle.net sender is a protected |K display string: never written, whatever the kind.
+  local savedBattleNet = C_BattleNet
+  C_BattleNet = { GetAccountInfoByID = function(id) if id == 99 then return { battleTag = "Foe#1234" } end end }
+  S.Add({ convKey = "bn:99", text = "hi", sender = "|Kbnet-protected-string" })
+  local bnetList = db.echoHistory.bnet["bt:Foe#1234"]
+  check("a battle.net sender is never written", bnetList and bnetList[1].s == nil, bnetList and bnetList[1].s)
+  C_BattleNet = savedBattleNet
+
+  -- Nothing is written with no guild key.
+  S.Reset()
+  local dbNoGuild = {}
+  H.Bind(dbNoGuild, function() return charKey end)
+  local savedGuildName = guildName
+  guildName = nil
+  S.Add({ convKey = "guild", text = "no key" })
+  check("nothing written with no guild key", next(dbNoGuild.echoHistory.guilds) == nil, "written")
+  guildName = savedGuildName
+
+  -- The late load prepends the saved history once the guild key resolves.
+  S.Reset()
+  local dbLate = {}
+  H.Bind(dbLate, function() return charKey end)
+  guildName = nil
+  S.Add({ convKey = "guild", text = "typed before guild known" })
+  check("no guild key yet: filed this session, nothing saved",
+        S.Get("guild").messages[1].text == "typed before guild known" and next(dbLate.echoHistory.guilds) == nil, "?")
+
+  dbLate.echoHistory.guilds["Dawnrise-Horizon"] = { guild = { { t = 1, text = "saved earlier" } } }
+  guildName = "Dawnrise"
+  S.Add({ convKey = "guild", text = "second line" })
+  local msgs = S.Get("guild").messages
+  check("the late load prepends the saved history once",
+        #msgs == 3 and msgs[1].text == "saved earlier" and msgs[2].text == "typed before guild known" and msgs[3].text == "second line",
+        #msgs)
+
+  S.Add({ convKey = "guild", text = "third line" })
+  msgs = S.Get("guild").messages
+  check("the late load only happens once", #msgs == 4 and msgs[4].text == "third line", #msgs)
+
+  -- SessionKeys carries guild and officer only while they are persisted.
+  S.Reset()
+  local dbSession = {}
+  H.Bind(dbSession, function() return charKey end)
+  check("session saves guild and officer when persisted",
+        H.SaveSession({ "guild", "officer", "party" }, 1000) == true, "?")
+  local savedKeys = dbSession.echoHistory.session["Kaelis-Horizon"].keys
+  check("guild and officer saved, party dropped", table.concat(savedKeys, ",") == "guild,officer", table.concat(savedKeys, ","))
+  local restored = H.SessionKeys(1600)
+  check("SessionKeys restores guild and officer", table.concat(restored, ",") == "guild,officer", table.concat(restored, ","))
+
+  S.SetPersisted("guild", false)
+  S.SetPersisted("officer", false)
+  H.SaveSession({ "guild", "officer" }, 2000)
+  savedKeys = dbSession.echoHistory.session["Kaelis-Horizon"].keys
+  check("guild/officer not saved once saving is off", #savedKeys == 0, #savedKeys)
+
+  -- Clear wipes guilds.
+  S.SetPersisted("guild", true)
+  S.Add({ convKey = "guild", text = "before clear" })
+  check("a guild entry exists before clear", next(dbSession.echoHistory.guilds) ~= nil, "missing")
+  H.Clear()
+  check("clear wipes guild history", next(dbSession.echoHistory.guilds) == nil, "kept")
+
+  -- With echoSaveHistory off, guild isn't saved even though the guild flag is on.
+  S.Reset()
+  local dbOff = {}
+  H.Bind(dbOff, function() return charKey end)
+  H.SetEnabledCheck(function() return false end)
+  S.Add({ convKey = "guild", text = "should not save" })
+  check("echoSaveHistory off blocks guild saving", next(dbOff.echoHistory.guilds) == nil, "saved")
+  H.SetEnabledCheck(function() return true end)
+
+  -- Prune also covers guild and officer lists, each guild's separately (Task 1's rule).
+  S.Reset()
+  local dbPrune = {}
+  H.Bind(dbPrune, function() return charKey end)
+  H.SetMaxAge(30)
+  local now2 = 40 * 86400 + 1000
+  H.Append("guild", { text = "old guild line", time = now2 - 40 * 86400 })
+  H.Append("officer", { text = "old officer line", time = now2 - 40 * 86400 })
+  local removed2 = H.Prune(now2)
+  check("prune removed both stale guild lists", removed2 == 2, removed2)
+  check("an emptied guild bucket is dropped", dbPrune.echoHistory.guilds["Dawnrise-Horizon"] == nil, "kept")
+
+  GetGuildInfo = savedGetGuildInfo
+  S.SetPersisted("guild", false)
+  S.SetPersisted("officer", false)
+  H.Unbind()
+  S.Reset()
+`, 'history-guild');
+
 // --- View: tiles, names, lines, layout, toast queue ------------------------------------
 run(`
   local S, V = HorizonSuite.Echo.Store, HorizonSuite.Echo.View
@@ -3567,6 +3705,8 @@ run(`
   check("tier key", A.Echo.TierKey("bnet") == "echoTierBnet", A.Echo.TierKey("bnet"))
   check("feed key", A.Echo.FeedKey("loot") == "echoFeedLoot", A.Echo.FeedKey("loot"))
   check("history days default is 30", A.ECHO_DEFAULTS.echoHistoryDays == 30, A.ECHO_DEFAULTS.echoHistoryDays)
+  check("guild saving defaults on", A.ECHO_DEFAULTS.echoSaveGuild == true, tostring(A.ECHO_DEFAULTS.echoSaveGuild))
+  check("officer saving defaults off", A.ECHO_DEFAULTS.echoSaveOfficer == false, tostring(A.ECHO_DEFAULTS.echoSaveOfficer))
   -- Later sections run without defaults, as before this plan.
   A.ECHO_DEFAULTS, A.ECHO_KEYS, A.ECHO_LIMITS = nil, nil, nil
 `, 'echo-defaults-check');
@@ -3664,6 +3804,23 @@ run(`
   local removedShort = H.Prune(1 + 10 * 86400)
   check("ApplyOptions pushes echoHistoryDays into Prune's cutoff", removedShort == 2, removedShort)
   db.echoHistoryDays = nil
+
+  -- echoSaveGuild / echoSaveOfficer reach Store.IsPersisted.
+  db.echoSaveGuild = false
+  Echo.ApplyOptions()
+  check("ApplyOptions pushes echoSaveGuild off", S.IsPersisted("guild") == false, "on")
+  db.echoSaveGuild = true
+  Echo.ApplyOptions()
+  check("ApplyOptions pushes echoSaveGuild on", S.IsPersisted("guild") == true, "off")
+  db.echoSaveOfficer = true
+  Echo.ApplyOptions()
+  check("ApplyOptions pushes echoSaveOfficer on", S.IsPersisted("officer") == true, "off")
+  db.echoSaveOfficer = false
+  Echo.ApplyOptions()
+  check("ApplyOptions pushes echoSaveOfficer off", S.IsPersisted("officer") == false, "on")
+  db.echoSaveGuild, db.echoSaveOfficer = nil, nil
+  S.SetPersisted("guild", false)
+  S.SetPersisted("officer", false)
   H.Unbind()
 
   -- Clear falls back to the raw SavedVariables table when History is unbound (Echo disabled).
@@ -4051,6 +4208,11 @@ run(`
   for _, o in ipairs(keys.echoHistoryDays.options) do historyDaysValues[#historyDaysValues + 1] = o[2] end
   check("history days dropdown lists 7, 30, 90 and Forever", table.concat(historyDaysValues, ",") == "7,30,90,0",
       table.concat(historyDaysValues, ","))
+  check("guild history toggle hides with saving off", keys.echoSaveGuild.visibleWhen ~= nil, "no visibleWhen")
+  A.OptionsData_SetDB("echoSaveHistory", false)
+  check("guild toggle hidden with history off", keys.echoSaveGuild.visibleWhen() == false, "shown")
+  check("officer toggle hidden with history off", keys.echoSaveOfficer.visibleWhen() == false, "shown")
+  A.OptionsData_SetDB("echoSaveHistory", nil)
 
   A.OptionsData_SetDB("echoX", 800)
   A.OptionsData_SetDB("echoY", 300)
