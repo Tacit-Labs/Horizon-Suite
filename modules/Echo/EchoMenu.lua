@@ -2,6 +2,7 @@
     Horizon Suite - Echo - Menu
     The ⋯ menu on the card: pin, notification tier, close conversation. Its contents come
     from View.MenuSpec; this file turns them into Blizzard's context menu and runs the choice.
+    Also the right-click menu on one message: pin or unpin it, or say why it can't be pinned.
     Blizzard: MenuUtil.CreateContextMenu.
 ]]
 
@@ -74,5 +75,53 @@ end
 function Menu.Open(owner, convKey)
     if not Menu.Available() then return false end
     MenuUtil.CreateContextMenu(owner, function(_, rootDescription) Menu.Build(rootDescription, convKey) end)
+    return true
+end
+
+-- The disabled button's text for each reason Store.PinMessage can refuse.
+local BLOCKED = {
+    secret  = "ECHO_PIN_BLOCKED_SECRET",
+    chat    = "ECHO_PIN_BLOCKED_CHAT",
+    total   = "ECHO_PIN_BLOCKED_TOTAL",
+    unsaved = "ECHO_PIN_BLOCKED_UNSAVED",
+}
+
+--- Fill a MenuUtil root description for one message: Pin message, Unpin message, or a
+-- disabled button saying why it can't be pinned.
+-- @param rootDescription table
+-- @param convKey string
+-- @param record table  the message's Store record
+function Menu.BuildMessage(rootDescription, convKey, record)
+    local Store = Echo.Store
+    local L = addon.L
+    if not convKey or type(record) ~= "table" then return end
+    local pins = Store.Pins(convKey)
+    if Store.PinIndex(convKey, record, pins) then
+        rootDescription:CreateButton(L["ECHO_UNPIN_MESSAGE"], function()
+            -- Look the index up again at click time: the pins may have changed since.
+            local index = Store.PinIndex(convKey, record)
+            if index then Store.UnpinMessage(convKey, index) end
+        end)
+        return
+    end
+    local reason = Store.PinBlockReason(convKey, record)
+    if reason then
+        local b = rootDescription:CreateButton(L[BLOCKED[reason] or BLOCKED.unsaved], function() end)
+        if b and b.SetEnabled then b:SetEnabled(false) end
+        return
+    end
+    rootDescription:CreateButton(L["ECHO_PIN_MESSAGE"], function() Store.PinMessage(convKey, record) end)
+end
+
+--- Open the menu for one message.
+-- @param owner Frame  the bubble or feed line clicked
+-- @param convKey string
+-- @param record table
+-- @return boolean opened
+function Menu.OpenMessage(owner, convKey, record)
+    if not Menu.Available() then return false end
+    MenuUtil.CreateContextMenu(owner, function(_, rootDescription)
+        Menu.BuildMessage(rootDescription, convKey, record)
+    end)
     return true
 end

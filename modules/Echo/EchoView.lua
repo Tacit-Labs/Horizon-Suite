@@ -914,3 +914,24 @@ function View.FeedTime(t)
     local ok, stamp = pcall(date, "%H:%M", t)
     return (ok and type(stamp) == "string") and stamp or ""
 end
+
+--- A pin's time for its tooltip: "12 Sep 21:04", or "" when there is no time.
+-- @param t number|nil
+-- @return string
+function View.PinTime(t)
+    if type(t) ~= "number" or type(date) ~= "function" then return "" end
+    local ok, stamp = pcall(date, "%d %b %H:%M", t)
+    return (ok and type(stamp) == "string") and stamp or ""
+end
+
+--- One line of pinned text for the pin strip: links shown as their names (the |H...|h
+-- wrapper dropped, the [Name] it shows kept) and line breaks as spaces. A secret or
+-- unreadable text gives "".
+-- @param text string|any
+-- @return string
+function View.PinText(text)
+    if Echo.IsSecret(text) or type(text) ~= "string" then return "" end
+    local out = text:gsub("|H.-|h(.-)|h", "%1")
+    out = out:gsub("[\r\n]+", " ")
+    return out
+end

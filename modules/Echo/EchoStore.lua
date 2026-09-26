@@ -393,14 +393,24 @@ function Store.Pins(convKey)
     return Echo.History.Pins(convKey)
 end
 
---- Whether a record matches one of the conversation's pins, by time, text and sender (a
--- nil sender matches nil). Used for the bubble marker.
+--- Why a record can't be pinned, without pinning it (the menu's disabled reason).
 -- @param convKey string
 -- @param record table
--- @return boolean
-function Store.IsPinnedMessage(convKey, record)
-    if type(record) ~= "table" then return false end
-    if Echo.IsSecret(record.text) or type(record.text) ~= "string" then return false end
+-- @return string|nil reason  see History.AddPin; nil when pinning would succeed
+function Store.PinBlockReason(convKey, record)
+    if not Echo.History then return "unsaved" end
+    return Echo.History.PinBlockReason(convKey, record)
+end
+
+--- The index in Store.Pins(convKey) of the pin a record matches, by time, text and
+-- sender (a nil sender matches nil).
+-- @param convKey string
+-- @param record table
+-- @param pins table|nil  Store.Pins(convKey), when the caller already has it
+-- @return number|nil index
+function Store.PinIndex(convKey, record, pins)
+    if type(record) ~= "table" then return nil end
+    if Echo.IsSecret(record.text) or type(record.text) ~= "string" then return nil end
     -- Normalise the sender as History.AddPin stores it: a Battle.net |K string is never
     -- saved, so a Battle.net pin has no sender and must match a live line's nil.
     local sender = nil
@@ -408,12 +418,21 @@ function Store.IsPinnedMessage(convKey, record)
        and type(record.sender) == "string" and record.sender ~= "" and record.sender:sub(1, 2) ~= "|K" then
         sender = record.sender
     end
-    for _, pin in ipairs(Store.Pins(convKey)) do
+    for i, pin in ipairs(pins or Store.Pins(convKey)) do
         if pin.time == record.time and pin.text == record.text and pin.sender == sender then
-            return true
+            return i
         end
     end
-    return false
+    return nil
+end
+
+--- Whether a record matches one of the conversation's pins. Used for the bubble marker.
+-- @param convKey string
+-- @param record table
+-- @param pins table|nil  Store.Pins(convKey), when the caller already has it
+-- @return boolean
+function Store.IsPinnedMessage(convKey, record, pins)
+    return Store.PinIndex(convKey, record, pins) ~= nil
 end
 
 --- Remove a conversation's tile. Messages are kept, so a new message reopens it with context.

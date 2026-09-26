@@ -274,6 +274,54 @@ function History.Pins(convKey)
     return out
 end
 
+-- The sender a pin stores: readable and not a Battle.net |K string, else nil.
+local function PinSender(convKey, record)
+    local sender = record.sender
+    -- A Battle.net sender is a protected |K display string: never stored, whatever the kind.
+    if Echo.Store.KindOf(convKey) ~= "bnet" and not Echo.IsSecret(sender) and type(sender) == "string"
+       and sender ~= "" and sender:sub(1, 2) ~= "|K" then
+        return sender
+    end
+    return nil
+end
+
+-- Whether a record can be pinned, shared by AddPin and PinBlockReason so the menu's
+-- disabled reason always matches what a click would do.
+-- @return string|nil reason  nil when it can be pinned (or already is)
+-- @return string|nil key, table|nil bucket, string|nil sender, table|nil list, boolean|nil already
+local function CheckPin(convKey, record, create)
+    if type(record) ~= "table" then return "unsaved" end
+    if record.secret or Echo.IsSecret(record.text) or type(record.text) ~= "string" then
+        return "secret"
+    end
+    local key = PrefKey(convKey)
+    if not key or not root or not characterKey() then return "unsaved" end
+    local bucket = PinsBucket(create)
+    if create and not bucket then return "unsaved" end
+
+    local sender = PinSender(convKey, record)
+    local list = bucket and bucket[key]
+    if type(list) ~= "table" then list = nil end
+    if list then
+        for _, entry in ipairs(list) do
+            if entry.t == record.time and entry.text == record.text and entry.s == sender then
+                return nil, key, bucket, sender, list, true
+            end
+        end
+    end
+
+    if list and #list >= History.PINS_PER_CHAT then return "chat" end
+
+    local total = 0
+    if bucket then
+        for _, l in pairs(bucket) do
+            if type(l) == "table" then total = total + #l end
+        end
+    end
+    if total >= History.PINS_TOTAL then return "total" end
+    return nil, key, bucket, sender, list, false
+end
+
 --- Pin a message. Pins are the player's explicit choice, so they are saved whatever the
 -- history switches say, and Prune never removes them.
 -- @param convKey string
@@ -281,44 +329,24 @@ end
 -- @return boolean ok
 -- @return string|nil reason  "secret" | "chat" | "total" | "unsaved"; nil when ok
 function History.AddPin(convKey, record)
-    if type(record) ~= "table" then return false, "unsaved" end
-    if record.secret or Echo.IsSecret(record.text) or type(record.text) ~= "string" then
-        return false, "secret"
-    end
-
-    local key = PrefKey(convKey)
-    local bucket = key and PinsBucket(true)
-    if not key or not bucket then return false, "unsaved" end
-
-    local kind = Echo.Store.KindOf(convKey)
-    local sender = nil
-    -- A Battle.net sender is a protected |K display string: never stored, whatever the kind.
-    if kind ~= "bnet" and not Echo.IsSecret(record.sender) and type(record.sender) == "string"
-       and record.sender ~= "" and record.sender:sub(1, 2) ~= "|K" then
-        sender = record.sender
-    end
-
-    local list = bucket[key]
-    if type(list) == "table" then
-        for _, entry in ipairs(list) do
-            if entry.t == record.time and entry.text == record.text and entry.s == sender then
-                return true
-            end
-        end
-    end
-
-    if list and #list >= History.PINS_PER_CHAT then return false, "chat" end
-
-    local total = 0
-    for _, l in pairs(bucket) do total = total + #l end
-    if total >= History.PINS_TOTAL then return false, "total" end
-
+    local reason, key, bucket, sender, list, already = CheckPin(convKey, record, true)
+    if reason then return false, reason end
+    if already then return true end
     if not list then
         list = {}
         bucket[key] = list
     end
     list[#list + 1] = { t = record.time, text = record.text, s = sender, out = record.outgoing and true or nil }
     return true
+end
+
+--- Why a record can't be pinned, without writing anything: the reason AddPin would
+-- return, or nil when pinning would succeed (including a record already pinned).
+-- @param convKey string
+-- @param record table
+-- @return string|nil reason  "secret" | "chat" | "total" | "unsaved"
+function History.PinBlockReason(convKey, record)
+    return (CheckPin(convKey, record, false))
 end
 
 --- Remove one of this character's pins.

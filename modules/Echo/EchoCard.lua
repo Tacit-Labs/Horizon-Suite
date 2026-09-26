@@ -8,6 +8,10 @@
     A group (Echo.Groups) opens as one card with a tab per open member under the header;
     everything below the tabs shows the selected member, so drafts, the scroll position
     and read-marking all stay per member.
+    Pins: right-click a bubble or feed line to pin or unpin it (Echo.Menu). A pinned
+    message carries a small pin marker, and the shown conversation's pins sit in a strip
+    under the header (and the tabs): the pinned text, a counter that steps to older pins,
+    and a × that unpins. Clicking the text scrolls to the message while it is still there.
     Bubbles are laid out newest-first from the bottom of a clipped area and the wheel
     scrolls by message. Readable text is measured; a secret gets the widest bubble and a
     fixed three lines, so nothing ever reads a size from a FontString holding a secret.
@@ -45,10 +49,15 @@ Card.TAB_HEIGHT = 18
 Card.TAB_GAP = 4
 Card.TAB_STRIP = Card.TAB_HEIGHT + Card.TAB_GAP  -- how far a group card's area moves down
 Card.TAB_MIN_WIDTH = 24  -- a tab never shrinks below this; below it, tabs overflow into "+N"
+Card.PIN_HEIGHT = 22
+Card.PIN_STRIP = Card.PIN_HEIGHT + 4  -- how far the area moves down under the pin strip
+Card.PIN_MARK = 10    -- the pin marker on a pinned bubble or feed line
+Card.PIN_ICON = 12    -- the pin on the strip
+Card.PIN_TEXTURE = "Interface\\AddOns\\" .. (addon.ADDON_NAME or "HorizonSuite") .. "\\media\\echo\\pin.tga"
 
 local root, nameText, metaText, area, edit, send, menuButton, chevron, statusLine, hint, rule
 local rowTiles, bubbles, labels, tabs = {}, {}, {}, {}
-local tabStrip
+local tabStrip, pinStrip
 -- Forward-declared: Create()'s OnHide handler (defined further down) needs to stop the
 -- genie, which is defined later in the file.
 local StopEffects
@@ -58,6 +67,7 @@ local selected = {}   -- group index -> the member last selected there this sess
 local offset = 0  -- newest messages scrolled past
 local newBelow = 0  -- messages added while scrolled up, shown by the hint
 local areaHeight = Card.AREA_HEIGHT  -- the message area's height for the card now shown
+local pinIndex  -- the pin the strip shows, an index into Store.Pins(renderedKey); nil = newest
 
 --- Take the card's width and height from the settings and re-derive the sizes built on
 -- them. The bubble width keeps the 110px the original 360px card left beside a bubble.
@@ -136,10 +146,11 @@ local function MenuAvailable()
     return Echo.Menu ~= nil and Echo.Menu.Available()
 end
 
--- The message area runs from under the header (and a group card's tabs) to the reply box,
--- or, on a read-only feed card with no reply box, down to the card's bottom padding.
-local function AnchorArea(feed, grouped)
-    local top = Card.AREA_TOP + (grouped and Card.TAB_STRIP or 0)
+-- The message area runs from under the header (and a group card's tabs, and the pin
+-- strip) to the reply box, or, on a read-only feed card with no reply box, down to the
+-- card's bottom padding.
+local function AnchorArea(feed, grouped, pinned)
+    local top = Card.AREA_TOP + (grouped and Card.TAB_STRIP or 0) + (pinned and Card.PIN_STRIP or 0)
     local bottom = feed and Card.PAD or Card.AREA_BOTTOM
     area:ClearAllPoints()
     area:SetPoint("TOPLEFT", root, "TOPLEFT", Card.PAD, -top)
@@ -241,8 +252,71 @@ local function Create()
     tabStrip:SetPoint("TOPRIGHT", root, "TOPRIGHT", -Card.PAD, -Card.AREA_TOP)
     tabStrip:Hide()
 
+    -- The shown conversation's pins, between the header (or the tabs) and the messages.
+    pinStrip = CreateFrame("Frame", nil, root)
+    pinStrip:SetHeight(Card.PIN_HEIGHT)
+    Echo.Round.Apply(pinStrip, { radius = Echo.Round.SMALL })
+    Echo.Round.SetColor(pinStrip, a.r, a.g, a.b, 0.14)
+    pinStrip.icon = pinStrip:CreateTexture(nil, "ARTWORK")
+    pinStrip.icon:SetTexture(Card.PIN_TEXTURE)
+    pinStrip.icon:SetSize(Card.PIN_ICON, Card.PIN_ICON)
+    pinStrip.icon:SetPoint("LEFT", pinStrip, "LEFT", 6, 0)
+    pinStrip.icon:SetVertexColor(a.r, a.g, a.b, 1)
+
+    local close = CreateFrame("Button", nil, pinStrip)
+    close:SetSize(18, 18)
+    close:SetPoint("RIGHT", pinStrip, "RIGHT", -2, 0)
+    Glyph(close, {
+        { w = 8, h = 1.5, angle = math.pi / 4 },
+        { w = 8, h = 1.5, angle = -math.pi / 4 },
+    })
+    local tint, untint = close:GetScript("OnEnter"), close:GetScript("OnLeave")
+    close:SetScript("OnEnter", function(self)
+        if tint then tint(self) end
+        if GameTooltip and type(GameTooltip.SetOwner) == "function" then
+            GameTooltip:SetOwner(self, "ANCHOR_TOP")
+            GameTooltip:SetText(L["ECHO_UNPIN"])
+            GameTooltip:Show()
+        end
+    end)
+    close:SetScript("OnLeave", function(self)
+        if untint then untint(self) end
+        if GameTooltip and type(GameTooltip.Hide) == "function" then GameTooltip:Hide() end
+    end)
+    close:RegisterForClicks("LeftButtonUp")
+    close:SetScript("OnClick", function() Card.UnpinShown() end)
+    pinStrip.close = close
+
+    local counter = CreateFrame("Button", nil, pinStrip)
+    counter:SetSize(34, 18)
+    counter:SetPoint("RIGHT", close, "LEFT", -2, 0)
+    counter.text = Echo.NewText(counter, 10, "")
+    counter.text:SetPoint("CENTER", counter, "CENTER", 0, 0)
+    counter.text:SetTextColor(a.r, a.g, a.b, 1)
+    counter:RegisterForClicks("LeftButtonUp")
+    counter:SetScript("OnClick", function() Card.NextPin() end)
+    counter:Hide()
+    pinStrip.counter = counter
+
+    local label = CreateFrame("Button", nil, pinStrip)
+    label:SetHeight(18)
+    label.text = Echo.NewText(label, 11, "")
+    label.text:SetPoint("LEFT", label, "LEFT", 0, 0)
+    label.text:SetPoint("RIGHT", label, "RIGHT", 0, 0)
+    label.text:SetJustifyH("LEFT")
+    label.text:SetWordWrap(false)
+    label.text:SetTextColor(0.92, 0.93, 0.98, 1)
+    label:RegisterForClicks("LeftButtonUp")
+    label:SetScript("OnClick", function() Card.JumpToPin() end)
+    label:SetScript("OnEnter", function(self) Card.ShowPinTooltip(self) end)
+    label:SetScript("OnLeave", function()
+        if GameTooltip and type(GameTooltip.Hide) == "function" then GameTooltip:Hide() end
+    end)
+    pinStrip.label = label
+    pinStrip:Hide()
+
     area = CreateFrame("Frame", nil, root)
-    AnchorArea(false, false)
+    AnchorArea(false, false, false)
     area:SetClipsChildren(true)
     area:EnableMouseWheel(true)
     area:SetScript("OnMouseWheel", function(_, delta) Card.Scroll(delta) end)
@@ -344,8 +418,21 @@ local function Bubble(i)
     b.time:SetPoint("TOPLEFT", b, "TOPLEFT", 2, -3)
     b.time:SetTextColor(0.55, 0.60, 0.75, 1)
     b.time:Hide()
+    -- The pin marker, placed by Mark once the bubble's side is known.
+    b.pin = b:CreateTexture(nil, "OVERLAY")
+    b.pin:SetTexture(Card.PIN_TEXTURE)
+    b.pin:SetSize(Card.PIN_MARK, Card.PIN_MARK)
+    local a = Echo.View.ACCENT
+    b.pin:SetVertexColor(a.r, a.g, a.b, 1)
+    b.pin:Hide()
     b:EnableMouse(true)
     if Echo.Links then Echo.Links.Attach(b) end
+    -- A link click goes to OnHyperlinkClick; a right-click anywhere else on the message
+    -- opens its pin menu.
+    b:SetScript("OnMouseUp", function(self, button)
+        if button ~= "RightButton" or not self.msgKey or not self.msg or not Echo.Menu then return end
+        Echo.Menu.OpenMessage(self, self.msgKey, self.msg)
+    end)
     bubbles[i] = b
     return b
 end
@@ -391,15 +478,23 @@ local function SizeBubble(b, text, secret)
     return height + Card.BUBBLE_PAD * 2
 end
 
--- Lay out one feed line across the card: time, then text. Readable text is measured; a
--- secret gets a fixed number of lines. Returns its height.
-local function SizeFeedLine(b, msg, secret)
+-- Lay out one feed line across the card: time, then (when pinned) the pin marker, then
+-- text. Readable text is measured; a secret gets a fixed number of lines. Returns its height.
+local function SizeFeedLine(b, msg, secret, pinned)
     local width = Card.WIDTH - Card.PAD * 2
+    local left = Card.FEED_TIME_WIDTH + (pinned and (Card.PIN_MARK + 3) or 0)
     b.time:SetText(Echo.View.FeedTime(msg.time))
     b.time:Show()
+    b.pin:ClearAllPoints()
+    if pinned then
+        b.pin:SetPoint("TOPLEFT", b, "TOPLEFT", Card.FEED_TIME_WIDTH, -4)
+        b.pin:Show()
+    else
+        b.pin:Hide()
+    end
     b.text:ClearAllPoints()
-    b.text:SetPoint("TOPLEFT", b, "TOPLEFT", Card.FEED_TIME_WIDTH, -3)
-    b.text:SetWidth(width - Card.FEED_TIME_WIDTH - 4)
+    b.text:SetPoint("TOPLEFT", b, "TOPLEFT", left, -3)
+    b.text:SetWidth(width - left - 4)
     b.text:SetMaxLines(secret and Card.SECRET_LINES or 0)
     b.text:SetText(msg.text)
     local height
@@ -413,6 +508,22 @@ local function SizeFeedLine(b, msg, secret)
     b:SetSize(width, height + 6)
     Echo.Round.Layout(b)
     return height + 6
+end
+
+-- Place a bubble's pin marker at its top corner away from the sender (top-right of theirs,
+-- top-left of yours), or clear it for an unpinned message.
+local function Mark(b, pinned, outgoing)
+    b.pin:ClearAllPoints()
+    if not pinned then
+        b.pin:Hide()
+        return
+    end
+    if outgoing then
+        b.pin:SetPoint("TOPLEFT", b, "TOPLEFT", -3, 3)
+    else
+        b.pin:SetPoint("TOPRIGHT", b, "TOPRIGHT", 3, 3)
+    end
+    b.pin:Show()
 end
 
 -- Whether message i is the last (most recent) of its consecutive-same-sender run: either
@@ -430,6 +541,9 @@ local function RenderMessages(conv)
     local r, g, b = View.ChatColor(conv.kind)
     local isGroup = conv.kind ~= "whisper" and conv.kind ~= "bnet"
     local newestOut = View.NewestOutgoing(conv)
+    local Store = Echo.Store
+    local pins = Store.Pins(conv.key)
+    local function Pinned(msg) return #pins > 0 and Store.IsPinnedMessage(conv.key, msg, pins) end
     offset = math.max(0, math.min(offset, #messages - 1))
     local y = 4
     local used, usedLabels = 0, 0
@@ -441,7 +555,8 @@ local function RenderMessages(conv)
             local msg = messages[i]
             used = used + 1
             local line = Bubble(used)
-            local height = SizeFeedLine(line, msg, msg.secret or Echo.IsSecret(msg.text))
+            line.msgKey, line.msg = conv.key, msg
+            local height = SizeFeedLine(line, msg, msg.secret or Echo.IsSecret(msg.text), Pinned(msg))
             line:ClearAllPoints()
             line:SetPoint("BOTTOMLEFT", area, "BOTTOMLEFT", 0, y)
             Echo.Round.SetColor(line, 0, 0, 0, 0)
@@ -473,8 +588,10 @@ local function RenderMessages(conv)
         end
         used = used + 1
         local bubble = Bubble(used)
+        bubble.msgKey, bubble.msg = conv.key, msg
         local secret = msg.secret or Echo.IsSecret(msg.text)
         local height = SizeBubble(bubble, msg.text, secret)
+        Mark(bubble, Pinned(msg), msg.outgoing)
         bubble:ClearAllPoints()
         local Round = Echo.Round
         local ends = EndsGroup(messages, i)
@@ -713,6 +830,37 @@ local function PaintTabs(members)
     tabStrip:Show()
 end
 
+-- The pin strip for the shown conversation: hidden with no pins; else the shown pin's
+-- text on one line, and a counter (position from the newest) when there are two or more.
+-- Returns whether it shows.
+local function PaintPins(conv, grouped)
+    local pins = Echo.Store.Pins(conv.key)
+    local n = #pins
+    if n == 0 then
+        pinIndex = nil
+        pinStrip:Hide()
+        return false
+    end
+    -- pinIndex stays nil until the counter steps, so a new pin shows as it's made.
+    if pinIndex and (pinIndex > n or pinIndex < 1) then pinIndex = nil end
+    local index = pinIndex or n
+    local top = Card.AREA_TOP + (grouped and Card.TAB_STRIP or 0)
+    pinStrip:ClearAllPoints()
+    pinStrip:SetPoint("TOPLEFT", root, "TOPLEFT", Card.PAD, -top)
+    pinStrip:SetPoint("TOPRIGHT", root, "TOPRIGHT", -Card.PAD, -top)
+    Echo.Round.Layout(pinStrip)
+
+    local label, counter = pinStrip.label, pinStrip.counter
+    label.text:SetText(Echo.View.PinText(pins[index].text))
+    counter:SetShown(n >= 2)
+    if n >= 2 then counter.text:SetText(L["ECHO_PIN_COUNTER"]:format(n - index + 1, n)) end
+    label:ClearAllPoints()
+    label:SetPoint("LEFT", pinStrip.icon, "RIGHT", 5, 0)
+    label:SetPoint("RIGHT", n >= 2 and counter or pinStrip.close, "LEFT", -4, 0)
+    pinStrip:Show()
+    return true
+end
+
 -- The open members of the shown group, or nil for a lone conversation.
 local function ShownMembers(list)
     if not groupIndex then return nil end
@@ -778,6 +926,7 @@ function Card.Render()
         offset = 0
         newBelow = 0
         hint:Hide()
+        pinIndex = nil  -- another conversation: its strip starts on the newest pin
     end
     renderedKey = conv.key
     currentKey = conv.key
@@ -807,7 +956,7 @@ function Card.Render()
     if feed then edit:ClearFocus() end
     edit:SetShown(not feed)
     send:SetShown(not feed)
-    AnchorArea(feed, groupIndex ~= nil)
+    AnchorArea(feed, groupIndex ~= nil, PaintPins(conv, groupIndex ~= nil))
 
     RenderMessages(conv)
     Store.MarkRead(conv.key)
@@ -1043,6 +1192,80 @@ function Card.Scroll(delta)
     end
 end
 
+--- The pin strip's counter: show the next older pin, wrapping round to the newest.
+function Card.NextPin()
+    if not root or not root:IsShown() or not renderedKey then return end
+    local n = #Echo.Store.Pins(renderedKey)
+    if n < 2 then return end
+    pinIndex = (pinIndex or n) - 1
+    if pinIndex < 1 then pinIndex = n end
+    Card.Render()
+end
+
+-- The pin the strip shows, or nil.
+local function ShownPin()
+    if not renderedKey then return nil end
+    local pins = Echo.Store.Pins(renderedKey)
+    local index = pinIndex or #pins
+    return pins[index], index
+end
+
+--- The pin strip's text: scroll the card so the shown pin's message sits at the bottom of
+-- the view, when that message is still in the conversation. Otherwise nothing happens.
+function Card.JumpToPin()
+    if not root or not root:IsShown() then return end
+    local pin, index = ShownPin()
+    local conv = pin and Echo.Store.Get(renderedKey)
+    if not conv then return end
+    local Store = Echo.Store
+    local pins = Store.Pins(renderedKey)
+    for i = #conv.messages, 1, -1 do
+        if Store.PinIndex(renderedKey, conv.messages[i], pins) == index then
+            Card.Scroll(#conv.messages - i - offset)
+            return
+        end
+    end
+end
+
+--- The pin strip's ×: unpin the pin it shows.
+function Card.UnpinShown()
+    if not root or not root:IsShown() then return end
+    local pin, index = ShownPin()
+    if pin then Echo.Store.UnpinMessage(renderedKey, index) end
+end
+
+--- The pin strip's tooltip: the whole message, who said it and when.
+-- @param owner Frame
+function Card.ShowPinTooltip(owner)
+    local pin = ShownPin()
+    if not pin or not GameTooltip or type(GameTooltip.SetOwner) ~= "function" then return end
+    local View = Echo.View
+    local who
+    if pin.outgoing then
+        local name = UnitName and UnitName("player")
+        if not Echo.IsSecret(name) and type(name) == "string" then who = name end
+    elseif not Echo.IsSecret(pin.sender) and type(pin.sender) == "string" then
+        who = pin.sender:match("^([^-]+)") or pin.sender
+    end
+    if not who then
+        -- A Battle.net pin keeps no sender: name the conversation.
+        local conv = Echo.Store.Get(renderedKey)
+        who = conv and View.DisplayName(conv)
+    end
+    GameTooltip:SetOwner(owner, "ANCHOR_BOTTOM")
+    GameTooltip:ClearLines()
+    local a = View.ACCENT
+    if not Echo.IsSecret(who) and type(who) == "string" then
+        GameTooltip:AddDoubleLine(who, View.PinTime(pin.time), a.r, a.g, a.b, 0.55, 0.60, 0.75)
+    else
+        GameTooltip:AddLine(View.PinTime(pin.time), 0.55, 0.60, 0.75)
+    end
+    if not Echo.IsSecret(pin.text) and type(pin.text) == "string" then
+        GameTooltip:AddLine(pin.text, 0.92, 0.93, 0.98, true)
+    end
+    GameTooltip:Show()
+end
+
 --- Send the reply box's text to the card's conversation.
 function Card.Submit()
     local text = edit and edit:GetText()
@@ -1149,6 +1372,7 @@ function Card.Disable()
     end
     Card.Hide()
     renderedKey, currentKey, groupIndex = nil, nil, nil
+    pinIndex = nil
     selected = {}
 end
 
@@ -1158,6 +1382,6 @@ function Card._frames()
         root = root, rowTiles = rowTiles, name = nameText, meta = metaText, area = area,
         edit = edit, send = send, menu = menuButton, chevron = chevron,
         bubbles = bubbles, labels = labels, status = statusLine, hint = hint, rule = rule,
-        tabs = tabs, tabStrip = tabStrip,
+        tabs = tabs, tabStrip = tabStrip, pinStrip = pinStrip,
     }
 end

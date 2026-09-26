@@ -5965,6 +5965,294 @@ run(`
   S.Reset()
 `, 'history-store-pins');
 
+// --- Card: pins on the card (plan 10, Task 4) ---------------------------------------------
+{
+  const tgaPath = REPO + 'media/echo/pin.tga';
+  const tga = fs.existsSync(tgaPath) ? fs.readFileSync(tgaPath) : Buffer.alloc(0);
+  const ok = tga.length === 18 + 32 * 32 * 4 && tga[2] === 2 && tga.readUInt16LE(12) === 32
+    && tga.readUInt16LE(14) === 32 && tga[16] === 32 && tga[17] === 8;
+  let alpha = 0, partial = 0, colour = true;
+  for (let i = 18; i < tga.length; i += 4) {
+    if (tga[i + 3] > 0) alpha++;
+    if (tga[i + 3] > 0 && tga[i + 3] < 255) partial++;
+    if (tga[i + 3] > 0 && (tga[i] !== 255 || tga[i + 1] !== 255 || tga[i + 2] !== 255)) colour = false;
+  }
+  run(`check("pin.tga is a 32x32 32-bit TGA like circle.tga", ${ok}, "bad header")
+       check("pin.tga is a white shape with anti-aliased alpha", ${alpha > 60 && partial > 10 && colour}, "${alpha}/${partial}/${colour}")`, 'pin-tga');
+}
+run(read('options/modules/defaults/OptionsDefaultsEcho.lua'), 'echo-defaults-card-pins');
+run(`
+  local A = HorizonSuite
+  local Echo = A.Echo
+  local S, H, T, K, C, M, V = Echo.Store, Echo.History, Echo.Tiles, Echo.Stack, Echo.Card, Echo.Menu, Echo.View
+  S.Reset()
+  Echo.ClearDrafts()
+  local savedCreateFrame = CreateFrame
+  CreateFrame = STUB_CREATE_FRAME
+  local db = {}
+  A.GetDB = function(k, d) if db[k] ~= nil then return db[k] end return d end
+  local saved = {}
+  H.Bind(saved, function() return "Kaelis-Horizon" end)
+  local clock = 1000
+  local savedNow = S.Now
+  S.Now = function() clock = clock + 1; return clock end
+  T.Enable()
+  K.Enable()
+  C.Enable()
+  local f = C._frames()
+  local a = V.ACCENT
+  rawset(A.L, "ECHO_PIN_COUNTER", "%d/%d")
+
+  -- A fake MenuUtil root that records what the menu builds.
+  local function FakeRoot()
+    local r = { items = {} }
+    function r:CreateButton(label, fn)
+      local b = { label = label, fn = fn, enabled = true }
+      function b:SetEnabled(v) self.enabled = v end
+      self.items[#self.items + 1] = b
+      return b
+    end
+    function r:CreateTitle(label) self.items[#self.items + 1] = { label = label, title = true } end
+    function r:CreateDivider() end
+    return r
+  end
+  local function Build(key, record)
+    local r = FakeRoot()
+    M.BuildMessage(r, key, record)
+    return r.items
+  end
+
+  for i = 1, 3 do S.Add({ convKey = "w:Brisa-Horizon", text = "line " .. i, sender = "Brisa-Horizon" }) end
+  C.Open("w:Brisa-Horizon")
+  local conv = S.Get("w:Brisa-Horizon")
+
+  -- The strip hides with no pins, and the area sits at the plain top.
+  check("no pins, no strip", f.pinStrip ~= nil and not f.pinStrip:IsShown(), "shown")
+  check("no pins, the area sits under the header", f.area.points[1][5] == -C.AREA_TOP, tostring(f.area.points[1][5]))
+  check("the strip height and offset", C.PIN_STRIP == 22 + 4, tostring(C.PIN_STRIP))
+
+  -- Right-click a bubble: the menu offers Pin on an unpinned readable message.
+  local opened
+  local savedMenuUtil = MenuUtil
+  MenuUtil = { CreateContextMenu = function(owner, gen) opened = { owner, gen } end }
+  local b1 = f.bubbles[1]
+  check("a bubble listens for mouse-up", type(b1.scripts.OnMouseUp) == "function", "no script")
+  b1.scripts.OnMouseUp(b1, "LeftButton")
+  check("a left click opens no menu", opened == nil, "opened")
+  b1.scripts.OnMouseUp(b1, "RightButton")
+  check("a right click opens the message menu", opened ~= nil and opened[1] == b1, "not opened")
+  check("links still click through", type(b1.scripts.OnHyperlinkClick) == "function", "no link click")
+  local r = FakeRoot()
+  opened[2](opened[1], r)
+  check("the menu offers Pin on an unpinned message", #r.items == 1 and r.items[1].label == "ECHO_PIN_MESSAGE" and r.items[1].enabled, r.items[1] and r.items[1].label)
+
+  -- Pinning shows the strip and moves the area down.
+  r.items[1].fn()
+  check("pinning saves the pin", #S.Pins("w:Brisa-Horizon") == 1 and S.Pins("w:Brisa-Horizon")[1].text == "line 3", #S.Pins("w:Brisa-Horizon"))
+  check("pinning shows the strip", f.pinStrip:IsShown(), "hidden")
+  check("the area moves down by the strip", f.area.points[1][5] == -(C.AREA_TOP + C.PIN_STRIP), tostring(f.area.points[1][5]))
+  check("the strip sits under the header", f.pinStrip.points[1][5] == -C.AREA_TOP, tostring(f.pinStrip.points[1][5]))
+  check("the strip is 22px high and spans the card", C.PIN_HEIGHT == 22 and f.pinStrip.points[2] and f.pinStrip.points[2][1] == "TOPRIGHT", tostring(C.PIN_HEIGHT))
+  local stripRR = rawget(f.pinStrip, "_echoRound")
+  check("the strip is rounded with the small radius", stripRR ~= nil and stripRR.corners.tl == Echo.Round.SMALL, "?")
+  local tint = stripRR and stripRR.fill.topBand.vertexColor
+  check("the strip is a dim accent tint", tint and tint[1] == a.r and tint[2] == a.g and tint[3] == a.b and tint[4] < 0.5, tint and tint[4])
+  check("the strip shows the pinned text", f.pinStrip.label.text.text == "line 3", f.pinStrip.label.text.text)
+  check("the strip shows the pin icon", f.pinStrip.icon.texture ~= nil and f.pinStrip.icon.texture:find("pin.tga", 1, true) ~= nil, tostring(f.pinStrip.icon.texture))
+  check("one pin, no counter", not f.pinStrip.counter:IsShown(), "shown")
+
+  -- A pinned bubble shows the marker; the others don't.
+  check("the pinned bubble shows the marker", f.bubbles[1].pin:IsShown(), "hidden")
+  check("the marker is the pin icon, 10px, in the accent", f.bubbles[1].pin.width == 10 and f.bubbles[1].pin.texture:find("pin.tga", 1, true)
+    and f.bubbles[1].pin.vertexColor[1] == a.r, "?")
+  check("the marker sits at the top corner away from the sender", f.bubbles[1].pin.points[1][1] == "TOPRIGHT", tostring(f.bubbles[1].pin.points[1][1]))
+  check("an unpinned bubble shows none", not f.bubbles[2].pin:IsShown(), "shown")
+
+  -- The menu now offers Unpin, and Unpin works.
+  local items = Build("w:Brisa-Horizon", conv.messages[3])
+  check("the menu offers Unpin on a pinned message", #items == 1 and items[1].label == "ECHO_UNPIN_MESSAGE", items[1] and items[1].label)
+
+  -- Disabled reasons.
+  items = Build("w:Brisa-Horizon", { text = SECRET("hush"), secret = true, time = 5 })
+  check("a secret message shows the hidden reason, disabled", items[1] and items[1].label == "ECHO_PIN_BLOCKED_SECRET" and items[1].enabled == false, items[1] and items[1].label)
+  check("PinBlockReason agrees", S.PinBlockReason("w:Brisa-Horizon", { text = "x", secret = true }) == "secret", tostring(S.PinBlockReason("w:Brisa-Horizon", { text = "x", secret = true })))
+  for i = 1, 4 do S.PinMessage("w:Full-Horizon", { text = "p" .. i, time = i }) end
+  check("four pins leave room", S.PinBlockReason("w:Full-Horizon", { text = "p5", time = 5 }) == nil, "blocked")
+  S.PinMessage("w:Full-Horizon", { text = "p5", time = 5 })
+  items = Build("w:Full-Horizon", { text = "p6", time = 6 })
+  check("a full chat shows the chat reason, disabled", items[1] and items[1].label == "ECHO_PIN_BLOCKED_CHAT" and items[1].enabled == false, items[1] and items[1].label)
+  items = Build("w:Full-Horizon", { text = "p5", time = 5 })
+  check("a full chat still offers Unpin on its own pins", items[1] and items[1].label == "ECHO_UNPIN_MESSAGE", items[1] and items[1].label)
+  for c = 1, 9 do
+    for i = 1, 5 do S.PinMessage("ch:Chan" .. c, { text = "q" .. i, time = i }) end
+  end
+  items = Build("w:Brisa-Horizon", conv.messages[2])
+  check("the total limit shows the total reason, disabled", items[1] and items[1].label == "ECHO_PIN_BLOCKED_TOTAL" and items[1].enabled == false, items[1] and items[1].label)
+  H.Bind(saved, function() return nil end)
+  items = Build("w:Brisa-Horizon", conv.messages[2])
+  check("an unsaveable chat shows the unsaved reason, disabled", items[1] and items[1].label == "ECHO_PIN_BLOCKED_UNSAVED" and items[1].enabled == false, items[1] and items[1].label)
+  H.Bind(saved, function() return "Kaelis-Horizon" end)
+  for c = 1, 9 do for i = 5, 1, -1 do S.UnpinMessage("ch:Chan" .. c, i) end end
+  for i = 5, 1, -1 do S.UnpinMessage("w:Full-Horizon", i) end
+
+  -- Three pins: the counter steps to older ones and wraps.
+  S.PinMessage("w:Brisa-Horizon", conv.messages[1])
+  S.PinMessage("w:Brisa-Horizon", conv.messages[2])
+  -- Pins are oldest-first by when they were pinned: line 3, line 1, line 2.
+  check("the strip starts on the newest pin", f.pinStrip.label.text.text == "line 2", f.pinStrip.label.text.text)
+  check("two or more pins show the counter", f.pinStrip.counter:IsShown() and f.pinStrip.counter.text.text == "1/3", f.pinStrip.counter.text.text)
+  f.pinStrip.counter.scripts.OnClick(f.pinStrip.counter)
+  check("the counter steps to the next older pin", f.pinStrip.label.text.text == "line 1" and f.pinStrip.counter.text.text == "2/3", f.pinStrip.label.text.text)
+  f.pinStrip.counter.scripts.OnClick(f.pinStrip.counter)
+  check("and again", f.pinStrip.label.text.text == "line 3" and f.pinStrip.counter.text.text == "3/3", f.pinStrip.label.text.text)
+  f.pinStrip.counter.scripts.OnClick(f.pinStrip.counter)
+  check("the counter wraps to the newest", f.pinStrip.label.text.text == "line 2" and f.pinStrip.counter.text.text == "1/3", f.pinStrip.label.text.text)
+
+  -- The text click scrolls to the pinned message.
+  for i = 4, 30 do S.Add({ convKey = "w:Brisa-Horizon", text = "line " .. i, sender = "Brisa-Horizon" }) end
+  f.pinStrip.counter.scripts.OnClick(f.pinStrip.counter)  -- line 1
+  f.pinStrip.label.scripts.OnClick(f.pinStrip.label)
+  check("the text click scrolls to the pinned message", f.bubbles[1].text.text == "line 1", f.bubbles[1].text.text)
+  check("and marks it", f.bubbles[1].pin:IsShown(), "hidden")
+
+  -- Hovering the text shows the full message, sender and time.
+  local lines, owner = {}, nil
+  local savedTooltip = GameTooltip
+  GameTooltip = {
+    SetOwner = function(_, o) owner = o end,
+    ClearLines = function() lines = {} end,
+    AddLine = function(_, t) lines[#lines + 1] = t end,
+    AddDoubleLine = function(_, l, rr) lines[#lines + 1] = l; lines[#lines + 1] = rr end,
+    SetText = function(_, t) lines = { t } end,
+    Show = function() end,
+    Hide = function() end,
+  }
+  local savedDate = date
+  date = os and os.date or date
+  f.pinStrip.label.scripts.OnEnter(f.pinStrip.label)
+  local joined = table.concat(lines, "|")
+  check("the tooltip shows the message", owner == f.pinStrip.label and joined:find("line 1", 1, true) ~= nil, joined)
+  check("the tooltip shows the sender", joined:find("Brisa", 1, true) ~= nil, joined)
+  local stamp = V.PinTime(conv.messages[1].time)
+  check("the tooltip shows the time", stamp ~= "" and joined:find(stamp, 1, true) ~= nil, joined)
+  f.pinStrip.label.scripts.OnLeave(f.pinStrip.label)
+  date = savedDate
+  GameTooltip = savedTooltip
+
+  -- A message no longer in the conversation: the text click does nothing. A fresh save
+  -- keeps only the pins, so the old lines don't load back.
+  S.Reset()
+  saved = { echoHistory = { pins = saved.echoHistory.pins } }
+  H.Bind(saved, function() return "Kaelis-Horizon" end)
+  S.Add({ convKey = "w:Brisa-Horizon", text = "fresh", sender = "Brisa-Horizon" })
+  C.Open("w:Brisa-Horizon")
+  check("pins outlive the messages they point at", f.pinStrip:IsShown(), "hidden")
+  local ok = pcall(f.pinStrip.label.scripts.OnClick, f.pinStrip.label)
+  check("a click on a gone message does nothing", ok and f.bubbles[1].text.text == "fresh", f.bubbles[1].text.text)
+
+  -- The x unpins the shown pin; the strip hides with the last one.
+  check("the x unpins the shown pin", (function()
+    f.pinStrip.close.scripts.OnClick(f.pinStrip.close)
+    return #S.Pins("w:Brisa-Horizon") == 2
+  end)(), #S.Pins("w:Brisa-Horizon"))
+  f.pinStrip.close.scripts.OnClick(f.pinStrip.close)
+  f.pinStrip.close.scripts.OnClick(f.pinStrip.close)
+  check("the strip hides with the last pin", #S.Pins("w:Brisa-Horizon") == 0 and not f.pinStrip:IsShown(), #S.Pins("w:Brisa-Horizon"))
+  check("the area moves back up", f.area.points[1][5] == -C.AREA_TOP, tostring(f.area.points[1][5]))
+
+  -- A reused bubble clears the marker.
+  S.Add({ convKey = "w:Brisa-Horizon", text = "keep me", sender = "Brisa-Horizon" })
+  local keep = S.Get("w:Brisa-Horizon").messages[2]
+  S.PinMessage("w:Brisa-Horizon", keep)
+  check("the pinned newest bubble is marked", f.bubbles[1].pin:IsShown(), "hidden")
+  S.Add({ convKey = "w:Brisa-Horizon", text = "later", sender = "Brisa-Horizon" })
+  check("the reused bottom bubble clears the marker", f.bubbles[1].text.text == "later" and not f.bubbles[1].pin:IsShown(), "shown")
+  check("the marker moves with its message", f.bubbles[2].pin:IsShown(), "hidden")
+
+  -- Your own pinned bubble is marked on the left.
+  S.Add({ convKey = "w:Brisa-Horizon", text = "mine", outgoing = true })
+  S.PinMessage("w:Brisa-Horizon", S.Get("w:Brisa-Horizon").messages[4])
+  check("your bubble's marker sits top-left", f.bubbles[1].pin:IsShown() and f.bubbles[1].pin.points[1][1] == "TOPLEFT", tostring(f.bubbles[1].pin.points[1] and f.bubbles[1].pin.points[1][1]))
+
+  -- Switching conversations starts the strip on the newest pin.
+  f.pinStrip.counter.scripts.OnClick(f.pinStrip.counter)
+  check("stepped off the newest", f.pinStrip.label.text.text == "keep me", f.pinStrip.label.text.text)
+  S.Add({ convKey = "w:Vexa-Horizon", text = "yo", sender = "Vexa-Horizon" })
+  C.Show("w:Vexa-Horizon")
+  check("a chat with no pins hides the strip", not f.pinStrip:IsShown(), "shown")
+  C.Show("w:Brisa-Horizon")
+  check("coming back starts on the newest pin", f.pinStrip.label.text.text == "mine", f.pinStrip.label.text.text)
+
+  -- Feed lines: right-click works and the marker sits before the line.
+  S.Add({ convKey = "loot", text = "You receive loot: |cff0070dd|Hitem:1::|h[Blue Thing]|h|r", chatType = "LOOT" })
+  C.Show("loot")
+  local line = f.bubbles[1]
+  opened = nil
+  line.scripts.OnMouseUp(line, "RightButton")
+  check("a feed line opens the message menu", opened ~= nil and opened[1] == line, "not opened")
+  r = FakeRoot()
+  opened[2](opened[1], r)
+  r.items[1].fn()
+  check("a feed line pins", #S.Pins("loot") == 1, #S.Pins("loot"))
+  check("a pinned feed line shows the marker before the line", line.pin:IsShown() and line.pin.points[1][1] == "TOPLEFT"
+    and line.pin.points[1][4] < line.text.points[1][4], "?")
+  check("the strip shows links as their names", f.pinStrip.label.text.text == "You receive loot: |cff0070dd[Blue Thing]|r", f.pinStrip.label.text.text)
+  MenuUtil = savedMenuUtil
+
+  C.Disable()
+  K.Disable()
+  T.Disable()
+  H.Unbind()
+  rawset(A.L, "ECHO_PIN_COUNTER", nil)
+  S.Now = savedNow
+  CreateFrame = savedCreateFrame
+  A.GetDB = nil
+  A.ECHO_DEFAULTS, A.ECHO_KEYS, A.ECHO_LIMITS = nil, nil, nil
+  Echo.ClearDrafts()
+  S.Reset()
+`, 'card-pins');
+
+// --- Card: the pin strip on a group card ----------------------------------------------------
+run(read('options/modules/defaults/OptionsDefaultsEcho.lua'), 'echo-defaults-card-pins-group');
+run(`
+  local A = HorizonSuite
+  local Echo = A.Echo
+  local S, H, T, K, C = Echo.Store, Echo.History, Echo.Tiles, Echo.Stack, Echo.Card
+  S.Reset()
+  Echo.ClearDrafts()
+  local savedCreateFrame = CreateFrame
+  CreateFrame = STUB_CREATE_FRAME
+  local db = {}
+  A.GetDB = function(k, d) if db[k] ~= nil then return db[k] end return d end
+  local saved = {}
+  H.Bind(saved, function() return "Kaelis-Horizon" end)
+  T.Enable()
+  K.Enable()
+  C.Enable()
+  local f = C._frames()
+
+  S.Add({ convKey = "ch:Trade", text = "wts", sender = "Vexa-Horizon" })
+  S.Add({ convKey = "ch:General", text = "anyone?", sender = "Thorn-Horizon" })
+  C.Open("ch:Trade")
+  check("the group card shows its tabs", f.tabStrip:IsShown() and C.ShownKey() == "ch:Trade", tostring(C.ShownKey()))
+  S.PinMessage("ch:Trade", S.Get("ch:Trade").messages[1])
+  check("the strip shows on the group card", f.pinStrip:IsShown(), "hidden")
+  check("the strip sits under the tab strip", f.pinStrip.points[1][5] == -(C.AREA_TOP + C.TAB_STRIP), tostring(f.pinStrip.points[1][5]))
+  check("the area adds the strip to the tabs", f.area.points[1][5] == -(C.AREA_TOP + C.TAB_STRIP + C.PIN_STRIP), tostring(f.area.points[1][5]))
+  C.SelectMember("ch:General")
+  check("a member with no pins hides the strip", not f.pinStrip:IsShown() and f.area.points[1][5] == -(C.AREA_TOP + C.TAB_STRIP), tostring(f.area.points[1][5]))
+
+  C.Disable()
+  K.Disable()
+  T.Disable()
+  H.Unbind()
+  CreateFrame = savedCreateFrame
+  A.GetDB = nil
+  A.ECHO_DEFAULTS, A.ECHO_KEYS, A.ECHO_LIMITS = nil, nil, nil
+  Echo.ClearDrafts()
+  S.Reset()
+`, 'card-pins-group');
+
 // --- Redraw: one repaint per frame -------------------------------------------
 run(`
   CreateFrame = STUB_CREATE_FRAME
