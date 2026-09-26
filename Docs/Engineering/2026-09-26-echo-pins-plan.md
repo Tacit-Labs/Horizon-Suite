@@ -181,3 +181,17 @@
   - [ ] Clicking a link in a message still opens it. Right-clicking elsewhere on the message opens the pin menu.
   - [ ] During an encounter, a hidden message offers "Can't pin a hidden message".
 - **Commit:** `docs(echo): record message pins and saved guild chat`.
+
+## In-game checklist (plan 10, 2026-09-26)
+
+Echo gains a media file, `media/echo/pin.tga`, so restart the game rather than `/reload`.
+
+- [ ] Right-click a Trade message and pin it. After `/reload`, open the Trade tile again: the pin strip still shows it.
+- [ ] Pin three messages in a whisper chat. The counter steps through them, and clicking the text scrolls to each.
+- [ ] The × unpins, and the strip goes away with the last pin.
+- [ ] Guild chat from before a `/reload`, or from an alt in the same guild, shows when the guild tile opens.
+- [ ] Officer chat isn't saved until its switch is on.
+- [ ] Clicking a link in a message still opens it. Right-clicking elsewhere on the message opens the pin menu.
+- [ ] Right-clicking a player or item link opens only Blizzard's menu, not the pin menu.
+- [ ] The pin marker is fully visible on the top bubble.
+- [ ] During an encounter, a hidden message offers "Can't pin a hidden message".

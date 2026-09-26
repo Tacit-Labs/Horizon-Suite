@@ -216,6 +216,40 @@ Any other channel keeps the glyph face with its short name. A channel or feed ti
 
 **The Echo icon.** The column's chat/stack button and the dashboard's Echo module tile both show the same director-provided art, `media/echo/echo_icon.tga` (a 128×128 rounded tile with transparent corners), exposed as `Echo.View.ECHO_ICON`. The column button shows the icon filling the button (inset 1px) with no rounded panel fill or border behind it — the icon already carries its own rounded tile — and brightens on hover via an additive `OVERLAY` highlight texture (same art, `SetBlendMode("ADD")`, alpha 0.25) shown on enter and hidden on leave. The dashboard's module-icon helper (`options/dashboard/DashboardHomeWelcome.lua`) uses a `MODULE_ICONS` value as a full path unchanged when it already contains a backslash, rather than always prefixing `Interface\Icons\`.
 
+### Message pins, saved guild chat and clean-up (plan 10, 2026-09-26)
+
+**What is saved, and where.** Everything lives under `HorizonDB.echoHistory`:
+
+```lua
+HorizonDB.echoHistory = {
+    chars  = { ["Name-Realm"] = { ["w:Brisa-Realm"] = { {t=…, out=false, text="…", s="…", c="DRUID"}, … } } },
+    bnet   = { ["bt:Friend#1234"] = { … } },
+    guilds = { ["Guild Name-Realm"] = { guild = { … }, officer = { … } } },
+    pins   = { ["Name-Realm"] = { ["w:Brisa-Realm"] = { {t=…, text="…", s="…", out=true}, … } } },
+}
+```
+
+- Whispers are saved per character and Battle.net whispers account-wide by BattleTag, as before. Saved entries now also carry `s`, the sender's `Name-Realm`, and `c`, the class token, when both are readable and not secret. A Battle.net sender is a protected `|K` string, so its `s` is never written.
+- Guild chat is saved by default (`echoSaveGuild`), and officer chat only when `echoSaveOfficer` is on. Both are keyed by `"Guild Name-Realm"` from `GetGuildInfo("player")`, so every character in the same guild shares them. With no readable guild key, nothing is written or loaded. A guild conversation created before the guild is known loads its saved lines once, on its next message. **Save chat history** (`echoSaveHistory`) is the master switch for everything saved automatically. Party, raid, instance and channel chat are never saved.
+- Pins are saved per character, keyed by the same `PrefKey` as the conversation prefs, so Battle.net pins are keyed by BattleTag and a Battle.net pin keeps no sender.
+
+**Caps.** A whisper or Battle.net conversation keeps 100 lines, and guild and officer chat keep 200 each. Each chat holds 5 pins, and each character 50.
+
+**Clean-up.** `History.Prune` runs once when the module enables, after `Bind`, under **Keep history for** (`echoHistoryDays`: 7, 30 or 90 days, or 0 for Forever; the default is 30). A saved list whose newest entry is older than the setting is removed, and a list with no readable time counts as stale. A conversation whose tile is pinned in any character's prefs is kept. That protection is keyed by conversation, and the guild's key is only ever the current guild's, so a pinned Guild or Officer tile protects only the current guild's saved lists. Another guild's lists are pruned by age alone. An emptied character bucket is removed. Forever removes nothing.
+
+**Size budget.** This was estimated, not measured. A saved line costs about 110 bytes: 60–70 bytes of serialiser overhead plus the text. A full whisper conversation is about 11 KB, a full guild history about 22 KB, and 50 pins about 6 KB.
+
+**Pins ignore the history switches.** A pin is the player's explicit choice. It is saved in any chat, including channels and feeds that are never saved otherwise. The line cap never removes a pin, and neither does the clean-up. **Clear history** wipes pins along with whispers and guild chat. A secret message can't be pinned.
+
+**On the card.**
+
+- Right-click a bubble or feed line to open the pin menu. It offers **Pin message**, or **Unpin message**, or a disabled line giving the reason a pin is refused: a hidden message, 5 pins in this chat, 50 pins in all, or a chat that can't be saved yet. `Store.PinBlockReason` gives that reason without writing, from the same checks `History.AddPin` uses.
+- Right-clicking a link keeps Blizzard's link behaviour. The link click stamps the frame time, and the pin menu opens a frame later only if no link click landed in the same frame, whichever order the game fires the two events in.
+- A pinned message shows a 10px pin in the accent colour, inside the bubble's top corner on the side away from the sender. The text keeps clear of the pin on that side. On a feed line, the pin sits between the time and the text.
+- The pin strip is 22px high, in a dim accent tint, and shows under the header, or under the tabs on a group card, only while the shown conversation has pins. The message area moves down by `Card.PIN_STRIP` (26px) while it shows.
+- The strip shows one pin's text on one line, with links shown as their names. Clicking the text scrolls the card to that message while it is still in the conversation. Hovering it shows the full message, its sender and its time. The × unpins the shown pin.
+- With two or more pins, a counter steps to the next older pin and wraps round. It counts from the newest pin, so `1/n` is the newest. The strip starts on the newest pin whenever the card switches conversation or tab.
+
 ## Storage
 
 Settings live in the profile through `OptionsDefaultsEcho.lua`.
