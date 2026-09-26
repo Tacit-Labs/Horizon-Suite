@@ -42,8 +42,8 @@ Card.FEED_GAP = 2
 local root, nameText, metaText, area, edit, send, menuButton, chevron, statusLine, hint
 local rowTiles, bubbles, labels = {}, {}, {}
 -- Forward-declared: Create()'s OnHide handler (defined further down) needs to stop the
--- open animation, but the animation itself isn't built until later in the file.
-local StopAnimation
+-- genie and the fade, which are defined later in the file.
+local StopEffects
 local currentKey, renderedKey
 local offset = 0  -- newest messages scrolled past
 local newBelow = 0  -- messages added while scrolled up, shown by the hint
@@ -146,10 +146,10 @@ local function Create()
     root:SetScript("OnHide", function()
         -- Covers closes that bypass Card.Hide entirely, e.g. Escape via UISpecialFrames
         -- calling root:Hide() directly: leave no stale draft or stuck focus behind, and
-        -- don't let the open animation keep playing against a hidden card.
+        -- don't let a genie or fade keep running against a hidden card.
         ParkDraft()
         if edit then edit:ClearFocus() end
-        StopAnimation()
+        StopEffects()
     end)
 
     local rule = root:CreateTexture(nil, "OVERLAY")
@@ -568,85 +568,109 @@ end
 
 function Card.Reanchor() Anchor() end
 
-Card.ANIM_DURATION = 0.15
-Card.ANIM_SCALE_FROM = 0.85
+Card.GENIE_OPEN = 0.22
+Card.GENIE_CLOSE = 0.2
+Card.FADE_DURATION = 0.15
 
--- A Scale animation's from/to methods vary by client: try the newer name first, then the
--- older one. Guarded so a client (or the harness) offering neither just skips it.
-local function SetScaleValue(scaleAnim, newName, oldName, x, y)
-    if scaleAnim[newName] then
-        scaleAnim[newName](scaleAnim, x, y)
-    elseif scaleAnim[oldName] then
-        scaleAnim[oldName](scaleAnim, x, y)
+-- The open and close effect: Echo.Genie pours a sheet out of the clicked tile (or back
+-- into it), and the card's contents fade in once the sheet has filled its rect.
+local fader, fadeT
+local closing = false      -- a close genie is running; a second click on the tile waits
+local genieHiding = false  -- the close genie's own onDone is hiding the card
+
+local function StopFade()
+    fadeT = nil
+    if fader then fader:Hide() end
+end
+
+local function FadeUpdate(_, elapsed)
+    if not fadeT or not root then return end
+    fadeT = fadeT + (elapsed or 0)
+    local a = fadeT / Card.FADE_DURATION
+    if a >= 1 then
+        root:SetAlpha(1)
+        StopFade()
+    else
+        root:SetAlpha(a)
     end
 end
 
--- Where the "grow out of the tile" animation pivots: the tile it opened from, moved to its
--- own vertical position within the card (clamped to the card's height); without one, the
--- panel corner nearest the column.
--- @param fromTile Frame|nil
--- @return string point, number x, number y
-local function AnimOrigin(fromTile)
-    local corner = Echo.View.PanelSides(Echo.View.Edge()).panel
-    if not fromTile then return corner, 0, 0 end
-    local horiz = corner:find("LEFT", 1, true) and "LEFT" or "RIGHT"
-    local rootTop = root.GetTop and root:GetTop()
-    local tileTop = fromTile.GetTop and fromTile:GetTop()
-    local tileBottom = fromTile.GetBottom and fromTile:GetBottom()
-    if type(rootTop) ~= "number" or type(tileTop) ~= "number" or type(tileBottom) ~= "number" then
-        return corner, 0, 0
+local function FadeIn()
+    if not fader then
+        fader = CreateFrame("Frame", nil, UIParent)
+        fader:Hide()
+        fader:SetScript("OnUpdate", FadeUpdate)
     end
-    local y = rootTop - (tileTop + tileBottom) / 2
-    if y < 0 then y = 0 elseif y > Card.HEIGHT then y = Card.HEIGHT end
-    return "TOP" .. horiz, 0, -y
+    fadeT = 0
+    root:SetAlpha(0)
+    fader:Show()
 end
 
--- The card's "grow out of the tile" open animation: built once, lazily, into these module
--- locals, and replayed on every animated open. SetSmoothing lives on the Animation objects,
--- not the AnimationGroup, so it's set on each of them individually.
-local animGroup, animScale, animAlpha
-
--- Builds the animation group and its Scale/Alpha children once. Every step is guarded,
--- since CreateAnimationGroup and CreateAnimation both answer nil in the test harness and on
--- some older clients; a failed build isn't cached, so a later call can retry it.
-local function EnsureAnimation()
-    if animGroup or not root or not root.CreateAnimationGroup then return end
-    local group = root:CreateAnimationGroup()
-    if not group then return end
-    local scale = group.CreateAnimation and group:CreateAnimation("Scale")
-    local alpha = group.CreateAnimation and group:CreateAnimation("Alpha")
-    if scale then
-        if scale.SetSmoothing then scale:SetSmoothing("OUT") end
-        if scale.SetDuration then scale:SetDuration(Card.ANIM_DURATION) end
-        SetScaleValue(scale, "SetScaleFrom", "SetFromScale", Card.ANIM_SCALE_FROM, Card.ANIM_SCALE_FROM)
-        SetScaleValue(scale, "SetScaleTo", "SetToScale", 1, 1)
-    end
-    if alpha then
-        if alpha.SetSmoothing then alpha:SetSmoothing("OUT") end
-        if alpha.SetDuration then alpha:SetDuration(Card.ANIM_DURATION) end
-        if alpha.SetFromAlpha then alpha:SetFromAlpha(0) end
-        if alpha.SetToAlpha then alpha:SetToAlpha(1) end
-    end
-    animGroup, animScale, animAlpha = group, scale, alpha
+-- Stops any genie (unless the close genie is the one hiding the card, so its flash can
+-- finish) and fade, and leaves the card at full alpha for the next open.
+function StopEffects()
+    if Echo.Genie and not genieHiding then Echo.Genie.Stop() end
+    StopFade()
+    closing = false
+    if root then root:SetAlpha(1) end
 end
 
--- Plays the card's 0.15s "grow out of the tile" open animation, when the setting allows it.
--- @param fromTile Frame|nil  the tile the card grew out of
-local function PlayOpenAnimation(fromTile)
-    if not Echo.Setting("echoAnimateCard") then return end
-    EnsureAnimation()
-    if not animGroup then return end
-    if animGroup.Stop then animGroup:Stop() end
-    if animScale and animScale.SetOrigin then
-        local point, x, y = AnimOrigin(fromTile)
-        animScale:SetOrigin(point, x, y)
-    end
-    if animGroup.Play then animGroup:Play() end
+local function Animated()
+    return Echo.Genie ~= nil and Echo.Setting("echoAnimateCard") and true or false
 end
 
--- Stops the open animation, if one has ever been built and is (or might be) playing.
-function StopAnimation()
-    if animGroup and animGroup.Stop then animGroup:Stop() end
+-- The sheet's colour at the neck: the tile's face colour (a class tile's is its class colour).
+local function GenieColor(convKey)
+    local View = Echo.View
+    local conv = convKey and Echo.Store.Get(convKey)
+    if not conv then return nil end
+    local r, g, b = View.FaceBackground(View.TileSpec(conv))
+    return { r, g, b }
+end
+
+local function Visible(frame)
+    local v = frame.IsVisible and frame:IsVisible()
+    if type(v) == "boolean" then return v end
+    return frame:IsShown() and true or false
+end
+
+-- The tile a close collapses into: the clicked column tile, or, for a click on the card's
+-- own row, that conversation's column tile. Nil when there is none to see.
+local function CloseTile(convKey, fromTile)
+    if not fromTile then return nil end
+    for _, b in ipairs(rowTiles) do
+        if b == fromTile then
+            fromTile = Echo.Tiles and Echo.Tiles.TileFor and Echo.Tiles.TileFor(convKey)
+            break
+        end
+    end
+    if fromTile and Visible(fromTile) then return fromTile end
+    return nil
+end
+
+local HideNow
+
+local function PlayOpen(fromTile)
+    Echo.Genie.Play({
+        from = fromTile, to = root, color = GenieColor(renderedKey), edge = Echo.View.Edge(),
+        duration = Card.GENIE_OPEN,
+        onDone = function() if root and root:IsShown() then FadeIn() end end,
+    })
+end
+
+local function PlayClose(tile)
+    closing = true
+    StopFade()
+    root:SetAlpha(0)
+    Echo.Genie.Play({
+        from = tile, to = root, reverse = true, color = GenieColor(renderedKey),
+        edge = Echo.View.Edge(), duration = Card.GENIE_CLOSE,
+        onDone = function()
+            genieHiding = true
+            HideNow()
+            genieHiding = false
+        end,
+    })
 end
 
 --- Open the card on a conversation; the stack closes.
@@ -658,6 +682,12 @@ function Card.Open(convKey, focus, fromTile)
     if #Echo.Store.List() == 0 then return end
     if Echo.Stack then Echo.Stack.Hide() end
     local wasShown = root:IsShown()
+    if closing then StopEffects() end  -- a close genie running: cancel it, open normally
+    local genie = not wasShown and fromTile ~= nil and Animated()
+    if not wasShown then
+        StopEffects()
+        if genie then root:SetAlpha(0) end
+    end
     currentKey = convKey
     offset = 0
     newBelow = 0
@@ -665,7 +695,7 @@ function Card.Open(convKey, focus, fromTile)
     Anchor()
     root:Show()
     Card.Render()
-    if not wasShown then PlayOpenAnimation(fromTile) end
+    if genie then PlayOpen(fromTile) end
     if focus then Card.Focus() end
 end
 
@@ -688,22 +718,27 @@ function Card.Show(convKey, fromTile)
         Card.Open(convKey, nil, fromTile)
         return
     end
+    if closing then StopEffects() end
     currentKey = convKey
     Card.Render()
 end
 
 --- A tile click: close the card if it already shows this conversation, else show it.
+-- With the setting on and the tile in view, the close collapses into the tile first; a
+-- second click on it during that close is ignored.
 -- @param convKey string
 -- @param fromTile Frame|nil  the tile clicked; the card grows out of it if it was closed
 function Card.Toggle(convKey, fromTile)
     if root and root:IsShown() and convKey == renderedKey then
-        Card.Hide()
+        if closing then return end
+        local tile = Animated() and CloseTile(convKey, fromTile)
+        if tile then PlayClose(tile) else Card.Hide() end
     else
         Card.Show(convKey, fromTile)
     end
 end
 
-function Card.Hide()
+function HideNow()
     if not root then return end
     -- root's OnHide does this too (real frames fire it from Hide()); calling it here as
     -- well keeps the harness's stand-in frames, which don't fire OnHide on Hide(), correct.
@@ -711,8 +746,14 @@ function Card.Hide()
     if edit then edit:ClearFocus() end
     newBelow = 0
     if hint then hint:Hide() end
-    StopAnimation()
+    StopEffects()
     root:Hide()
+end
+
+--- Close the card at once: Escape, the chevron and combat all need it immediate, so this
+-- also cuts short any genie or fade.
+function Card.Hide()
+    HideNow()
 end
 
 --- @return boolean
@@ -856,6 +897,6 @@ function Card._frames()
     return {
         root = root, rowTiles = rowTiles, name = nameText, meta = metaText, area = area,
         edit = edit, send = send, menu = menuButton, chevron = chevron,
-        bubbles = bubbles, labels = labels, status = statusLine, hint = hint,
+        bubbles = bubbles, labels = labels, status = statusLine, hint = hint, fader = fader,
     }
 end

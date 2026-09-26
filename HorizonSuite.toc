@@ -167,6 +167,7 @@ modules/Echo/EchoFilter.lua
 modules/Echo/EchoSound.lua
 modules/Echo/EchoSend.lua
 modules/Echo/EchoView.lua
+modules/Echo/EchoGenie.lua
 modules/Echo/EchoClass.lua
 modules/Echo/EchoRedraw.lua
 modules/Echo/EchoLinks.lua

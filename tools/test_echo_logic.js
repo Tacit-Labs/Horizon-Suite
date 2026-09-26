@@ -123,6 +123,7 @@ const FILES = [
   'modules/Echo/EchoSound.lua',
   'modules/Echo/EchoSend.lua',
   'modules/Echo/EchoView.lua',
+  'modules/Echo/EchoGenie.lua',
   'modules/Echo/EchoClass.lua',
   'modules/Echo/EchoRedraw.lua',
   'modules/Echo/EchoLinks.lua',
@@ -2045,11 +2046,202 @@ run(`
   S.Reset()
 `, 'card-onhide');
 
-// --- Card: grows out of the tile you clicked (Task 5, revised final review) ----------------
+// --- Genie: slice geometry ---------------------------------------------------------------
+run(`
+  local G = HorizonSuite.Echo.Genie
+  local EPS = 1e-6
+  local function near(a, b) return math.abs(a - b) < EPS end
+  -- A column on the left: a 30x30 tile low in it, the card to its right.
+  local tile = { left = 100, right = 130, bottom = 120, top = 150 }
+  local card = { left = 138, right = 498, bottom = 100, top = 540 }
+  local N = 32
+
+  for _, edge in ipairs({ "left", "right" }) do
+    local from, to = tile, card
+    if edge == "right" then
+      -- Mirror: column on the right, card to its left.
+      from = { left = 900, right = 930, bottom = 120, top = 150 }
+      to = { left = 532, right = 892, bottom = 100, top = 540 }
+    end
+    local s0 = G.Slices(from, to, 0, N, edge)
+    check(edge .. ": one slice per strip", #s0 == N, #s0)
+    local inside = true
+    for _, s in ipairs(s0) do
+      if s.left < from.left - EPS or s.right > from.right + EPS or s.bottom < from.bottom - EPS or s.top > from.top + EPS then inside = false end
+    end
+    check(edge .. ": p=0 keeps every strip inside the tile", inside, inside)
+    check(edge .. ": p=0 spans the tile exactly", near(s0[1].bottom, from.bottom) and near(s0[N].top, from.top)
+      and near(s0[1].left, from.left) and near(s0[1].right, from.right), s0[N].top)
+
+    local s1 = G.Slices(from, to, 1, N, edge)
+    local tiles = near(s1[1].bottom, to.bottom) and near(s1[N].top, to.top)
+    for i, s in ipairs(s1) do
+      if not (near(s.left, to.left) and near(s.right, to.right)) then tiles = false end
+      if i > 1 and not near(s.bottom, s1[i - 1].top) then tiles = false end
+      if s.top < s.bottom then tiles = false end
+    end
+    check(edge .. ": p=1 tiles the card exactly, contiguous", tiles, tiles)
+
+    local sh = G.Slices(from, to, 0.5, N, edge)
+    local mono, contiguous = true, true
+    for i = 2, N do
+      if sh[i].bottom < sh[i - 1].bottom - EPS then mono = false end
+      if not near(sh[i].bottom, sh[i - 1].top) then contiguous = false end
+    end
+    check(edge .. ": p=0.5 strips are monotonic in v", mono, mono)
+    check(edge .. ": p=0.5 strips have no gaps", contiguous, contiguous)
+    check(edge .. ": p=0.5 is between the tile and the card", sh[N].top > from.top and sh[N].top < to.top, sh[N].top)
+
+    -- The side away from the column bows: it moves far more across the strips than the
+    -- column side, and it widens away from the tile (the neck stays narrow).
+    local farKey, anchorKey = "right", "left"
+    if edge == "right" then farKey, anchorKey = "left", "right" end
+    local function range(key)
+      local lo, hi = math.huge, -math.huge
+      for _, s in ipairs(sh) do lo = math.min(lo, s[key]); hi = math.max(hi, s[key]) end
+      return hi - lo
+    end
+    check(edge .. ": the far side bows, the column side stays put", range(farKey) > 3 * range(anchorKey),
+      range(farKey) .. " vs " .. range(anchorKey))
+    local neckW = sh[1].right - sh[1].left
+    local farW = sh[N].right - sh[N].left
+    check(edge .. ": narrow at the neck, wide at the far end", farW > neckW * 2, neckW .. " / " .. farW)
+    local widening = true
+    for i = 5, N do
+      local w, pw = sh[i].right - sh[i].left, sh[i - 1].right - sh[i - 1].left
+      if w < pw - EPS then widening = false end
+    end
+    check(edge .. ": the sheet widens steadily away from the tile", widening, widening)
+    -- The bowed edge is a curve, not a straight line: its midpoint sits off the chord.
+    local a, b, m = sh[1][farKey], sh[N][farKey], sh[N / 2][farKey]
+    check(edge .. ": the bowed edge curves", math.abs(m - (a + b) / 2) > 5, m - (a + b) / 2)
+
+    -- Per-strip progress: the far end leads (it reaches the window's top first, as in the
+    -- reference frames); the neck by the tile lags and stays pinned to the tile's width.
+    local qNear, qFar = G.StripProgress(from, to, 0.5, 1 / (2 * N)), G.StripProgress(from, to, 0.5, 1 - 1 / (2 * N))
+    check(edge .. ": the far end is further along than the neck", qFar > qNear, qNear .. " / " .. qFar)
+    check(edge .. ": strip progress reaches 1 at p=1", G.StripProgress(from, to, 1, 0) == 1 and G.StripProgress(from, to, 1, 1) == 1, "")
+    check(edge .. ": the neck is still near the tile's width early on",
+      (G.Slices(from, to, 0.2, N, edge)[1].right - G.Slices(from, to, 0.2, N, edge)[1].left) < 40, "")
+  end
+
+  -- Vertical leads horizontal: by mid-way the sheet is most of its height but not its width.
+  local sh = G.Slices(tile, card, 0.5, N, "left")
+  local hFrac = (sh[N].top - tile.top) / (card.top - tile.top)
+  local wFrac = (sh[N].right - tile.right) / (card.right - tile.right)
+  check("height leads width", hFrac > wFrac + 0.2, hFrac .. " / " .. wFrac)
+
+  -- A tile above the card's middle still gives monotonic, contiguous strips.
+  local high = { left = 100, right = 130, bottom = 500, top = 530 }
+  local sm = G.Slices(high, card, 0.4, N, "left")
+  local ok = true
+  for i = 2, N do if sm[i].bottom < sm[i - 1].bottom - EPS or not near(sm[i].bottom, sm[i - 1].top) then ok = false end end
+  check("a high tile still gives ordered, contiguous strips", ok, ok)
+  check("p outside 0..1 is clamped", near(G.Slices(tile, card, 2, N, "left")[N].top, card.top)
+    and near(G.Slices(tile, card, -1, N, "left")[N].top, tile.top), "")
+`, 'genie-slices');
+
+// --- Genie: strip colour -------------------------------------------------------------------
+run(`
+  local G = HorizonSuite.Echo.Genie
+  local tileRGB, bg = { 0.2, 0.7, 0.9 }, { 0.06, 0.06, 0.09, 0.94 }
+  local function eq(a, b) return math.abs(a - b) < 1e-6 end
+  local r, g, b, a = G.StripColor(tileRGB, bg, 0, 0.5)
+  check("the neck is the tile's colour", eq(r, 0.2) and eq(g, 0.7) and eq(b, 0.9) and eq(a, 1), r)
+  r, g, b, a = G.StripColor(tileRGB, bg, 1, 0.5)
+  check("the far end is the panel background", eq(r, 0.06) and eq(g, 0.06) and eq(b, 0.09) and eq(a, 0.94), r)
+  r, g, b = G.StripColor(tileRGB, bg, 1, 0)
+  check("at p=0 the whole sheet is the tile's colour", eq(r, 0.2) and eq(b, 0.9), r)
+  r, g, b = G.StripColor(tileRGB, bg, 0, 1)
+  check("at p=1 the whole sheet is the panel background", eq(r, 0.06) and eq(b, 0.09), r)
+  local rm = G.StripColor(tileRGB, bg, 0.5, 0.5)
+  check("between the ends it blends", rm < 0.2 and rm > 0.06, rm)
+`, 'genie-color');
+
+// --- Genie: Play drives the overlay and calls onDone -----------------------------------------
+run(`
+  local G = HorizonSuite.Echo.Genie
+  local savedCreateFrame = CreateFrame
+  CreateFrame = STUB_CREATE_FRAME
+  local function Rect(l, r, b, t)
+    local f = STUB_FRAME()
+    f.GetLeft = function() return l end
+    f.GetRight = function() return r end
+    f.GetBottom = function() return b end
+    f.GetTop = function() return t end
+    f.GetEffectiveScale = function() return 1 end
+    return f
+  end
+  local tile, card = Rect(100, 130, 120, 150), Rect(138, 498, 100, 540)
+
+  -- No geometry (the harness's own stand-ins): straight to onDone.
+  local done = 0
+  G.Play({ from = STUB_FRAME(), to = STUB_FRAME(), onDone = function() done = done + 1 end })
+  check("an unreadable rect goes straight to onDone", done == 1, done)
+  check("an unreadable rect leaves nothing playing", not G.IsPlaying(), "playing")
+
+  done = 0
+  G.Play({ from = tile, to = card, color = { 0.2, 0.7, 0.9 }, edge = "left", onDone = function() done = done + 1 end })
+  local ov = G._overlay()
+  check("Play builds the overlay", ov ~= nil, "nil")
+  check("the overlay shows", ov.shown, ov.shown)
+  check("the overlay has 32 strips", #ov.strips == 32, #ov.strips)
+  check("Play is playing", G.IsPlaying(), "idle")
+  check("onDone not called yet", done == 0, done)
+  local tick = ov.scripts.OnUpdate
+  tick(ov, 0.05)
+  local p1 = G.Progress()
+  check("the open runs forward", p1 > 0 and p1 < 1, p1)
+  check("strips are laid against UIParent", ov.strips[1].points[1] and ov.strips[1].points[1][2] == UIParent, "")
+  check("strips get a colour", ov.strips[1].colorTexture ~= nil, "nil")
+  tick(ov, 0.05)
+  check("progress keeps climbing", G.Progress() > p1, G.Progress())
+  tick(ov, 1)
+  check("onDone runs once at the end", done == 1, done)
+  check("the overlay hides at the end", not ov.shown, ov.shown)
+  check("nothing plays after the end", not G.IsPlaying(), "playing")
+  tick(ov, 0.1)
+  check("a stray tick after the end does nothing", done == 1, done)
+
+  -- Reverse runs p from 1 down to 0.
+  done = 0
+  G.Play({ from = tile, to = card, reverse = true, edge = "left", onDone = function() done = done + 1 end })
+  tick(ov, 0.05)
+  local r1 = G.Progress()
+  check("reverse starts near 1", r1 < 1 and r1 > 0.5, r1)
+  tick(ov, 0.05)
+  check("reverse runs backward", G.Progress() < r1, G.Progress())
+  tick(ov, 1)
+  check("reverse calls onDone at the end", done == 1, done)
+  -- The close ends with a short bright flash on the tile, then hides.
+  check("the flash keeps the overlay up", ov.shown, ov.shown)
+  tick(ov, 1)
+  check("the flash ends and the overlay hides", not ov.shown, ov.shown)
+
+  -- Stop drops onDone.
+  done = 0
+  G.Play({ from = tile, to = card, edge = "left", onDone = function() done = done + 1 end })
+  tick(ov, 0.05)
+  G.Stop()
+  check("Stop hides the overlay", not ov.shown, ov.shown)
+  tick(ov, 1)
+  check("Stop drops onDone", done == 0, done)
+
+  -- Frames rescaled away from UIParent are measured in UIParent units.
+  local scaled = Rect(50, 65, 60, 75)
+  scaled.GetEffectiveScale = function() return 2 end
+  local rect = G.ReadRect(scaled)
+  check("a rect is read in UIParent units", rect and rect.left == 100 and rect.top == 150, rect and rect.left)
+  G.Stop()
+  CreateFrame = savedCreateFrame
+`, 'genie-play');
+
+// --- Card: opens and closes with a genie from its tile --------------------------------------
 run(`
   local Echo = HorizonSuite.Echo
-  local S, T, K, C = Echo.Store, Echo.Tiles, Echo.Stack, Echo.Card
+  local S, T, K, C, G, V = Echo.Store, Echo.Tiles, Echo.Stack, Echo.Card, Echo.Genie, Echo.View
   S.Reset()
+  local savedCreateFrame = CreateFrame
   CreateFrame = STUB_CREATE_FRAME
   local db = {}
   HorizonSuite.ECHO_DEFAULTS = { echoAnimateCard = true, echoColumnEdge = "right" }
@@ -2059,136 +2251,142 @@ run(`
   C.Enable()
   local f = C._frames()
 
-  -- A recorder standing in for a real AnimationGroup and its Scale/Alpha children, tracking
-  -- exactly what the "grow out of the tile" animation sets on them. SetSmoothing lives on
-  -- the Animation objects here, not the group, matching the real API.
-  local function NewRecorder()
-      local r = { groupCalls = 0, played = 0, stopped = 0 }
-      r.CreateAnimation = function(self, kind)
-          if kind == "Scale" then
-              r.scale = {}
-              local s = r.scale
-              s.SetSmoothing = function(self, v) s.smoothing = v end
-              s.SetDuration = function(self, d) s.duration = d end
-              s.SetScaleFrom = function(self, x, y) s.from = { x, y } end
-              s.SetScaleTo = function(self, x, y) s.to = { x, y } end
-              s.SetOrigin = function(self, point, x, y) s.origin = { point, x, y } end
-              return s
-          elseif kind == "Alpha" then
-              r.alpha = {}
-              local a = r.alpha
-              a.SetSmoothing = function(self, v) a.smoothing = v end
-              a.SetDuration = function(self, d) a.duration = d end
-              a.SetFromAlpha = function(self, v) a.from = v end
-              a.SetToAlpha = function(self, v) a.to = v end
-              return a
-          end
-      end
-      r.Play = function(self) r.played = r.played + 1 end
-      r.Stop = function(self) r.stopped = r.stopped + 1 end
-      return r
+  local function Geometry(frame, l, r, b, t)
+    frame.GetLeft = function() return l end
+    frame.GetRight = function() return r end
+    frame.GetBottom = function() return b end
+    frame.GetTop = function() return t end
   end
+  local alphas = {}
+  f.root.SetAlpha = function(self, a) self.alphaValue = a; alphas[#alphas + 1] = a end
+  f.root.GetAlpha = function(self) return rawget(self, "alphaValue") or 1 end
+  Geometry(f.root, 500, 860, 100, 540)
 
   S.Add({ convKey = "w:Brisa-Horizon", text = "hi", sender = "Brisa-Horizon" })
   S.Add({ convKey = "w:Vexa-Horizon", text = "gz", sender = "Vexa-Horizon" })
+  local vexa = T.TileFor("w:Vexa-Horizon")
+  local brisa = T.TileFor("w:Brisa-Horizon")
+  check("the column has tiles", vexa ~= nil and brisa ~= nil, "nil")
+  Geometry(vexa, 870, 900, 120, 150)
+  Geometry(brisa, 870, 900, 160, 190)
 
-  -- A nil group (an old client, or the harness's own stand-in) doesn't error, and a failed
-  -- build isn't cached: a later successful one still happens.
-  f.root.CreateAnimationGroup = function() return nil end
-  local ok = pcall(C.Open, "w:Brisa-Horizon")
-  check("a nil animation group doesn't error", ok, ok)
-  check("the card still opens", f.root:IsShown(), "hidden")
+  -- Open from a tile: the card is shown at alpha 0 and a genie pours out of the tile.
+  vexa.scripts.OnClick(vexa)
+  check("a tile open shows the card", f.root:IsShown(), "hidden")
+  check("a tile open starts at alpha 0", f.root:GetAlpha() == 0, f.root:GetAlpha())
+  check("a tile open starts a genie", G.IsPlaying(), "idle")
+  check("the genie runs forward", not G._current().reverse, "reverse")
+  check("the genie starts from the tile", G._current().from == vexa, "")
+  local r, g, b = V.FaceBackground(V.TileSpec(S.Get("w:Vexa-Horizon")))
+  local col = G._current().color
+  check("the genie is the tile's face colour", col[1] == r and col[2] == g and col[3] == b, col[1])
+  check("the genie opens away from the column", G._current().edge == "right", G._current().edge)
+  local ov = G._overlay()
+  ov.scripts.OnUpdate(ov, 1)
+  check("the genie ends", not G.IsPlaying(), "playing")
+  check("the contents are still hidden when the sheet ends", f.root:GetAlpha() < 0.05, f.root:GetAlpha())
+  local fader = C._frames().fader
+  check("a fader is running", fader ~= nil and fader.shown, "")
+  fader.scripts.OnUpdate(fader, 0.075)
+  local mid = f.root:GetAlpha()
+  check("the contents fade in", mid > 0 and mid < 1, mid)
+  fader.scripts.OnUpdate(fader, 0.2)
+  check("the fade ends at alpha 1", f.root:GetAlpha() == 1, f.root:GetAlpha())
+  check("the fader stops", not fader.shown, fader.shown)
+
+  -- Close by clicking the shown conversation's tile: a reverse genie, then the hide.
+  vexa.scripts.OnClick(vexa)
+  check("a toggle close keeps the card up during the genie", f.root:IsShown(), "hidden")
+  check("a toggle close hides the contents at once", f.root:GetAlpha() == 0, f.root:GetAlpha())
+  check("a toggle close runs a reverse genie", G.IsPlaying() and G._current().reverse, "")
+  vexa.scripts.OnClick(vexa)
+  check("a second click during the close is ignored", f.root:IsShown() and G.IsPlaying() and G._current().reverse, "")
+  ov.scripts.OnUpdate(ov, 1)
+  check("the close hides the card at the end", not f.root:IsShown(), "shown")
+  check("the close restores alpha for the next open", f.root:GetAlpha() == 1, f.root:GetAlpha())
+  ov.scripts.OnUpdate(ov, 1)
+  check("the tile flash ends", not ov.shown, ov.shown)
+
+  -- Escape (Card.Hide) is instant, mid-open, and restores alpha.
+  vexa.scripts.OnClick(vexa)
+  check("reopened with a genie", G.IsPlaying(), "idle")
+  C.Hide()
+  check("Hide is instant", not f.root:IsShown(), "shown")
+  check("Hide stops the genie", not G.IsPlaying(), "playing")
+  check("Hide restores alpha", f.root:GetAlpha() == 1, f.root:GetAlpha())
+  ov.scripts.OnUpdate(ov, 1)
+  check("a stopped open never fades in", C._frames().fader == nil or not C._frames().fader.shown, "")
+
+  -- Hide mid-fade stops the fade too.
+  vexa.scripts.OnClick(vexa)
+  ov.scripts.OnUpdate(ov, 1)
+  C.Hide()
+  check("Hide stops the fade", not C._frames().fader.shown, "")
+  check("Hide after a fade restores alpha", f.root:GetAlpha() == 1, f.root:GetAlpha())
+
+  -- Escape during a close: instant too.
+  vexa.scripts.OnClick(vexa)
+  ov.scripts.OnUpdate(ov, 1)
+  C._frames().fader.scripts.OnUpdate(C._frames().fader, 1)
+  vexa.scripts.OnClick(vexa)
+  check("closing", G.IsPlaying() and G._current().reverse, "")
+  f.root:Hide()
+  f.root.scripts.OnHide(f.root)
+  check("OnHide during a close stops the genie", not G.IsPlaying(), "playing")
+  check("OnHide restores alpha", f.root:GetAlpha() == 1, f.root:GetAlpha())
+  vexa.scripts.OnClick(vexa)
+  check("a click after an interrupted close opens again", f.root:IsShown() and G.IsPlaying() and not G._current().reverse, "")
   C.Hide()
 
-  -- The group and its animations are built once, lazily, and reused on every animated open
-  -- from here on.
-  local rec = NewRecorder()
-  f.root.CreateAnimationGroup = function() rec.groupCalls = rec.groupCalls + 1; return rec end
+  -- Opening another conversation while a close genie runs stops it and opens normally.
+  vexa.scripts.OnClick(vexa)
+  ov.scripts.OnUpdate(ov, 1)
+  C._frames().fader.scripts.OnUpdate(C._frames().fader, 1)
+  vexa.scripts.OnClick(vexa)
+  check("closing again", G.IsPlaying() and G._current().reverse, "")
+  brisa.scripts.OnClick(brisa)
+  check("another tile mid-close cancels the close", not G.IsPlaying(), "playing")
+  check("and shows the card at full alpha", f.root:IsShown() and f.root:GetAlpha() == 1, f.root:GetAlpha())
+  check("on the other conversation", f.name.text == "Brisa", f.name.text)
+  ov.scripts.OnUpdate(ov, 1)
+  check("the cancelled close never hides the card", f.root:IsShown(), "hidden")
 
-  -- Opening builds and plays the animation once, pivoted on the panel corner nearest the
-  -- column (the right edge here, so the card's own BOTTOMRIGHT).
-  C.Open("w:Brisa-Horizon")
-  check("opening builds the animation once", rec.groupCalls == 1, rec.groupCalls)
-  check("opening plays the animation once", rec.played == 1, rec.played)
-  check("both animations get smoothing OUT", rec.scale.smoothing == "OUT" and rec.alpha.smoothing == "OUT",
-      tostring(rec.scale.smoothing) .. "/" .. tostring(rec.alpha.smoothing))
-  check("the scale runs 0.85 to 1 over 0.15s", rec.scale.from[1] == 0.85 and rec.scale.to[1] == 1
-      and rec.scale.duration == 0.15, rec.scale.duration)
-  check("the alpha runs 0 to 1 over 0.15s", rec.alpha.from == 0 and rec.alpha.to == 1
-      and rec.alpha.duration == 0.15, rec.alpha.duration)
-  check("with no tile, the origin is the panel corner", rec.scale.origin[1] == "BOTTOMRIGHT"
-      and rec.scale.origin[2] == 0 and rec.scale.origin[3] == 0, rec.scale.origin[1])
-
-  -- A second Open while already shown on the same conversation doesn't replay it.
-  C.Open("w:Brisa-Horizon")
-  check("a second Open on the same conversation doesn't rebuild the animation", rec.groupCalls == 1, rec.groupCalls)
-  check("a second Open on the same conversation doesn't replay it", rec.played == 1, rec.played)
-
-  -- Hiding mid-animation stops it (PlayOpenAnimation itself also stops before every replay,
-  -- so these are counted as increases, not absolute totals).
-  local stoppedBefore = rec.stopped
-  C.Hide()
-  check("hiding stops the animation", rec.stopped == stoppedBefore + 1, rec.stopped)
-
-  -- A second animated open (after the hide) reuses the same group rather than rebuilding it,
-  -- stopping it first (it may still be playing) before playing it again.
-  local playedBefore, stopBefore2 = rec.played, rec.stopped
-  C.Open("w:Brisa-Horizon")
-  check("a second animated open reuses the group, not rebuilding it", rec.groupCalls == 1, rec.groupCalls)
-  check("a second animated open plays it again", rec.played == playedBefore + 1, rec.played)
-  check("a second animated open stops it first", rec.stopped == stopBefore2 + 1, rec.stopped)
-  local stoppedBefore3 = rec.stopped
-  C.Hide()
-  check("hiding again stops it again", rec.stopped == stoppedBefore3 + 1, rec.stopped)
-
-  -- With the setting off, the existing group is neither rebuilt nor replayed.
-  db.echoAnimateCard = false
-  local playedBefore4, stoppedBefore4 = rec.played, rec.stopped
-  C.Open("w:Brisa-Horizon")
-  check("the setting off never rebuilds the animation", rec.groupCalls == 1, rec.groupCalls)
-  check("the setting off never plays it", rec.played == playedBefore4, rec.played)
-  check("the setting off never stops it either (nothing to stop)", rec.stopped == stoppedBefore4, rec.stopped)
-  C.Hide()
-  db.echoAnimateCard = true
-
-  -- A tile click passes the tile: the origin's point flips to the top of that edge, offset
-  -- down by the tile's own vertical position (found via GetTop/GetBottom).
-  f.root.GetTop = function() return 400 end
+  -- The card's own row tile closes into the column tile, when it is visible.
   local rowTile
-  for _, b in ipairs(f.rowTiles) do if b.convKey == "w:Vexa-Horizon" then rowTile = b end end
-  rowTile.GetTop = function() return 350 end
-  rowTile.GetBottom = function() return 324 end
-  local playedBefore5 = rec.played
+  for _, t in ipairs(f.rowTiles) do if t.convKey == "w:Brisa-Horizon" then rowTile = t end end
   rowTile.scripts.OnClick(rowTile)
-  check("a row tile click opens its conversation", f.name.text == "Vexa", f.name.text)
-  check("a row tile click plays the animation", rec.played == playedBefore5 + 1, rec.played)
-  check("a row tile click moves the origin off the panel corner", rec.scale.origin[1] == "TOPRIGHT", rec.scale.origin[1])
-  check("the origin's offset follows the tile", rec.scale.origin[3] == -63, rec.scale.origin[3])
-  rowTile.GetTop, rowTile.GetBottom = nil, nil
-  C.Hide()
+  check("a row tile close runs a reverse genie", G.IsPlaying() and G._current().reverse, "")
+  check("into the column tile", G._current().from == brisa, "")
+  ov.scripts.OnUpdate(ov, 1)
+  ov.scripts.OnUpdate(ov, 1)
+  check("and hides", not f.root:IsShown(), "shown")
 
-  -- A column tile click (EchoTiles.CreateTile) also passes its own tile through to
-  -- Card.Toggle, exercising the real origin path there too.
-  local colTile = T.TileFor("w:Vexa-Horizon")
-  check("the column has a tile for the conversation", colTile ~= nil, "nil")
-  colTile.GetTop = function() return 350 end
-  colTile.GetBottom = function() return 324 end
-  local playedBefore6 = rec.played
-  colTile.scripts.OnClick(colTile)
-  check("a column tile click opens its conversation", f.name.text == "Vexa", f.name.text)
-  check("a column tile click plays the animation again", rec.played == playedBefore6 + 1, rec.played)
-  check("a column tile click moves the origin off the panel corner", rec.scale.origin[1] == "TOPRIGHT", rec.scale.origin[1])
-  check("the origin follows the column tile's own position", rec.scale.origin[3] == -63, rec.scale.origin[3])
-  colTile.GetTop, colTile.GetBottom = nil, nil
-  f.root.GetTop = nil
+  -- No tile, or the setting off: shown at alpha 1, no genie.
+  C.Open("w:Vexa-Horizon")
+  check("no tile opens at alpha 1", f.root:GetAlpha() == 1 and not G.IsPlaying(), f.root:GetAlpha())
+  C.Hide()
+  db.echoAnimateCard = false
+  vexa.scripts.OnClick(vexa)
+  check("the setting off opens at alpha 1", f.root:IsShown() and f.root:GetAlpha() == 1, f.root:GetAlpha())
+  check("the setting off plays no genie", not G.IsPlaying(), "playing")
+  vexa.scripts.OnClick(vexa)
+  check("the setting off closes at once", not f.root:IsShown(), "shown")
+  db.echoAnimateCard = nil
+
+  -- A tile with no geometry (the harness's stand-ins) still opens, straight to the fade.
+  vexa.GetLeft = nil
+  vexa.scripts.OnClick(vexa)
+  check("an unmeasurable tile still opens", f.root:IsShown() and not G.IsPlaying(), "")
   C.Hide()
 
   C.Disable()
   K.Disable()
   T.Disable()
+  G.Stop()
+  CreateFrame = savedCreateFrame
   HorizonSuite.ECHO_DEFAULTS, HorizonSuite.GetDB = nil, nil
   S.Reset()
-`, 'card-animate');
+`, 'card-genie');
 
 // --- Card: retry only marks resent, and dims a retried bubble (fix round 1, finding 2) ----
 run(`
