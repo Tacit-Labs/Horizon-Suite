@@ -54,6 +54,7 @@ Card.PIN_STRIP = Card.PIN_HEIGHT + 4  -- how far the area moves down under the p
 Card.PIN_MARK = 10    -- the pin marker on a pinned bubble or feed line
 Card.PIN_ICON = 12    -- the pin on the strip
 Card.PIN_INSET = 3    -- the marker sits this far inside the bubble's top corner
+Card.LINK_WINDOW = 0.3  -- seconds: a link click this close to a right-click keeps the pin menu shut
 -- On a pinned bubble, the text keeps this far from the marker's side so it never runs under it.
 Card.PIN_CLEAR = Card.PIN_INSET + Card.PIN_MARK + 2
 Card.PIN_TEXTURE = "Interface\\AddOns\\" .. (addon.ADDON_NAME or "HorizonSuite") .. "\\media\\echo\\pin.tga"
@@ -437,17 +438,17 @@ local function Bubble(i)
     if Echo.Links then Echo.Links.Attach(b) end
     -- A link click goes to OnHyperlinkClick and keeps Blizzard's behaviour; a right-click
     -- anywhere else on the message opens its pin menu. WoW can dispatch the link click and
-    -- OnMouseUp in either order, so the link click stamps the frame time, and the menu opens
-    -- a frame later only if no link click was stamped in the click's frame.
+    -- OnMouseUp in either order, so the link click stamps the time, and the menu opens a
+    -- frame later only if no link click landed within Card.LINK_WINDOW of it.
     b:HookScript("OnHyperlinkClick", function(self)
         if type(GetTime) == "function" then self._echoLinkClickAt = GetTime() end
     end)
     b:SetScript("OnMouseUp", function(self, button)
         if button ~= "RightButton" or not self.msgKey or not self.msg or not Echo.Menu then return end
-        local now = type(GetTime) == "function" and GetTime() or nil
         local function LinkClicked()
             local at = rawget(self, "_echoLinkClickAt")
-            return at ~= nil and at == now
+            local now = type(GetTime) == "function" and GetTime() or nil
+            return type(at) == "number" and type(now) == "number" and (now - at) < Card.LINK_WINDOW
         end
         if LinkClicked() then return end
         local key, msg = self.msgKey, self.msg
@@ -965,6 +966,8 @@ function Card.Render()
     end
     renderedKey = conv.key
     currentKey = conv.key
+    -- A guild tile restored before the guild was known: try its saved history again.
+    if conv.historyLoaded == false and Store.RetryHistory then Store.RetryHistory() end
 
     PaintRow(list)
     PaintTabs(members)

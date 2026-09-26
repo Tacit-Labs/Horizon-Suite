@@ -253,6 +253,19 @@ local function GetOrCreate(convKey)
     return conv
 end
 
+-- Load a guild or officer conversation's saved history that couldn't load when it was
+-- created (saving was off, or the guild was unknown), once both are true: the saved lines
+-- go before anything filed since. Shared by Store.Add and Store.RetryHistory.
+-- @return boolean loaded
+local function LoadLate(conv)
+    if conv.historyLoaded ~= false or not (conv.kind == "guild" or conv.kind == "officer") then return false end
+    if not Echo.History or not Store.IsPersisted(conv.kind) or Echo.History.GuildKey() == nil then return false end
+    local loaded = Echo.History.Load(conv.key)
+    for i = #loaded, 1, -1 do table.insert(conv.messages, 1, loaded[i]) end
+    conv.historyLoaded = true
+    return true
+end
+
 local function Append(conv, record)
     local messages = conv.messages
     messages[#messages + 1] = record
@@ -276,13 +289,7 @@ function Store.Add(record)
     local conv = GetOrCreate(record.convKey)
     -- Saving was off, or the guild was unknown, when this conversation was created; try
     -- again now, so a saved guild history still arrives once both are true.
-    if conv.historyLoaded == false and (conv.kind == "guild" or conv.kind == "officer") and Echo.History then
-        if Store.IsPersisted(conv.kind) and Echo.History.GuildKey() ~= nil then
-            local loaded = Echo.History.Load(record.convKey)
-            for i = #loaded, 1, -1 do table.insert(conv.messages, 1, loaded[i]) end
-            conv.historyLoaded = true
-        end
-    end
+    LoadLate(conv)
     seq = seq + 1
     record.seq = seq
     record.time = record.time or Store.Now()
@@ -318,6 +325,17 @@ function Store.Add(record)
     end
     Notify(record.convKey, change)
     return change
+end
+
+--- Retry the late history load for every guild or officer conversation still waiting on
+-- it, without a new message: the guild key can appear after login (PLAYER_GUILD_UPDATE),
+-- and a restored tile may get no message for a while. Each one loaded notifies "update".
+function Store.RetryHistory()
+    local done = {}
+    for key, conv in pairs(conversations) do
+        if LoadLate(conv) then done[#done + 1] = key end
+    end
+    for _, key in ipairs(done) do Notify(key, "update") end
 end
 
 --- @param convKey string

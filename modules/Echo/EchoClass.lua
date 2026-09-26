@@ -283,6 +283,8 @@ local function OnRosterEvent(_, event)
         -- it unconditionally, not only when a classless whisper happens to be open too.
         Echo.Redraw.Mark("tiles")
         Echo.Redraw.Mark("cardRow")
+        -- The guild key may have just become readable: load any guild history still waiting.
+        if Echo.Store.RetryHistory then Echo.Store.RetryHistory() end
     end
     if event == BNET_EVENT then
         HandleRosterEvent(BnetConversations())

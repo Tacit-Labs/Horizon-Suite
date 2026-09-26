@@ -225,17 +225,18 @@ HorizonDB.echoHistory = {
     chars  = { ["Name-Realm"] = { ["w:Brisa-Realm"] = { {t=…, out=false, text="…", s="…", c="DRUID"}, … } } },
     bnet   = { ["bt:Friend#1234"] = { … } },
     guilds = { ["Guild Name-Realm"] = { guild = { … }, officer = { … } } },
-    pins   = { ["Name-Realm"] = { ["w:Brisa-Realm"] = { {t=…, text="…", s="…", out=true}, … } } },
+    pins   = { ["Name-Realm"] = { ["w:Brisa-Realm"] = { {t=…, text="…", s="…", out=true}, … },
+                                  ["g:Guild Name-Realm:guild"] = { … } } },
 }
 ```
 
 - Whispers are saved per character and Battle.net whispers account-wide by BattleTag, as before. Saved entries now also carry `s`, the sender's `Name-Realm`, and `c`, the class token, when both are readable and not secret. A Battle.net sender is a protected `|K` string, so its `s` is never written.
-- Guild chat is saved by default (`echoSaveGuild`), and officer chat only when `echoSaveOfficer` is on. Both are keyed by `"Guild Name-Realm"` from `GetGuildInfo("player")`, so every character in the same guild shares them. With no readable guild key, nothing is written or loaded. A guild conversation created before the guild is known loads its saved lines once, on its next message. **Save chat history** (`echoSaveHistory`) is the master switch for everything saved automatically. Party, raid, instance and channel chat are never saved.
-- Pins are saved per character, keyed by the same `PrefKey` as the conversation prefs, so Battle.net pins are keyed by BattleTag and a Battle.net pin keeps no sender.
+- Guild chat is saved by default (`echoSaveGuild`), and officer chat only when `echoSaveOfficer` is on. Both are keyed by `"Guild Name-Realm"` from `GetGuildInfo("player")`, so every character in the same guild shares them. With no readable guild key, nothing is written or loaded. A guild conversation created before the guild is known loads its saved lines once, as soon as the key can be read: on its next message, on `PLAYER_GUILD_UPDATE` or `GUILD_ROSTER_UPDATE` (`Store.RetryHistory`), or when the card shows it. **Save chat history** (`echoSaveHistory`) is the master switch for everything saved automatically. Party, raid, instance and channel chat are never saved.
+- Pins are saved per character, keyed by the same `PrefKey` as the conversation prefs, so Battle.net pins are keyed by BattleTag and a Battle.net pin keeps no sender. Guild and officer pins are the exception: they belong to one guild, keyed `"g:" .. GuildKey() .. ":" .. kind`, so a character who changes guild sees that guild's pins. While the guild key can't be read, the guild tiles show no pins and pinning a guild line gives "Can't save this chat yet". The conversation prefs (a tile pinned to the column, its tier) stay keyed by `guild` and `officer`.
 
 **Caps.** A whisper or Battle.net conversation keeps 100 lines, and guild and officer chat keep 200 each. Each chat holds 5 pins, and each character 50.
 
-**Clean-up.** `History.Prune` runs once when the module enables, after `Bind`, under **Keep history for** (`echoHistoryDays`: 7, 30 or 90 days, or 0 for Forever; the default is 30). A saved list whose newest entry is older than the setting is removed, and a list with no readable time counts as stale. A conversation whose tile is pinned in any character's prefs is kept. That protection is keyed by conversation, and the guild's key is only ever the current guild's, so a pinned Guild or Officer tile protects only the current guild's saved lists. Another guild's lists are pruned by age alone. An emptied character bucket is removed. Forever removes nothing.
+**Clean-up.** `History.Prune` runs once when the module enables, after `Bind`, under **Keep history for** (`echoHistoryDays`: 7, 30 or 90 days, or 0 for Forever; the default is 30). A saved list whose newest entry is older than the setting is removed, and a list with no readable time counts as stale. A conversation whose tile is pinned in any character's prefs is kept. That protection is keyed by conversation, and the guild's key is only ever the current guild's, so a pinned Guild or Officer tile protects only the current guild's saved lists. Another guild's lists are pruned by age alone. When the guild isn't known yet at a cold login, no guild list is pruned at all. Message pins are stored apart from these lists and are never pruned. An emptied character bucket is removed. Forever removes nothing.
 
 **Size budget.** This was estimated, not measured. A saved line costs about 110 bytes: 60–70 bytes of serialiser overhead plus the text. A full whisper conversation is about 11 KB, a full guild history about 22 KB, and 50 pins about 6 KB.
 
@@ -244,7 +245,7 @@ HorizonDB.echoHistory = {
 **On the card.**
 
 - Right-click a bubble or feed line to open the pin menu. It offers **Pin message**, or **Unpin message**, or a disabled line giving the reason a pin is refused: a hidden message, 5 pins in this chat, 50 pins in all, or a chat that can't be saved yet. `Store.PinBlockReason` gives that reason without writing, from the same checks `History.AddPin` uses.
-- Right-clicking a link keeps Blizzard's link behaviour. The link click stamps the frame time, and the pin menu opens a frame later only if no link click landed in the same frame, whichever order the game fires the two events in.
+- Right-clicking a link keeps Blizzard's link behaviour. The link click stamps the time, and the pin menu opens a frame later only if no link click landed within 0.3 seconds (`Card.LINK_WINDOW`), whichever order the game fires the two events in.
 - A pinned message shows a 10px pin in the accent colour, inside the bubble's top corner on the side away from the sender. The text keeps clear of the pin on that side. On a feed line, the pin sits between the time and the text.
 - The pin strip is 22px high, in a dim accent tint, and shows under the header, or under the tabs on a group card, only while the shown conversation has pins. The message area moves down by `Card.PIN_STRIP` (26px) while it shows.
 - The strip shows one pin's text on one line, with links shown as their names. Clicking the text scrolls the card to that message while it is still in the conversation. Hovering it shows the full message, its sender and its time. The × unpins the shown pin.

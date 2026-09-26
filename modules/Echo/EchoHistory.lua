@@ -234,8 +234,20 @@ function History.SavePref(convKey, tier, pinned)
     return true
 end
 
--- Where a character's pins are saved: root.pins[charKey][PrefKey(convKey)] = list, the same
--- charKey and PrefKey the conversation prefs use, so Battle.net pins are keyed by BattleTag.
+-- The key a conversation's pins are saved under: PrefKey (so Battle.net pins are keyed by
+-- BattleTag), except guild and officer chat, whose pins belong to one guild:
+-- "g:<Guild Name-Realm>:guild". Nil while the guild is unknown.
+local function PinKey(convKey)
+    local kind = Echo.Store.KindOf(convKey)
+    if kind == "guild" or kind == "officer" then
+        local guildKey = History.GuildKey()
+        return guildKey and ("g:" .. guildKey .. ":" .. kind) or nil
+    end
+    return PrefKey(convKey)
+end
+
+-- Where a character's pins are saved: root.pins[charKey][PinKey(convKey)] = list, the same
+-- charKey the conversation prefs use.
 local function PinsBucket(create)
     if not root then return nil end
     local charKey = characterKey()
@@ -258,7 +270,7 @@ end
 -- @return table records  a copy; empty when there are no pins
 function History.Pins(convKey)
     local out = {}
-    local key = PrefKey(convKey)
+    local key = PinKey(convKey)
     local bucket = key and PinsBucket(false)
     local list = bucket and bucket[key]
     if type(list) ~= "table" then return out end
@@ -300,7 +312,7 @@ local function CheckPin(convKey, record, create)
     if record.demo or record.status == "pending" or record.status == "failed" then
         return "unsaved"
     end
-    local key = PrefKey(convKey)
+    local key = PinKey(convKey)
     if not key or not root or not characterKey() then return "unsaved" end
     local bucket = PinsBucket(create)
     if create and not bucket then return "unsaved" end
@@ -360,7 +372,7 @@ end
 -- @param index number  1-based, into History.Pins(convKey)'s order
 -- @return boolean removed
 function History.RemovePin(convKey, index)
-    local key = PrefKey(convKey)
+    local key = PinKey(convKey)
     local bucket = key and PinsBucket(false)
     local list = bucket and bucket[key]
     if type(list) ~= "table" or type(index) ~= "number" or not list[index] then return false end
@@ -531,8 +543,10 @@ function History.Prune(now)
         for key in pairs(root.bnet) do pruneList(root.bnet, key, true) end
     end
 
-    if type(root.guilds) == "table" then
-        local currentGuildKey = History.GuildKey()
+    -- At a cold login the guild isn't known yet: with no current guild to exempt, a pinned
+    -- guild's own list could be dropped, so leave every guild list alone this time.
+    local currentGuildKey = History.GuildKey()
+    if type(root.guilds) == "table" and currentGuildKey ~= nil then
         for guildKey, entry in pairs(root.guilds) do
             if type(entry) == "table" then
                 local isCurrent = guildKey == currentGuildKey

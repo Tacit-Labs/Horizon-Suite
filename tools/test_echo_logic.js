@@ -6074,9 +6074,29 @@ run(`
   b1.scripts.OnMouseUp(b1, "RightButton")
   Flush()
   check("a later plain right-click opens it", opened ~= nil and opened[1] == b1, "not opened")
+  -- The link click counts for 0.3 seconds either side, not only in the same frame.
+  opened = nil
+  frameTime = 60
+  LinkClick(b1)
+  frameTime = 60.2
+  b1.scripts.OnMouseUp(b1, "RightButton")
+  Flush()
+  check("a link click just before mouse-up opens no menu", opened == nil, "opened")
+  frameTime = 61
+  b1.scripts.OnMouseUp(b1, "RightButton")
+  frameTime = 61.1
+  LinkClick(b1)
+  Flush()
+  check("a link click a frame after mouse-up opens no menu", opened == nil, "opened")
+  frameTime = 70
+  LinkClick(b1)
+  frameTime = 70.5
+  b1.scripts.OnMouseUp(b1, "RightButton")
+  Flush()
+  check("a right-click well after a link click opens the menu", opened ~= nil and opened[1] == b1, "not opened")
   C_Timer = nil
   opened = nil
-  frameTime = 54
+  frameTime = 80
   b1.scripts.OnMouseUp(b1, "RightButton")
   check("without C_Timer the menu opens at once", opened ~= nil and opened[1] == b1, "not opened")
   C_Timer = { After = function(_, fn) deferred[#deferred + 1] = fn end, NewTimer = savedTimer.NewTimer }
@@ -6373,6 +6393,118 @@ run(`
   H.Unbind()
   S.Reset()
 `, 'pins-safety');
+
+// --- Guild history and pins: cold login, late load, per-guild pins (plan 10, final fix wave)
+run(`
+  local A = HorizonSuite
+  local Echo = A.Echo
+  local S, H, T, K, C = Echo.Store, Echo.History, Echo.Tiles, Echo.Stack, Echo.Card
+  S.Reset()
+  S.SetPersisted("guild", true)
+  S.SetPersisted("officer", true)
+  local db = {}
+  H.Bind(db, function() return "Kaelis-Horizon" end)
+  local savedGetGuildInfo = GetGuildInfo
+  local guildName = nil
+  GetGuildInfo = function(unit)
+    if unit ~= "player" then return nil end
+    return guildName, "Member", 5, nil
+  end
+
+  -- Cold login: the guild isn't known yet, so no guild list is pruned.
+  H.SetMaxAge(30)
+  local now = 40 * 86400 + 1000
+  db.echoHistory.guilds["Dawnrise-Horizon"] = { guild = { { t = now - 40 * 86400, text = "old but ours" } } }
+  db.echoHistory.guilds["Oldguild-Horizon"] = { officer = { { t = now - 40 * 86400, text = "old and theirs" } } }
+  local removed = H.Prune(now)
+  check("with no guild key, no guild list is pruned", removed == 0 and db.echoHistory.guilds["Dawnrise-Horizon"] ~= nil
+    and db.echoHistory.guilds["Oldguild-Horizon"] ~= nil, removed)
+  db.echoHistory.guilds["Oldguild-Horizon"] = nil
+
+  -- A restored guild tile with no key loads its history once the key appears.
+  local seen = {}
+  local function listener(key, change) seen[#seen + 1] = tostring(key) .. "=" .. tostring(change) end
+  S.Subscribe(listener)
+  db.echoHistory.guilds["Dawnrise-Horizon"] = { guild = { { t = 1, text = "saved earlier" } } }
+  S.Restore({ "guild" })
+  local conv = S.Get("guild")
+  check("restored with no guild key: nothing loaded yet", conv and conv.historyLoaded == false and #conv.messages == 0, conv and #conv.messages)
+  S.RetryHistory()
+  check("a retry with still no key loads nothing", conv.historyLoaded == false and #conv.messages == 0, #conv.messages)
+  guildName = "Dawnrise"
+  seen = {}
+  S.RetryHistory()
+  check("a retry once the key appears loads the history", #conv.messages == 1 and conv.messages[1].text == "saved earlier" and conv.historyLoaded == true, #conv.messages)
+  check("the retry notifies update", seen[1] == "guild=update", tostring(seen[1]))
+  seen = {}
+  S.RetryHistory()
+  check("a second retry loads nothing more", #conv.messages == 1 and #seen == 0, #conv.messages)
+  S.Add({ convKey = "guild", text = "new line" })
+  check("the next message doesn't load it again", #conv.messages == 2 and conv.messages[2].text == "new line", #conv.messages)
+  S.Unsubscribe(listener)
+
+  -- PLAYER_GUILD_UPDATE retries the load.
+  S.Reset()
+  guildName = nil
+  S.Restore({ "guild" })
+  guildName = "Dawnrise"
+  local savedCreateFrame = CreateFrame
+  CreateFrame = STUB_CREATE_FRAME
+  Echo.Class.Enable()
+  local frame = Echo.Class._frame()
+  frame.scripts.OnEvent(frame, "PLAYER_GUILD_UPDATE")
+  check("PLAYER_GUILD_UPDATE loads a waiting guild history", #S.Get("guild").messages == 2 and S.Get("guild").historyLoaded == true, #S.Get("guild").messages)
+  Echo.Class.Disable()
+
+  -- Showing the card retries it too.
+  S.Reset()
+  guildName = nil
+  S.Restore({ "guild" })
+  guildName = "Dawnrise"
+  T.Enable()
+  K.Enable()
+  C.Enable()
+  local f = C._frames()
+  C.Open("guild")
+  check("opening the card loads a waiting guild history", S.Get("guild").historyLoaded == true and #S.Get("guild").messages == 2, #S.Get("guild").messages)
+  check("the card shows the loaded lines", f.bubbles[1].shown and f.bubbles[1].text.text == "new line", f.bubbles[1].text.text)
+  C.Disable()
+  K.Disable()
+  T.Disable()
+  CreateFrame = savedCreateFrame
+
+  -- Guild and officer pins are kept per guild.
+  S.Reset()
+  guildName = "Dawnrise"
+  local ok, reason = S.PinMessage("guild", { text = "raid at 8", time = 5, sender = "Brisa-Horizon" })
+  check("a guild pin succeeds", ok == true, tostring(reason))
+  local pins = db.echoHistory.pins["Kaelis-Horizon"]
+  check("guild pins are keyed by guild and kind", pins["g:Dawnrise-Horizon:guild"] and #pins["g:Dawnrise-Horizon:guild"] == 1 and pins["guild"] == nil, "?")
+  S.PinMessage("officer", { text = "loot council", time = 6, sender = "Brisa-Horizon" })
+  check("officer pins are keyed by guild and kind", pins["g:Dawnrise-Horizon:officer"] and #pins["g:Dawnrise-Horizon:officer"] == 1, "?")
+  guildName = "Otherguild"
+  check("another guild shows a different pin list", #S.Pins("guild") == 0
+    and not S.IsPinnedMessage("guild", { text = "raid at 8", time = 5, sender = "Brisa-Horizon" }), #S.Pins("guild"))
+  S.PinMessage("guild", { text = "their pin", time = 7 })
+  check("the other guild's pin is its own", #S.Pins("guild") == 1 and S.Pins("guild")[1].text == "their pin", #S.Pins("guild"))
+  guildName = "Dawnrise"
+  check("back in the first guild, its pins return", #S.Pins("guild") == 1 and S.Pins("guild")[1].text == "raid at 8", S.Pins("guild")[1] and S.Pins("guild")[1].text)
+  guildName = nil
+  check("with no guild key, there are no guild pins", #S.Pins("guild") == 0, #S.Pins("guild"))
+  check("with no guild key, a guild pin is unsaved", S.PinBlockReason("guild", { text = "x", time = 8 }) == "unsaved", tostring(S.PinBlockReason("guild", { text = "x", time = 8 })))
+  ok, reason = S.PinMessage("guild", { text = "x", time = 8 })
+  check("with no guild key, a guild pin fails", ok == false and reason == "unsaved", tostring(reason))
+  check("with no guild key, unpin fails", S.UnpinMessage("guild", 1) == false, "removed")
+  H.SavePref("guild", nil, true)
+  check("the conversation pref stays keyed by kind", db.echoHistory.prefs["Kaelis-Horizon"]["guild"] ~= nil, "moved")
+
+  GetGuildInfo = savedGetGuildInfo
+  S.SetPersisted("guild", false)
+  S.SetPersisted("officer", false)
+  H.SetMaxAge(30)
+  H.Unbind()
+  S.Reset()
+`, 'pins-guild-timing');
 
 // --- Redraw: one repaint per frame -------------------------------------------
 run(`
