@@ -93,6 +93,7 @@ run(`
       if k == "SetAtlas" then return function(self, atlas) self.atlas = atlas; self.texture = nil end end
       if k == "SetColorTexture" then return function(self, r, g, b, a) self.colorTexture = { r, g, b, a } end end
       if k == "SetTexCoord" then return function(self, ...) self.texCoord = { ... } end end
+      if k == "SetVertexColor" then return function(self, r, g, b, a) self.vertexColor = { r, g, b, a } end end
       if k == "SetSize" then return function(self, w, h) self.width = w; self.height = h end end
       if k == "SetFrameLevel" then return function(self, lvl) self.frameLevel = lvl end end
       if k == "SetDrawLayer" then return function(self, layer, sublevel) self.drawLayer = layer; self.drawSublevel = sublevel end end
@@ -123,6 +124,7 @@ const FILES = [
   'modules/Echo/EchoSound.lua',
   'modules/Echo/EchoSend.lua',
   'modules/Echo/EchoView.lua',
+  'modules/Echo/EchoRound.lua',
   'modules/Echo/EchoGenie.lua',
   'modules/Echo/EchoClass.lua',
   'modules/Echo/EchoRedraw.lua',
@@ -4404,6 +4406,124 @@ run(`
   PlaySound, SOUNDKIT, GetTime, InCombatLockdown = nil, nil, nil, nil
   HorizonSuite.GetDB, HorizonSuite.ECHO_DEFAULTS = nil, nil
 `, 'echo-sound');
+
+// --- Round: rounded rectangles from bundled textures -------------------------
+run(`
+  local Echo = HorizonSuite.Echo
+  local Round = Echo.Round
+
+  -- Apply builds the pieces once; a second Apply reuses them.
+  do
+    local frame = STUB_FRAME()
+    local calls = 0
+    local rawCreate = frame.CreateTexture
+    frame.CreateTexture = function(self, ...) calls = calls + 1; return rawCreate(self, ...) end
+
+    local h1 = Round.Apply(frame, { radius = 8 })
+    local firstCalls = calls
+    local h2 = Round.Apply(frame, { radius = 8 })
+    check("Apply returns the same handle on a second call", h1 == h2, tostring(h2))
+    check("a second Apply creates no more textures", calls == firstCalls, calls)
+  end
+
+  -- A uniform radius gives four corner quarters with the right texcoords and sizes.
+  do
+    local frame = STUB_FRAME()
+    local h = Round.Apply(frame, { radius = 10 })
+    local quads = {
+      tl = { 0, 0.5, 0, 0.5 }, tr = { 0.5, 1, 0, 0.5 },
+      bl = { 0, 0.5, 0.5, 1 }, br = { 0.5, 1, 0.5, 1 },
+    }
+    for _, c in ipairs({ "tl", "tr", "bl", "br" }) do
+      local circle = h.fill.circle[c]
+      local q = quads[c]
+      check("uniform radius: " .. c .. " texcoord",
+        circle.texCoord[1] == q[1] and circle.texCoord[2] == q[2]
+          and circle.texCoord[3] == q[3] and circle.texCoord[4] == q[4],
+        table.concat(circle.texCoord, ","))
+      check("uniform radius: " .. c .. " quarter is sized to the radius",
+        circle.width == 10 and circle.height == 10, circle.width)
+      check("uniform radius: " .. c .. " fill rects are hidden (r == R)",
+        h.fill.rect1[c].shown == false and h.fill.rect2[c].shown == false, "shown")
+    end
+  end
+
+  -- A tight corner (br = 3, R = 10) sizes that quarter to 3 and shows both fill rects.
+  do
+    local frame = STUB_FRAME()
+    local h = Round.Apply(frame, { radius = 10, corners = { br = 3 } })
+    local circle = h.fill.circle.br
+    check("tight corner: quarter sized to the corner radius", circle.width == 3 and circle.height == 3, circle.width)
+    local rect1, rect2 = h.fill.rect1.br, h.fill.rect2.br
+    check("tight corner: rect1 is R x (R - r)", rect1.width == 10 and rect1.height == 7, rect1.height)
+    check("tight corner: rect2 is (R - r) x r", rect2.width == 7 and rect2.height == 3, rect2.width)
+    check("tight corner: both fill rects are shown", rect1.shown == true and rect2.shown == true, "shown")
+  end
+
+  -- A radius bigger than half the shorter side is clamped.
+  do
+    local frame = STUB_FRAME()
+    frame.GetWidth = function() return 40 end
+    frame.GetHeight = function() return 20 end
+    local h = Round.Apply(frame, { radius = 30 })
+    check("radius clamps to half the shorter side", h.fill.circle.tl.width == 10, h.fill.circle.tl.width)
+  end
+
+  -- SetColor tints every fill piece.
+  do
+    local frame = STUB_FRAME()
+    local h = Round.Apply(frame, { radius = 10 })
+    Round.SetColor(frame, 0.1, 0.2, 0.3, 0.4)
+    local function tinted(tex)
+      local v = tex.vertexColor
+      return v and v[1] == 0.1 and v[2] == 0.2 and v[3] == 0.3 and v[4] == 0.4
+    end
+    for _, c in ipairs({ "tl", "tr", "bl", "br" }) do
+      check("SetColor tints the " .. c .. " quarter", tinted(h.fill.circle[c]), "vertexColor")
+      check("SetColor tints the " .. c .. " rect1", tinted(h.fill.rect1[c]), "vertexColor")
+      check("SetColor tints the " .. c .. " rect2", tinted(h.fill.rect2[c]), "vertexColor")
+    end
+    check("SetColor tints the top band", tinted(h.fill.topBand), "vertexColor")
+    check("SetColor tints the bottom band", tinted(h.fill.bottomBand), "vertexColor")
+    check("SetColor tints the middle band", tinted(h.fill.middleBand), "vertexColor")
+  end
+
+  -- SetBorderColor with alpha 0 hides the border pieces; a non-zero alpha shows them again.
+  do
+    local frame = STUB_FRAME()
+    local h = Round.Apply(frame, { radius = 10, border = true })
+    Round.SetBorderColor(frame, 1, 1, 1, 0)
+    local hidden = true
+    for _, c in ipairs({ "tl", "tr", "bl", "br" }) do
+      if h.border.ring[c].shown ~= false then hidden = false end
+    end
+    for _, side in ipairs({ "top", "bottom", "left", "right" }) do
+      if h.border.lines[side].shown ~= false then hidden = false end
+    end
+    check("SetBorderColor alpha 0 hides every border piece", hidden, "shown")
+
+    Round.SetBorderColor(frame, 1, 1, 1, 1)
+    local shown = true
+    for _, c in ipairs({ "tl", "tr", "bl", "br" }) do
+      if h.border.ring[c].shown ~= true then shown = false end
+    end
+    check("SetBorderColor with alpha restores visibility", shown, "shown")
+  end
+
+  -- The texture path uses the addon folder.
+  do
+    local frame = STUB_FRAME()
+    local h = Round.Apply(frame, { radius = 10, border = true })
+    local circleTex = h.fill.circle.tl.texture
+    local ringTex = h.border.ring.tl.texture
+    check("circle texture is under the addon's media/echo folder",
+      circleTex and circleTex:find("HorizonSuite", 1, true) and circleTex:find("media\\\\echo\\\\circle.tga", 1, true),
+      tostring(circleTex))
+    check("ring texture is under the addon's media/echo folder",
+      ringTex and ringTex:find("HorizonSuite", 1, true) and ringTex:find("media\\\\echo\\\\ring.tga", 1, true),
+      tostring(ringTex))
+  end
+`, 'echo-round');
 
 // --- Redraw: one repaint per frame -------------------------------------------
 run(`
