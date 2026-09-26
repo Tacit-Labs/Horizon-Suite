@@ -12,7 +12,7 @@ In simple terms: chat works like a messenger app sitting beside the normal chat 
 
 Blizzard's chat frames stay underneath as the source of truth. They still show everything, including combat log, system messages, loot, and any message Echo cannot safely read. If Echo is disabled or breaks, chat still works.
 
-**Direction (decided with the director, 2026-09-26):** Echo is to replace Blizzard's chat windows entirely, as an option. Plan 12 built that option, **Hide Blizzard's chat windows**, off by default. The combat log is the one part Blizzard keeps. See "Towards replacing Blizzard chat" and "Replacing Blizzard chat (plan 12, 2026-09-26)" below.
+**Direction (decided with the director, 2026-09-26):** Echo is to replace Blizzard's chat windows entirely, as an option. Plan 12 built that option, **Hide Blizzard's chat windows**. It was off by default until the director made it the default on 2026-09-26: switching Echo on hides Blizzard's chat. The combat log is the one part Blizzard keeps. See "Towards replacing Blizzard chat" and "Replacing Blizzard chat (plan 12, 2026-09-26)" below.
 
 ## Locked decisions
 
@@ -345,7 +345,7 @@ The All tile uses the generic feed-tile path in `EchoTiles.lua`, which needed no
 
 **The probe.** `/h echo probe input <guild|say|Name-Realm|reset>` points Blizzard's input line at a chat by setting its attributes, the one place Echo calls `SetAttribute` on it. It finds out in game whether an addon may do that without tainting the box, by sending a message and then a `/cast` in combat from it. If it can, a later plan lets clicking a tile aim the line at that chat, and the card's own reply box can go. The reset line tells the tester to `/reload` afterwards, to clear any taint the test left.
 
-**Hiding Blizzard's chat** (`echoHideBlizzardChat`, off by default) applies one frame after `PLAYER_ENTERING_WORLD`, never in combat, and needs the docked input line, so it turns docking on. It moves every window in `CHAT_FRAMES` and its tab onto a hidden frame Echo owns, except the combat log while `echoKeepCombatLog` is on, and moves Blizzard's chat buttons there too. A post-hook on `FCF_OpenTemporaryWindow` hides a window that opens later, such as a pet battle's log. Applying again only touches what isn't hidden yet. Nothing is un-hidden live: turning it off, or disabling Echo after it applied, asks for a reload. Everything runs from Echo's module code, so a disabled or broken Echo hides nothing.
+**Hiding Blizzard's chat** (`echoHideBlizzardChat`, on by default since 2026-09-26) applies one frame after `PLAYER_ENTERING_WORLD`, never in combat, and needs the docked input line, so it turns docking on. It moves every window in `CHAT_FRAMES` and its tab onto a hidden frame Echo owns, except the combat log while `echoKeepCombatLog` is on, and moves Blizzard's chat buttons there too. A post-hook on `FCF_OpenTemporaryWindow` hides a window that opens later, such as a pet battle's log. Applying again only touches what isn't hidden yet. Nothing is un-hidden live: turning it off, or disabling Echo after it applied, asks for a reload. Everything runs from Echo's module code, so a disabled or broken Echo hides nothing.
 
 ### Input line look and collapse mode (plan 13, 2026-09-26)
 
@@ -412,7 +412,7 @@ The director wants Echo to be able to replace Blizzard's chat windows entirely. 
 | **Other addons' chat filters** (spam blockers, formatters) | `Events.RunFilters` runs the registered message filters over every line before Echo files it, so blocked spam stays blocked |
 | **The combat log** is largely closed to addons in Midnight | Blizzard keeps it. With **Keep the combat log** on (`echoKeepCombatLog`, the default), hiding Blizzard's chat leaves `ChatFrame2` and its tab alone |
 
-**Hide Blizzard's chat windows** (`echoHideBlizzardChat`) is off by default, and Blizzard's chat returns after a reload whenever it is turned off or Echo is disabled. Still to come: joining and leaving channels from Echo, the probe's verdict on aiming the input line from Echo, and, once the option has proved itself, perhaps making it the default.
+**Hide Blizzard's chat windows** (`echoHideBlizzardChat`) is on by default (the director's decision, 2026-09-26), and Blizzard's chat returns after a reload whenever it is turned off or Echo is disabled. Still to come: joining and leaving channels from Echo, the probe's verdict on aiming the input line from Echo.
 
 ## Storage
 

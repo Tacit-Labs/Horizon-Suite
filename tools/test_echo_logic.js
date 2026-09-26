@@ -3807,7 +3807,7 @@ run(`
   check("history days default is 30", A.ECHO_DEFAULTS.echoHistoryDays == 30, A.ECHO_DEFAULTS.echoHistoryDays)
   check("guild saving defaults on", A.ECHO_DEFAULTS.echoSaveGuild == true, tostring(A.ECHO_DEFAULTS.echoSaveGuild))
   check("officer saving defaults off", A.ECHO_DEFAULTS.echoSaveOfficer == false, tostring(A.ECHO_DEFAULTS.echoSaveOfficer))
-  check("hiding Blizzard chat defaults off", A.ECHO_DEFAULTS.echoHideBlizzardChat == false, tostring(A.ECHO_DEFAULTS.echoHideBlizzardChat))
+  check("hiding Blizzard chat defaults on", A.ECHO_DEFAULTS.echoHideBlizzardChat == true, tostring(A.ECHO_DEFAULTS.echoHideBlizzardChat))
   check("the combat log is kept by default", A.ECHO_DEFAULTS.echoKeepCombatLog == true, tostring(A.ECHO_DEFAULTS.echoKeepCombatLog))
   check("the card closes itself after 30s by default", A.ECHO_DEFAULTS.echoCardIdleClose == 30, tostring(A.ECHO_DEFAULTS.echoCardIdleClose))
   local idleLim = A.ECHO_LIMITS.echoCardIdleClose
@@ -4337,6 +4337,9 @@ run(`
   check("guild toggle hidden with history off", keys.echoSaveGuild.visibleWhen() == false, "shown")
   check("officer toggle hidden with history off", keys.echoSaveOfficer.visibleWhen() == false, "shown")
   A.OptionsData_SetDB("echoSaveHistory", nil)
+  check("keep combat log shown by default, with hiding on", keys.echoKeepCombatLog and keys.echoKeepCombatLog.visibleWhen
+      and keys.echoKeepCombatLog.visibleWhen() == true, "hidden")
+  A.OptionsData_SetDB("echoHideBlizzardChat", false)
   check("keep combat log hidden while Blizzard chat shows", keys.echoKeepCombatLog and keys.echoKeepCombatLog.visibleWhen
       and keys.echoKeepCombatLog.visibleWhen() == false, "shown")
   A.OptionsData_SetDB("echoHideBlizzardChat", true)
