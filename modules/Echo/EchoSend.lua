@@ -280,7 +280,7 @@ Send.ChannelKeyForSlot = ChannelKeyForSlot
 -- An existing whisper wins whatever the case typed; a new name gets a capital first letter
 -- when it is ASCII a-z, and is otherwise left as typed. A name with "|" in it (a
 -- Battle.net |K name, a link) or with a space is never parsed.
--- Shared by /w and the + menu's Whisper... prompt.
+-- Shared by /w and the Whisper... prompt under Start a chat… (the Echo icon's menu).
 -- @param name string
 -- @return string|nil convKey
 function Send.WhisperKeyFor(name)

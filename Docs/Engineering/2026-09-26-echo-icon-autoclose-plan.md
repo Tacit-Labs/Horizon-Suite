@@ -111,4 +111,5 @@
   - [ ] Left-click the Echo icon with an unread whisper: its card opens. With nothing unread: All opens. Click again: it closes.
   - [ ] Right-click the Echo icon: Start a chat… lists places to talk. Mark all as read clears the badges. The Collapse choices switch live.
   - [ ] There's no + button any more, and the column sits one step lower.
+  - [ ] Dragging the Echo icon moves the column without opening anything.
 - **Commit:** `docs(echo): record the Echo icon clicks and card idle close`.

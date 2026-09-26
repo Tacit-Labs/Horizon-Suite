@@ -6,9 +6,13 @@
     and whisper or invite the player who wrote it. Menu.IsOpen tells the card's idle close
     whether either is still open. And the Echo icon's right-click menu (Menu.OpenIcon):
     start a chat, mark all read, the collapse mode, hide Blizzard chat, lock, and settings.
-    Blizzard: MenuUtil.CreateContextMenu, C_PartyInfo.InviteUnit (or InviteUnit), IsInGroup,
-    UnitIsGroupLeader, UnitIsGroupAssistant. Horizon: addon.SetDB, addon.ShowOptions and the
-    dashboard's OpenModule.
+    Its settings are written as the options page writes them; switching Blizzard's chat back
+    on asks for a reload with a popup (HORIZON_ECHO_RELOAD).
+    Blizzard: MenuUtil.CreateContextMenu, Menu.GetManager():GetOpenMenu (where it exists),
+    C_PartyInfo.InviteUnit (or InviteUnit), IsInGroup, UnitIsGroupLeader,
+    UnitIsGroupAssistant, StaticPopupDialogs / StaticPopup_Show, ReloadUI.
+    Horizon: addon.OptionsData_SetDB (or addon.SetDB), addon.Dashboard_Refresh,
+    addon.ShowOptions and the dashboard's OpenModule.
 ]]
 
 local addon = _G.HorizonSuite
@@ -22,7 +26,8 @@ Echo.Menu = Menu
 
 -- The card's idle close (Echo.Card) asks whether one of these menus is open. MenuUtil hands
 -- back the menu it opened on current clients; one that hands back nothing counts as open
--- for Menu.OPEN_GRACE seconds after it was opened.
+-- for Menu.OPEN_GRACE seconds after it was opened. Where Blizzard's menu manager exists
+-- (Menu.GetManager():GetOpenMenu()), the menu must also be the one it has open.
 Menu.OPEN_GRACE = 1
 local openMenu, openedAt
 
@@ -33,12 +38,26 @@ local function Opened(ok, menu)
     openedAt = (not openMenu and type(GetTime) == "function") and GetTime() or nil
 end
 
---- Whether a menu opened from Echo (the card's ⋯ menu or a message's menu) is still open.
+-- Whether Blizzard's menu manager has another menu (or none) open in place of this one.
+-- False when the client has no manager, or asking it fails.
+local function ManagerDisowns(menu)
+    local api = _G.Menu
+    if type(api) ~= "table" or type(api.GetManager) ~= "function" then return false end
+    local ok, current = pcall(function()
+        local manager = api.GetManager()
+        return manager:GetOpenMenu()
+    end)
+    if not ok or Echo.IsSecret(current) then return false end
+    return current ~= menu
+end
+
+--- Whether a menu opened from Echo (the card's ⋯ menu, a message's menu or the Echo icon's
+-- menu) is still open.
 -- @return boolean
 function Menu.IsOpen()
     if openMenu then
         local ok, shown = pcall(openMenu.IsShown, openMenu)
-        if ok and not Echo.IsSecret(shown) and shown then return true end
+        if ok and not Echo.IsSecret(shown) and shown and not ManagerDisowns(openMenu) then return true end
         openMenu = nil
         return false
     end
@@ -241,17 +260,59 @@ local COLLAPSE_CHOICES = {
     { "ECHO_COLLAPSE_KEEPNEW", "keepnew" },
 }
 
--- Write a setting and push it into the running module, as the options page does (hiding
--- Blizzard's chat then follows its own reload flow in HideChat.Refresh).
+Menu.RELOAD_POPUP = "HORIZON_ECHO_RELOAD"
+
+-- Write a setting the way the options page does: through OptionsData_SetDB, which also
+-- applies it, or SetDB and Echo.ApplyOptions without it. A shown dashboard is refreshed so
+-- its controls (and its reload prompt) follow.
 local function SetSetting(key, value)
-    if type(addon.SetDB) == "function" then addon.SetDB(key, value) end
-    if Echo.ApplyOptions then Echo.ApplyOptions() end
+    if type(addon.OptionsData_SetDB) == "function" then
+        addon.OptionsData_SetDB(key, value)
+    else
+        if type(addon.SetDB) == "function" then addon.SetDB(key, value) end
+        if Echo.ApplyOptions then Echo.ApplyOptions() end
+    end
+    local dash = _G.HorizonSuiteDashboard
+    if type(addon.Dashboard_Refresh) == "function" and dash and type(dash.IsShown) == "function" then
+        local ok, shown = pcall(dash.IsShown, dash)
+        if ok and not Echo.IsSecret(shown) and shown then pcall(addon.Dashboard_Refresh) end
+    end
 end
 
--- A checkbox bound to a boolean setting.
-local function Checkbox(rootDescription, label, key)
+--- Ask for a reload with a popup: Reload or Later. Registered on first use.
+function Menu.AskReload()
+    if type(StaticPopupDialogs) ~= "table" or type(StaticPopup_Show) ~= "function" then return end
+    local L = addon.L
+    if not StaticPopupDialogs[Menu.RELOAD_POPUP] then
+        StaticPopupDialogs[Menu.RELOAD_POPUP] = {
+            text = L["ECHO_HIDE_CHAT_RELOAD"],
+            button1 = L["RELOAD_UI"], button2 = L["ECHO_RELOAD_LATER"],
+            timeout = 0, whileDead = true, hideOnEscape = true, preferredIndex = 3,
+            OnAccept = function() if type(ReloadUI) == "function" then ReloadUI() end end,
+        }
+    end
+    StaticPopup_Show(Menu.RELOAD_POPUP)
+end
+
+-- A checkbox bound to a boolean setting; after is run once the setting is written.
+local function Checkbox(rootDescription, label, key, after)
     local function IsOn() return Echo.Setting(key) == true end
-    rootDescription:CreateCheckbox(label, IsOn, function() SetSetting(key, not IsOn()) end)
+    rootDescription:CreateCheckbox(label, IsOn, function()
+        SetSetting(key, not IsOn())
+        if after then after() end
+    end)
+end
+
+-- Hiding Blizzard's chat is never undone live: once it is switched off with a reload due
+-- (the dashboard's flag, or hiding still applied), say so here rather than only on the
+-- dashboard.
+local function AfterHideChat()
+    local hideChat = Echo.HideChat
+    local applied = hideChat and hideChat.IsApplied and hideChat.IsApplied()
+    if addon._moduleReloadRecommended == true
+        or (applied and Echo.Setting("echoHideBlizzardChat") ~= true) then
+        Menu.AskReload()
+    end
 end
 
 --- Open the options on Echo's page: the dashboard's own module opener, after showing the
@@ -289,7 +350,7 @@ function Menu.BuildIcon(rootDescription)
             function() return Echo.Collapse ~= nil and Echo.Collapse.Mode() == value end,
             function() SetSetting("echoCollapse", value) end)
     end
-    Checkbox(rootDescription, L["ECHO_HIDE_CHAT"], "echoHideBlizzardChat")
+    Checkbox(rootDescription, L["ECHO_HIDE_CHAT"], "echoHideBlizzardChat", AfterHideChat)
     Checkbox(rootDescription, L["ECHO_LOCK"], "echoLockPosition")
     rootDescription:CreateDivider()
     rootDescription:CreateButton(L["ECHO_ICON_SETTINGS"], function() Menu.OpenSettings() end)
@@ -300,8 +361,9 @@ end
 -- @return boolean opened
 function Menu.OpenIcon(owner)
     if not Menu.Available() then return false end
-    local ok = pcall(MenuUtil.CreateContextMenu, owner, function(_, rootDescription)
+    local ok, menu = pcall(MenuUtil.CreateContextMenu, owner, function(_, rootDescription)
         Menu.BuildIcon(rootDescription)
     end)
+    Opened(ok, menu)
     return ok
 end

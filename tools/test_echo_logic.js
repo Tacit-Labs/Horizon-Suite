@@ -10390,6 +10390,33 @@ run(`
   now = now + M.OPEN_GRACE + 0.1
   check("idle: and a moment later no longer does", M.IsOpen() == false, tostring(M.IsOpen()))
   GetTime = saved.getTime
+
+  -- With Blizzard's menu manager, the menu Echo opened must also be the one it has open.
+  local savedMenuApi = rawget(_G, "Menu")
+  local lastMenu, managerMenu
+  menuShown = true
+  MenuUtil = { CreateContextMenu = function()
+    lastMenu = { IsShown = function() return menuShown end }
+    return lastMenu
+  end }
+  _G.Menu = { GetManager = function() return { GetOpenMenu = function() return managerMenu end } end }
+  M.Open(f.menu, "w:Vexa-Horizon")
+  managerMenu = lastMenu
+  check("idle: the manager's open menu is open", M.IsOpen() == true, tostring(M.IsOpen()))
+  managerMenu = { IsShown = function() return true end }
+  check("idle: another menu open in its place is not ours", M.IsOpen() == false, tostring(M.IsOpen()))
+  M.Open(f.menu, "w:Vexa-Horizon")
+  managerMenu = nil
+  check("idle: shown but not the manager's open menu is closed", M.IsOpen() == false, tostring(M.IsOpen()))
+  M.Open(f.menu, "w:Vexa-Horizon")
+  _G.Menu = { GetManager = function() error("no manager") end }
+  check("idle: a throwing manager keeps the shown check", M.IsOpen() == true, tostring(M.IsOpen()))
+  _G.Menu = {}
+  check("idle: no manager API keeps the shown check", M.IsOpen() == true, tostring(M.IsOpen()))
+  menuShown = false
+  check("idle: and a hidden menu is still closed", M.IsOpen() == false, tostring(M.IsOpen()))
+  _G.Menu = savedMenuApi
+  menuShown = true
   MenuUtil = saved.menu
 
   -- Scrolling, a tab or row tile, sending and switching are touches; a new message is not.
@@ -10412,12 +10439,43 @@ run(`
   C.Submit()
   check("idle: sending resets the count", C.idle == 0, tostring(C.idle))
 
-  -- 0 means never.
+  -- 0 means never. The limit is read when options apply, not every frame.
+  check("idle: Card.ApplyIdleClose exists", type(C.ApplyIdleClose) == "function", type(C.ApplyIdleClose))
   db.echoCardIdleClose = 0
+  if C.ApplyIdleClose then C.ApplyIdleClose() end
   open()
   tick(1000)
   check("idle: 0 never closes it", f.root:IsShown(), "closed")
   db.echoCardIdleClose = nil
+  if C.ApplyIdleClose then C.ApplyIdleClose() end
+
+  -- The clock is throttled: the touch checks run about every 0.1s, not every frame, and the
+  -- limit isn't read from the settings per frame.
+  open()
+  local looks, reads = 0, 0
+  f.root.IsMouseOver = function() looks = looks + 1; return over end
+  local getDB = HorizonSuite.GetDB
+  HorizonSuite.GetDB = function(k, d) if k == "echoCardIdleClose" then reads = reads + 1 end return getDB(k, d) end
+  tick(0.04)
+  tick(0.04)
+  check("idle: short frames wait for the throttle", looks == 0 and C.idle == 0, looks .. "/" .. tostring(C.idle))
+  tick(0.04)
+  check("idle: then checks once, adding the time gathered", looks == 1 and math.abs(C.idle - 0.12) < 1e-9,
+        looks .. "/" .. tostring(C.idle))
+  for _ = 1, 6 do tick(0.06) end
+  check("idle: about one check per 0.1s", looks == 4, looks)
+  check("idle: the limit isn't read per frame", reads == 0, reads)
+  HorizonSuite.GetDB = getDB
+  over = true
+  tick(0.05)
+  tick(0.06)
+  check("idle: a touch still resets it at the next check", C.idle == 0, tostring(C.idle))
+  over = false
+  tick(0.05)
+  C.Touch()
+  tick(0.06)
+  check("idle: a touch drops the time gathered before it", C.idle == 0, tostring(C.idle))
+  f.root.IsMouseOver = function() return over end
 
   -- Combat, and a genie under way, hold the count.
   open()
@@ -10456,6 +10514,13 @@ run(`
   const enUS = read('locales/horizon/enUS.lua');
   const gone = !/L\["ECHO_NEW_CHAT"\]/.test(enUS);
   run(`check("icon: the + button's tooltip string is gone", ${gone}, "still there")`, 'icon-plus-string');
+  const later = enUS.includes('L["ECHO_RELOAD_LATER"]                                        = "Later"');
+  run(`check("icon: the reload popup's Later button is worded", ${later}, "missing")`, 'icon-reload-later-string');
+}
+{
+  const opts = read('modules/Echo/EchoOptions.lua');
+  const cached = /Echo\.Card\.ApplyIdleClose\(\)/.test(opts);
+  run(`check("idle: options apply refreshes the card's idle limit", ${cached}, "not called")`, 'idle-limit-apply-source');
 }
 run(`
   local A = HorizonSuite
@@ -10465,7 +10530,11 @@ run(`
   CreateFrame = STUB_CREATE_FRAME
   local db = {}
   local saved = { defaults = A.ECHO_DEFAULTS, getDB = A.GetDB, setDB = A.SetDB, menu = MenuUtil, apply = Echo.ApplyOptions,
-                  show = A.ShowOptions, dash = _G.HorizonSuiteDashboard, combat = InCombatLockdown }
+                  show = A.ShowOptions, dash = _G.HorizonSuiteDashboard, combat = InCombatLockdown,
+                  optSet = A.OptionsData_SetDB, refresh = A.Dashboard_Refresh, flag = A._moduleReloadRecommended,
+                  dialogs = StaticPopupDialogs, popup = StaticPopup_Show, reload = ReloadUI,
+                  isApplied = Echo.HideChat and Echo.HideChat.IsApplied }
+  A.OptionsData_SetDB, A.Dashboard_Refresh, A._moduleReloadRecommended = nil, nil, false
   A.ECHO_DEFAULTS = { echoAnimateCard = false, echoColumnEdge = "right", echoCollapse = "off", echoLockPosition = true,
                       echoHideBlizzardChat = false, echoAllView = true, echoCardIdleClose = 30 }
   A.GetDB = function(k, d) if db[k] ~= nil then return db[k] end return d end
@@ -10632,7 +10701,88 @@ run(`
     check("icon: Lock position reads its setting", lock.isSel(lock.data) == true, "unlocked")
     lock.setSel(lock.data)
     check("icon: Lock position toggles", db.echoLockPosition == false and lock.isSel(lock.data) == false, tostring(db.echoLockPosition))
+
+    -- Turning Hide Blizzard chat off asks for a reload with a popup.
+    local popups = {}
+    StaticPopupDialogs = {}
+    StaticPopup_Show = function(which) popups[#popups + 1] = which end
+    local reloads = 0
+    ReloadUI = function() reloads = reloads + 1 end
+    local HC = Echo.HideChat
+    HC.IsApplied = function() return false end
+    db.echoHideBlizzardChat = false
+    hide.setSel(hide.data)
+    check("icon: turning Hide Blizzard chat on asks nothing", #popups == 0 and db.echoHideBlizzardChat == true, #popups)
+    check("icon: the reload popup is registered only when needed", StaticPopupDialogs.HORIZON_ECHO_RELOAD == nil, "registered")
+    Echo.ApplyOptions = function()
+      applied = applied + 1
+      if db.echoHideBlizzardChat == false then A._moduleReloadRecommended = true end
+    end
+    hide.setSel(hide.data)
+    check("icon: turning it off shows the reload popup", #popups == 1 and popups[1] == "HORIZON_ECHO_RELOAD", tostring(popups[1]))
+    local dlg = StaticPopupDialogs.HORIZON_ECHO_RELOAD
+    check("icon: the popup says why", dlg and dlg.text == L["ECHO_HIDE_CHAT_RELOAD"], dlg and tostring(dlg.text))
+    check("icon: with Reload and Later", dlg and dlg.button1 == L["RELOAD_UI"] and dlg.button2 == L["ECHO_RELOAD_LATER"]
+, dlg and tostring(dlg.button2))
+    if dlg and dlg.OnAccept then dlg.OnAccept() end
+    check("icon: Reload reloads", reloads == 1, reloads)
+    -- Applied hiding with the setting off asks too, even before the flag is set.
+    A._moduleReloadRecommended = false
+    Echo.ApplyOptions = function() applied = applied + 1 end
+    HC.IsApplied = function() return true end
+    db.echoHideBlizzardChat = true
+    hide.setSel(hide.data)
+    check("icon: hiding applied and switched off asks for a reload", #popups == 2, #popups)
+    check("icon: the popup is registered once", StaticPopupDialogs.HORIZON_ECHO_RELOAD == dlg, "replaced")
+    hide.setSel(hide.data)
+    check("icon: switching it back on asks nothing more", #popups == 2 and db.echoHideBlizzardChat == true, #popups)
+    HC.IsApplied = function() return false end
+    db.echoHideBlizzardChat = true
+    hide.setSel(hide.data)
+    check("icon: nothing applied and no reload due, no popup", #popups == 2, #popups)
+    HC.IsApplied = saved.isApplied
+    Echo.ApplyOptions = function() applied = applied + 1 end
+    StaticPopupDialogs, StaticPopup_Show, ReloadUI = saved.dialogs, saved.popup, saved.reload
+
+    -- The options page's own path when it exists; a shown dashboard is refreshed after.
+    local viaOptions = {}
+    A.OptionsData_SetDB = function(k, v) viaOptions[#viaOptions + 1] = k; db[k] = v end
+    local refreshes = 0
+    A.Dashboard_Refresh = function() refreshes = refreshes + 1 end
+    local dashUp = false
+    _G.HorizonSuiteDashboard = { IsShown = function() return dashUp end }
+    applied = 0
+    lock.setSel(lock.data)
+    check("icon: writes through OptionsData_SetDB when it exists", viaOptions[1] == "echoLockPosition" and db.echoLockPosition == true,
+          tostring(viaOptions[1]))
+    check("icon: which applies it, so Echo's apply isn't run again", applied == 0, applied)
+    check("icon: a shut dashboard isn't refreshed", refreshes == 0, refreshes)
+    dashUp = true
+    keep.setSel(keep.data)
+    check("icon: a shown dashboard is refreshed", refreshes == 1 and db.echoCollapse == "keepnew" and viaOptions[2] == "echoCollapse",
+          refreshes)
+    A.OptionsData_SetDB = nil
+    off.setSel(off.data)
+    check("icon: without it, SetDB and Echo's apply", db.echoCollapse == "off" and applied == 1, applied)
+    check("icon: and the shown dashboard is refreshed too", refreshes == 2, refreshes)
+    A.Dashboard_Refresh = nil
+    _G.HorizonSuiteDashboard = saved.dash
   end
+
+  -- The icon's own menu counts as touching the card, so an open card doesn't fold under it.
+  local iconMenuShown = true
+  MenuUtil = { CreateContextMenu = function() return { IsShown = function() return iconMenuShown end } end }
+  C.Open("w:Brisa-Horizon")
+  local card = C._frames().root
+  local function tick(dt) card.scripts.OnUpdate(card, dt) end
+  right()
+  check("icon: its menu counts as an Echo menu", M.IsOpen() == true, tostring(M.IsOpen()))
+  tick(100)
+  check("icon: an open card stays open under it", C.IsShown(), "closed")
+  iconMenuShown = false
+  tick(31)
+  check("icon: and closes on time once it shuts", not C.IsShown(), "shown")
+  MenuUtil = { CreateContextMenu = function(owner, gen) menus[#menus + 1] = { owner = owner, gen = gen } end }
 
   -- Echo settings…: the dashboard, on Echo's page.
   local opened, moduleKey = 0, nil
@@ -10662,8 +10812,59 @@ run(`
   A.ECHO_DEFAULTS, A.GetDB, A.SetDB, MenuUtil = saved.defaults, saved.getDB, saved.setDB, saved.menu
   Echo.ApplyOptions, A.ShowOptions, _G.HorizonSuiteDashboard = saved.apply, saved.show, saved.dash
   InCombatLockdown = saved.combat
+  A.OptionsData_SetDB, A.Dashboard_Refresh, A._moduleReloadRecommended = saved.optSet, saved.refresh, saved.flag
   S.Reset()
 `, 'echo-icon-clicks');
+
+// --- Echo icon: a grouped member opens in its group's card (plan 14, final fixes) -----------
+run(read('options/modules/defaults/OptionsDefaultsEcho.lua'), 'icon-group-defaults');
+run(`
+  local A = HorizonSuite
+  local Echo = A.Echo
+  local S, T, K, C = Echo.Store, Echo.Tiles, Echo.Stack, Echo.Card
+  S.Reset()
+  Echo.ClearDrafts()
+  CreateFrame = STUB_CREATE_FRAME
+  local saved = { getDB = A.GetDB, combat = InCombatLockdown, show = C.Show }
+  local db = { echoAnimateCard = false, echoColumnEdge = "right", echoAllView = false,
+               echoGroupNames = { "Channels" }, echoGroupOf = { ["ch:*"] = 1 } }
+  A.GetDB = function(k, d) if db[k] ~= nil then return db[k] end return d end
+  InCombatLockdown = function() return false end
+  T.Enable()
+  K.Enable()
+  C.Enable()
+  local icon = T._stackButton()
+  local function left() icon.scripts.OnClick(icon, "LeftButton") end
+
+  S.Add({ convKey = "ch:General", text = "anyone?", sender = "Thorn-Horizon" })
+  S.Add({ convKey = "w:Brisa-Horizon", text = "hi", sender = "Brisa-Horizon" })
+  S.MarkAllRead()
+  S.SetTier("ch:Trade", "count")
+  S.Add({ convKey = "ch:Trade", text = "wts", sender = "Vexa-Horizon" })
+  local toast = T._toast()
+  if toast then toast:Hide() end
+  local gtile = T.TileFor("grp:1")
+  check("icon group: the channels share a group tile", gtile ~= nil and T.TileFor("ch:Trade") == gtile, "no group tile")
+
+  local shownWith = "none"
+  C.Show = function(key, tile) shownWith = tile; return saved.show(key, tile) end
+  left()
+  check("icon group: an unread member opens its group's card on it", C.IsShown() and C.ShownKey() == "ch:Trade",
+        tostring(C.ShownKey()))
+  check("icon group: the tile passed is the group tile", shownWith == gtile, tostring(shownWith))
+  check("icon group: the card shows the group's tabs", C._frames().tabStrip:IsShown(), "no tabs")
+  left()
+  check("icon group: a second click closes it", not C.IsShown(), "shown")
+
+  C.Show = saved.show
+  C.Hide()
+  C.Disable()
+  K.Disable()
+  T.Disable()
+  A.GetDB, InCombatLockdown = saved.getDB, saved.combat
+  A.ECHO_DEFAULTS, A.ECHO_KEYS, A.ECHO_LIMITS = nil, nil, nil
+  S.Reset()
+`, 'icon-group-open');
 
 // --- Redraw: one repaint per frame -------------------------------------------
 run(`

@@ -16,6 +16,8 @@
     card closes itself as a click on its tile would. The mouse over it, focus in its reply
     box or the docked input line over it, an open Echo menu, and scrolling, tabs, row tiles,
     sending or switching conversation all count as touching it; a new message doesn't.
+    The touch checks run about every Card.IDLE_STEP seconds, not every frame, and the limit
+    is read when options apply (Card.ApplyIdleClose), not per frame.
     Bubbles are laid out newest-first from the bottom of a clipped area and the wheel
     scrolls by message. Readable text is measured; a secret gets the widest bubble and a
     fixed three lines, so nothing ever reads a size from a FontString holding a secret.
@@ -73,6 +75,7 @@ Card.EDIT_INSET = 8    -- the reply box's own text inset
 Card.EDIT_BG = { 0.03, 0.03, 0.05, 0.95 }  -- the reply box's fill; the docked input line shares it
 Card.IDLE_CLOSE = 30   -- echoCardIdleClose's fallback: seconds untouched before the card closes
 Card.idle = 0          -- seconds the shown card has gone untouched
+Card.IDLE_STEP = 0.1   -- seconds between the idle close's touch checks
 
 local root, nameText, metaText, area, edit, send, menuButton, chevron, statusLine, hint, rule
 local modeChip
@@ -250,7 +253,7 @@ local function Create()
         if edit then edit:ClearFocus() end
         StopEffects()
         NotifyInput()
-        Card.idle = 0
+        Card.Touch()
     end)
     -- The idle close's clock. Card.OnIdleUpdate is defined further down.
     root:SetScript("OnUpdate", function(self, elapsed) Card.OnIdleUpdate(self, elapsed) end)
@@ -1358,7 +1361,7 @@ function HideNow()
     newBelow = 0
     if hint then hint:Hide() end
     StopEffects()
-    Card.idle = 0
+    Card.Touch()
     root:Hide()
     NotifyInput()
 end
@@ -1375,16 +1378,21 @@ function Card.IsClosing()
     return closing
 end
 
+local idleGathered = 0          -- seconds since the idle close last checked for a touch
+local idleLimit = Card.IDLE_CLOSE  -- echoCardIdleClose, read by Card.ApplyIdleClose
+
 --- Something touched the card: the idle close starts counting from zero again.
 function Card.Touch()
     Card.idle = 0
+    idleGathered = 0
 end
 
--- The idle close's time in seconds; 0 (or less) means never.
-local function IdleLimit()
+--- Read the idle close's time from the settings (Enable and Echo.ApplyOptions): seconds,
+-- 0 (or less) meaning never.
+function Card.ApplyIdleClose()
     local v = tonumber(Echo.Setting("echoCardIdleClose"))
-    if v == nil then return Card.IDLE_CLOSE end
-    return v
+    if v == nil then v = Card.IDLE_CLOSE end
+    idleLimit = v
 end
 
 -- A frame answer that is plainly true (never a secret).
@@ -1426,21 +1434,33 @@ local function IdleClose()
 end
 
 --- root's OnUpdate: count the seconds the card goes untouched and close it at the setting.
--- The count holds while a genie plays and in combat (which closes the card anyway).
+-- Frames' time gathers until Card.IDLE_STEP has passed; only then are the touch checks run
+-- and the gathered time added to Card.idle. The count holds (and gathers nothing) while a
+-- genie plays and in combat (which closes the card anyway).
 -- @param _ Frame
 -- @param elapsed number
 function Card.OnIdleUpdate(_, elapsed)
     if not root or not root:IsShown() then return end
-    if closing or (Echo.Genie and Echo.Genie.IsPlaying()) then return end
-    if type(InCombatLockdown) == "function" and InCombatLockdown() then return end
-    local limit = IdleLimit()
-    if limit <= 0 or Touched() then
+    if idleLimit <= 0 then
+        Card.Touch()
+        return
+    end
+    if closing or (Echo.Genie and Echo.Genie.IsPlaying())
+        or (type(InCombatLockdown) == "function" and InCombatLockdown()) then
+        idleGathered = 0
+        return
+    end
+    idleGathered = idleGathered + (tonumber(elapsed) or 0)
+    if idleGathered < Card.IDLE_STEP then return end
+    local gathered = idleGathered
+    idleGathered = 0
+    if Touched() then
         Card.idle = 0
         return
     end
-    Card.idle = Card.idle + (tonumber(elapsed) or 0)
-    if Card.idle >= limit then
-        Card.idle = 0
+    Card.idle = Card.idle + gathered
+    if Card.idle >= idleLimit then
+        Card.Touch()
         IdleClose()
     end
 end
@@ -1746,6 +1766,7 @@ end
 
 function Card.Enable()
     if not root then Create() end
+    Card.ApplyIdleClose()
     if not Card.subscribed then
         Echo.Store.Subscribe(Card.OnStoreChange)
         Card.subscribed = true

@@ -529,8 +529,9 @@ function Store.Close(convKey)
     Notify(convKey, "closed")
 end
 
---- Start a conversation from Echo (a shortcut, or the + menu): create or reopen it with no
--- message, clear a feed-style dismissal, and put it first among unpinned conversations.
+--- Start a conversation from Echo (a shortcut, or Start a chat… (the Echo icon's menu)):
+-- create or reopen it with no message, clear a feed-style dismissal, and put it first among
+-- unpinned conversations.
 -- List ranks startedSeq beside lastLoud, so pins stay above it and the next loud message
 -- goes above it in turn; lastLoud itself is untouched, so it never counts as a loud one
 -- (View.NewestLoud, Groups.Newest).

@@ -3043,6 +3043,7 @@ L["ECHO_SHORTCUT_NOWHERE"]                                    = "There's nowhere
 L["ECHO_ICON_START"]                                          = "Start a chat…"
 L["ECHO_ICON_MARK_READ"]                                      = "Mark all as read"
 L["ECHO_ICON_SETTINGS"]                                       = "Echo settings…"
+L["ECHO_RELOAD_LATER"]                                        = "Later"
 L["ECHO_COMPOSE_WHISPER"]                                     = "Whisper…"
 L["ECHO_COMPOSE_WHISPER_PROMPT"]                              = "Whisper who?"
 L["ECHO_COMPOSE_FRIENDS"]                                     = "Friends online"

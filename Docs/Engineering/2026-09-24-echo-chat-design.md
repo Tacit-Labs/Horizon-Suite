@@ -536,7 +536,7 @@ Two points worth keeping in mind when working on any of this:
 ## Out of scope for v1
 
 - A replacement combat log
-- Joining, leaving or managing channels (planned for plan 14)
+- Joining, leaving or managing channels (still Blizzard's: not yet built in Echo)
 - Full-text search
 - Emoji
 - Syncing history between accounts
