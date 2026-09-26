@@ -128,6 +128,7 @@ local options = {
     TierDropdown("nearby",   L["ECHO_NEARBY"]),
 
     Section(L["ECHO_SECTION_FEEDS"]),
+    Toggle(L["ECHO_ALL_VIEW"], L["ECHO_ALL_VIEW_DESC"], "echoAllView", D.echoAllView),
 }
 
 for _, kind in ipairs({ "loot", "progress", "system" }) do

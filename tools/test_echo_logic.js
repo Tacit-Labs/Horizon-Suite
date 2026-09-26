@@ -122,6 +122,7 @@ const FILES = [
   'modules/Echo/EchoStore.lua',
   'modules/Echo/EchoHistory.lua',
   'modules/Echo/EchoEvents.lua',
+  'modules/Echo/EchoAll.lua',
   'modules/Echo/EchoFilter.lua',
   'modules/Echo/EchoSound.lua',
   'modules/Echo/EchoSend.lua',
@@ -3778,8 +3779,14 @@ run(`
   local S = A.Echo.Store
   for kind, tier in pairs(S.DEFAULT_TIERS) do
     local key = A.Echo.TierKey(kind)
-    check("tier default for " .. kind, A.ECHO_DEFAULTS[key] == tier, tostring(A.ECHO_DEFAULTS[key]))
+    if kind == "all" then
+      -- The All view is always quiet: it has no tier setting (plan 12, Task 4).
+      check("the All view has no tier setting", A.ECHO_DEFAULTS[key] == nil, tostring(A.ECHO_DEFAULTS[key]))
+    else
+      check("tier default for " .. kind, A.ECHO_DEFAULTS[key] == tier, tostring(A.ECHO_DEFAULTS[key]))
+    end
   end
+  check("the All view defaults on", A.ECHO_DEFAULTS.echoAllView == true, tostring(A.ECHO_DEFAULTS.echoAllView))
   for key in pairs(A.ECHO_DEFAULTS) do
     check("routed key " .. key, A.ECHO_KEYS[key] == true, key)
   end
@@ -8449,6 +8456,277 @@ run(`
   A.GetDB, A.SetDB, CreateFrame, A.ECHO_DEFAULTS = saved.getDB, saved.setDB, saved.create, saved.defaults
   S.Reset()
 `, 'echo-input');
+
+// --- All view and other addons' chat filters (plan 12, Task 4) ------------------------------
+run(`
+  local A, Echo = HorizonSuite, HorizonSuite.Echo
+  local S, E, V, C, All = Echo.Store, Echo.Events, Echo.View, Echo.Card, Echo.All
+  local saved = { hook = hooksecurefunc, dcf = DEFAULT_CHAT_FRAME, cf1 = ChatFrame1, util = ChatFrameUtil,
+    getf = ChatFrame_GetMessageEventFilters, stack = debugstack, getDB = A.GetDB, defaults = A.ECHO_DEFAULTS,
+    create = CreateFrame, info = ChatTypeInfo }
+  local db = {}
+  A.GetDB = function(k, d) if db[k] ~= nil then return db[k] end return d end
+  A.ECHO_DEFAULTS = nil
+  rawset(A.L, "ECHO_ALL_TO", "To %s")
+  ChatTypeInfo = { GUILD = { r = 0.25, g = 1, b = 0.25 }, PARTY = { r = 0.67, g = 0.67, b = 1 },
+    WHISPER = { r = 1, g = 0.5, b = 1 }, LOOT = { r = 0, g = 0.67, b = 0 } }
+  check("all: EchoAll.lua is loaded", All ~= nil, "no Echo.All")
+  All = All or {}
+  S.Reset()
+
+  -- The kind: a read-only, quiet feed, never saved, never started, never grouped.
+  check("all: a feed kind keyed all", S.FEED_KINDS.all == true and S.KindOf("all") == "all" and S.KeyFor("all") == "all", tostring(S.KindOf("all")))
+  check("all: quiet by default", S.TierOf("all") == "quiet", S.TierOf("all"))
+  check("all: capped at 500", S.ALL_CAP == 500 and S.MaxMessages("all") == 500, tostring(S.ALL_CAP))
+  check("all: never persisted", S.IsPersisted("all") == false, "persisted")
+  check("all: can't be started as a chat", S.Start("all") == nil, "started")
+  check("all: its setting is echoAllView", Echo.FeedKey("all") == "echoAllView", Echo.FeedKey("all"))
+  check("all: other feeds keep their keys", Echo.FeedKey("loot") == "echoFeedLoot", Echo.FeedKey("loot"))
+  db.echoGroupsEnabled, db.echoGroupNames, db.echoGroupOf = true, { "Mine", "", "", "" }, { all = 1, guild = 1 }
+  check("all: never groupable", Echo.Groups.Of("all") == nil and Echo.Groups.Of("guild") == 1, tostring(Echo.Groups.Of("all")))
+  db.echoGroupsEnabled, db.echoGroupNames, db.echoGroupOf = nil, nil, nil
+
+  -- Stand-ins for Blizzard's main chat window and the hook.
+  local hooks = {}
+  hooksecurefunc = function(t, name, fn) hooks[#hooks + 1] = { t = t, name = name, fn = fn } end
+  local chatFrame = { name = "ChatFrame1" }
+  DEFAULT_CHAT_FRAME, ChatFrame1 = chatFrame, chatFrame
+  local stackText = "Interface/AddOns/SomeAddon/Core.lua:10: in main chunk"
+  debugstack = function() return stackText end
+  ChatFrameUtil, ChatFrame_GetMessageEventFilters = nil, nil
+
+  -- Nothing is mirrored before the view is enabled.
+  S.Add({ convKey = "guild", text = "early", sender = "Brisa-Horizon" })
+  check("all: nothing mirrored before enable", S.Get("all") == nil, "mirrored")
+  S.Reset()
+
+  if All.Enable then All.Enable(); All.Enable() end
+  check("all: AddMessage is post-hooked once", #hooks == 1 and hooks[1].t == chatFrame and hooks[1].name == "AddMessage", #hooks)
+  local function Print(text, r, g, b)
+    if hooks[1] then hooks[1].fn(chatFrame, text, r, g, b) end
+  end
+
+  -- Source 1: every record Echo files.
+  S.Add({ convKey = "guild", text = "gz", sender = "Brisa-Horizon" })
+  local all = S.Get("all")
+  check("all: a filed record is mirrored", all ~= nil and #all.messages == 1, all and #all.messages)
+  all = all or { messages = {}, kind = "all", key = "all" }
+  local line = all.messages[1] or {}
+  check("all: the line keeps the record's text", line.text == "gz", tostring(line.text))
+  check("all: the prefix names the chat and the sender", line.prefix == "[ECHO_KIND_GUILD] Brisa:", tostring(line.prefix))
+  check("all: the line is a read-only feed line", line.feed == true and line.convKey == "all", tostring(line.feed))
+  check("all: in the chat type's colour", line.r == 0.25 and line.g == 1 and line.b == 0.25, tostring(line.r))
+  check("all: LineColor uses the line's own colour", select(1, V.LineColor(all, line)) == 0.25, tostring(select(1, V.LineColor(all, line))))
+  check("all: a readable line reads prefix then text", V.LineText(all, line) == "[ECHO_KIND_GUILD] Brisa: gz", tostring(V.LineText(all, line)))
+
+  local secretText = SECRET("psst")
+  S.Add({ convKey = "party", text = secretText, secret = true, sender = "Brisa-Horizon" })
+  line = all.messages[2] or {}
+  check("all: a secret record stays secret", line.secret == true and rawequal(line.text, secretText), tostring(line.secret))
+  check("all: a secret line still has its prefix, apart", line.prefix == "[ECHO_KIND_PARTY] Brisa:", tostring(line.prefix))
+  check("all: a secret line's text is never joined", rawequal(V.LineText(all, line), secretText), "joined")
+
+  S.Add({ convKey = "w:Brisa-Horizon", text = "hi", sender = "Brisa-Horizon" })
+  line = all.messages[3] or {}
+  check("all: an incoming whisper is prefixed with its chat", line.prefix == "[Brisa]" and line.text == "hi", tostring(line.prefix))
+  local pending = S.AddPending("w:Brisa-Horizon", "hello")
+  line = all.messages[4] or {}
+  check("all: an outgoing line is included", line.text == "hello" and line.prefix == "[To Brisa]", tostring(line.prefix))
+  local count = #all.messages
+  E.Dispatch("CHAT_MSG_WHISPER_INFORM", "hello", "Brisa-Horizon", nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+  check("all: its confirmation adds nothing", #all.messages == count and pending.status == "sent", #all.messages - count)
+  S.Add({ convKey = "guild", text = "me", outgoing = true })
+  check("all: your own group line names you", all.messages[#all.messages].prefix == "[ECHO_KIND_GUILD] Kaelis:", tostring(all.messages[#all.messages].prefix))
+  S.Add({ convKey = "loot", text = "You receive loot: [Cloak].", feed = true, chatType = "LOOT" })
+  line = all.messages[#all.messages]
+  check("all: a feed line names only its feed", line.prefix == "[ECHO_KIND_LOOT]" and line.r == 0 and line.g == 0.67, tostring(line.prefix))
+  check("all: All's own lines are never mirrored again", #all.messages == count + 2, #all.messages - count)
+
+  local spec = V.TileSpec(all)
+  check("all: the tile shows the note icon", spec.icon == "Interface\\\\Icons\\\\INV_Misc_Note_01" and spec.glyph == true, tostring(spec.icon))
+  check("all: the tile's label", spec.label == "ECHO_ALL_SHORT", tostring(spec.label))
+  check("all: the card's title", V.DisplayName(all) == "ECHO_ALL", V.DisplayName(all))
+  check("all: a quiet tile has no badge", spec.badge == nil, tostring(spec.badge))
+
+  -- The cap.
+  for i = 1, 510 do S.Add({ convKey = "guild", text = "n" .. i, sender = "Brisa-Horizon" }) end
+  check("all: keeps the newest 500 lines", #all.messages == 500 and all.messages[500].text == "n510", #all.messages)
+  check("all: the source keeps its own cap", #S.Get("guild").messages == S.MaxMessages("guild"), #S.Get("guild").messages)
+
+  -- Source 2: everything else printed to the main chat window.
+  S.Reset()
+  Print("|cff33ff99SomeAddon|r: loaded", 0.2, 0.4, 0.6)
+  all = S.Get("all") or { messages = {}, kind = "all", key = "all" }
+  line = all.messages[1] or {}
+  check("all: an addon print is kept", line.text == "|cff33ff99SomeAddon|r: loaded", tostring(line.text))
+  check("all: with its own colour", line.r == 0.2 and line.g == 0.4 and line.b == 0.6, tostring(line.r))
+  check("all: and no prefix", line.prefix == nil and line.feed == true, tostring(line.prefix))
+  Print("plain")
+  line = all.messages[2] or {}
+  check("all: a print with no colour reads white", line.r == 1 and line.g == 1 and line.b == 1, tostring(line.r))
+  count = #all.messages
+  stackText = "Interface/AddOns/Blizzard_ChatFrameBase/ChatFrame.lua:1: in function 'ChatFrame_OnEvent'"
+  Print("event line")
+  stackText = "Interface/AddOns/Blizzard_ChatFrameBase/ChatFrame.lua:2: in function 'MessageEventHandler'"
+  Print("event line")
+  stackText = "Interface/AddOns/Blizzard_Channels/ChannelFrame.lua:3: in function <x>"
+  Print("channel notice")
+  stackText = "Interface/AddOns/HorizonSuite/modules/Echo/EchoSlash.lua:49: in function <x>"
+  Print("echo's own line")
+  stackText = SECRET("stack")
+  Print("unknown source")
+  check("all: event-handler, channel, secret-stack and Echo's own lines are skipped", #all.messages == count, #all.messages - count)
+  stackText = "Interface/AddOns/HorizonSuite/modules/Focus/FocusCore.lua:5: in main chunk"
+  Print("another module of the suite")
+  check("all: the suite's other modules are kept", #all.messages == count + 1, #all.messages - count)
+  stackText = "Interface/AddOns/SomeAddon/Core.lua:10: in main chunk"
+  local secretPrint = SECRET("hidden")
+  Print(secretPrint, SECRET(1), 0.5, 0.5)
+  line = all.messages[#all.messages] or {}
+  check("all: a secret print is shown, never inspected", rawequal(line.text, secretPrint) and line.secret == true, tostring(line.secret))
+  check("all: a secret colour is dropped", line.r == 1 and line.g == 1 and line.b == 1, tostring(line.r))
+  count = #all.messages
+  Print(nil)
+  Print("")
+  check("all: an empty print adds nothing", #all.messages == count, #all.messages - count)
+
+  -- The card: the prefix is its own FontString, never joined with the text.
+  CreateFrame = STUB_CREATE_FRAME
+  C.Enable()
+  local f = C._frames()
+  S.Reset()
+  S.Add({ convKey = "guild", text = secretText, secret = true, sender = "Brisa-Horizon" })
+  C.Open("all")
+  local b = f.bubbles[1] or {}
+  check("card: an All line shows its text alone", rawequal(b.text and b.text.text, secretText), "joined")
+  check("card: and its prefix in its own FontString", b.prefix ~= nil and b.prefix.shown == true and b.prefix.text == "[ECHO_KIND_GUILD] Brisa:",
+        tostring(b.prefix and b.prefix.text))
+  Print("addon line")
+  C.Render()
+  b = f.bubbles[1] or {}
+  check("card: a line without a prefix hides it", b.prefix ~= nil and b.prefix.shown == false, tostring(b.prefix and b.prefix.shown))
+  S.Add({ convKey = "w:Brisa-Horizon", text = "hi", sender = "Brisa-Horizon" })
+  C.Show("w:Brisa-Horizon")
+  b = f.bubbles[1] or {}
+  check("card: a conversation bubble never shows a prefix", b.prefix == nil or b.prefix.shown == false, "shown")
+  C.Disable()
+  CreateFrame = saved.create
+
+  -- The setting hides the tile, and nothing is collected while it's off.
+  S.Reset()
+  S.Add({ convKey = "guild", text = "gz", sender = "Brisa-Horizon" })
+  db.echoAllView = false
+  Echo.ApplyOptions()
+  check("all: switching it off closes the tile", S.Get("all") and S.Get("all").open == false, "open")
+  local listed = false
+  for _, entry in ipairs(V.Entries(S.List())) do if entry.key == "all" then listed = true end end
+  check("all: the tile is not in the column", listed == false, "listed")
+  count = #S.Get("all").messages
+  S.Add({ convKey = "guild", text = "while off", sender = "Brisa-Horizon" })
+  Print("print while off")
+  check("all: nothing is collected while off", #S.Get("all").messages == count and S.Get("all").open == false, #S.Get("all").messages - count)
+  db.echoAllView = nil
+  Echo.ApplyOptions()
+  S.Add({ convKey = "guild", text = "back", sender = "Brisa-Horizon" })
+  check("all: on again, the next line reopens it", S.Get("all").open == true, "closed")
+
+  -- Filters: other addons' message filters run before Echo files a line.
+  S.Reset()
+  local filters = {}
+  ChatFrameUtil = { ProcessMessageEventFilters = function(frame, event, ...)
+    local args = { ... }
+    for _, fn in ipairs(filters) do
+      local res = { fn(frame, event, ...) }
+      if res[1] then return true end
+      if res[2] ~= nil then return false, select(2, (table.unpack or unpack)(res, 1, 18)) end
+    end
+    return false, ...
+  end }
+  local seenFrame
+  filters[1] = function(frame, event, text) seenFrame = frame; if text == "spam" then return true end return false end
+  local before = E.GetFilteredCount and E.GetFilteredCount() or 0
+  E.Dispatch("CHAT_MSG_GUILD", "spam", "Brisa-Horizon", nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+  check("filter: a blocked line is dropped", S.Get("guild") == nil, "filed")
+  check("filter: it runs as ChatFrame1", seenFrame == chatFrame, tostring(seenFrame))
+  check("filter: a blocked line counts as filtered", E.GetFilteredCount and E.GetFilteredCount() == before + 1, "not counted")
+  local out = {}
+  E.StartProbe(1, function(l) out[#out + 1] = l end)
+  E.Dispatch("CHAT_MSG_GUILD", "spam", "Brisa-Horizon", nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+  check("filter: the probe says it was filtered", out[1] ~= nil and out[1]:find("filtered", 1, true) ~= nil, tostring(out[1]))
+  E.StartProbe(0, nil)
+  E.Dispatch("CHAT_MSG_GUILD", "fine", "Brisa-Horizon", nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+  check("filter: a passed line is filed", S.Get("guild") and S.Get("guild").messages[1].text == "fine", "dropped")
+
+  filters[1] = function(frame, event, text, sender, ...) return false, "[rewritten] " .. text, sender, ... end
+  E.Dispatch("CHAT_MSG_GUILD", "hello", "Brisa-Horizon", nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+  local last = S.Get("guild").messages[#S.Get("guild").messages]
+  check("filter: a rewriting filter changes the text", last.text == "[rewritten] hello" and last.sender == "Brisa-Horizon", tostring(last.text))
+
+  filters[1] = function() error("broken filter") end
+  E.Dispatch("CHAT_MSG_GUILD", "still here", "Brisa-Horizon", nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+  last = S.Get("guild").messages[#S.Get("guild").messages]
+  check("filter: a filter that throws keeps the original", last.text == "still here", tostring(last.text))
+
+  -- Only false, no arguments: the originals stand.
+  ChatFrameUtil = { ProcessMessageEventFilters = function() return false end }
+  E.Dispatch("CHAT_MSG_GUILD", "bare false", "Brisa-Horizon", nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+  last = S.Get("guild").messages[#S.Get("guild").messages]
+  check("filter: a bare false keeps the original", last.text == "bare false" and last.sender == "Brisa-Horizon", tostring(last.text))
+
+  -- No leading flag at all: the returns are the arguments themselves, never a block.
+  ChatFrameUtil = { ProcessMessageEventFilters = function(frame, event, text, ...) return text .. "?", ... end }
+  E.Dispatch("CHAT_MSG_GUILD", "args only", "Brisa-Horizon", nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+  last = S.Get("guild").messages[#S.Get("guild").messages]
+  check("filter: an args-only return is used, not read as a block", last.text == "args only?" and last.sender == "Brisa-Horizon", tostring(last.text))
+
+  -- Echo's own "hide stored whispers" filter never hides a whisper from Echo itself.
+  local registeredFilters = {}
+  ChatFrameUtil = {
+    AddMessageEventFilter = function(event, fn) registeredFilters[#registeredFilters + 1] = fn end,
+    RemoveMessageEventFilter = function() registeredFilters = {} end,
+    ProcessMessageEventFilters = function(frame, event, ...)
+      for _, fn in ipairs(registeredFilters) do if fn(frame, event, ...) then return true end end
+      return false, ...
+    end,
+  }
+  local savedWhisper = Echo.Sound.Whisper
+  Echo.Sound.Whisper = function() end
+  Echo.Filter.Apply(true)
+  E.Dispatch("CHAT_MSG_WHISPER", "ping", "Brisa-Horizon", nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+  check("filter: Echo's own whisper filter never blocks Echo", S.Get("w:Brisa-Horizon") and #S.Get("w:Brisa-Horizon").messages == 1, "blocked")
+  check("filter: and still hides it from Blizzard's windows", Echo.Filter.Handler(chatFrame, "CHAT_MSG_WHISPER", "ping", "Brisa-Horizon") == true, "shown")
+  Echo.Filter.Apply(false)
+  Echo.Sound.Whisper = savedWhisper
+
+  -- Older clients: loop over ChatFrame_GetMessageEventFilters.
+  ChatFrameUtil = nil
+  local legacy = {}
+  ChatFrame_GetMessageEventFilters = function(event) return event == "CHAT_MSG_GUILD" and legacy or nil end
+  legacy[1] = function() error("broken") end
+  legacy[2] = function(frame, event, text, ...) return false, text .. "!", ... end
+  legacy[3] = function(frame, event, text) return text == "no!" end
+  E.Dispatch("CHAT_MSG_GUILD", "yes", "Brisa-Horizon", nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+  last = S.Get("guild").messages[#S.Get("guild").messages]
+  check("filter (old clients): a throwing filter is skipped, a rewrite is used", last.text == "yes!" and last.sender == "Brisa-Horizon", tostring(last.text))
+  count = #S.Get("guild").messages
+  E.Dispatch("CHAT_MSG_GUILD", "no", "Brisa-Horizon", nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+  check("filter (old clients): a later filter sees the rewrite and can block", #S.Get("guild").messages == count, #S.Get("guild").messages - count)
+  E.Dispatch("CHAT_MSG_WHISPER", "no filters", "Brisa-Horizon", nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+  check("filter (old clients): an event with no filters files as it came", S.Get("w:Brisa-Horizon").messages[2].text == "no filters", "dropped")
+  ChatFrame_GetMessageEventFilters = nil
+
+  if All.Disable then All.Disable() end
+  S.Reset()
+  S.Add({ convKey = "guild", text = "after", sender = "Brisa-Horizon" })
+  Print("after disable")
+  check("all: disabled, nothing is mirrored or collected", S.Get("all") == nil, "collected")
+
+  rawset(A.L, "ECHO_ALL_TO", nil)
+  hooksecurefunc, DEFAULT_CHAT_FRAME, ChatFrame1, ChatFrameUtil = saved.hook, saved.dcf, saved.cf1, saved.util
+  ChatFrame_GetMessageEventFilters, debugstack, ChatTypeInfo = saved.getf, saved.stack, saved.info
+  A.GetDB, A.ECHO_DEFAULTS = saved.getDB, saved.defaults
+  S.Reset()
+`, 'echo-all');
 
 // --- Redraw: one repaint per frame -------------------------------------------
 run(`

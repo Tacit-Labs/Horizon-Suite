@@ -82,8 +82,10 @@ function Filter.ShouldHide(event, ...)
     return record ~= nil and not record.secret
 end
 
---- Blizzard's message-filter signature: true hides the line.
+--- Blizzard's message-filter signature: true hides the line. While Echo runs the filters
+-- for its own intake (Events.RunFilters sets Filter.passing), it lets everything through.
 function Filter.Handler(_, event, ...)
+    if Filter.passing then return false end
     if Filter.ShouldHide(event, ...) then
         local chatType = INCOMING[event]
         if chatType then

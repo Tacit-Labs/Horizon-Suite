@@ -45,6 +45,8 @@ Card.LINE_HEIGHT = 14
 Card.TEXT_SIZE = 11  -- message text; echoCardTextSize
 Card.FEED_TIME_WIDTH = 40
 Card.FEED_GAP = 2
+Card.PREFIX_SHARE = 0.4  -- an All line's prefix takes at most this share of the line
+Card.PREFIX_GAP = 4      -- between an All line's prefix and its text
 Card.TAB_HEIGHT = 18
 Card.TAB_GAP = 4
 Card.TAB_STRIP = Card.TAB_HEIGHT + Card.TAB_GAP  -- how far a group card's area moves down
@@ -103,7 +105,10 @@ function Card.ApplySize()
     local size = clamp(Echo.Setting("echoCardTextSize"), "echoCardTextSize", 11)
     if size ~= Card.TEXT_SIZE then
         Card.TEXT_SIZE = size
-        for _, b in ipairs(bubbles) do Echo.TrackFont(b.text, size, "") end
+        for _, b in ipairs(bubbles) do
+            Echo.TrackFont(b.text, size, "")
+            Echo.TrackFont(b.prefix, size, "")
+        end
     end
     if root then
         root:SetSize(Card.WIDTH, Card.HEIGHT)
@@ -455,6 +460,14 @@ local function Bubble(i)
     b.time:SetPoint("TOPLEFT", b, "TOPLEFT", 2, -3)
     b.time:SetTextColor(0.55, 0.60, 0.75, 1)
     b.time:Hide()
+    -- An All line's chat and sender: its own FontString, so a secret text is never joined
+    -- with it. Placed by SizeFeedLine.
+    b.prefix = Echo.NewText(b, Card.TEXT_SIZE, "")
+    b.prefix:SetJustifyH("LEFT")
+    b.prefix:SetJustifyV("TOP")
+    b.prefix:SetWordWrap(false)
+    b.prefix:SetMaxLines(1)
+    b.prefix:Hide()
     -- The pin marker, placed by Mark once the bubble's side is known.
     b.pin = b:CreateTexture(nil, "OVERLAY")
     b.pin:SetTexture(Card.PIN_TEXTURE)
@@ -511,6 +524,7 @@ local function SizeBubble(b, text, secret, markSide)
     local extra = markSide and math.max(0, Card.PIN_CLEAR - Card.BUBBLE_PAD) or 0
     local maxWidth = Card.BUBBLE_MAX - extra
     b.time:Hide()
+    b.prefix:Hide()
     b.text:ClearAllPoints()
     b.text:SetPoint("TOPLEFT", b, "TOPLEFT", Card.BUBBLE_PAD + (markSide == "left" and extra or 0), -Card.BUBBLE_PAD)
     local inner = maxWidth - Card.BUBBLE_PAD * 2
@@ -540,11 +554,36 @@ local function SizeBubble(b, text, secret, markSide)
     return height + Card.BUBBLE_PAD * 2
 end
 
--- Lay out one feed line across the card: time, then (when pinned) the pin marker, then
--- text. Readable text is measured; a secret gets a fixed number of lines. Returns its height.
+-- An All line's prefix beside its text, or hidden when it has none (every other line).
+-- Returns how far the text moves right. The prefix is readable, so it is measured; it
+-- never takes more than Card.PREFIX_SHARE of the room.
+local function PlacePrefix(b, msg, left, room)
+    local prefix = msg.prefix
+    if Echo.IsSecret(prefix) or type(prefix) ~= "string" or prefix == "" then
+        b.prefix:SetText("")
+        b.prefix:Hide()
+        return 0
+    end
+    local most = math.floor(room * Card.PREFIX_SHARE)
+    b.prefix:ClearAllPoints()
+    b.prefix:SetPoint("TOPLEFT", b, "TOPLEFT", left, -3)
+    b.prefix:SetText(prefix)
+    local measured
+    if b.prefix.GetUnboundedStringWidth then measured = b.prefix:GetUnboundedStringWidth() end
+    if Echo.IsSecret(measured) or type(measured) ~= "number" or measured <= 0 then measured = most end
+    local width = math.min(most, math.ceil(measured) + 1)
+    b.prefix:SetWidth(width)
+    b.prefix:Show()
+    return width + Card.PREFIX_GAP
+end
+
+-- Lay out one feed line across the card: time, then (when pinned) the pin marker, then an
+-- All line's prefix, then text. Readable text is measured; a secret gets a fixed number of
+-- lines. Returns its height.
 local function SizeFeedLine(b, msg, secret, pinned, text)
     local width = Card.WIDTH - Card.PAD * 2
     local left = Card.FEED_TIME_WIDTH + (pinned and (Card.PIN_MARK + 3) or 0)
+    left = left + PlacePrefix(b, msg, left, width - left - 4)
     b.time:SetText(Echo.View.FeedTime(msg.time))
     b.time:Show()
     b.pin:ClearAllPoints()
@@ -625,6 +664,7 @@ local function RenderMessages(conv)
             Echo.Round.SetColor(line, 0, 0, 0, 0)
             local lr, lg, lb = View.LineColor(conv, msg)
             line.text:SetTextColor(lr, lg, lb, 1)
+            line.prefix:SetTextColor(lr, lg, lb, 1)
             line:Show()
             y = y + height + Card.FEED_GAP
         end

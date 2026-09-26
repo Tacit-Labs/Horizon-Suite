@@ -368,6 +368,8 @@ function View.DisplayName(conv)
         return key:sub(4)
     elseif kind == "nearby" then
         return L["ECHO_NEARBY"]
+    elseif kind == "all" then
+        return L["ECHO_ALL"]
     end
     return L["ECHO_KIND_" .. kind:upper()]
 end
@@ -462,7 +464,7 @@ function View.TileSpec(conv)
         spec.face = "icon"
         spec.icon = View.FEED_ICONS[kind]
         spec.glyph = true
-        spec.label = L["ECHO_FEED_SHORT_" .. kind:upper()]
+        spec.label = (kind == "all") and L["ECHO_ALL_SHORT"] or L["ECHO_FEED_SHORT_" .. kind:upper()]
         spec.r, spec.g, spec.b = View.ChatColor(kind)
     elseif kind == "nearby" then
         spec.face = "icon"
@@ -676,6 +678,15 @@ end
 function View.LineText(conv, msg)
     local text = msg.text
     if msg.secret or Echo.IsSecret(text) then return text end
+    -- An All line (EchoAll.lua) keeps its chat and sender in a separate prefix; a readable
+    -- line reads prefix then text wherever one FontString shows it (the stack).
+    if conv.kind == "all" then
+        local prefix = msg.prefix
+        if not Echo.IsSecret(prefix) and type(prefix) == "string" and prefix ~= "" then
+            return prefix .. " " .. tostring(text)
+        end
+        return text
+    end
     if EMOTE_STYLES[msg.style] then
         -- A custom emote reads "Name text"; a text or NPC emote already names its speaker.
         if msg.style ~= "emote" then return text end
@@ -984,20 +995,25 @@ View.FEED_ICONS = {
     loot     = "Interface\\Icons\\INV_Misc_Bag_10",
     progress = "Interface\\Icons\\Achievement_General",
     system   = "Interface\\Icons\\INV_Misc_Gear_01",
+    all      = "Interface\\Icons\\INV_Misc_Note_01",
 }
 
---- True for the read-only feeds (Loot, Progress, System).
+--- True for the read-only feeds (Loot, Progress, System, All).
 -- @param kind string|nil
 -- @return boolean
 function View.IsFeed(kind)
     return kind ~= nil and Echo.Store.FEED_KINDS[kind] == true
 end
 
---- Colour for one line: a feed line in its own line type's colour, else the conversation's.
+--- Colour for one line: an All line in the colour it was filed with, a feed line in its
+-- own line type's colour, else the conversation's.
 -- @param conv table
 -- @param msg table
 -- @return number r, number g, number b
 function View.LineColor(conv, msg)
+    if msg and type(msg.r) == "number" and type(msg.g) == "number" and type(msg.b) == "number" then
+        return msg.r, msg.g, msg.b
+    end
     if msg and msg.style and View.STYLE_COLOR[msg.style] then return View.StyleColor(msg.style) end
     local info = msg and msg.chatType and ChatTypeInfo and ChatTypeInfo[msg.chatType]
     if info and info.r then return info.r, info.g, info.b end

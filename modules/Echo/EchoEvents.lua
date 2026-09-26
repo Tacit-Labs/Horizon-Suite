@@ -4,8 +4,12 @@
     All of Echo's secret-value handling lives here (spec: Intake and secret values):
       - sender readable, text secret: routed, flagged secret, never persisted
       - sender secret on a whisper: no conversation; counted as unrouted
+    Other addons' message filters run over each line before it is filed (plan 12), as they
+    do for Blizzard's chat windows: a blocked line is dropped, a rewritten one filed as
+    rewritten.
     Blizzard: CHAT_MSG_* events, GetPlayerInfoByGUID, GetNormalizedRealmName, UnitGUID,
-    ERR_CHAT_PLAYER_NOT_FOUND_S.
+    ERR_CHAT_PLAYER_NOT_FOUND_S, ChatFrameUtil.ProcessMessageEventFilters (legacy
+    ChatFrame_GetMessageEventFilters), ChatFrame1.
 ]]
 
 local addon = _G.HorizonSuite
@@ -295,19 +299,98 @@ function Events.StartProbe(count, outFn)
     Events.probeOut = outFn
 end
 
---- Route one chat event. Exposed for tests and the probe.
-function Events.Dispatch(event, ...)
-    -- The probe is for conversations; feed lines (loot, progress, system) never spend it.
-    if (Events.probeRemaining or 0) > 0 and Events.probeOut
-        and not Store.FEED_KINDS[Store.EVENT_KIND[event]] then
-        Events.probeRemaining = Events.probeRemaining - 1
-        Events.probeOut(Events.DescribeArgs(event, ...))
+-- ---------------------------------------------------------------------------
+-- Other addons' message filters (plan 12)
+-- ---------------------------------------------------------------------------
+
+local filtered = 0
+
+--- How many lines other addons' filters have blocked this session.
+-- @return number
+function Events.GetFilteredCount()
+    return filtered
+end
+
+-- A chat payload as a table; secret values are only stored, never looked at.
+local function Pack(...)
+    return { n = select("#", ...), ... }
+end
+
+-- The table's values as a list, nils included (Lua 5.1 and fengari both lack one name for this).
+local function Unpack(t, i)
+    i = i or 1
+    if i > t.n then return end
+    return t[i], Unpack(t, i + 1)
+end
+
+-- A filter's first return blocks the line when it is readable and true.
+local function Blocks(v)
+    if IsSecret(v) then return false end
+    return v ~= nil and v ~= false
+end
+
+-- Take one filter call's result: blocked, or the arguments to go on with. A call that
+-- threw, or returned no new first argument, keeps the arguments it was given. New
+-- arguments replace the old ones position by position; any it didn't return stay.
+local function Settle(args, ok, blocked, ...)
+    if not ok then return false, args end
+    if Blocks(blocked) then return true, args end
+    local new1 = ...
+    if select("#", ...) == 0 or (not IsSecret(new1) and new1 == nil) then return false, args end
+    local out = Pack(...)
+    for i = out.n + 1, args.n do out[i] = args[i] end
+    if args.n > out.n then out.n = args.n end
+    return false, out
+end
+
+-- Take ProcessMessageEventFilters' result. Expected: true when blocked, else false and the
+-- arguments. Coded for a client that returns only the arguments too: with no leading
+-- boolean, the whole list is the arguments and nothing is blocked.
+local function SettleProcess(args, ok, first, ...)
+    if not ok then return false, args end
+    if not IsSecret(first) and type(first) == "boolean" then
+        if first then return true, args end
+        return Settle(args, true, false, ...)
     end
-    -- A system line may fail a pending whisper; it is then filed in the System feed too.
-    if event == "CHAT_MSG_SYSTEM" then Events.OnSystemMessage((...)) end
-    -- A switched-off feed files nothing (the system line above still checked for a failed whisper).
-    local feedKind = Store.EVENT_KIND[event]
-    if Store.FEED_KINDS[feedKind] and Echo.FeedEnabled and not Echo.FeedEnabled(feedKind) then return end
+    return Settle(args, true, false, first, ...)
+end
+
+--- Run other addons' message filters over a chat event's arguments, as Blizzard's chat
+-- does for each window: ChatFrameUtil.ProcessMessageEventFilters where it exists, else a
+-- loop over ChatFrame_GetMessageEventFilters. Each call is protected, so a broken filter
+-- keeps the arguments it was given. Echo's own whisper filter (EchoFilter.lua) stands
+-- aside meanwhile: it hides lines from Blizzard's windows, never from Echo.
+-- @param event string
+-- @return boolean blocked
+-- @return table args  { n = count, ... }: the arguments to file
+function Events.RunFilters(event, ...)
+    local args = Pack(...)
+    local frame = _G.ChatFrame1 or _G.DEFAULT_CHAT_FRAME
+    local util = _G.ChatFrameUtil
+    local own = Echo.Filter
+    if own then own.passing = true end
+    local blocked = false
+    if util and type(util.ProcessMessageEventFilters) == "function" then
+        blocked, args = SettleProcess(args, pcall(util.ProcessMessageEventFilters, frame, event, Unpack(args)))
+    else
+        local get = (util and util.GetMessageEventFilters) or _G.ChatFrame_GetMessageEventFilters
+        local ok, filters = false, nil
+        if type(get) == "function" then ok, filters = pcall(get, event) end
+        if ok and type(filters) == "table" then
+            for _, fn in ipairs(filters) do
+                if type(fn) == "function" then
+                    blocked, args = Settle(args, pcall(fn, frame, event, Unpack(args)))
+                    if blocked then break end
+                end
+            end
+        end
+    end
+    if own then own.passing = false end
+    return blocked, args
+end
+
+-- File one chat event's (filtered) arguments.
+local function File(event, ...)
     local record, reason = Events.BuildRecord(event, ...)
     if not record then
         if reason == "unrouted" then Store.CountUnrouted() end
@@ -329,6 +412,32 @@ function Events.Dispatch(event, ...)
     else
         Store.Add(record)
     end
+end
+
+--- Route one chat event. Exposed for tests and the probe.
+function Events.Dispatch(event, ...)
+    -- A system line may fail a pending whisper; it is then filed in the System feed too.
+    -- Checked before the filters: an addon hiding "not online" lines must not strand the
+    -- pending whisper.
+    if event == "CHAT_MSG_SYSTEM" then Events.OnSystemMessage((...)) end
+    -- A switched-off feed files nothing (the system line above still checked for a failed whisper).
+    local feedKind = Store.EVENT_KIND[event]
+    if Store.FEED_KINDS[feedKind] and Echo.FeedEnabled and not Echo.FeedEnabled(feedKind) then return end
+    local blocked, args = Events.RunFilters(event, ...)
+    -- The probe is for conversations; feed lines (loot, progress, system) never spend it.
+    if (Events.probeRemaining or 0) > 0 and Events.probeOut and not Store.FEED_KINDS[feedKind] then
+        Events.probeRemaining = Events.probeRemaining - 1
+        if blocked then
+            Events.probeOut(Events.DescribeArgs(event, ...) .. " filtered")
+        else
+            Events.probeOut(Events.DescribeArgs(event, Unpack(args)))
+        end
+    end
+    if blocked then
+        filtered = filtered + 1
+        return
+    end
+    File(event, Unpack(args))
 end
 
 local frame

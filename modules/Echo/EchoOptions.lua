@@ -22,10 +22,11 @@ function Echo.TierKey(kind)
     return "echoTier" .. Capitalise(kind)
 end
 
---- The setting switching a feed on or off.
+--- The setting switching a feed on or off. The All view's is echoAllView.
 -- @param kind string
 -- @return string
 function Echo.FeedKey(kind)
+    if kind == "all" then return "echoAllView" end
     return "echoFeed" .. Capitalise(kind)
 end
 

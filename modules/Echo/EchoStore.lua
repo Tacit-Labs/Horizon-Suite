@@ -25,6 +25,7 @@ function Echo.IsSecret(v)
 end
 
 Store.MAX_MESSAGES = 100
+Store.ALL_CAP = 500  -- the All view keeps more: it holds every chat's lines at once
 
 -- Spec "Notification tiers". "muted" is the per-conversation mute: stored, never counted.
 Store.DEFAULT_TIERS = {
@@ -33,6 +34,9 @@ Store.DEFAULT_TIERS = {
     guild   = "quiet", officer = "quiet", channel = "quiet",
     loot = "quiet", progress = "quiet", system = "quiet",
     nearby = "quiet",
+    -- All (plan 12): every line Echo files, plus other text printed to the main chat
+    -- window (EchoAll.lua). Always quiet: it has no tier setting of its own.
+    all = "quiet",
 }
 Store.VALID_TIERS = { loud = true, count = true, quiet = true, muted = true }
 
@@ -104,11 +108,12 @@ function Store.SetPersisted(kind, on)
     persistedOverrides[kind] = on and true or nil
 end
 
---- The message cap for a kind: guild and officer keep more (History.GUILD_CAP), everything
--- else Store.MAX_MESSAGES.
+--- The message cap for a kind: guild and officer keep more (History.GUILD_CAP), All keeps
+-- Store.ALL_CAP, everything else Store.MAX_MESSAGES.
 -- @param kind string
 -- @return number
 function Store.MaxMessages(kind)
+    if kind == "all" then return Store.ALL_CAP end
     if kind == "guild" or kind == "officer" then
         return (Echo.History and Echo.History.GUILD_CAP) or 200
     end
@@ -116,8 +121,9 @@ function Store.MaxMessages(kind)
 end
 
 -- Read-only feeds of non-conversation lines (plan 4). Routed by event type, quiet by
--- default, never persisted or restored.
-Store.FEED_KINDS = { loot = true, progress = true, system = true }
+-- default, never persisted or restored. All (plan 12) is a feed too, filled by EchoAll.lua
+-- rather than by an event.
+Store.FEED_KINDS = { loot = true, progress = true, system = true, all = true }
 
 local conversations = {}
 local overrides = {}
@@ -161,11 +167,11 @@ function Store.KindOf(convKey)
     return nil
 end
 
-local function Notify(convKey, change)
+local function Notify(convKey, change, record)
     local snapshot = {}
     for i = 1, #listeners do snapshot[i] = listeners[i] end
     for _, fn in ipairs(snapshot) do
-        local ok, err = pcall(fn, convKey, change)
+        local ok, err = pcall(fn, convKey, change, record)
         if not ok then
             local handler = geterrorhandler and geterrorhandler()
             if handler then handler(err) end
@@ -174,8 +180,9 @@ local function Notify(convKey, change)
 end
 
 --- Register a view.
--- @param fn function(convKey, change)  change: "toast" | "count" | "quiet" | "silent" |
---   "update" | "closed" | "unrouted" | "reset" | "restored"; convKey is nil for "unrouted", "reset" and "restored"
+-- @param fn function(convKey, change, record)  change: "toast" | "count" | "quiet" | "silent" |
+--   "update" | "closed" | "unrouted" | "reset" | "restored"; convKey is nil for "unrouted", "reset" and "restored".
+--   record is the record just filed, passed only by Store.Add (the All view mirrors it).
 function Store.Subscribe(fn)
     if type(fn) == "function" then listeners[#listeners + 1] = fn end
 end
@@ -320,7 +327,7 @@ function Store.Add(record)
     -- A feed the player closed stays closed until reload: its lines are still filed so the
     -- views stay consistent, but they neither reopen the tile nor count as unread.
     if conv.dismissed then
-        Notify(record.convKey, "silent")
+        Notify(record.convKey, "silent", record)
         return "silent"
     end
     conv.open = true
@@ -344,7 +351,7 @@ function Store.Add(record)
             change = "quiet"
         end
     end
-    Notify(record.convKey, change)
+    Notify(record.convKey, change, record)
     return change
 end
 

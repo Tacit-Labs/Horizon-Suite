@@ -25,7 +25,7 @@ addon.ECHO_DEFAULTS = {
     echoWhisperSound       = "blizzard",
     echoSoundInCombat      = true,
     echoSoundBnet          = true,
-    -- Tier per conversation type; mirrors Store.DEFAULT_TIERS.
+    -- Tier per conversation type; mirrors Store.DEFAULT_TIERS, except All, which is always quiet.
     echoTierWhisper        = "loud",
     echoTierBnet           = "loud",
     echoTierParty          = "count",
@@ -42,6 +42,7 @@ addon.ECHO_DEFAULTS = {
     echoFeedLoot           = true,
     echoFeedProgress       = true,
     echoFeedSystem         = true,
+    echoAllView            = true,
     echoSaveHistory        = true,
     echoHistoryDays        = 30,
     echoSaveGuild          = true,
