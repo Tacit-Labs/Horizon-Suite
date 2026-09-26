@@ -5907,6 +5907,7 @@ run(`
   check("battle.net pins are keyed by battletag", bnetPins and #bnetPins == 1, bnetPins and #bnetPins)
   check("a battle.net pin never stores the sender", bnetPins[1].s == nil, bnetPins[1].s)
   check("Store.Pins reflects the battletag key", S.Pins("bn:77")[1].text == "hi there" and S.Pins("bn:77")[1].sender == nil, "?")
+  check("a live battle.net line matches its pin despite the |K sender", S.IsPinnedMessage("bn:77", { text = "hi there", time = 300, sender = "|Kbnet-protected-string" }) == true, "no match")
 
   -- An unreadable battletag can't be saved.
   C_BattleNet = { GetAccountInfoByID = function() return nil end }

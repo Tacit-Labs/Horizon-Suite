@@ -401,8 +401,11 @@ end
 function Store.IsPinnedMessage(convKey, record)
     if type(record) ~= "table" then return false end
     if Echo.IsSecret(record.text) or type(record.text) ~= "string" then return false end
+    -- Normalise the sender as History.AddPin stores it: a Battle.net |K string is never
+    -- saved, so a Battle.net pin has no sender and must match a live line's nil.
     local sender = nil
-    if not Echo.IsSecret(record.sender) and type(record.sender) == "string" and record.sender ~= "" then
+    if Store.KindOf(convKey) ~= "bnet" and not Echo.IsSecret(record.sender)
+       and type(record.sender) == "string" and record.sender ~= "" and record.sender:sub(1, 2) ~= "|K" then
         sender = record.sender
     end
     for _, pin in ipairs(Store.Pins(convKey)) do
