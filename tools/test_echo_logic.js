@@ -8211,6 +8211,41 @@ run(`
   box.hookScripts.OnShow(box)
   check("input: and shows with it", bg.shown == true, "hidden")
 
+  -- Review fixes: never strand the card without a way to type.
+  local fc = C._frames()
+  C.Open("w:Brisa-Horizon")
+  box.attrs = { chatType = "WHISPER", tellTarget = "Brisa-Horizon" }
+  fire("ActivateChat", box)
+  check("review: the covered card hides its reply box", not fc.edit:IsShown(), "shown")
+  box.shown = false
+  box.hookScripts.OnHide(box)
+  check("review: the box hiding by itself brings the reply box back", fc.edit:IsShown() and fc.send:IsShown(), "hidden")
+  box.shown = true
+  box.hookScripts.OnShow(box)
+  check("review: and showing again hides it", not fc.edit:IsShown(), "shown")
+  C.Hide()
+
+  local realEdge, realHandler = V.PanelEdge, geterrorhandler
+  local reported
+  geterrorhandler = function() return function(err) reported = err end end
+  V.PanelEdge = function() error("edge broke") end
+  pcall(I.Reanchor)
+  check("review: an error while anchoring is reported", reported ~= nil and tostring(reported):find("edge broke", 1, true) ~= nil, tostring(reported))
+  V.PanelEdge, geterrorhandler = realEdge, realHandler
+  pcall(box.SetPoint, box, "BOTTOMLEFT", chatFrame, "TOPLEFT", -5, -2)
+  check("review: after it, a foreign SetPoint is still undone", #box.points == 2 and box.points[1][2] == stackButton,
+    box.points[1] and tostring(box.points[1][2] == chatFrame))
+
+  box.level = 0
+  local lvlSet
+  bg.SetFrameLevel = function(self, v) lvlSet = v end
+  local ok0 = pcall(I.Reanchor)
+  check("review: a level-0 box puts the background at level 0, the box untouched", ok0 and lvlSet == 0 and box.level == 0, tostring(lvlSet))
+  check("review: the background draws in the BACKGROUND layer", bgRR.layer == "BACKGROUND", bgRR.layer)
+  bg.SetFrameLevel = nil
+  box.level = 5
+  I.Reanchor()
+
   -- Undocking hides a box that only always-visible put on screen.
   db.echoInputAlwaysVisible = true
   fire("DeactivateChat", box)

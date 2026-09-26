@@ -143,7 +143,7 @@ local function Background(box)
         local column = _G.HorizonSuiteEchoColumn
         local parent = (column and column:GetParent()) or UIParent
         background = CreateFrame("Frame", nil, parent)
-        Echo.Round.Apply(background, { radius = Echo.Round.SMALL, border = true })
+        Echo.Round.Apply(background, { radius = Echo.Round.SMALL, border = true, layer = "BACKGROUND" })
         local p = Echo.View.PANEL_BG
         Echo.Round.SetColor(background, p[1], p[2], p[3], p[4])
     end
@@ -153,6 +153,7 @@ local function Background(box)
     local strata = box:GetFrameStrata()
     if type(strata) == "string" then background:SetFrameStrata(strata) end
     local level = box:GetFrameLevel()
+    -- At level 0 the background shares the box's level and stays under it by drawing in BACKGROUND.
     background:SetFrameLevel(math.max(0, (tonumber(level) or 1) - 1))
     return background
 end
@@ -168,11 +169,7 @@ end
 
 --- Put the line under the open card, or beside the Echo icon at the column's foot.
 -- ChatFrame1EditBox isn't protected, so this is allowed in combat too.
-function Input.Reanchor()
-    if not active then return end
-    local box, column = Box(), _G.HorizonSuiteEchoColumn
-    if not box or not column then return end
-    anchoring = true
+local function Anchor(box, column)
     box:ClearAllPoints()
     box:SetScale(ColumnScale(box, column))
     local strata = column:GetFrameStrata()
@@ -193,7 +190,21 @@ function Input.Reanchor()
             box:SetPoint("LEFT", icon, "LEFT", side.dx - width, 0)
         end
     end
+end
+
+function Input.Reanchor()
+    if not active then return end
+    local box, column = Box(), _G.HorizonSuiteEchoColumn
+    if not box or not column then return end
+    -- Always clear the flag, even on an error, or every later foreign SetPoint would pass.
+    anchoring = true
+    local ok, err = pcall(Anchor, box, column)
     anchoring = false
+    if not ok then
+        local handler = geterrorhandler and geterrorhandler()
+        if handler then handler(err) end
+        return
+    end
     local bg = Background(box)
     if type(bg.SetScale) == "function" then bg:SetScale(column:GetScale() or 1) end
     SyncBackground(box)
@@ -236,6 +247,7 @@ end
 local function OnBoxShown(editBox)
     if not active or editBox ~= Box() then return end
     SyncBackground(editBox)
+    RefreshCard()  -- a box hidden by any path must give the card its reply box back
 end
 
 -- Post-hook table[name] when it is a function; true when hooked.
