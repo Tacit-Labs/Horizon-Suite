@@ -1386,6 +1386,12 @@ function Card.ShowPinTooltip(owner)
     GameTooltip:Show()
 end
 
+--- A Nearby line went unconfirmed (Send.ExpireNearby): explain it while Nearby is shown.
+function Card.NoteNearbyBlocked()
+    if not root or not root:IsShown() or renderedKey ~= "nearby" then return end
+    ShowBlockedHint()
+end
+
 --- Send the reply box's text to the card's conversation.
 function Card.Submit()
     local text = edit and edit:GetText()

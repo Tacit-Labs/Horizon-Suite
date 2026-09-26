@@ -186,7 +186,8 @@ function View.GuildTabard()
     return guildTabardCache.tabard
 end
 
--- ChatTypeInfo keys, so each kind uses Blizzard's own chat colour.
+-- ChatTypeInfo keys, so each kind uses Blizzard's own chat colour. nearby's "SAY" is only a
+-- fallback for a record with no style: Nearby lines are coloured by style (View.STYLE_COLOR).
 View.CHAT_TYPE = {
     whisper = "WHISPER", bnet = "BN_WHISPER", party = "PARTY", raid = "RAID",
     instance = "INSTANCE_CHAT", guild = "GUILD", officer = "OFFICER", channel = "CHANNEL",

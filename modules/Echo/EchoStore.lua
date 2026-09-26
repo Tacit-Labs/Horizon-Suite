@@ -517,7 +517,10 @@ end
 --   as it will read once sent
 -- @return table|nil record  status "pending"
 function Store.AddPending(convKey, text, style)
-    local record = { convKey = convKey, text = text, outgoing = true, status = "pending", style = style }
+    -- filedAt uses Store.Now (time(), whole seconds): Store.ExpirePending's 8-second window
+    -- only needs second accuracy, and tests already drive this clock.
+    local record = { convKey = convKey, text = text, outgoing = true, status = "pending", style = style,
+                     filedAt = Store.Now() }
     if not Store.Add(record) then return nil end
     return record
 end
@@ -589,6 +592,12 @@ function Store.ClaimSelfEcho(convKey, text)
     return false
 end
 
+-- Fail one pending record and repaint its conversation.
+local function Fail(convKey, record)
+    record.status = "failed"
+    Notify(convKey, "update")
+end
+
 --- Mark the newest pending message in a conversation as failed.
 -- @param convKey string
 -- @return table|nil record
@@ -598,12 +607,34 @@ function Store.MarkFailed(convKey)
     for i = #conv.messages, 1, -1 do
         local m = conv.messages[i]
         if m.status == "pending" then
-            m.status = "failed"
-            Notify(convKey, "update")
+            Fail(convKey, m)
             return m
         end
     end
     return nil
+end
+
+-- A Nearby line with no echo this long after sending was dropped by the game.
+Store.NEARBY_CONFIRM_SECONDS = 8
+
+--- Fail every Nearby line still pending NEARBY_CONFIRM_SECONDS after it was filed: the
+-- game can drop an addon's Say or Yell without an error, so no echo ever comes. Other
+-- kinds are never expired.
+-- @param now number|nil  defaults to Store.Now()
+-- @return number failed
+function Store.ExpirePending(now)
+    now = now or Store.Now()
+    local conv = conversations.nearby
+    if not conv then return 0 end
+    local failed = 0
+    for _, m in ipairs(conv.messages) do
+        if m.status == "pending" and type(m.filedAt) == "number"
+            and now - m.filedAt >= Store.NEARBY_CONFIRM_SECONDS then
+            Fail(conv.key, m)
+            failed = failed + 1
+        end
+    end
+    return failed
 end
 
 --- Stop a view's notifications.

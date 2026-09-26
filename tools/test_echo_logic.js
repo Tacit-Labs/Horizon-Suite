@@ -6735,6 +6735,69 @@ run(`
   S.Reset()
 `, 'nearby-card');
 
+// --- Nearby fix round 1: unconfirmed lines fail; NPC lines are never mentions ---------------
+run(`
+  local Echo = HorizonSuite.Echo
+  local S, E, C, Send = Echo.Store, Echo.Events, Echo.Card, Echo.Send
+  S.Reset()
+  local function payload(text, sender)
+    return text, sender, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil
+  end
+  for _, ev in ipairs({ "CHAT_MSG_MONSTER_SAY", "CHAT_MSG_MONSTER_YELL", "CHAT_MSG_MONSTER_EMOTE" }) do
+    local r = E.BuildRecord(ev, payload("Kaelis, bring me ten pelts", "Hogger"))
+    check("nearby fix: " .. ev .. " naming you is not a mention", r.urgent == false, tostring(r.urgent))
+  end
+  local r = E.BuildRecord("CHAT_MSG_SAY", payload("Kaelis, hi", "Brisa"))
+  check("nearby fix: a player saying your name still is", r.urgent == true, tostring(r.urgent))
+
+  check("nearby fix: the confirm window is 8 seconds", S.NEARBY_CONFIRM_SECONDS == 8, S.NEARBY_CONFIRM_SECONDS)
+  local realNow = S.Now
+  local clock = 1000
+  S.Now = function() return clock end
+  local timers = {}
+  local realTimer = C_Timer
+  C_Timer = { After = function(sec, fn) timers[#timers + 1] = { sec = sec, fn = fn } end,
+              NewTimer = function() return { Cancel = function() end } end }
+  C_ChatInfo = { SendChatMessage = function() end }
+  CreateFrame = STUB_CREATE_FRAME
+  C.Enable()
+  local f = C._frames()
+
+  Send.Send("w:Brisa-Horizon", "whisper waiting")
+  check("nearby fix: a whisper send schedules no expiry", #timers == 0, #timers)
+  Send.Send("nearby", "confirmed soon")
+  Send.Send("nearby", "never echoed")
+  check("nearby fix: a Nearby send schedules a check", #timers == 2 and timers[1].sec == 8.5, timers[1] and timers[1].sec)
+  local lines = S.Get("nearby").messages
+  check("nearby fix: a pending line is stamped", lines[1].filedAt == 1000, tostring(lines[1].filedAt))
+  E.Dispatch("CHAT_MSG_SAY", payload("confirmed soon", "Kaelis"))
+  check("nearby fix: nothing expires inside the window", S.ExpirePending(1007) == 0 and lines[2].status == "pending", lines[2].status)
+
+  C.Open("nearby")
+  f.hint:Hide()
+  clock = 1009
+  timers[2].fn()
+  check("nearby fix: an unconfirmed line fails", lines[2].status == "failed", lines[2].status)
+  check("nearby fix: a confirmed line is untouched", lines[1].status == "sent", lines[1].status)
+  check("nearby fix: the expiry explains itself in the hint", f.hint.shown and f.hint.text.text == "ECHO_SEND_BLOCKED_NEARBY",
+        tostring(f.hint.text.text))
+  local w = S.Get("w:Brisa-Horizon").messages[1]
+  check("nearby fix: a whisper pending line never expires", S.ExpirePending(99999) == 0 and w.status == "pending", w.status)
+
+  C.Show("w:Brisa-Horizon")
+  f.hint:Hide()
+  Send.Send("nearby", "another")
+  clock = 1100
+  timers[#timers].fn()
+  check("nearby fix: no hint while another card is shown", f.hint.shown == false, "shown")
+
+  C.Disable()
+  C_Timer = realTimer
+  C_ChatInfo = nil
+  S.Now = realNow
+  S.Reset()
+`, 'nearby-fix-1');
+
 run(read('options/modules/defaults/OptionsDefaultsEcho.lua'), 'nearby-defaults');
 run(`
   local A = HorizonSuite

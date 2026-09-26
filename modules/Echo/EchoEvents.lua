@@ -224,8 +224,9 @@ function Events.BuildRecord(event, text, sender, _, _, _, _, zoneChannelID, chan
             record.sender = senderKey
         end
     end
+    -- An NPC saying your name (quest givers do, constantly) is never a mention.
     record.urgent = (event == "CHAT_MSG_RAID_WARNING")
-        or (MENTION_KINDS[kind] == true and not outgoing and not textSecret and Events.IsMention(text))
+        or (MENTION_KINDS[kind] == true and not npc and not outgoing and not textSecret and Events.IsMention(text))
     return record
 end
 

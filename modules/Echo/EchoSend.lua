@@ -176,5 +176,17 @@ function Send.Send(convKey, text)
         end
         if not ok then Store.MarkFailed(convKey) end
     end
+    -- A dropped Nearby line never echoes: check once its window has passed.
+    if nearby and not locked and C_Timer and type(C_Timer.After) == "function" then
+        C_Timer.After(Store.NEARBY_CONFIRM_SECONDS + 0.5, Send.ExpireNearby)
+    end
     return true, problem
+end
+
+--- Fail Nearby lines that were never confirmed, and let the card say why.
+-- @return number failed
+function Send.ExpireNearby()
+    local failed = Store.ExpirePending(Store.Now())
+    if failed > 0 and Echo.Card and Echo.Card.NoteNearbyBlocked then Echo.Card.NoteNearbyBlocked() end
+    return failed
 end
