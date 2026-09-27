@@ -1,6 +1,8 @@
-#  Horizon Suite 
+# Horizon Suite
+
 Driven by the community and customised for each member's sensibilities.
-# [![Wago.io Page](https://img.shields.io/badge/wago.io-black?style=for-the-badge)](https://addons.wago.io/addons/horizon-suite)[![CurseForge Page](https://img.shields.io/badge/Curseforge-official?&style=for-the-badge&logo=curseforge&logoSize=auto&color=black)](https://www.curseforge.com/wow/addons/horizon)[![GitHub Repository](https://img.shields.io/badge/GitHub-official?&style=for-the-badge&logoColor=0FBF3E&logo=github&logoSize=auto&color=black)](https://github.com/Tacit-Labs/Horizon-Suite)[![Patreon Page](https://img.shields.io/badge/patreon-donate?&style=for-the-badge&label=%20&logo=patreon&logoSize=auto&color=000000)](https://www.patreon.com/c/HorizonSuite)[![Ko-fi Page](https://img.shields.io/badge/Ko--fi-black?&style=for-the-badge&logo=kofi&logoSize=auto&logoColor=FF6433)](https://ko-fi.com/horizonsuite)[![Discord Server](https://img.shields.io/badge/Discord-black?&style=for-the-badge&logo=discord&logoSize=auto)](https://discord.gg/nFabdZmvSB)
+
+# [![Website](https://img.shields.io/badge/Website-black?style=for-the-badge)](https://tacitlabs.co.uk/horizon-suite)[![Wago.io Page](https://img.shields.io/badge/wago.io-black?style=for-the-badge)](https://addons.wago.io/addons/horizon-suite)[![CurseForge Page](https://img.shields.io/badge/Curseforge-official?style=for-the-badge&logo=curseforge&logoSize=auto&color=black)](https://www.curseforge.com/wow/addons/horizon)[![GitHub Repository](https://img.shields.io/badge/GitHub-official?style=for-the-badge&logoColor=0FBF3E&logo=github&logoSize=auto&color=black)](https://github.com/Tacit-Labs/Horizon-Suite)[![Patreon Page](https://img.shields.io/badge/patreon-donate?style=for-the-badge&logo=patreon&logoSize=auto&color=000000)](https://www.patreon.com/c/HorizonSuite)[![Ko-fi Page](https://img.shields.io/badge/Ko--fi-black?style=for-the-badge&logo=kofi&logoSize=auto&logoColor=FF6433)](https://ko-fi.com/horizonsuite)[![Discord Server](https://img.shields.io/badge/Discord-black?style=for-the-badge&logo=discord&logoSize=auto)](https://discord.gg/HFzZQcMEJw)
 
 ### Current Versions
 
@@ -8,152 +10,164 @@ Driven by the community and customised for each member's sensibilities.
 ![GitHub License](https://img.shields.io/github/license/Tacit-Labs/Horizon-Suite?style=for-the-badge&label=&logo=opensourceinitiative&logoSize=auto&color=black)![GitHub commits since latest release (number)](https://img.shields.io/github/commits-since/Tacit-Labs/Horizon-Suite/latest/main?sort=date&style=for-the-badge&label=%20&labelColor=black&color=darkgreen)![GitHub "commit(s) since" latest release (text)](https://img.shields.io/badge/commit(s)_since-black?style=for-the-badge&logo=github&logoColor=0FBF3E&logoSize=auto)
 ![GitHub "last commit was" (main)](https://img.shields.io/github/last-commit/Tacit-Labs/Horizon-Suite/main?style=for-the-badge&label=most%20recent%20commit%20was&logo=githublogoSize=auto&color=darkgreen&labelColor=black)
 
----
+![Horizon Suite: seven modules, one download, for Retail and WoW: Forever](Docs/Branding/CurseForge/horizon-headline.png)
 
-## 🎒 <span style="color:#33CC66;">Augment</span> [Miscellaneous]
+Seven modules, one download, for **Retail (Midnight) and WoW: Forever**. Each module switches on or off on its own, so you only run the parts you want. A fresh install starts with every module off: pick yours under **Axis → Modules** and reload.
 
-![Augment - Miscellaneous](https://preview.redd.it/addon-update-horizon-suite-5-0-0-augment-joins-the-list-of-v0-mz63di97oq3h1.gif?width=613&auto=webp&s=1690f80a6ce54460acde775fb427c86380f5a550)
+**New in 6.0:** <span style="color: #8fa3e8;">**Echo**</span>, a chat module that gives every conversation its own tile. See below.
 
-Quality of Life Improvements to Blizzard's Native UI.
-Now with loot that deserves to be seen in a style personal to you.
+***
 
-- **Styled toasts for everything** — Items, money, currency, and reputation gains slide in with quality-coloured presentation and smooth animations.
-- **Toast layout controls** — Choose icon side (left or right), slide-in side, stack grow direction, and icon size/gap separately for loot toasts and status alerts.
-- **Shared toast styles** — Compact, Framed, or Accent chrome for loot toasts and status alerts (chosen separately so both can match or differ).
-- **Styled personal loot window** — When Auto Loot is off, Blizzard's loot window stays usable and picks up the same Compact / Framed / Accent look as your loot toasts.
-- **Epic and legendary treatment** — Extended display time, shine effects, and optional sounds when something worth celebrating drops.
-- **Status alerts** — Optional toasts for low durability, bags nearly full, new mail, Great Vault rewards ready, and friends coming online or offline. Each kind has its own toggle, threshold, and colour under Augment → Alerts.
-- **Loot rolls** — Horizon's own Need/Greed frames, matching your loot toasts by default, or set to Compact / Framed / Accent on their own. While the timer runs they show who has rolled and who is leading; the item carries a new-appearance marker, an item level comparison against what you have equipped, and a bind-on-pickup flag. Rolls below a quality you choose keep Blizzard's own frame, so nothing is ever lost. Off by default under Augment → Loot Rolls; turn it on with `/h roll toggle`, and try the layout on your own with `/h roll demo`.
+## 🌐 Retail and WoW: Forever
 
----
+![Runs on World of Warcraft: Midnight and World of Warcraft: Forever](Docs/Branding/CurseForge/horizon-clients.png)
 
-## 🎯 <span style="color:#FFD133;">Focus</span> [Objective Tracker]
+Horizon Suite runs on Retail (Midnight) and the WoW: Forever beta from the same download: install it once and every module loads on either client. Forever has no Mythic+, Delves, housing, Great Vault, specialisations or Traveler's Log, so the settings for those stay out of the way there.
 
-![Focus | Objective Tracker](https://preview.redd.it/addon-horizon-suite-midnight-launch-update-new-options-prey-v0-5frvkrwhxhng1.gif?width=489&auto=webp&s=9c6da75805f3cff68cdcf545b22cc6ec082b20c5)
+Known beta issue: the Forever client doesn't yet read saved settings back at login, so your settings reset on reload there until Blizzard fixes it.
 
-Your tracker shouldn't need babysitting. Focus keeps up with you — surfacing nearby quests, updating as you move, and getting out of the way when you don't need it.
+***
 
-- **Always relevant** — Nearby quests rise to the top automatically. Move zones and the list reorganises around you. Delves, scenarios, raids, and world events get their own sections with live progress bars and timers. Zone event quests appear in Events in Zone before you enter; step inside and they move to Current Event.
-- **Proximity sort** — Under Focus → Sorting, choose **Proximity (Closest First)** to order tracked quests nearest-first within each section.
-- **Auto-Focus Closest Quest** — Optionally super-track the nearest tracked quest (works with any sort mode). Choose **Auto-Focus Behaviour**: Always Closest, Respect Manual Focus, or Only When Unfocused. Optional **Include Untracked Quests** lets a closer log quest take focus even if it isn't on the tracker. Toggle on the fly with `/h focus autofocus` or a keybinding under Key Bindings → Horizon Suite.
-- **Events in Zone section** — Turn it off under Focus → Sorting & Filtering → Grouping to hide nearby unaccepted and zone-event quests from the tracker (like turning off world quests for content you have not accepted).
-- **Tracks everything** — Achievements, Endeavors (housing), Decor, tracked transmog appearances, Recipes (professions), and Traveler's Log objectives. Full achievement progress tracking with criteria parsing and quantity strings. One-click to open the achievement panel, housing dashboard, decor catalog, the Appearances wardrobe for a tracked look (Shift+click opens the map to the source), or Adventure Guide. Under Appearances, you can use the in-game transmog list icon for every row instead of each item's icon.
-- **Recipe reagents** — By default, tracked recipes show a compact shopping list (Basic reagent slots only, first item per slot—similar to typical AH shopping flows). Enable **Full reagent detail** under Focus → Recipes to list optional and finishing sections, every choice variant, and non-Basic reagents. With **Auctionator** and the Auction House open, the magnifying glass runs a shopping search; **right-click** it to enter how many crafts you want and multiply every line’s quantity.
-- **Rare boss alerts** — Super-track nearby rares with one click and optional audio cues.
-- **Live quest sync** — World quests, dailies, and weeklies update dynamically. Quests auto-track when you accept them. Choose a radar icon for auto-tracked in-zone entries.
-- **Objective progress colours** — Optional gold and green tint on the whole X/Y token, including the slash (not started stays the normal objective colour).
-- **Prey section** — Midnight hunting activities appear in a dedicated Prey section with distinct colours, separate from weeklies.
-- **Combat-aware** — Show, fade, or hide in combat. Show or hide in dungeons/raids/BGs. Compact or super-minimal layouts. Show only on mouseover. Your call.
-- **Mythic+ and Delves** — Keystone info, affixes, timer, and delve objectives all in the standard layout.
-- **Dungeon run tracker** — In any party dungeon that isn't a keystone, a banner tracks the run: elapsed time, experience and money earned, and the per-hour rate of each. Hover for the bosses you have downed and how long the next level is at your current pace, or for the reset button that starts the run over. The run in progress survives a reload, and a corpse run picks it back up where you left it.
-- **Countdown timers by section** — With **Show timer** on, toggle countdowns separately for **Scenarios**, **World Quests**, and **Dailies / Weeklies** (other timed quest log entries use the same switch as dailies and weeklies).
-- **Click your way** — Under Focus → Click Options, choose **Blizzard+** (default), **Horizon+** (super-track first; Custom for your own combos), or **Custom**. Optional classic mode still tweaks icon-style clicks where enabled.
-- **Profiles** — Per-character, per-spec, or global. Create, copy, export, and share as text strings.
+## 🎒 <span style="color: #33cc66;">Augment</span> \[Miscellaneous\]
 
----
+![Augment: loot and quality of life](Docs/Branding/CurseForge/horizon-augment.png)
 
-## 🎬 <span style="color:#33FFDF;">Presence</span> [Cinematic Notifications]
+Quality-of-life improvements to Blizzard's own UI, starting with loot that deserves to be seen.
 
-![Presence - Zone Text & Notifications](https://preview.redd.it/addon-update-horizon-suite-5-0-0-augment-joins-the-list-of-v0-jvfszbhymq3h1.gif?width=527&auto=webp&s=a20a4e3e624c7f3cf81d284656daaf4dbf0318de)
+*   **Loot toasts:** Items, money, currency and reputation slide in with quality colours and smooth animations. Epic and legendary drops stay on screen longer, with a shine and an optional sound. Choose Compact, Framed or Accent styling, which side the icon and slide-in sit on, and which way the stack grows. With Auto Loot off, Blizzard's loot window picks up the same style.
+*   **Loot rolls:** Horizon's own Need and Greed frames, matching your loot toast style by default. While the timer runs they show who has rolled and who is leading, whether the appearance is new to you, how the item level compares with what you're wearing, and whether it binds on pickup. Rolls below a quality you choose keep Blizzard's frame, so no roll goes missing. Off by default, and you can try a demo without a group.
+*   **Alerts:** Optional toasts for Great Vault rewards, low durability, nearly full bags, new mail, and friends coming online or going offline. Every kind starts off, so you switch on only the ones you want, each with its own threshold and colour.
+*   **Auto Vendor:** Sells your grey items when you open a merchant, with optional rules for unusable and low-level gear. Automatic repairs, from your own gold or the guild bank, are available but off by default.
+*   **Talking Head:** Restyles the NPC dialogue frame, with options to hide the portrait or mute the voice-over.
+*   **Self Highlight:** Uses Blizzard's "find yourself" outline, circle or icon, in combat, and optionally whenever you target an enemy. Off by default.
+*   **Achievement Tracker:** Removes achievements from your tracked list as soon as you earn them. Off by default.
+
+***
+
+## 🎯 <span style="color: #ffd133;">Focus</span> \[Objective Tracker\]
+
+![Focus: quest tracker](Docs/Branding/CurseForge/horizon-focus.png)
+
+Your tracker shouldn't need babysitting. Focus keeps up with you: it surfaces nearby quests, updates as you move, and gets out of the way when you don't need it.
+
+*   **Always relevant:** Nearby quests rise to the top, and the list reorganises when you change zone. Delves, scenarios, raids and world events get their own sections with live progress bars and timers. Zone event quests appear under Events in Zone before you arrive and move to Current Event once you're inside.
+*   **Proximity and auto-focus:** Sort each section closest-first, and optionally super-track the nearest quest automatically. Toggle auto-focus with a key binding.
+*   **Tracks everything:** Achievements with full criteria progress, Endeavors and Decor for housing, transmog appearances, profession recipes and Traveler's Log objectives. One click opens the matching Blizzard panel.
+*   **Recipe shopping lists:** Tracked recipes list the reagents you need. Full reagent detail adds optional and finishing reagents. With [Auctionator](https://www.curseforge.com/wow/addons/auctionator) and the Auction House open, the magnifying glass runs a shopping search; right-click it to multiply every quantity by the number of crafts you want.
+*   **Mythic+ (Retail):** A banner with the dungeon and key level, your timer against the limit with deaths and their time penalty, the time left for +3, +2 and +1, an enemy forces bar, the week's affixes and each boss.
+*   **Dungeon run tracker:** In any party dungeon that isn't a keystone run, a banner shows time inside, experience and gold earned, and the rate of each per hour. Hover it for the bosses you've killed, how long the next level will take at your current pace, and a button to start the run over. The run survives a reload and picks up again after a corpse run.
+*   **Delves and Prey (Retail):** Delve objectives in the standard layout, and Midnight's hunting activities in their own Prey section.
+*   **Rare alerts:** Super-track nearby rares with one click, with optional sound cues.
+*   **Live quest sync:** World quests, dailies and weeklies update as they change, and quests track themselves when you accept them. Countdown timers switch on separately for scenarios, world quests, and dailies and weeklies.
+*   **Your layout, your rules:** Show, fade or hide in combat; show or hide in dungeons, raids and battlegrounds; compact or minimal layouts; show on mouseover only. Choose how clicks behave, down to your own combinations.
+*   **Profiles:** Per character, per specialisation or global. Create, copy, and share them as text strings.
+
+***
+
+## 🎬 <span style="color: #33ffdf;">Presence</span> \[Cinematic Notifications\]
+
+![Presence: zone text](Docs/Branding/CurseForge/horizon-presence.png)
 
 Blizzard's zone text does the job. Presence makes it feel like a moment.
 
-- **Cinematic notifications** — Zone entry, level-ups, boss emotes, achievements, and quest updates arrive as styled toasts with smooth animations, a title/subtitle divider, and an optional "Discovered!" line on first visits.
-- **13 notification types** — Zone entry, subzone changes, level-up, boss emotes, achievements, quest accepted/complete/progress, world quest accepted/complete, scenario start, scenario/delve complete, and scenario/delve objective updates.
-- **Smart queue** — Up to five notifications queue while one plays. Level-ups and boss emotes cut the line automatically.
-- **Mythic+ suppression** — Silence zone, quest, and scenario chatter while you're in a key.
-- **Delve suppression** — Hide objective update popups inside Delves while zone entry and completion toasts still show.
-- **Per-type toggles** — Turn off anything you don't want. Keep only what you care about.
-- **Fully adjustable** — Screen position, scale, font and size for title and subtitle, entrance/exit speed, and hold duration. Tune it to match your playstyle.
+*   **13 notification types:** Zone and subzone changes, level-ups, boss emotes, achievements, quest and world quest updates, and scenario and Delve progress arrive as styled toasts, with an optional "Discovered!" line on your first visit.
+*   **Smart queue:** Up to five notifications wait while one plays. Level-ups and boss emotes jump the queue.
+*   **Quiet when it matters:** Silence zone, quest and scenario chatter during a key, and hide objective popups inside Delves while keeping entry and completion toasts.
+*   **Per-type toggles:** Keep only the notifications you care about. Switch off zone names, achievements or world quests and Blizzard's own versions come straight back.
+*   **Fully adjustable:** Position, scale, fonts and sizes for title and subtitle, animation speed and hold time.
 
----
+***
 
-## 🗺️ <span style="color:#B366FF;">Vista</span> [Minimap]
+## 🗺️ <span style="color: #b366ff;">Vista</span> \[Minimap\]
 
-![Vista - Minimap](https://preview.redd.it/addon-horizon-suite-3-0-0-released-vista-minimap-is-now-out-v0-adkv296wnblg1.gif?width=325&auto=webp&s=f623b0327377002da3eaa64b3ef78062dc7cfebf)
+![Vista: minimap](Docs/Branding/CurseForge/horizon-vista.png)
 
-A minimap that fits your UI — not the other way around.
+A minimap that fits your UI, not the other way round.
 
-- **Square or circular** — Pick your shape. Drag it anywhere, lock it in place, resize from 100–400 px. Optional auto zoom-out after zooming.
-- **Opacity** — Fade the whole minimap cluster in the open world and further in combat; hover restores full visibility.
-- **Zone text, coordinates, time, and FPS/latency** — Each element has its own font, size, and colour; show or hide individually. Click the clock to open the stopwatch.
-- **Instance info** — Difficulty name and Mythic+ keystone level shown automatically inside instances. Place it above or below the minimap separately from zone text; drag to adjust like other overlays.
-- **Addon button collector** — Minimap buttons from other addons grouped into a mouseover bar, right-click panel, or floating drawer. Per-addon filter so you show only what you want.
-- **Built-in controls** — Tracking and calendar buttons. Show always or on mouseover. Draggable, resizable, lockable. Unlock the mail icon to reposition it too.
-- **Mail and queue** — New mail and group queue indicators appear automatically when relevant.
-- **Mouse wheel zoom** — Scroll over the minimap to zoom in and out.
-- **Full typography and colour control** — Border thickness, opacity, panel colours, fonts, SharedMedia support.
+*   **Square or circular:** Drag it anywhere, lock it, and resize it from 100 to 400 px. Mouse-wheel zoom, with an optional automatic zoom-out.
+*   **Opacity:** Fade the minimap in the open world and further in combat; hovering brings it back to full.
+*   **Zone text, coordinates, clock and FPS/latency:** Each has its own font, size and colour, and can be hidden. Click the clock for the stopwatch.
+*   **Instance info:** Difficulty and Mythic+ key level appear automatically inside instances.
+*   **Addon button collector:** Gathers other addons' minimap buttons into a mouseover bar, right-click panel or floating drawer, with a per-addon filter.
+*   **Built-in controls:** Tracking, calendar, mail and queue indicators, each movable and shown always or on mouseover.
+*   **Typography and colour:** Border thickness, panel colours, fonts, and SharedMedia support.
 
----
+***
 
-## 🔍 <span style="color:#FF66B3;">Insight</span> [Tooltips]
+## 🔍 <span style="color: #ff66b3;">Insight</span> \[Tooltips\]
 
-![Insight - Tooltips](https://preview.redd.it/addon-update-horizon-suite-5-0-0-augment-joins-the-list-of-v0-nhy5k1xcpq3h1.png?width=583&format=png&auto=webp&s=480d5d480c327577ae9456cfec0d61624db48e7b)
+![Insight: tooltips](Docs/Branding/CurseForge/horizon-insight.png)
 
-Tooltips that actually tell you who/what you're looking at.
+Tooltips that tell you who you're looking at.
 
-- **Class-coloured names and borders** — Player tooltips tinted to class colour at a glance.
-- **Spec, role, faction, and PvP title** — See what someone plays without having to inspect them.
-- **Item level and Mythic+ score** — iLvl from inspect cache and colour-tiered M+ rating inline.
-- **Mount identification** — Hover a mounted player and see the mount name, source, and whether you own it.
-- **Transmog status** — Item tooltips show whether you've already collected the appearance.
-- **Cinematic presentation** — Dark backdrop, fade-in animation, cursor or fixed anchor. Stored per profile.
-- **Combat mode** — Optional toggle to close styled tooltip frames during combat.
+*   **Class-coloured names and borders** for players at a glance.
+*   **Spec, hero talent, role, faction and PvP title** without having to inspect anyone.
+*   **Item level and Mythic+ score**, with the rating coloured by tier.
+*   **Mount identification:** Hover a mounted player to see the mount, its source and whether you own it.
+*   **Transmog status:** Item tooltips show whether you've collected the appearance.
+*   **Cinematic presentation:** Dark backdrop, fade-in, and a cursor or fixed anchor. Optionally closes styled tooltips during combat.
 
----
+***
+
+## 🛡️ <span style="color: #dc143c;">Essence</span> \[Character Panel\] \[PREVIEW\]
+
+![Essence: character panel](Docs/Branding/CurseForge/horizon-essence.png)
+
+A character sheet built to match the rest of your Horizon UI. It replaces Blizzard's character frame on the C key.
+
+*   **Gear grid:** Every equipped slot with its item level and a quality-coloured border.
+*   **Item level bar:** Your equipped item level against the best you own.
+*   **Secondary stats:** Crit, haste, mastery and versatility as bars beside a 3D model of your character.
+*   **Spec and role:** Your specialisation and role icon on Retail.
+
+**Preview:** Essence is still in early development, so expect rough edges and unfinished parts while we build it out. It's off by default.
+
+***
+
+## 💬 <span style="color: #8fa3e8;">Echo</span> \[Chat\]
+
+![Echo: chat, one conversation at a time](Docs/Branding/CurseForge/horizon-echo.png)
+
+Chat built around conversations instead of one long scroll. Every conversation gets its own tile at the edge of your screen: each person you whisper, Battle.net friends, party, raid, guild, your channels, and feeds for loot, progress and system messages.
+
+*   **Peek or read:** Hover a tile to see the latest messages and reply on the spot, or click it to read the whole conversation as a thread.
+*   **Nothing lost:** Whispers and guild chat are kept between sessions, and you can pin any message.
+*   **Tidy channels:** Channels can share one tile, with a tab for each.
+*   **Familiar where it counts:** Blizzard's own input line sits docked beneath Echo, so slash commands and replies work as before. The combat log stays Blizzard's.
+
+While Echo is on it replaces Blizzard's chat windows, so it starts switched off.
+
+***
 
 ## 🎨 Visuals & UI Design
 
-- **High-fidelity icons** – Distinct icons for Campaign, Legendary, and World Quests.
-- **Customizable colours** – Per-category colour control (title, objective, zone, section). Panel backdrop colour and opacity, with optional stronger opacity and a border on mouseover.
-- **Global Toggles (Axis)** – Under **Axis → Global Toggles**, enable class tint per module or all at once (dashboard, Focus, Presence, Vista, Insight, Cache, Essence), pick a **dashboard background** preset (flat Default, Midnight artwork, or **Specialisation (auto)** using Blizzard’s talent UI art for your current spec—with a short crossfade when you change preset or spec), choose **dashboard font** and **dashboard text size** for the settings window (independent of Focus typography), and set global UI scale (50–200%) or per-module scale sliders for Focus, Presence, Vista, Insight, and Cache.
-- **Typography and spacing** – Fonts, sizes, outlines, and spacing sliders. Optional SharedMedia support for fonts from addon packs. Turn-in highlights and progress counts (e.g. 15/18) at a glance.
-- **Progress bar** – Optional bar under objectives with numeric progress (e.g. 3/250). Configurable font, size, colours, and texture (SharedMedia support: Blizzard status bar, Solid, or addon packs). Filter to show for X/Y objectives (e.g. 3/10), percent-only objectives (e.g. 45%), or both.
-- **Timer layout** – Bar below objectives, inline beside the title, or inline on its own line below the title.
-- **Fluid motion** – Smooth entry/exit animations and a subtle pulse on objective completion.
-- **Scroll indicators** – Optional fade or arrow buttons when the list has more content than visible.
+*   **Colours:** Per-category colour control for titles, objectives, zones and sections. Panel backdrop colour and opacity, with an optional stronger backdrop and border on mouseover.
+*   **Global Toggles (Axis):** Class tint for each module or all at once (dashboard, Focus, Presence, Vista, Insight, Augment and Essence). A global UI scale from 50% to 200%, or separate scales for Focus, Presence, Vista, Insight and Augment. Pick the settings window's background (flat, Midnight artwork, or your current spec's talent art), font and text size.
+*   **Typography:** Fonts, sizes, outlines and spacing, with SharedMedia support for fonts from addon packs.
+*   **Progress bars and timers:** An optional bar under objectives with numeric progress, for X/Y counts, percentages or both, in any SharedMedia texture. Timers sit below objectives, beside the title, or on their own line.
+*   **Motion:** Smooth entry and exit animations, a pulse on completion, and optional scroll indicators when the list overflows.
 
----
+***
 
-## 📥 Addon Compatability
+## 📥 Addon Compatibility
 
-- [SharedMedia](https://www.curseforge.com/wow/addons/sharedmedia)
-- [RondoMedia](https://www.curseforge.com/wow/addons/rondomedia)
-- [ALL THE THINGS](https://www.curseforge.com/wow/addons/all-the-things)
-- [Auctionator](https://www.curseforge.com/wow/addons/auctionator)
-- [Total RP 3](https://www.curseforge.com/wow/addons/total-rp-3)
-- [World Quest Tracker](https://www.curseforge.com/wow/addons/world-quest-tracker)
-- [RareScanner](https://www.curseforge.com/wow/addons/rarescanner)
-  - **Requires** [Horizon Suite - RareScanner](https://www.curseforge.com/wow/addons/horizon-suite-rarescanner)
-- [SilverDragon](https://www.curseforge.com/wow/addons/silver-dragon)
-  - **Requires** [Horizon Suite - SilverDraggon](https://www.curseforge.com/wow/addons/horizon-suite-silverdragon)
+*   [SharedMedia](https://www.curseforge.com/wow/addons/sharedmedia)
+*   [RondoMedia](https://www.curseforge.com/wow/addons/rondomedia)
+*   [ALL THE THINGS](https://www.curseforge.com/wow/addons/all-the-things)
+*   [Auctionator](https://www.curseforge.com/wow/addons/auctionator)
+*   [Total RP 3](https://www.curseforge.com/wow/addons/total-rp-3)
+*   [World Quest Tracker](https://www.curseforge.com/wow/addons/world-quest-tracker)
+*   [RareScanner](https://www.curseforge.com/wow/addons/rarescanner), with [Horizon Suite - RareScanner](https://www.curseforge.com/wow/addons/horizon-suite-rarescanner)
+*   [SilverDragon](https://www.curseforge.com/wow/addons/silver-dragon), with [Horizon Suite - SilverDragon](https://www.curseforge.com/wow/addons/horizon-suite-silverdragon)
 
-**Feel free to send us a message about which AddOns you would like integrated into Horizon Suite!**
+**Send us a message about which AddOns you'd like integrated into Horizon Suite!**
 
----
+***
 
-## 💬 Community & Support
+## 🤝 Community & Support
 
-The more people that use Horizon Suite, the more feedback we have to drive the future of the AddOn.
-Horizon Suite would not be where it is without our lovely community.
+The more people that use Horizon Suite, the more feedback we have to drive the future of the AddOn. Horizon Suite would not be where it is without our lovely community.
 
-|||||||
-|:----:|:----:|:----:|:----:|:----:|:----:|
-|<span style="color:#ff00ae;">**Crys**</span>|<span style="color:#00c98e;">**Swift**</span>|<span style="color:#d883ff;">**Diva**</span>|<span style="color:#8a2be2;">**Sam**</span>|<span style="color:#8a2be2;">**Alex**</span> |<span style="color:#8a2be2;">**Marthix**</span>|
-|Author|Coordinator|Innovator|Developer|Developer|Developer|
+**Thank you to everyone who supports us:** our translators, testers, Patreon and Ko-fi supporters, and everyone who shares feedback on Discord. Additional translations (starting or continuing) are always welcome!
 
-
-||||||
-|:----:|:----:|:----:|:----:|:----:|
-|<span style="color:#F5DEB3;">**Alex**</span>|<span style="color:#F5DEB3;">**Aishuu**</span>|<span style="color:#F5DEB3;">**아즈샤라-두녘**</span>|<span style="color:#F5DEB3;">**Linho-Gallywix**</span>|<span style="color:#F5DEB3;">**allmoon**</span>, <span style="color:#F5DEB3;">**小熊酱**</span>|
-|`deDE`|`frFR`|`koKR`|`ptBR`|`zhCN`|
-
-**Additional translations (starting or continuing) are always welcome!**
-|||
-|:----:|:----:|
-|<span style="color:#4169E1;">**Boofuls**</span>|[**Gabriel C**](https://www.fiverr.com/gc_fresh_ideas)|
-|Moderator & Comissioned:|Horizon Class Icons|
-
-
-
----
+***
