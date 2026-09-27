@@ -10,4 +10,10 @@
   </Binding>
   <Binding name="CLICK HSSecureItemOverlay:LeftButton" description="Use Floating Quest Item" category="Horizon Suite">
   </Binding>
+  <Binding name="HORIZONSUITE_ECHO_REPLY" description="Echo: Reply to newest" category="Horizon Suite">
+    if HorizonSuite and HorizonSuite:IsModuleEnabled("echo") and HorizonSuite.Echo.Stack then HorizonSuite.Echo.Stack.ReplyToNewest() end
+  </Binding>
+  <Binding name="HORIZONSUITE_ECHO_STACK" description="Echo: Toggle stack" category="Horizon Suite">
+    if HorizonSuite and HorizonSuite:IsModuleEnabled("echo") and HorizonSuite.Echo.Stack then HorizonSuite.Echo.Stack.Toggle() end
+  </Binding>
 </Bindings>

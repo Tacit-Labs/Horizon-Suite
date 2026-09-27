@@ -235,7 +235,8 @@ function addon.DashboardSidebar_CreateChrome(p)
     pinnedSep:SetPoint("BOTTOMLEFT", sidebar, "BOTTOMLEFT", 0, SIDEBAR_WHATSNEW_RESERVE)
     pinnedSep:SetPoint("BOTTOMRIGHT", sidebar, "BOTTOMRIGHT", -1, SIDEBAR_WHATSNEW_RESERVE)
 
-    -- iconSpec: string = Interface\Icons\<name>, or { atlas = "AtlasName", useAtlasSize = bool?, fallback = "IconFileName" } for SetAtlas
+    -- iconSpec: string = Interface\Icons\<name> (a string holding a backslash is a full path,
+    -- used as-is, like the Echo icon), or { atlas = "AtlasName", useAtlasSize = bool?, fallback = "IconFileName" } for SetAtlas
     local function ApplySidebarButtonIconTexture(tex, iconSpec)
         if type(iconSpec) == "table" and iconSpec.atlas and tex.SetAtlas then
             local atlas = iconSpec.atlas
@@ -251,7 +252,11 @@ function addon.DashboardSidebar_CreateChrome(p)
             end
         elseif type(iconSpec) == "string" then
             if tex.SetAtlas then tex:SetAtlas(nil) end
-            tex:SetTexture("Interface\\Icons\\" .. iconSpec)
+            if iconSpec:find("\\", 1, true) then
+                tex:SetTexture(iconSpec)
+            else
+                tex:SetTexture("Interface\\Icons\\" .. iconSpec)
+            end
         end
     end
 

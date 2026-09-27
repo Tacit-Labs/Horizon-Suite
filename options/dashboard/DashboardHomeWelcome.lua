@@ -38,7 +38,7 @@ function addon.DashboardHomeWelcome_Init(env)
     local SBg  = (WDef and WDef.SectionCardBg) or { 0.09, 0.09, 0.11, 0.96 }
     local SBgA = SBg[4] * (DASHBOARD_CONTENT_CARD_ALPHA_MULT or 1)
 
-    local MODULE_ORDER = { "focus", "presence", "vista", "insight", "augment", "essence" }
+    local MODULE_ORDER = { "focus", "presence", "vista", "insight", "augment", "essence", "echo" }
 
     local MODULE_COLORS = {
         focus    = { 1.00, 0.82, 0.20 },
@@ -47,7 +47,21 @@ function addon.DashboardHomeWelcome_Init(env)
         insight  = { 1.00, 0.40, 0.70 },
         augment    = { 0.20, 0.80, 0.40 },
         essence  = { 0.86, 0.08, 0.24 },
+        echo     = { 0.56, 0.64, 0.91 },
     }
+
+    -- A "pure" function, tested by extracting the exact source slice below
+    -- (tools/test_echo_logic.js), since this file isn't loaded in the logic harness. A
+    -- module icon that already names a full path (it has a backslash, as the Echo tile art
+    -- does) is used as-is; anything else resolves under Interface\Icons\ as before.
+    -- ECHO_ICON_PATH_HELPER_START
+    local function ModuleIconPath(icon)
+        if type(icon) == "string" and icon:find("\\", 1, true) then return icon end
+        return "Interface\\Icons\\" .. (icon or "INV_Misc_Question_01")
+    end
+    -- ECHO_ICON_PATH_HELPER_END
+
+    local echoAddonName = (addon and addon.ADDON_NAME) or (envAddon and envAddon.ADDON_NAME) or "HorizonSuite"
 
     local MODULE_ICONS = {
         focus    = "achievement_quests_completed_05",
@@ -56,6 +70,7 @@ function addon.DashboardHomeWelcome_Init(env)
         insight  = "ui_profession_inscription",
         augment    = "Spell_holy_powerinfusion",
         essence  = "achievement_character_human_male",
+        echo     = "Interface\\AddOns\\" .. echoAddonName .. "\\media\\echo\\echo_icon.tga",
     }
 
     local MODULE_DESCS = {
@@ -65,6 +80,7 @@ function addon.DashboardHomeWelcome_Init(env)
         insight  = L["HOME_MOD_INSIGHT_SHORT"],
         augment    = L["HOME_MOD_AUGMENT_SHORT"],
         essence  = L["HOME_MOD_ESSENCE_SHORT"],
+        echo     = L["HOME_MOD_ECHO_SHORT"],
     }
 
     -- Horizontal inset is on the scroll frame (match detail/subcategory); cards align to scroll content left.
@@ -200,7 +216,7 @@ function addon.DashboardHomeWelcome_Init(env)
         local iconTex = card:CreateTexture(nil, "ARTWORK")
         iconTex:SetSize(ICON_SIZE, ICON_SIZE)
         iconTex:SetPoint("TOPLEFT", card, "TOPLEFT", 18, -topInset)
-        iconTex:SetTexture("Interface\\Icons\\" .. (MODULE_ICONS[moduleKey] or "INV_Misc_Question_01"))
+        iconTex:SetTexture(ModuleIconPath(MODULE_ICONS[moduleKey]))
         card.iconTex = iconTex
 
         local modName = (moduleLabels and moduleLabels[moduleKey]) or (moduleKey:sub(1, 1):upper() .. moduleKey:sub(2))
