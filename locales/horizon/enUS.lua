@@ -1481,6 +1481,7 @@ L["VISTA_CLASS_COLOURS_DESC"]                                 = "Tint Vista mini
 L["INSIGHT_CLASS_COLOURS_DESC"]                               = "Use class colour for player tooltip name, class line, and border."
 L["AUGMENT_CLASS_COLOURS_DESC"]                                 = "Tint Augment loot icon glow and edit/anchor borders with your class colour."
 L["ESSENCE_CLASS_COLOURS_DESC"]                               = "Tint the character name on the Essence sheet with your class colour."
+L["ECHO_CLASS_COLOURS_DESC"]                                  = "Tint Echo's accent with your class colour: unread badges, the open conversation's outline and tab, your own message bubbles, pins and the send button."
 
 -- =====================================================================
 -- OptionsEssence.lua — Essence options panel

@@ -181,9 +181,8 @@ local function Create()
     card:EnableMouse(true)
     if Echo.Links then Echo.Links.Attach(card) end
 
-    local a = Echo.View.ACCENT
     rule = card:CreateTexture(nil, "OVERLAY")
-    rule:SetColorTexture(a.r, a.g, a.b, 1)
+    Echo.View.TintAccent(rule, "texture")
     rule:SetHeight(2)
     -- Inset by the panel radius on both sides so the rule stays inside the rounded top
     -- corners instead of poking past them.
@@ -261,7 +260,7 @@ local function Create()
     notice.text = Echo.NewText(notice, 11, "")
     notice.text:SetPoint("CENTER", notice, "CENTER", 0, 0)
     notice.text:SetWidth(Stack.WIDTH - 40)
-    notice.text:SetTextColor(a.r, a.g, a.b, 1)
+    Echo.View.TintAccent(notice.text, "text")
     notice:RegisterForClicks("LeftButtonUp")
     notice:SetScript("OnClick", function(self)
         activeNotice = nil

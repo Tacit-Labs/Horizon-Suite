@@ -425,6 +425,7 @@ function addon.ApplyAllClassColorConsumers()
     if fullLayout and not InCombatLockdown() then fullLayout() end
     if addon.Presence and addon.Presence.ApplyPresenceOptions then addon.Presence.ApplyPresenceOptions() end
     if addon.Augment and addon.Augment.ApplyAugmentOptions then addon.Augment.ApplyAugmentOptions() end
+    if addon.Echo and addon.Echo.View and addon.Echo.View.ApplyAccent then addon.Echo.View.ApplyAccent() end
 end
 
 -- Sync db.modules[key].enabled from the active profile's modules map so the

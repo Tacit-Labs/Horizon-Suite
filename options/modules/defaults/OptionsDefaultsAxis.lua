@@ -43,6 +43,7 @@ addon.AXIS_DEFAULTS = {
     classColorFocus                = false,
     classColorPresence             = false,
     classColorAugment                = false,
+    classColorEcho                 = false,
     dashboardClassTheme            = false,
     dashboardShowClassIcon         = false,
     dashboardBackgroundClassOverride = false,

@@ -163,6 +163,9 @@ function OptionsData_SetDB(key, value)
         if key == "classColorAugment" and addon.Augment and addon.Augment.ApplyAugmentOptions then
             addon.Augment.ApplyAugmentOptions()
         end
+        if key == "classColorEcho" and addon.Echo and addon.Echo.View and addon.Echo.View.ApplyAccent then
+            addon.Echo.View.ApplyAccent()
+        end
     end
     if addon.VISTA_KEYS and addon.VISTA_KEYS[key] and addon.Vista then
         if addon.VISTA_OPACITY_LIVE_KEYS and addon.VISTA_OPACITY_LIVE_KEYS[key] then

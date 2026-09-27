@@ -75,7 +75,61 @@ function View.PanelEdge(panelWidth)
 end
 
 -- Echo's module colour, #8FA3E8 (Docs/Branding/ColourSchema.md).
-View.ACCENT = { r = 0x8F / 255, g = 0xA3 / 255, b = 0xE8 / 255 }
+View.BASE_ACCENT = { r = 0x8F / 255, g = 0xA3 / 255, b = 0xE8 / 255 }
+-- The accent every view reads: the module colour, or the player's class colour while Axis
+-- "Class colours - Echo" is on. View.ApplyAccent rewrites it in place, so holders of this
+-- table see the change.
+View.ACCENT = { r = View.BASE_ACCENT.r, g = View.BASE_ACCENT.g, b = View.BASE_ACCENT.b }
+
+-- Painted once at creation, then again by View.ApplyAccent: object -> { how, alpha }.
+local accentTinted = setmetatable({}, { __mode = "k" })
+
+local function PaintAccent(obj, how, alpha)
+    local a = View.ACCENT
+    if how == "texture" then
+        obj:SetColorTexture(a.r, a.g, a.b, alpha)
+    elseif how == "text" then
+        obj:SetTextColor(a.r, a.g, a.b, alpha)
+    elseif how == "round" then
+        Echo.Round.SetColor(obj, a.r, a.g, a.b, alpha)
+    else
+        obj:SetVertexColor(a.r, a.g, a.b, alpha)
+    end
+end
+
+--- Colour an object with the accent now, and again whenever the accent changes. For a
+-- region painted once at creation; a view that repaints reads View.ACCENT instead.
+-- @param obj Texture|FontString|Frame
+-- @param how string  "vertex" (default), "texture" (SetColorTexture), "text", or "round"
+--   (an Echo.Round frame's fill)
+-- @param alpha number|nil  default 1
+function View.TintAccent(obj, how, alpha)
+    if not obj then return end
+    how, alpha = how or "vertex", alpha or 1
+    accentTinted[obj] = { how = how, alpha = alpha }
+    PaintAccent(obj, how, alpha)
+end
+
+--- Point View.ACCENT at the class colour or the module colour, per the Axis toggle, then
+-- repaint whatever shows it.
+function View.ApplyAccent()
+    local cc = addon.GetModuleClassColor and addon.GetModuleClassColor("echo")
+    local base = View.BASE_ACCENT
+    local a = View.ACCENT
+    if cc then
+        a.r, a.g, a.b = cc[1], cc[2], cc[3]
+    else
+        a.r, a.g, a.b = base.r, base.g, base.b
+    end
+    for obj, t in pairs(accentTinted) do PaintAccent(obj, t.how, t.alpha) end
+    -- Off, Echo has nothing on screen to repaint, and a repaint would bring its tiles back.
+    local on = addon.IsModuleEnabled and addon:IsModuleEnabled("echo")
+    if on and Echo.Redraw then
+        Echo.Redraw.Mark("tiles")
+        Echo.Redraw.Mark("stack")
+        Echo.Redraw.Mark("card")
+    end
+end
 View.PANEL_BG = { 0.06, 0.06, 0.09, 0.94 }
 View.PANEL_BORDER = { 0.28, 0.30, 0.38, 0.65 }
 View.GLYPH_BG = { 0.10, 0.10, 0.13, 0.95 }
