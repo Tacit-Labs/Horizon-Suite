@@ -31,7 +31,7 @@ later". This is that plug-in.
 | Automation | **Out.** No auto-pass, no auto-greed. Rolling stays the player's act |
 | Keybindings | Out of v1 |
 | Placement | Own movable anchor, own edit-mode handle, independent of the toast stack |
-| Style source | Existing `augmentToastStyle` chrome, applied through `TS.ApplyChrome` |
+| Style source | Follows `augmentToastStyle` by default via a `__loot__` sentinel, or a fixed style; applied through `TS.ApplyChrome` |
 | Default state | **Off**, pending a live test pass on both clients (Alerts precedent) |
 | Confirm popups | Left to Blizzard. We only hide the popup when our frame goes away |
 

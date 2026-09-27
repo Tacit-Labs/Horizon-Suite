@@ -57,7 +57,12 @@ run(`
                 ToastMotion = { EDGE = 8, CHROME_HEIGHT_PAD = 10 } },
     AUGMENT_DEFAULTS = {}, AUGMENT_LIMITS = {},
     L = setmetatable({}, { __index = function(_, k) return k end }),
-    GetDB = function(k, d) return d end,
+    db = {},
+    GetDB = function(k, d)
+      local v = _G.HorizonSuite.db[k]
+      if v ~= nil then return v end
+      return d
+    end,
     Platform = { caps = { specs = true, transmog = true, lootHistory = true },
                  Has = function(k) return _G.HorizonSuite.Platform.caps[k] == true end },
   }
@@ -227,6 +232,28 @@ run(`
   check("line mentions leader roll", line:find("87") ~= nil, line)
 
   check("nil summary -> empty", T.FormatLine(nil) == "", T.FormatLine(nil))
+
+  -- Roll chrome follows the loot toasts by default. A user with loot toasts in
+  -- Accent expected the roll window to match without hunting for a setting
+  -- (feedback, 2026-09-27), and both the toast stack and the skinned personal
+  -- loot window read the same key, so following it matches either.
+  HorizonSuite.AUGMENT_DEFAULTS.lootRollToastStyle = "__loot__"
+  HorizonSuite.Augment.GetToastStyle = function() return "accent" end
+  check("default follows the loot toast style", R.GetToastStyle() == "accent", R.GetToastStyle())
+
+  HorizonSuite.Augment.GetToastStyle = function() return "compact" end
+  check("it tracks a change to the loot toast style", R.GetToastStyle() == "compact", R.GetToastStyle())
+
+  HorizonSuite.db.lootRollToastStyle = "framed"
+  check("an explicit style still wins", R.GetToastStyle() == "framed", R.GetToastStyle())
+
+  HorizonSuite.db.lootRollToastStyle = "__loot__"
+  check("switching back resumes following", R.GetToastStyle() == "compact", R.GetToastStyle())
+
+  -- Falls back rather than rendering an unstyled frame if loot toasts are gone.
+  HorizonSuite.Augment.GetToastStyle = nil
+  check("no loot toast module: falls back to framed", R.GetToastStyle() == "framed", R.GetToastStyle())
+  HorizonSuite.db.lootRollToastStyle = nil
 
   local won = T.Summarise({ rollInfos = {}, winner = { playerName = "Zed", roll = 99 } })
   check("winner line names winner", T.FormatLine(won):find("Zed") ~= nil, T.FormatLine(won))

@@ -27,7 +27,15 @@ D.augmentLootRollEnabled       = false
 -- Display
 D.lootRollScale                = 1.0
 D.lootRollOpacity              = 100
-D.lootRollToastStyle           = "framed"
+-- Follow the loot toast style unless the player picks a fixed one. Rolls and
+-- loot toasts are the same kind of event, and a user asking for them to match
+-- should not have to find a setting to get it (feedback, 2026-09-27).
+--
+-- This changes the default AFTER 5.11.0 shipped with "framed". Anyone who set
+-- a style explicitly keeps it; anyone who never touched it sees rolls adopt
+-- their loot toast chrome, which is the reported expectation. The mini-module
+-- also still ships disabled, so most installs have never drawn a roll frame.
+D.lootRollToastStyle           = "__loot__"
 D.lootRollFontPath             = "__global__"
 D.lootRollFontSize             = 13
 D.lootRollTextOutlineType      = "OUTLINE"
