@@ -19,6 +19,25 @@ local addon = _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["6.0.0"] = {
+        date = "2026-09-27",
+        {
+            section = "New Features",
+            bullets = {
+                "Echo: a new module that gives every conversation its own tile on the edge of your screen: each person you whisper, Battle.net friends, party, raid, guild, your channels, and feeds for loot, progress and system messages. Hover a tile to peek and reply, or click it to read the whole conversation as a thread.",
+                "Echo: whispers and guild chat are kept between sessions, any message can be pinned, and channels can share one tile with a tab for each.",
+                "Echo: while it is on, Echo takes the place of Blizzard's chat windows, with Blizzard's own input line docked beneath it so slash commands and replies work as before. The combat log stays where it is. Echo starts switched off: turn it on under Axis → Modules and reload.",
+            },
+        },
+        {
+            section = "Improvements",
+            bullets = {
+                "Augment: loot roll frames follow your loot toast style unless you have already chosen a style for them, and Match Loot Toasts now heads the roll frame style list.",
+                "Augment: the Modules page no longer labels Augment as a Preview module.",
+            },
+        },
+    },
+
     ["5.11.0"] = {
         date = "2026-09-26",
         {
