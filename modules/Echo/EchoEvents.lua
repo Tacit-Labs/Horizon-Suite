@@ -190,11 +190,16 @@ function Events.BuildRecord(event, text, sender, _, _, _, _, zoneChannelID, chan
         -- An NPC's name is kept as it reads; a secret or empty one is dropped.
         if not IsSecret(sender) and type(sender) == "string" and sender ~= "" then senderKey = sender end
     elseif not outgoing and kind ~= "whisper" and kind ~= "bnet" then
-        if senderKey ~= nil then
-            outgoing = senderKey == Events.PlayerKey()
-        else
-            -- Secret sender: a readable GUID can still say the line is your own.
-            outgoing = IsPlayerGUID(guid)
+        -- The GUID is asked first: it is exact, while comparing names depends on the realm
+        -- suffix the client chose to send and cannot answer at all when your own name is
+        -- secret. Get it wrong and your own party line is filed as someone else's, so the
+        -- card shows it twice: once as the bubble still waiting for its echo, once as a
+        -- message from you. The name comparison stays as the fallback for a secret GUID.
+        if IsPlayerGUID(guid) then
+            outgoing = true
+        elseif senderKey ~= nil then
+            local me = Events.PlayerKey()
+            outgoing = me ~= nil and senderKey == me
         end
     end
 

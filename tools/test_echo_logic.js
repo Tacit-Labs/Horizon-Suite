@@ -547,6 +547,31 @@ run(`
   UnitGUID = savedUnitGUID
   S.Reset()
 
+  -- Own line whose sender name does not match your own: the GUID decides. A client that
+  -- sends a name Echo cannot rebuild, or a secret UnitName, used to file your own party
+  -- line as someone else's, leaving the bubble stuck on "Sending..." beside a copy of it.
+  savedUnitGUID = UnitGUID
+  UnitGUID = function(unit) if unit == "player" then return "Player-1-ME" end end
+  r = E.BuildRecord("CHAT_MSG_PARTY", payload("yuge", "Kaelis Deadheart", nil, "Player-1-ME"))
+  check("own party line is outgoing when the GUID is yours but the name is not",
+        r and r.outgoing == true and r.sender == nil, r and tostring(r.outgoing))
+  local savedUnitName = UnitName
+  UnitName = function() return SECRET("Kaelis") end
+  r = E.BuildRecord("CHAT_MSG_PARTY", payload("yuge", "Kaelis-Horizon", nil, "Player-1-ME"))
+  check("own party line is outgoing when your own name is secret", r and r.outgoing == true, r and tostring(r.outgoing))
+  r = E.BuildRecord("CHAT_MSG_PARTY", payload("hey all", "Tank-Horizon", nil, "Player-1-DRUID"))
+  check("a secret own name never makes another player's line outgoing",
+        r and r.outgoing == false and r.sender == "Tank-Horizon", r and tostring(r.outgoing))
+  UnitName = savedUnitName
+  S.Reset()
+  own = S.AddPending("party", "yuge")
+  E.Dispatch("CHAT_MSG_PARTY", payload("yuge", "Kaelis Deadheart", nil, "Player-1-ME"))
+  check("an own party line is counted once, not twice",
+        own.status == "sent" and #S.Get("party").messages == 1,
+        own.status .. "/" .. #S.Get("party").messages)
+  UnitGUID = savedUnitGUID
+  S.Reset()
+
   none, reason = E.BuildRecord("CHAT_MSG_AFK", payload("hi", "A-B"))
   check("non-Echo event is ignored", none == nil and reason == "ignored", reason)
 
