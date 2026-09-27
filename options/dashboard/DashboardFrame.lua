@@ -132,7 +132,7 @@ function addon.Dashboard_BuildMainFrame()
             f.dashboardModuleLabels = moduleLabels
 
             -- Preview-labelled modules (tiles, sidebar, welcome); keep in sync with OptionsData Modules toggles.
-            local PREVIEW_MODULE_KEYS = { essence = true, echo = true }
+            local PREVIEW_MODULE_KEYS = { essence = true }
             -- Coming-soon modules: planned but with no in-game content yet.
             local COMING_SOON_MODULE_KEYS = { meridian = true }
 
@@ -165,6 +165,7 @@ function addon.Dashboard_BuildMainFrame()
                 ["Insight"] = "ui_profession_inscription",
                 ["Augment"] = "INV_Misc_Coin_01",
                 ["Essence"] = "achievement_character_human_male",
+                ["Echo"] = "Interface\\AddOns\\" .. (addon.ADDON_NAME or "HorizonSuite") .. "\\media\\echo\\echo_icon.tga",
                 ["Meridian"] = "ability_tracking",
                 ["Typography"] = "INV_Misc_Book_09",
                 ["Colors"] = "INV_Misc_Gem_Diamond_01",

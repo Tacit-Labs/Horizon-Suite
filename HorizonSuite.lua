@@ -181,7 +181,8 @@ function addon:EnsureModulesDB()
     if not db.modules.essence then
         db.modules.essence = { enabled = false }
     end
-    -- Ensure echo exists for existing installs; disabled by default (preview)
+    -- Ensure echo exists for existing installs; off by default, because switching it on
+    -- hides Blizzard's chat windows
     if not db.modules.echo then
         db.modules.echo = { enabled = false }
     end
