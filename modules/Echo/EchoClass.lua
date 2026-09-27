@@ -5,9 +5,9 @@
     A whisper's class is looked up in group, guild then friends (first match wins),
     cached on the conversation, and re-tried on the next roster event. A Battle.net
     friend is resolved live every time, never cached, since they can switch characters.
-    Blizzard: IsInRaid, UnitName, UnitClass, IsInGuild, GetNumGuildMembers,
-    GetGuildRosterInfo, C_FriendList, C_BattleNet, LOCALIZED_CLASS_NAMES_MALE/FEMALE,
-    GROUP_ROSTER_UPDATE, GUILD_ROSTER_UPDATE, FRIENDLIST_UPDATE, BN_FRIEND_INFO_CHANGED.
+    Blizzard: IsInRaid, UnitFullName, UnitName, GetUnitName, UnitClass, IsInGuild,
+    GetNumGuildMembers, GetGuildRosterInfo, C_FriendList, C_BattleNet,
+    LOCALIZED_CLASS_NAMES_MALE/FEMALE, GROUP_ROSTER_UPDATE, GUILD_ROSTER_UPDATE, FRIENDLIST_UPDATE, BN_FRIEND_INFO_CHANGED.
 ]]
 
 local addon = _G.HorizonSuite
@@ -62,19 +62,31 @@ end
 
 --- A unit's name and realm, preferring `UnitFullName` (splits the two cleanly on every
 -- client that has it) and falling back to `UnitName` (whose realm return is nil or empty
--- for your own realm) when it doesn't.
+-- for your own realm) when it doesn't. Both return only the given name on a client with
+-- surnames (WoW: Forever), so the name comes from `GetUnitName` where it can be read, with
+-- its "-Realm" cut off; the given name is returned as well.
 -- @param unit string
--- @return string|nil name, string|nil realm
+-- @return string|nil name, string|nil realm, string|nil given
 local function UnitNameAndRealm(unit)
+    local given, realm
     if type(UnitFullName) == "function" then
-        local ok, name, realm = pcall(UnitFullName, unit)
-        if ok and Readable(name) then return name, realm end
+        local ok, n, r = pcall(UnitFullName, unit)
+        if ok and Readable(n) then given, realm = n, r end
     end
-    if type(UnitName) == "function" then
-        local ok, name, realm = pcall(UnitName, unit)
-        if ok and Readable(name) then return name, realm end
+    if not given and type(UnitName) == "function" then
+        local ok, n, r = pcall(UnitName, unit)
+        if ok and Readable(n) then given, realm = n, r end
     end
-    return nil, nil
+    if not given then return nil, nil, nil end
+    local name = given
+    if type(GetUnitName) == "function" then
+        local ok, full = pcall(GetUnitName, unit, true)
+        if ok and Readable(full) then
+            full = full:match("^(.-)%-.+$") or full
+            if full ~= "" then name = full end
+        end
+    end
+    return name, realm, given
 end
 
 --- @param targetName string  "Name-Realm"
@@ -91,13 +103,16 @@ local function GroupClass(targetName)
     if inRaid then prefix, count = "raid", 40 end
     for i = 1, count do
         local unit = prefix .. i
-        local name, realm = UnitNameAndRealm(unit)
+        local name, realm, given = UnitNameAndRealm(unit)
         if Readable(name) then
             -- A readable realm ("Aerie Peak") loses its spaces before joining, matching
             -- the conversation key ("Kaelis-AeriePeak").
             if Readable(realm) then realm = realm:gsub(" ", "") end
+            -- The given-name form matches too: which form a Forever whisper's sender
+            -- carries is not yet verified. On Retail the two are the same name.
             local full = FullName(name, realm)
-            if full and full == targetName then
+            local short = given ~= name and FullName(given, realm) or nil
+            if (full and full == targetName) or (short and short == targetName) then
                 local okClass, classFile = pcall(function() return select(2, UnitClass(unit)) end)
                 if okClass and Readable(classFile) then return classFile, "group" end
             end

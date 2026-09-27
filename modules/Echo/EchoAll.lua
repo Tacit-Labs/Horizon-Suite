@@ -26,7 +26,7 @@
         Battle.net connection notices, a regional send failure. Each only where the client
         has the event and the string Blizzard formats it with.
     Blizzard: hooksecurefunc, DEFAULT_CHAT_FRAME.AddMessage (post-hook only), debugstack,
-    UnitName, ChatTypeGroup, ChatTypeInfo, GetChatWindowMessages, C_EventUtils.IsEventValid,
+    GetUnitName, ChatTypeGroup, ChatTypeInfo, GetChatWindowMessages, C_EventUtils.IsEventValid,
     SecondsToTime, and the global strings named below.
 ]]
 
@@ -147,7 +147,7 @@ function All.PrefixFor(conv, record)
     if Store.FEED_KINDS[kind] or NAMED_STYLES[record.style] then return head end
     local who
     if record.outgoing then
-        who = Readable(UnitName and UnitName("player"))
+        who = Echo.Events and Echo.Events.PlayerName()
     else
         who = Readable(View.SenderName(record))
     end

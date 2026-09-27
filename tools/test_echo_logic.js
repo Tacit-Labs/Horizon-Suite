@@ -11408,6 +11408,83 @@ run(`
   S.Reset()
 `, 'final-h5');
 
+// --- WoW: Forever surnames: UnitName carries the given name only ----------------------
+run(`
+  local Echo = HorizonSuite.Echo
+  local S, E, V, A = Echo.Store, Echo.Events, Echo.View, Echo.All
+  S.Reset()
+  local savedUnitName, savedGetUnitName = UnitName, GetUnitName
+
+  -- Retail shape: no GetUnitName surname, so nothing changes.
+  check("forever: without GetUnitName the name is UnitName's", E.PlayerName() == "Kaelis", E.PlayerName())
+
+  -- Forever shape: GetUnitName carries the surname, UnitName does not.
+  GetUnitName = function(unit, showServer) if unit == "player" then return "Kaelis Deadheart" end end
+  check("forever: the player's name includes the surname", E.PlayerName() == "Kaelis Deadheart", E.PlayerName())
+  check("forever: the player key includes the surname", E.PlayerKey() == "Kaelis Deadheart-Horizon", E.PlayerKey())
+  check("forever: the full key is yours", E.IsPlayerKey("Kaelis Deadheart-Horizon") == true, "no")
+  check("forever: the given-name key is still yours", E.IsPlayerKey("Kaelis-Horizon") == true, "no")
+  check("forever: another player is not you", E.IsPlayerKey("Kaelis Stormborn-Horizon") == false, "yes")
+  check("forever: a secret key is never compared", E.IsPlayerKey(SECRET("Kaelis-Horizon")) == false, "yes")
+
+  GetUnitName = function(unit) if unit == "player" then return "Kaelis Deadheart-Aerie Peak" end end
+  check("forever: a realm suffix from GetUnitName is cut", E.PlayerName() == "Kaelis Deadheart", E.PlayerName())
+  GetUnitName = function() return SECRET("Kaelis Deadheart") end
+  check("forever: a secret GetUnitName falls back to UnitName", E.PlayerName() == "Kaelis", E.PlayerName())
+  GetUnitName = function() error("no unit") end
+  check("forever: a throwing GetUnitName falls back to UnitName", E.PlayerName() == "Kaelis", E.PlayerName())
+  GetUnitName = function(unit) if unit == "player" then return "Kaelis Deadheart" end end
+
+  -- A whisper to yourself is recognised whichever form the sender arrives in.
+  local function payload(text, sender)
+    return text, sender, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil
+  end
+  local r = E.BuildRecord("CHAT_MSG_WHISPER", payload("note", "Kaelis Deadheart-Horizon"))
+  check("forever: a whisper from your full name is to yourself", r and r.toSelf == true, r and tostring(r.toSelf))
+  r = E.BuildRecord("CHAT_MSG_WHISPER", payload("note", "Kaelis-Horizon"))
+  check("forever: a whisper from your given name is to yourself", r and r.toSelf == true, r and tostring(r.toSelf))
+  r = E.BuildRecord("CHAT_MSG_PARTY", payload("omw", "Kaelis Deadheart-Horizon"))
+  check("forever: your own party line by full name is outgoing", r and r.outgoing == true, r and tostring(r.outgoing))
+  r = E.BuildRecord("CHAT_MSG_PARTY", payload("hi", "Kaelis Stormborn-Horizon"))
+  check("forever: a namesake's party line is not yours", r and r.outgoing == false, r and tostring(r.outgoing))
+  check("forever: your given name is still a mention", E.IsMention("kaelis, you there?") == true, "no")
+
+  -- Your own lines name you in full.
+  S.Add({ convKey = "nearby", text = "hello", sender = "Brisa-Horizon", style = "say" })
+  local nearby = S.Get("nearby")
+  check("forever: your own emote names you in full",
+        V.LineText(nearby, { style = "emote", text = "waves.", outgoing = true }) == "Kaelis Deadheart waves.",
+        V.LineText(nearby, { style = "emote", text = "waves.", outgoing = true }))
+  if A and A.PrefixFor then
+    local prefix = A.PrefixFor(nearby, { outgoing = true, text = "hi", style = "say" })
+    check("forever: your own All line names you in full",
+          type(prefix) == "string" and prefix:find("Kaelis Deadheart:", 1, true) ~= nil, prefix)
+  end
+
+  -- A group member's class resolves from the full name or the given-name form.
+  local saved = { IsInRaid = IsInRaid, UnitFullName = UnitFullName, UnitClass = UnitClass,
+                  IsInGuild = IsInGuild, C_FriendList = C_FriendList }
+  IsInRaid = function() return false end
+  IsInGuild = function() return false end
+  C_FriendList = nil
+  UnitFullName = function(unit) if unit == "party1" then return "Brisa", "Horizon" end end
+  GetUnitName = function(unit) if unit == "party1" then return "Brisa Windsong" end end
+  UnitClass = function(unit) if unit == "party1" then return "Druid", "DRUID" end end
+  S.Add({ convKey = "w:Brisa Windsong-Horizon", text = "hi" })
+  local class, source = Echo.Class.Resolve(S.Get("w:Brisa Windsong-Horizon"))
+  check("forever: a group member resolves by full name", class == "DRUID" and source == "group",
+        tostring(class) .. "/" .. tostring(source))
+  S.Add({ convKey = "w:Brisa-Horizon", text = "hi" })
+  class, source = Echo.Class.Resolve(S.Get("w:Brisa-Horizon"))
+  check("forever: a group member resolves by given name", class == "DRUID" and source == "group",
+        tostring(class) .. "/" .. tostring(source))
+  IsInRaid, UnitFullName, UnitClass = saved.IsInRaid, saved.UnitFullName, saved.UnitClass
+  IsInGuild, C_FriendList = saved.IsInGuild, saved.C_FriendList
+
+  UnitName, GetUnitName = savedUnitName, savedGetUnitName
+  S.Reset()
+`, 'forever-surnames');
+
 // --- Summary -------------------------------------------------------------------
 run(`
   print(PASS .. " passed, " .. FAIL .. " failed")

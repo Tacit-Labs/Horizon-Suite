@@ -8,8 +8,8 @@
     do for Blizzard's chat windows: a blocked line is dropped, a rewritten one filed as
     rewritten.
     Blizzard: CHAT_MSG_* events, GetPlayerInfoByGUID, GetNormalizedRealmName, UnitGUID,
-    ERR_CHAT_PLAYER_NOT_FOUND_S, ChatFrameUtil.ProcessMessageEventFilters (legacy
-    ChatFrame_GetMessageEventFilters), ChatFrame1.
+    UnitName, GetUnitName, ERR_CHAT_PLAYER_NOT_FOUND_S, ChatFrameUtil.ProcessMessageEventFilters
+    (legacy ChatFrame_GetMessageEventFilters), ChatFrame1.
 ]]
 
 local addon = _G.HorizonSuite
@@ -48,9 +48,50 @@ function Events.NormaliseName(name)
     return name
 end
 
---- @return string|nil  The player's "Name-Realm"
+--- A readable, non-empty string, or nil.
+local function ReadableName(v)
+    if IsSecret(v) or type(v) ~= "string" or v == "" then return nil end
+    return v
+end
+
+--- The player's given name: all UnitName returns on a client with surnames (WoW: Forever).
+-- @return string|nil  nil when missing or secret
+local function PlayerGivenName()
+    if type(UnitName) ~= "function" then return nil end
+    local ok, name = pcall(UnitName, "player")
+    return ok and ReadableName(name) or nil
+end
+
+--- The player's name as the game shows it, without a realm: the given name plus the
+-- surname on WoW: Forever, where UnitName returns only the given name. GetUnitName adds
+-- "-Realm" for another realm, which the player never is; it is cut anyway, as Essence does.
+-- @return string|nil  nil when missing or secret
+function Events.PlayerName()
+    if type(GetUnitName) == "function" then
+        local ok, full = pcall(GetUnitName, "player", true)
+        full = ok and ReadableName(full) or nil
+        if full then return ReadableName(full:match("^(.-)%-.+$") or full) or PlayerGivenName() end
+    end
+    return PlayerGivenName()
+end
+
+--- @return string|nil  The player's "Name-Realm", surname included where the client has one
 function Events.PlayerKey()
-    return Events.NormaliseName(UnitName and UnitName("player"))
+    return Events.NormaliseName(Events.PlayerName())
+end
+
+--- True when a readable "Name-Realm" is the player's own. The given-name form matches as
+-- well as the full one: which of the two a Forever client puts in a chat sender is not yet
+-- verified, and before surnames were handled the given-name form was the only one compared.
+-- On Retail both forms are the same name.
+-- @param key any
+-- @return boolean
+function Events.IsPlayerKey(key)
+    if IsSecret(key) or type(key) ~= "string" or key == "" then return false end
+    local full = Events.PlayerKey()
+    if full ~= nil and key == full then return true end
+    local given = Events.NormaliseName(PlayerGivenName())
+    return given ~= nil and key == given
 end
 
 --- True when a readable GUID is the player's own. Secret GUIDs are never compared.
@@ -76,8 +117,10 @@ end
 function Events.IsMention(text)
     if IsSecret(text) or type(text) ~= "string" then return false end
     local lower = text:lower()
-    local me = UnitName and UnitName("player")
-    if type(me) == "string" and me ~= "" and lower:find(me:lower(), 1, true) then return true end
+    -- The given name, not the full one: people call you by it, and on a client with
+    -- surnames the full name contains it, so a line using the full name matches too.
+    local me = PlayerGivenName()
+    if me and lower:find(me:lower(), 1, true) then return true end
     for _, word in ipairs(Events.keywords) do
         if type(word) == "string" and word ~= "" and lower:find(word:lower(), 1, true) then return true end
     end
@@ -198,8 +241,7 @@ function Events.BuildRecord(event, text, sender, _, _, _, _, zoneChannelID, chan
         if IsPlayerGUID(guid) then
             outgoing = true
         elseif senderKey ~= nil then
-            local me = Events.PlayerKey()
-            outgoing = me ~= nil and senderKey == me
+            outgoing = Events.IsPlayerKey(senderKey)
         end
     end
 
@@ -223,7 +265,7 @@ function Events.BuildRecord(event, text, sender, _, _, _, _, zoneChannelID, chan
     -- An NPC's line: its sender is a creature's plain name, never a player to whisper or invite.
     if npc then record.npc = true end
     -- A whisper to yourself arrives twice: the received copy, then the sent echo.
-    if kind == "whisper" and senderKey ~= nil and senderKey == Events.PlayerKey() then
+    if kind == "whisper" and senderKey ~= nil and Events.IsPlayerKey(senderKey) then
         record.toSelf = true
     end
     -- The joined slot this line arrived on; Send replies there (it follows you between zones).
