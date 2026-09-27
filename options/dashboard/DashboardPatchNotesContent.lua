@@ -36,6 +36,7 @@ local PN_MODULE_COLORS = {
     ["Flow"]     = "3399FF",
     ["Vista"]    = "B366FF",
     ["Insight"]  = "FF66B3",
+    ["Echo"]     = "8FA3E8",
     ["Axis"]     = "E0E0E0",
     -- Core is the addon itself rather than a module, but a bullet prefixed "Core:"
     -- was the one prefix that rendered in body colour and read as ordinary copy.
