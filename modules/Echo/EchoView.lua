@@ -705,8 +705,7 @@ function View.LineText(conv, msg)
         if msg.style ~= "emote" then return text end
         local name
         if msg.outgoing then
-            local me = UnitName and UnitName("player")
-            if not Echo.IsSecret(me) and type(me) == "string" and me ~= "" then name = me end
+            name = Echo.Events and Echo.Events.PlayerName()
         else
             name = View.SenderName(msg)
         end
@@ -914,7 +913,7 @@ function View.InviteTarget(conv)
     else
         return nil
     end
-    if Echo.Events and target == Echo.Events.PlayerKey() then return nil end
+    if Echo.Events and Echo.Events.IsPlayerKey(target) then return nil end
     return target
 end
 
@@ -940,7 +939,7 @@ function View.MessageSender(convKey, record)
     end
     if Echo.IsSecret(sender) or type(sender) ~= "string" or sender == "" then return nil end
     if sender:find("|", 1, true) or sender:find("%s") then return nil end
-    if Echo.Events and sender == Echo.Events.PlayerKey() then return nil end
+    if Echo.Events and Echo.Events.IsPlayerKey(sender) then return nil end
     return sender
 end
 

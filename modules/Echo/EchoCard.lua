@@ -1593,8 +1593,7 @@ function Card.ShowPinTooltip(owner)
     local View = Echo.View
     local who
     if pin.outgoing then
-        local name = UnitName and UnitName("player")
-        if not Echo.IsSecret(name) and type(name) == "string" then who = name end
+        who = Echo.Events and Echo.Events.PlayerName()
     elseif not Echo.IsSecret(pin.sender) and type(pin.sender) == "string" then
         who = pin.sender:match("^([^-]+)") or pin.sender
     end
