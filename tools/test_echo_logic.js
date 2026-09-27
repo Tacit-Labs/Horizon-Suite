@@ -1193,8 +1193,10 @@ run(`
   S.Add({ convKey = "party", text = "now", sender = "Tank-Horizon" })
   local party = S.Get("party")
   local pspec = V.TileSpec(party)
-  check("a party tile is a glyph", pspec.glyph == true and pspec.letter == "P", pspec.letter)
-  check("the glyph uses Blizzard's party colour", pspec.r == 0.67 and pspec.b == 1, pspec.r)
+  check("a party tile is an icon", pspec.face == "icon" and pspec.icon == V.KIND_ICONS.party, tostring(pspec.face))
+  check("a party tile is labelled with its name", pspec.label == "ECHO_KIND_PARTY", tostring(pspec.label))
+  check("a party tile shows no glyph letter", pspec.letter == "", tostring(pspec.letter))
+  check("the party tile keeps Blizzard's party colour", pspec.r == 0.67 and pspec.b == 1, pspec.r)
   check("a count-tier tile shows the number", pspec.badge == "count" and pspec.count == 2, pspec.badge)
   check("a group line names the speaker", V.LineText(party, party.messages[1]) == "Tank: pull", V.LineText(party, party.messages[1]))
   check("a group's name is its label", V.DisplayName(party) == "ECHO_KIND_PARTY", V.DisplayName(party))
@@ -9967,7 +9969,7 @@ run(`
   local function BorderAlpha(f) return rawget(f, "_echoRound").border.lines.top.vertexColor[4] end
   local function Masked(icon) return next(icon.masks) ~= nil end
   local loot = { kind = "loot", key = "loot", unread = 0 }
-  local party = { kind = "party", key = "party", unread = 0 }
+  local glyph = { kind = "instance", key = "instance", unread = 0 }
 
   local expected = "Interface\\\\AddOns\\\\" .. (HorizonSuite.ADDON_NAME or "HorizonSuite") .. "\\\\media\\\\echo\\\\tile_mask.tga"
   check("tile images: the mask path uses the addon folder", T.TILE_MASK == expected, tostring(T.TILE_MASK))
@@ -9989,7 +9991,7 @@ run(`
   check("tile images: a repaint adds no second mask", b.maskCount == 1 and b.icon.maskAdds == 1, b.icon.maskAdds)
 
   -- The same tile reused for a glyph face keeps its fill and drops the mask.
-  T._paintTile(b, party)
+  T._paintTile(b, glyph)
   check("tile images: a glyph tile keeps its fill", FillAlpha(b) == V.GLYPH_BG[4], FillAlpha(b))
   check("tile images: and its border", BorderAlpha(b) == 0.8, BorderAlpha(b))
   check("tile images: and its icon is unmasked", not Masked(b.icon), "masked")
@@ -10022,7 +10024,7 @@ run(`
   Card._paintTile(r, V.TileSpec(loot), true)
   check("card tiles: the shown image sits inside the accent outline", Inset(r.icon) == "TOPLEFT,2,-2,BOTTOMRIGHT,-2,2"
     and BorderAlpha(r) == 1 and FillAlpha(r) == 0, Inset(r.icon))
-  Card._paintTile(r, V.TileSpec(party), false)
+  Card._paintTile(r, V.TileSpec(glyph), false)
   check("card tiles: a glyph keeps its fill and inset", FillAlpha(r) == V.GLYPH_BG[4]
     and Inset(r.icon) == "TOPLEFT,3,-3,BOTTOMRIGHT,-3,3" and not Masked(r.icon), FillAlpha(r))
   CreateFrame = STUB_CREATE_FRAME
@@ -10077,7 +10079,7 @@ run(`
   end
   local function Masked(icon) return next(icon.masks) ~= nil end
   local loot = { kind = "loot", key = "loot", unread = 0 }
-  local party = { kind = "party", key = "party", unread = 0 }
+  local glyph = { kind = "instance", key = "instance", unread = 0 }
   local expected = "Interface\\\\AddOns\\\\" .. (HorizonSuite.ADDON_NAME or "HorizonSuite") .. "\\\\media\\\\echo\\\\tile_mask_small.tga"
   check("small tile mask: the path uses the addon folder", T.TILE_MASK_SMALL == expected, tostring(T.TILE_MASK_SMALL))
 
@@ -10113,7 +10115,7 @@ run(`
         and c.lastMask.allPoints == c.tileIcon, tostring(c.lastMask and c.lastMask.texture))
   check("stack tile: no colour behind the image", c.tile.colorTexture and c.tile.colorTexture[4] == 0,
         c.tile.colorTexture and c.tile.colorTexture[4])
-  K._paintCardTile(c, V.TileSpec(party))
+  K._paintCardTile(c, V.TileSpec(glyph))
   check("stack tile: a glyph keeps its 2px inset", Inset(c.tileIcon, c.tile) == "TOPLEFT,2,-2,BOTTOMRIGHT,-2,2", Inset(c.tileIcon, c.tile))
   check("stack tile: and its fill, unmasked", c.tile.colorTexture[4] == V.GLYPH_BG[4] and not Masked(c.tileIcon), c.tile.colorTexture[4])
   local old = StackCard(STUB_CREATE_FRAME)
@@ -10141,7 +10143,7 @@ run(`
         te.icon.colorTexture and te.icon.colorTexture[4])
   check("toast icon: no coloured edge around it", te.iconBg.shown == false and te.iconDark.shown == false, "edge shown")
   te.iconBg:Show(); te.iconDark:Show()
-  T._paintToastFace(tf, te, V.TileSpec(party))
+  T._paintToastFace(tf, te, V.TileSpec(glyph))
   check("toast icon: a glyph keeps its fill, unmasked", te.icon.colorTexture[4] == V.GLYPH_BG[4] and not Masked(te.face),
         te.icon.colorTexture[4])
   check("toast icon: and the style's chip", te.iconBg.shown == true and te.iconDark.shown == true, "hidden")
@@ -11270,32 +11272,56 @@ run(`
   check("column tile: General icon textured", genTile.icon.texture == V.CHANNEL_ICONS.General, tostring(genTile.icon.texture))
   check("column tile: General label shown", genTile.label.text == "Gen", genTile.label.text)
 
-  -- A party glyph: letter "P" at the full size; the column tile's label shade stays hidden.
+  -- Party and raid carry an icon and their name instead of a glyph letter, like General.
   S.Add({ convKey = "party", text = "pull", sender = "Tank-Horizon" })
   local partySpec = V.TileSpec(S.Get("party"))
-  check("setup: party is a glyph P", partySpec.glyph == true and partySpec.letter == "P", partySpec.letter)
+  check("setup: party is an icon with a Party label", partySpec.face == "icon" and partySpec.label == "ECHO_KIND_PARTY", tostring(partySpec.label))
 
   local partyTile = T.TileFor("party")
-  check("column tile: party letter", partyTile.letter.text == "P", partyTile.letter.text)
-  check("column tile: party full size", partyTile.letter._echoSize == 16, tostring(partyTile.letter._echoSize))
-  check("column tile: label shade hidden for a glyph tile", partyTile.labelShade.shown == false, tostring(partyTile.labelShade.shown))
+  check("column tile: party icon shown", partyTile.icon.shown == true, tostring(partyTile.icon.shown))
+  check("column tile: party icon textured", partyTile.icon.texture == V.KIND_ICONS.party, tostring(partyTile.icon.texture))
+  check("column tile: party label shown", partyTile.label.text == "ECHO_KIND_PARTY", partyTile.label.text)
+  check("column tile: party shows no letter", partyTile.letter.text == "", partyTile.letter.text)
+
+  S.Add({ convKey = "raid", text = "bl on pull", sender = "Lead-Horizon" })
+  local raidSpec = V.TileSpec(S.Get("raid"))
+  check("setup: raid is an icon with a Raid label", raidSpec.face == "icon" and raidSpec.label == "ECHO_KIND_RAID", tostring(raidSpec.label))
+  local raidTile = T.TileFor("raid")
+  check("column tile: raid icon textured", raidTile.icon.texture == V.KIND_ICONS.raid, tostring(raidTile.icon.texture))
 
   C.Open("party")
   local partyRow
   for _, b in ipairs(cf.rowTiles) do if b.convKey == "party" then partyRow = b end end
-  check("card row tile: party letter", partyRow and partyRow.letter.text == "P", "?")
-  check("card row tile: party full size", partyRow and partyRow.letter._echoSize == 12, tostring(partyRow and partyRow.letter._echoSize))
+  check("card row tile: party icon textured", partyRow and partyRow.icon.texture == V.KIND_ICONS.party, "?")
+  check("card row tile: party shows no letter", partyRow and partyRow.letter.text == "", "?")
   C.Hide()
 
-  K.Open("party")
-  check("stack card tile: party letter", kf.card.letter.text == "P", kf.card.letter.text)
-  check("stack card tile: party full size", kf.card.letter._echoSize == 14, tostring(kf.card.letter._echoSize))
+  -- An instance glyph: letter "I" at the full size; the column tile's label shade stays hidden.
+  S.Add({ convKey = "instance", text = "gg", sender = "Tank-Horizon" })
+  local instSpec = V.TileSpec(S.Get("instance"))
+  check("setup: instance is a glyph I", instSpec.glyph == true and instSpec.letter == "I", instSpec.letter)
+
+  local instTile = T.TileFor("instance")
+  check("column tile: instance letter", instTile.letter.text == "I", instTile.letter.text)
+  check("column tile: instance full size", instTile.letter._echoSize == 16, tostring(instTile.letter._echoSize))
+  check("column tile: label shade hidden for a glyph tile", instTile.labelShade.shown == false, tostring(instTile.labelShade.shown))
+
+  C.Open("instance")
+  local instRow
+  for _, b in ipairs(cf.rowTiles) do if b.convKey == "instance" then instRow = b end end
+  check("card row tile: instance letter", instRow and instRow.letter.text == "I", "?")
+  check("card row tile: instance full size", instRow and instRow.letter._echoSize == 12, tostring(instRow and instRow.letter._echoSize))
+  C.Hide()
+
+  K.Open("instance")
+  check("stack card tile: instance letter", kf.card.letter.text == "I", kf.card.letter.text)
+  check("stack card tile: instance full size", kf.card.letter._echoSize == 14, tostring(kf.card.letter._echoSize))
   K.Hide()
 
-  T.ShowToast("party")
+  T.ShowToast("instance")
   toast = T._toast()
-  check("toast: party letter", toast.entry.letter.text == "P", toast.entry.letter.text)
-  check("toast: party full size", toast.entry.letter._echoSize == 14, tostring(toast.entry.letter._echoSize))
+  check("toast: instance letter", toast.entry.letter.text == "I", toast.entry.letter.text)
+  check("toast: instance full size", toast.entry.letter._echoSize == 14, tostring(toast.entry.letter._echoSize))
 
   C.Disable()
   K.Disable()
@@ -11345,9 +11371,13 @@ run(`
   check("H5: the label shade draws in ARTWORK, above the tile's BACKGROUND fill", shadeRR ~= nil and shadeRR.layer == "ARTWORK", shadeRR and shadeRR.layer)
   check("H5: a labelled tile moves its count off the bottom name", tile.count.points[#tile.count.points][1] == "TOPLEFT", tile.count.points[#tile.count.points][1])
 
+  S.Add({ convKey = "instance", text = "pull", sender = "Tank-Horizon" })
+  local instTile = T.TileFor("instance")
+  check("H5: a glyph tile with no label keeps the count at the bottom corner", instTile.count.points[#instTile.count.points][1] == "BOTTOMRIGHT", instTile.count.points[#instTile.count.points][1])
+
   S.Add({ convKey = "party", text = "pull", sender = "Tank-Horizon" })
   local partyTile = T.TileFor("party")
-  check("H5: a glyph tile with no label keeps the count at the bottom corner", partyTile.count.points[#partyTile.count.points][1] == "BOTTOMRIGHT", partyTile.count.points[#partyTile.count.points][1])
+  check("H5: the labelled party tile moves its count off the name", partyTile.count.points[#partyTile.count.points][1] == "TOPLEFT", partyTile.count.points[#partyTile.count.points][1])
 
   T.Disable()
   S.Reset()

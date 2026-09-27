@@ -85,6 +85,13 @@ View.BNET = { r = 0.00, g = 0.68, b = 1.00 }
 
 View.GLYPHS = { party = "P", raid = "R", instance = "I", guild = "G", officer = "O" }
 
+-- Group kinds that show an icon and their name instead of a glyph letter. A kind without an
+-- entry here keeps its glyph from View.GLYPHS.
+View.KIND_ICONS = {
+    party = "Interface\\Icons\\Spell_Holy_PrayerOfHealing",
+    raid = "Interface\\Icons\\INV_Misc_Tournaments_banner_Human",
+}
+
 -- Battle.net's logo, uncropped: the only art a Battle.net tile without a class ever shows.
 View.BNET_LOGO = "Interface\\FriendsFrame\\Battlenet-Battleneticon"
 
@@ -538,6 +545,12 @@ function View.TileSpec(conv)
             spec.letter = View.GLYPHS.guild
             spec.r, spec.g, spec.b = View.ChatColor(kind)
         end
+    elseif View.KIND_ICONS[kind] then
+        spec.face = "icon"
+        spec.icon = View.KIND_ICONS[kind]
+        spec.glyph = true
+        spec.label = L["ECHO_KIND_" .. kind:upper()]
+        spec.r, spec.g, spec.b = View.ChatColor(kind)
     else
         spec.face = "glyph"
         spec.glyph = true
