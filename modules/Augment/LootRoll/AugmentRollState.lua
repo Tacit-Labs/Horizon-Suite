@@ -162,10 +162,19 @@ local function clamped(key, fallback)
     return v
 end
 
+-- Sentinel meaning "whatever the loot toasts are using". Mirrors the font
+-- dropdown's "__global__" below: one value that defers rather than duplicating
+-- the setting. Y.GetToastStyle drives both the loot toast stack and the
+-- skinned personal loot window, so following it matches either.
+R.STYLE_MATCH_LOOT = "__loot__"
+
 --- @return string styleID "compact", "framed", or "accent"
 function R.GetToastStyle()
     local D = addon.AUGMENT_DEFAULTS
     local raw = getDB("lootRollToastStyle", D.lootRollToastStyle)
+    if raw == R.STYLE_MATCH_LOOT and Y.GetToastStyle then
+        return Y.GetToastStyle()
+    end
     local TS = Y.ToastStyles
     return (TS and TS.Normalize and TS.Normalize(raw)) or "framed"
 end

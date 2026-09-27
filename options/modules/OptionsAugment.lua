@@ -126,7 +126,13 @@ local categories = {
                                 { L["AUGMENT_TOAST_STYLE_ACCENT"],  "accent"  },
                             },
                             get = function() return getDB("augmentToastStyle", D.augmentToastStyle) end,
-                            set = function(v) setDB("augmentToastStyle", v) end,
+                            -- Roll frames default to following this one, so
+                            -- repaint them too rather than making the match
+                            -- wait for a reload.
+                            set = function(v)
+                                setDB("augmentToastStyle", v)
+                                if addon.ApplyLootRollOptions then addon.ApplyLootRollOptions() end
+                            end,
                             preserveOrder = true,
                         },
                         { type = "dropdown",

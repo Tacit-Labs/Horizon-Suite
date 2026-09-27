@@ -36,6 +36,10 @@ local function applyRoll()
     R.ApplyOptions()
 end
 
+-- Exported so the Augment loot page can repaint roll frames when the loot
+-- toast style changes: rolls following it must not wait for a reload.
+addon.ApplyLootRollOptions = applyRoll
+
 local QUALITY_OPTIONS = {
     { L["LOOT_ROLL_QUALITY_ALL"],       0 },
     { L["LOOT_ROLL_QUALITY_UNCOMMON"],  2 },
@@ -44,6 +48,7 @@ local QUALITY_OPTIONS = {
 }
 
 local STYLE_OPTIONS = {
+    { L["LOOT_ROLL_STYLE_MATCH"], "__loot__" },
     { L["AUGMENT_TOAST_STYLE_COMPACT"], "compact" },
     { L["AUGMENT_TOAST_STYLE_FRAMED"],  "framed"  },
     { L["AUGMENT_TOAST_STYLE_ACCENT"],  "accent"  },
