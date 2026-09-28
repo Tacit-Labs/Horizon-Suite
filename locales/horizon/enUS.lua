@@ -520,7 +520,6 @@ L["AUGMENT_TOAST_STYLE_DESC"]                                   = "Chrome style 
 L["AUGMENT_TOAST_STYLE_COMPACT"]                                = "Compact"
 L["AUGMENT_TOAST_STYLE_FRAMED"]                                 = "Framed"
 L["AUGMENT_TOAST_STYLE_ACCENT"]                                 = "Accent"
-L["AUGMENT_FRAMED_BORDER_SECTION"]                              = "Framed Border"
 L["AUGMENT_FRAMED_BORDER_SHAPE"]                                = "Framed Border Shape"
 L["AUGMENT_FRAMED_BORDER_SHAPE_DESC"]                           = "Corner shape of the Framed border on loot toasts, alerts, loot rolls and the loot window."
 L["AUGMENT_FRAMED_BORDER_ROUNDED"]                              = "Rounded"
