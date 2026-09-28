@@ -19,6 +19,31 @@ local addon = _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["6.1.0"] = {
+        date = "2026-09-28",
+        {
+            section = "New Features",
+            bullets = {
+                "Insight: when tooltips are anchored to a fixed spot, choose whether they grow up and right, up and left, down and right, or down and left from the anchor. Automatic keeps the current behaviour and stays the default.",
+                "Insight: a creature's level is coloured by how hard it is for you, matching the game's nameplates, and the name on the Targeting line is coloured by class for players or by reaction for everything else. Each colour has its own switch, and both start on.",
+            },
+        },
+        {
+            section = "Improvements",
+            bullets = {
+                "Echo: the highlight colour follows your class colour when you turn it on in Axis, and the \"all modules\" switch now includes Echo. Other people's colours stay their own.",
+            },
+        },
+        {
+            section = "Fixes",
+            bullets = {
+                "Echo: right-clicking a player's line in the All feed offers Whisper and Invite as well as Pin, including on WoW: Forever.",
+                "Echo: on WoW: Forever, Echo uses your full name with surname in emotes, the All feed and pinned messages, and group members with surnames show their class colour.",
+                "Axis: the Discord button in the dashboard footer links to the current server again.",
+            },
+        },
+    },
+
     ["6.0.0"] = {
         date = "2026-09-27",
         {
