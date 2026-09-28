@@ -228,16 +228,23 @@ local BLOCKED = {
     all     = "ECHO_PIN_ALL",
 }
 
+-- The chat and record an All line was mirrored from, or the ones given when it wasn't.
+local function SourceOf(convKey, record)
+    local Store = Echo.Store
+    if Store.KindOf(convKey) == "all" and type(record.sourceRecord) == "table" and record.sourceKey
+        and Store.KindOf(record.sourceKey) ~= "all" then
+        return record.sourceKey, record.sourceRecord
+    end
+    return convKey, record
+end
+
 -- The pin entry for one message: Pin message, Unpin message, or a disabled button saying
 -- why it can't be pinned. An All line mirrored from a chat pins its source record, in
 -- that chat; a printed All line can't be pinned.
 local function AddPinEntry(rootDescription, convKey, record)
     local Store = Echo.Store
     local L = addon.L
-    if Store.KindOf(convKey) == "all" and type(record.sourceRecord) == "table" and record.sourceKey
-        and Store.KindOf(record.sourceKey) ~= "all" then
-        convKey, record = record.sourceKey, record.sourceRecord
-    end
+    convKey, record = SourceOf(convKey, record)
     local pins = Store.Pins(convKey)
     if Store.PinIndex(convKey, record, pins) then
         rootDescription:CreateButton(L["ECHO_UNPIN_MESSAGE"], function()
@@ -271,7 +278,8 @@ end
 
 --- Fill a MenuUtil root description for one message: the pin entry, then, when a player
 -- wrote it (View.MessageSender), Whisper and Invite. Whisper is left out inside that
--- player's own whisper, and Invite while you are in a group you can't invite to.
+-- player's own whisper, and Invite while you are in a group you can't invite to. An All
+-- line mirrored from a chat takes its sender from the source record.
 -- @param rootDescription table
 -- @param convKey string
 -- @param record table  the message's Store record
@@ -280,7 +288,7 @@ function Menu.BuildMessage(rootDescription, convKey, record)
     local L = addon.L
     if not convKey or type(record) ~= "table" then return end
     AddPinEntry(rootDescription, convKey, record)
-    local name = Echo.View.MessageSender(convKey, record)
+    local name = Echo.View.MessageSender(SourceOf(convKey, record))
     if not name then return end
     local short = name:match("^([^-]+)") or name
     local whisperKey = Store.WhisperKeyLike("w:" .. name) or ("w:" .. name)

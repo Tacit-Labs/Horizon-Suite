@@ -9615,6 +9615,16 @@ run(`
   root = Root()
   M.BuildMessage(root, "all", mirrored)
   check("all fix: and then offers Unpin", root.buttons[1] and root.buttons[1].text == "ECHO_UNPIN_MESSAGE", root.buttons[1] and root.buttons[1].text)
+  check("all fix: a mirrored line offers Whisper and Invite for its sender", root.buttons[2] and root.buttons[2].text == "ECHO_WHISPER_NAME"
+    and root.buttons[3] and root.buttons[3].text == "ECHO_INVITE_NAME", root.buttons[2] and root.buttons[2].text)
+  local party = { convKey = "party", text = "yeah sure", sender = "Mythandral-Horizon" }
+  S.Add(party)
+  root = Root()
+  M.BuildMessage(root, "all", last())
+  check("all fix: a mirrored party line offers Whisper too", root.buttons[2] and root.buttons[2].text == "ECHO_WHISPER_NAME", root.buttons[2] and root.buttons[2].text)
+  root = Root()
+  M.BuildMessage(root, "all", printed)
+  check("all fix: a printed line offers no Whisper", #root.buttons == 1, #root.buttons)
   H.Unbind()
 
   -- RunFilters always lets Echo's whisper filter act again, even after an error of its own.
