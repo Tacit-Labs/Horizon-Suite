@@ -540,6 +540,9 @@ anchorFrame:RegisterForDrag("LeftButton")
 anchorFrame:SetClampedToScreen(true)
 anchorFrame:SetFrameStrata("DIALOG")
 anchorFrame:Hide()
+-- Fixed-mode tooltips with an explicit grow direction pin to this frame's corner, so it must sit at
+-- the stored position even while hidden (see SetFixedPoint in InsightCursorAnchor.lua).
+Insight.anchorFrame = anchorFrame
 anchorFrame:HookScript("OnShow", function(self)
     self._insightPlainShown = true
 end)
@@ -558,6 +561,24 @@ anchorHint:SetFont(Insight.FONT_PATH, Insight.Scaled(Insight.SMALL_SIZE), "OUTLI
 anchorHint:SetPoint("TOP", anchorFrame, "BOTTOM", 0, -4)
 anchorHint:SetTextColor(0.60, 0.60, 0.60, 1)
 anchorHint:SetText("Drag to move · Right-click to confirm")
+
+-- Marks the corner the tooltip grows from when a grow direction is chosen; hidden on "auto".
+local anchorCorner = anchorFrame:CreateTexture(nil, "OVERLAY")
+anchorCorner:SetSize(10, 10)
+anchorCorner:SetColorTexture(0.50, 0.70, 1.0, 1)
+anchorCorner:Hide()
+
+local function UpdateAnchorCorner()
+    local dir = addon.GetDB("insightFixedGrowDirection", Insight.DEFAULT_GROW_DIRECTION)
+    local point = Insight.GROW_DIRECTION_POINTS[dir]
+    anchorCorner:ClearAllPoints()
+    if point then
+        anchorCorner:SetPoint(point, anchorFrame, point, 0, 0)
+        anchorCorner:Show()
+    else
+        anchorCorner:Hide()
+    end
+end
 
 anchorFrame:SetScript("OnDragStart", function(self)
     if not InCombatLockdown() then self:StartMoving() end
@@ -582,6 +603,7 @@ end)
 local function ShowAnchorFrame()
     if InCombatLockdown() then return end
     Insight.ApplyStoredAnchor(anchorFrame)
+    UpdateAnchorCorner()
     anchorFrame:Show()
     addon.SetDB("insightAnchorMode", "fixed")
     Insight.Print("Horizon Insight: Drag the anchor, then right-click to confirm.")
@@ -966,8 +988,9 @@ function Insight.ToggleAnchorFrame()
 end
 
 function Insight.ApplyInsightOptions()
+    Insight.ApplyStoredAnchor(anchorFrame)
+    UpdateAnchorCorner()
     if TooltipPlainShown(anchorFrame) then
-        Insight.ApplyStoredAnchor(anchorFrame)
         ApplyLiveBackdropColor(anchorFrame)
     end
     for _, tt in ipairs(tooltipsToStyle) do
@@ -1013,6 +1036,7 @@ function Insight.Init()
 
     HookGameTooltipLifecycle()
     HideHealthBar()
+    Insight.ApplyStoredAnchor(anchorFrame)
     Insight.HookCursorAnchor()
 
     if TooltipDataProcessor and Enum and Enum.TooltipDataType then
@@ -1237,6 +1261,7 @@ local function HandleInsightSlash(msg)
         addon.SetDB("insightFixedPoint", FIXED_POINT)
         addon.SetDB("insightFixedX", FIXED_X)
         addon.SetDB("insightFixedY", FIXED_Y)
+        Insight.ApplyStoredAnchor(anchorFrame)
         HideAnchorFrame()
         Insight.Print("Horizon Insight: Fixed position reset to default.")
 
