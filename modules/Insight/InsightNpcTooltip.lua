@@ -147,7 +147,8 @@ function Insight.ProcessNpcTooltip(unit, tooltip)
 
     if ShowLevelLine() then
         local parts = {}
-        parts[#parts + 1] = "Level " .. levelStr
+        local levelHex = Insight.GetLevelDifficultyHex(unit, (not unknownLevel) and levelForHeuristic or nil)
+        parts[#parts + 1] = "Level " .. Insight.ColorizeHex(levelStr, levelHex)
         if classStr then parts[#parts + 1] = classStr end
         pcall(function()
             if creatureType and creatureType ~= "" then
@@ -246,7 +247,8 @@ function Insight.ProcessNpcTooltip(unit, tooltip)
             end)
         end
         if targetName then
-            tooltip:AddLine("Targeting: " .. targetName, 1, 1, 1)
+            local nameHex = Insight.GetTargetNameHex(targetUnit)
+            tooltip:AddLine("Targeting: " .. Insight.ColorizeHex(targetName, nameHex), 1, 1, 1)
         end
     end
 
@@ -265,9 +267,20 @@ function Insight.RenderNpcPreviewContent(tooltip)
     end
     tooltip:AddLine("Darkheart Villager", r, g, b)
     tooltip:AddLine("General Goods Vendor", 1.0, 0.82, 0.0)
-    tooltip:AddLine("Level 45 Elite Humanoid", 0.75, 0.75, 0.75)
+    -- Preview a mob a few levels above the player so the difficulty colour shows (orange).
+    local previewLevel = 45
+    local levelHex = nil
+    if addon.GetDB("insightLevelDifficultyColor", true) then
+        pcall(function()
+            local lvl = UnitLevel("player")
+            if type(lvl) == "number" and lvl > 0 then previewLevel = lvl + 3 end
+        end)
+        levelHex = Insight.ColorToHex(Insight.GetDifficultyColorForLevel(previewLevel))
+    end
+    tooltip:AddLine("Level " .. Insight.ColorizeHex(tostring(previewLevel), levelHex) .. " Elite Humanoid", 0.75, 0.75, 0.75)
     if ShowNpcTargeting() then
-        tooltip:AddLine("Targeting: Horizonaut", 1, 1, 1)
+        local nameHex = addon.GetDB("insightTargetingColor", true) and Insight.GetClassHex("PALADIN") or nil
+        tooltip:AddLine("Targeting: " .. Insight.ColorizeHex("Horizonaut", nameHex), 1, 1, 1)
     end
 end
 

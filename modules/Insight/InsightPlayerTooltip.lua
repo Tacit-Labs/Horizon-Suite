@@ -199,7 +199,11 @@ local function BuildCombinedRaceClassLine(trp3d, classCol, unitToken, wowFallbac
     if unitToken then pcall(function() level = UnitLevel(unitToken) end) end
     local line = racePart
     if classPart ~= "" then line = line .. (racePart ~= "" and " " or "") .. classPart end
-    if level and level > 0 then line = line .. "  Level " .. tostring(level) end
+    if level and level > 0 then
+        local levelText = tostring(level)
+        if unitToken then levelText = Insight.ColorizeHex(levelText, Insight.GetLevelDifficultyHex(unitToken, level)) end
+        line = line .. "  Level " .. levelText
+    end
     -- Role belongs with the WoW identity; a TRP3 persona line stays in character.
     if usedWowIdentity then line = line .. RoleTagMarkup(wowFallback.role) end
     return line
@@ -1108,7 +1112,7 @@ function Insight.AddTargetingBlock(tooltip, unit, sepR, sepG, sepB)
     if not targetName then return end
     Insight.AddSectionSeparator(tooltip, sepR, sepG, sepB)
     Insight.TagLines(tooltip, "stats", function()
-        tooltip:AddLine("Targeting: " .. targetName, 1, 1, 1)
+        tooltip:AddLine("Targeting: " .. Insight.ColorizeHex(targetName, Insight.GetTargetNameHex(targetUnit)), 1, 1, 1)
     end)
 end
 
@@ -2145,7 +2149,8 @@ function Insight.RenderTestTooltipContent(tooltip)
     if ShowTargeting() then
         Insight.AddSectionSeparator(tooltip)
         Insight.TagLines(tooltip, "stats", function()
-            tooltip:AddLine("Targeting: Arthas", 1, 1, 1)
+            local nameHex = addon.GetDB("insightTargetingColor", true) and Insight.GetClassHex("DEATHKNIGHT") or nil
+            tooltip:AddLine("Targeting: " .. Insight.ColorizeHex("Arthas", nameHex), 1, 1, 1)
         end)
     end
 
