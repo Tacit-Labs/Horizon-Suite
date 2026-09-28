@@ -589,7 +589,7 @@ function addon.Dashboard_CreateCommunityFooter(parent, env)
     local MakeText = env.MakeText
 
     local linkData = {
-        { label = L["NAME_DISCORD"], url = "https://discord.gg/nFabdZmvSB", icon = DASHBOARD_FOOTER_MEDIA .. "discord.tga" },
+        { label = L["NAME_DISCORD"], url = "https://discord.gg/HFzZQcMEJw", icon = DASHBOARD_FOOTER_MEDIA .. "discord.tga" },
         { label = L["NAME_KO_FI"], url = "https://ko-fi.com/horizonsuite", icon = DASHBOARD_FOOTER_MEDIA .. "kofi.tga" },
         { label = L["NAME_PATREON"], url = "https://patreon.com/HorizonSuite", icon = DASHBOARD_FOOTER_MEDIA .. "patreon.tga" },
         { label = L["NAME_GITHUB"], url = "https://github.com/Tacit-Labs/Horizon-Suite", icon = DASHBOARD_FOOTER_MEDIA .. "github.tga" },
