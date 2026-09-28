@@ -920,7 +920,8 @@ end
 --- Who wrote a message, as a player you can whisper and invite: "Name-Realm". An incoming
 -- whisper's writer is the conversation's own name. Your own lines, feed lines, NPC lines,
 -- demo lines, secret lines, Battle.net conversations (their sender is a |K string), and a
--- sender that is missing, secret, has a space or "|" in it, or is you have none.
+-- sender that is missing, secret, has "|" or stray whitespace in it, or is you have none.
+-- A Forever sender's surname is kept: "Given Surname-Realm".
 -- @param convKey string
 -- @param record table
 -- @return string|nil
@@ -938,7 +939,10 @@ function View.MessageSender(convKey, record)
         sender = record.sender
     end
     if Echo.IsSecret(sender) or type(sender) ~= "string" or sender == "" then return nil end
-    if sender:find("|", 1, true) or sender:find("%s") then return nil end
+    if sender:find("|", 1, true) then return nil end
+    -- A surname (WoW: Forever) puts one space between words, and the game whispers and
+    -- invites by that full name; any other whitespace isn't a name.
+    if sender:find("[^%S ]") or sender:find("^ ") or sender:find(" $") or sender:find("  ", 1, true) then return nil end
     if Echo.Events and Echo.Events.IsPlayerKey(sender) then return nil end
     return sender
 end
