@@ -400,6 +400,7 @@ local function LayoutRow(row, quality)
             iconGap   = R.GetIconGap(),
             iconBgPad = R.ICON_BG_PAD,
             scale     = S,
+            border    = TS.GetFramedBorder(),
         })
     end
 

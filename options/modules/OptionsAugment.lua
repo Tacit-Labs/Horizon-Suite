@@ -135,6 +135,51 @@ local categories = {
                             end,
                             preserveOrder = true,
                         },
+                        -- Framed border controls are shared by every Augment
+                        -- surface, so each setter also repaints roll frames.
+                        { type = "dropdown",
+                            name = L["AUGMENT_FRAMED_BORDER_SHAPE"], desc = L["AUGMENT_FRAMED_BORDER_SHAPE_DESC"],
+                            dbKey = "augmentFramedBorderShape",
+                            options = {
+                                { L["AUGMENT_FRAMED_BORDER_ROUNDED"], "rounded" },
+                                { L["AUGMENT_FRAMED_BORDER_SQUARE"],  "square"  },
+                            },
+                            get = function() return getDB("augmentFramedBorderShape", D.augmentFramedBorderShape) end,
+                            set = function(v)
+                                setDB("augmentFramedBorderShape", v)
+                                if addon.ApplyLootRollOptions then addon.ApplyLootRollOptions() end
+                            end,
+                            preserveOrder = true,
+                        },
+                        { type = "dropdown",
+                            name = L["AUGMENT_FRAMED_BORDER_COLOUR_MODE"], desc = L["AUGMENT_FRAMED_BORDER_COLOUR_MODE_DESC"],
+                            dbKey = "augmentFramedBorderColorMode",
+                            options = {
+                                { L["AUGMENT_FRAMED_BORDER_COLOUR_QUALITY"], "quality" },
+                                { L["AUGMENT_FRAMED_BORDER_COLOUR_CUSTOM"],  "custom"  },
+                            },
+                            get = function() return getDB("augmentFramedBorderColorMode", D.augmentFramedBorderColorMode) end,
+                            set = function(v)
+                                setDB("augmentFramedBorderColorMode", v)
+                                if addon.ApplyLootRollOptions then addon.ApplyLootRollOptions() end
+                            end,
+                            preserveOrder = true,
+                        },
+                        { type = "color",
+                            name = L["AUGMENT_FRAMED_BORDER_COLOUR"], desc = L["AUGMENT_FRAMED_BORDER_COLOUR_DESC"],
+                            dbKey = "augmentFramedBorderColor",
+                            default = D.augmentFramedBorderColor,
+                            get = function()
+                                local c = getDB("augmentFramedBorderColor", D.augmentFramedBorderColor)
+                                if type(c) == "table" and c[1] and c[2] and c[3] then return c[1], c[2], c[3] end
+                                local d = D.augmentFramedBorderColor
+                                return d[1], d[2], d[3]
+                            end,
+                            set = function(r, g, b)
+                                setDB("augmentFramedBorderColor", { r, g, b })
+                                if addon.ApplyLootRollOptions then addon.ApplyLootRollOptions() end
+                            end,
+                        },
                         { type = "dropdown",
                             name = L["AUGMENT_FONT"],
                             desc = L["AUGMENT_FONT_FAMILY"],

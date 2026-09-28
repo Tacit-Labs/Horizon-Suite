@@ -228,11 +228,20 @@ function Y.SkinApplyWindowChrome(frame, style, accentR, accentG, accentB)
             frame._hsAugmentChromeBg:Hide()
         end
         local backdropHost = GetBackdropHost(frame)
-        if backdropHost.SetBackdrop then
+        local border = TS and TS.GetFramedBorder and TS.GetFramedBorder()
+        if border and border.shape == "square" and TS.ApplyFramedBackdrop then
+            TS.ApplyFramedBackdrop(backdropHost, accentR, accentG, accentB, border, S)
+        elseif backdropHost.SetBackdrop then
+            -- Rounded stays local: the window scales its tooltip edge with S(),
+            -- where toast rows keep the shared unscaled edge.
             TOOLTIP_BACKDROP.edgeSize = S(10)
             backdropHost:SetBackdrop(TOOLTIP_BACKDROP)
             backdropHost:SetBackdropColor(0, 0, 0, 0.75)
-            backdropHost:SetBackdropBorderColor(accentR, accentG, accentB, 0.7)
+            if border and border.r then
+                backdropHost:SetBackdropBorderColor(border.r, border.g, border.b, 1)
+            else
+                backdropHost:SetBackdropBorderColor(accentR, accentG, accentB, 0.7)
+            end
         end
         strip:Hide()
     elseif style == "accent" then
