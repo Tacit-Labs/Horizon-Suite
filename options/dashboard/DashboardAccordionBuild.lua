@@ -401,8 +401,10 @@ function addon.DashboardAccordionBuild_Init(f, p)
                 currentCard.widgetList = {}
                 currentCard.visibleWhen = opt.visibleWhen
                 if opt.dbKey then
-                    currentCard.Refresh = function()
-                        RelayoutCard(currentCard, true)
+                    -- Capture this card: currentCard moves on as later sections build.
+                    local card = currentCard
+                    card.Refresh = function()
+                        RelayoutCard(card, true)
                     end
                     detailOptionFrames[opt.dbKey] = currentCard
                 end
