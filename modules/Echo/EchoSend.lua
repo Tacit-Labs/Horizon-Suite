@@ -53,7 +53,7 @@ end
 function Send.RouteFor(convKey)
     local kind = Store.KindOf(convKey)
     if kind == "whisper" then
-        return { chatType = "WHISPER", target = convKey:sub(3) }
+        return { chatType = "WHISPER", target = Echo.Events.SendName(convKey:sub(3)) }
     elseif kind == "bnet" then
         local id = tonumber(convKey:sub(4))
         return id and { chatType = "BN_WHISPER", target = id } or nil
