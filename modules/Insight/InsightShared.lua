@@ -78,6 +78,17 @@ Insight.FIXED_POINT     = "BOTTOMRIGHT"
 Insight.FIXED_X         = -60
 Insight.FIXED_Y         = 120
 
+-- Fixed-mode grow direction. "auto" keeps the legacy behaviour: the tooltip pins whichever point
+-- WoW chose when the anchor was dropped, so the screen region decides the growth. Every other value
+-- pins one tooltip corner to the same corner of the anchor box, so the tooltip grows away from it.
+Insight.DEFAULT_GROW_DIRECTION = "auto"
+Insight.GROW_DIRECTION_POINTS = {
+    up_right   = "BOTTOMLEFT",
+    up_left    = "BOTTOMRIGHT",
+    down_right = "TOPLEFT",
+    down_left  = "TOPRIGHT",
+}
+
 -- Class/spec line icons: Horizon bundled media (OptionsData value "custom"); default for new profiles.
 Insight.DEFAULT_CLASS_ICON_SOURCE = "custom"
 

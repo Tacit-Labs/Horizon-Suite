@@ -29,6 +29,26 @@ local function GetFixedY()
     return tonumber(addon.GetDB("insightFixedY", FIXED_Y)) or FIXED_Y
 end
 
+-- @return string|nil tooltip/anchor corner for the chosen grow direction; nil means "auto"
+local function GetGrowPoint()
+    local dir = addon.GetDB("insightFixedGrowDirection", Insight.DEFAULT_GROW_DIRECTION)
+    return Insight.GROW_DIRECTION_POINTS[dir]
+end
+
+-- Position a tooltip at the fixed anchor. With an explicit grow direction the tooltip is pinned to
+-- the matching corner of the anchor box itself (always kept at the stored position, shown or not),
+-- which avoids converting UIParent offsets into the tooltip's own scale.
+local function SetFixedPoint(tooltip)
+    tooltip:ClearAllPoints()
+    local growPoint = GetGrowPoint()
+    local anchorFrame = Insight.anchorFrame
+    if growPoint and anchorFrame then
+        tooltip:SetPoint(growPoint, anchorFrame, growPoint, 0, 0)
+    else
+        tooltip:SetPoint(GetFixedPoint(), UIParent, GetFixedPoint(), GetFixedX(), GetFixedY())
+    end
+end
+
 local function GetCursorSide()
     return addon.GetDB("insightCursorSide", "center")
 end
@@ -60,8 +80,7 @@ function Insight.HookCursorAnchor()
                 tooltip:SetOwner(parent, "ANCHOR_CURSOR", 0, 0)
             end
         elseif mode == "fixed" then
-            tooltip:ClearAllPoints()
-            tooltip:SetPoint(GetFixedPoint(), UIParent, GetFixedPoint(), GetFixedX(), GetFixedY())
+            SetFixedPoint(tooltip)
         end
     end)
 end
@@ -100,8 +119,7 @@ function Insight.ApplyAnchor(tooltip, owner, fallbackAnchor, fallbackOffX, fallb
         end
     elseif mode == "fixed" then
         tooltip:SetOwner(owner, "ANCHOR_NONE")
-        tooltip:ClearAllPoints()
-        tooltip:SetPoint(GetFixedPoint(), UIParent, GetFixedPoint(), GetFixedX(), GetFixedY())
+        SetFixedPoint(tooltip)
     else
         tooltip:SetOwner(owner, fallbackAnchor, fallbackOffX, fallbackOffY)
     end
