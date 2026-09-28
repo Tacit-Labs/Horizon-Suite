@@ -686,4 +686,99 @@ function Insight.RegisterRondoClassIconsWithLSM()
     end
 end
 
+-- ============================================================================
+-- LEVEL DIFFICULTY / TARGET COLOURS
+-- ============================================================================
+
+-- Colour table {r,g,b} to a plain "rrggbb" hex, or nil. Laundered because
+-- colours derived from unit APIs can be secret on Midnight.
+function Insight.ColorToHex(c)
+    if not c then return nil end
+    local hex = nil
+    pcall(function()
+        hex = string.format("%02x%02x%02x",
+            math.floor(c.r * 255 + 0.5),
+            math.floor(c.g * 255 + 0.5),
+            math.floor(c.b * 255 + 0.5))
+    end)
+    if hex and Insight.SafePlainString then hex = Insight.SafePlainString(hex) end
+    return hex
+end
+
+-- Wrap text in a colour escape when hex is set.
+-- @param text string
+-- @param hex string|nil "rrggbb"
+-- @return string
+function Insight.ColorizeHex(text, hex)
+    if not hex then return text end
+    return "|cff" .. hex .. text .. "|r"
+end
+
+-- Difficulty colour for a level relative to the player (grey / green / yellow /
+-- orange / red), from the client's own quest-difficulty bands.
+-- @param level number|nil Plain level; nil or negative means unknown ("??"), shown red
+-- @return table|nil {r,g,b}
+function Insight.GetDifficultyColorForLevel(level)
+    local c = nil
+    pcall(function()
+        if level and level > 0 then
+            local fn = GetCreatureDifficultyColor or GetQuestDifficultyColor
+            if fn then c = fn(level) end
+        elseif QuestDifficultyColors then
+            c = QuestDifficultyColors["impossible"]
+        end
+    end)
+    return c
+end
+
+-- Hex colour for a unit's level, or nil when the option is off or the unit is
+-- not attackable (friendly levels stay uncoloured, like Blizzard's tooltip).
+-- @param unit string Unit token
+-- @param level number|nil Plain level as displayed; nil/negative = unknown
+-- @return string|nil "rrggbb"
+function Insight.GetLevelDifficultyHex(unit, level)
+    if not addon.GetDB("insightLevelDifficultyColor", true) then return nil end
+    local attackable = false
+    pcall(function()
+        if UnitCanAttack("player", unit) then attackable = true end
+    end)
+    if not attackable then return nil end
+    return Insight.ColorToHex(Insight.GetDifficultyColorForLevel(level))
+end
+
+-- Hex colour for a Targeting line name: class colour for players, reaction
+-- colour (hostile / neutral / friendly) otherwise. Nil when the option is off
+-- or the unit's data is secret.
+-- @param unit string Unit token (e.g. "mouseovertarget")
+-- @return string|nil "rrggbb"
+function Insight.GetTargetNameHex(unit)
+    if not addon.GetDB("insightTargetingColor", true) then return nil end
+    local c = nil
+    pcall(function()
+        if UnitIsPlayer(unit) then
+            local _, classFile = UnitClass(unit)
+            if classFile then
+                c = (C_ClassColor and C_ClassColor.GetClassColor and C_ClassColor.GetClassColor(classFile))
+                    or (RAID_CLASS_COLORS and RAID_CLASS_COLORS[classFile])
+            end
+        else
+            local reaction = UnitReaction(unit, "player")
+            if reaction and FACTION_BAR_COLORS then c = FACTION_BAR_COLORS[reaction] end
+        end
+    end)
+    return Insight.ColorToHex(c)
+end
+
+-- Hex for a class file (dashboard previews).
+-- @param classFile string e.g. "PALADIN"
+-- @return string|nil
+function Insight.GetClassHex(classFile)
+    local c = nil
+    pcall(function()
+        c = (C_ClassColor and C_ClassColor.GetClassColor and C_ClassColor.GetClassColor(classFile))
+            or (RAID_CLASS_COLORS and RAID_CLASS_COLORS[classFile])
+    end)
+    return Insight.ColorToHex(c)
+end
+
 addon.Insight = Insight

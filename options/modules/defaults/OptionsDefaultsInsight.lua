@@ -49,6 +49,8 @@ addon.INSIGHT_KEYS = {
     insightStatusBadgeTargeting  = true,
     insightShowTargeting         = true,
     insightNpcShowTargeting      = true,
+    insightTargetingColor        = true,
+    insightLevelDifficultyColor  = true,
     insightShowMythicScore       = true,
     insightMythicScoreMode       = true,
     insightRatingsIcons          = true,
@@ -147,6 +149,8 @@ addon.INSIGHT_DEFAULTS = {
     insightStatusBadgeTargeting  = true,
     insightShowTargeting         = true,
     insightNpcShowTargeting      = true,
+    insightTargetingColor        = true,
+    insightLevelDifficultyColor  = true,
     -- Ratings/gear
     insightShowMythicScore       = false,
     insightShowIlvl              = false,
