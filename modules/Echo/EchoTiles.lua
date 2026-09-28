@@ -276,17 +276,16 @@ end
 -- Column tiles and the Echo icon (its folded tiles' badge in collapse mode) share them.
 -- @param b Frame
 function Tiles.AddBadges(b)
-    local a = Echo.View.ACCENT
     -- The unread dot: one fully round texture (Echo.Round.Dot), not a full 9-slice.
     b.dot = Echo.Round.Dot(b, 8, "OVERLAY")
     b.dot:SetPoint("TOPRIGHT", b, "TOPRIGHT", 3, 3)
-    b.dot:SetVertexColor(a.r, a.g, a.b, 1)
+    Echo.View.TintAccent(b.dot)
     b.dot:Hide()
     -- A small rounded pill behind the count, in the accent colour, sized to fit the text.
     b.countPill = CreateFrame("Frame", nil, b)
     b.countPill:SetHeight(12)
     Echo.Round.Apply(b.countPill, { radius = 6, layer = "ARTWORK" })
-    Echo.Round.SetColor(b.countPill, a.r, a.g, a.b, 1)
+    Echo.View.TintAccent(b.countPill, "round")
     b.countPill:Hide()
     -- Parented to the pill, same reason as a tile's label: otherwise the pill's own fill
     -- draws over the number.

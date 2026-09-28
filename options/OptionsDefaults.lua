@@ -101,4 +101,5 @@ addon.CLASS_COLOR_KEYS = {
     classColorFocus     = true,
     classColorPresence  = true,
     classColorAugment     = true,
+    classColorEcho      = true,
 }

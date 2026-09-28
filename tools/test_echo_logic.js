@@ -11513,6 +11513,48 @@ run(`
   S.Reset()
 `, 'forever-surnames');
 
+// --- Class colour: the Axis toggle retints the accent, live ---------------------
+run(`
+  local S, T, V = HorizonSuite.Echo.Store, HorizonSuite.Echo.Tiles, HorizonSuite.Echo.View
+  S.Reset()
+  CreateFrame = STUB_CREATE_FRAME
+  T.Enable()
+  local accent = V.ACCENT
+  local cc = nil
+  local realGet = HorizonSuite.GetModuleClassColor
+  HorizonSuite.GetModuleClassColor = function(key) if key == "echo" then return cc end end
+
+  S.Add({ convKey = "w:Brisa-Horizon", text = "hi", sender = "Brisa-Horizon" })
+  local dot = T.TileFor("w:Brisa-Horizon").dot
+  V.ApplyAccent()
+  check("class colour off: the accent is Echo's module colour",
+    accent.r == V.BASE_ACCENT.r and accent.g == V.BASE_ACCENT.g and accent.b == V.BASE_ACCENT.b, accent.r)
+
+  cc = { 0.96, 0.55, 0.73 }
+  V.ApplyAccent()
+  check("class colour on: the accent becomes the class colour",
+    accent.r == 0.96 and accent.g == 0.55 and accent.b == 0.73, accent.r)
+  check("class colour on: the accent table is rewritten in place", V.ACCENT == accent, "?")
+  local dv = dot.vertexColor
+  check("class colour on: an existing unread dot is retinted",
+    dv and dv[1] == 0.96 and dv[2] == 0.55 and dv[3] == 0.73 and dv[4] == 1, dv and table.concat(dv, ","))
+
+  S.Add({ convKey = "w:Varo-Horizon", text = "yo", sender = "Varo-Horizon" })
+  local nv = T.TileFor("w:Varo-Horizon").dot.vertexColor
+  check("class colour on: a dot made afterwards starts in the class colour",
+    nv and nv[1] == 0.96 and nv[2] == 0.55 and nv[3] == 0.73, nv and table.concat(nv, ","))
+
+  cc = nil
+  V.ApplyAccent()
+  dv = dot.vertexColor
+  check("class colour off again: the dot returns to the module colour",
+    dv and dv[1] == V.BASE_ACCENT.r and dv[2] == V.BASE_ACCENT.g and dv[3] == V.BASE_ACCENT.b, dv and table.concat(dv, ","))
+
+  HorizonSuite.GetModuleClassColor = realGet
+  T.Disable()
+  S.Reset()
+`, 'class-colour');
+
 // --- Summary -------------------------------------------------------------------
 run(`
   print(PASS .. " passed, " .. FAIL .. " failed")

@@ -115,6 +115,7 @@ function Echo.ApplyOptions()
         feedOn[kind] = on
     end
     Echo.ApplyFont()
+    if Echo.View and Echo.View.ApplyAccent then Echo.View.ApplyAccent() end
     if Echo.Tiles and Echo.Tiles.ApplyPosition then Echo.Tiles.ApplyPosition() end
     if Echo.Card and Echo.Card.ApplySize then Echo.Card.ApplySize() end
     if Echo.Card and Echo.Card.ApplyIdleClose then Echo.Card.ApplyIdleClose() end

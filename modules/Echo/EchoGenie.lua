@@ -159,9 +159,12 @@ local function Build()
     overlay.n = overlay.warp and Genie.WARP_PIECES or Genie.THIN_PIECES
     overlay.pieces = { probe }
     for i = 2, overlay.n do overlay.pieces[i] = overlay:CreateTexture(nil, "ARTWORK") end
-    local a = Echo.View and Echo.View.ACCENT or { r = 0.56, g = 0.64, b = 0.91 }
     overlay.edge = overlay:CreateTexture(nil, "OVERLAY")
-    overlay.edge:SetColorTexture(a.r, a.g, a.b, 1)
+    if Echo.View then
+        Echo.View.TintAccent(overlay.edge, "texture")
+    else
+        overlay.edge:SetColorTexture(0.56, 0.64, 0.91, 1)
+    end
     overlay.edge:SetHeight(Genie.EDGE)
 end
 
