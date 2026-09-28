@@ -48,6 +48,20 @@ function Events.NormaliseName(name)
     return name
 end
 
+--- The name to whisper or invite a player by: "Name-Realm" with your own realm cut off.
+-- WoW: Forever can't find a player on your realm by "Name-Realm" (a surname included or
+-- not), and every client finds them by the bare name. Another realm's suffix is kept.
+-- @param name string  "Name-Realm"
+-- @return string  the name unchanged when it isn't a readable string or the realm differs
+function Events.SendName(name)
+    if IsSecret(name) or type(name) ~= "string" then return name end
+    local realm = GetNormalizedRealmName and GetNormalizedRealmName()
+    if IsSecret(realm) or type(realm) ~= "string" or realm == "" then return name end
+    local suffix = "-" .. realm
+    if #name > #suffix and name:sub(-#suffix) == suffix then return name:sub(1, -#suffix - 1) end
+    return name
+end
+
 --- A readable, non-empty string, or nil.
 local function ReadableName(v)
     if IsSecret(v) or type(v) ~= "string" or v == "" then return nil end

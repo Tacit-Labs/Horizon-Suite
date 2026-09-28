@@ -71,6 +71,7 @@ function Menu.IsOpen()
 end
 
 --- Invite a player to your group. Shared by the ⋯ menu, the message menu and /inv.
+-- Your own realm is cut off the name first (Events.SendName).
 -- @param name string  "Name-Realm"
 -- @return boolean asked  false when the client has no invite function
 function Menu.InviteName(name)
@@ -78,7 +79,7 @@ function Menu.InviteName(name)
     local invite = C_PartyInfo and C_PartyInfo.InviteUnit
     if type(invite) ~= "function" then invite = _G.InviteUnit end
     if type(invite) ~= "function" then return false end
-    pcall(invite, name)
+    pcall(invite, Echo.Events.SendName(name))
     return true
 end
 

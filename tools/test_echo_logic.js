@@ -626,7 +626,9 @@ run(`
     local r = Send.RouteFor(key)
     return r and (r.chatType .. ":" .. tostring(r.target)) or "none"
   end
-  check("whisper route", route("w:Brisa-Horizon") == "WHISPER:Brisa-Horizon", route("w:Brisa-Horizon"))
+  check("whisper route", route("w:Brisa-Horizon") == "WHISPER:Brisa", route("w:Brisa-Horizon"))
+  check("whisper route keeps another realm", route("w:Brisa-Argent") == "WHISPER:Brisa-Argent", route("w:Brisa-Argent"))
+  check("whisper route keeps a Forever surname", route("w:Rensia Fox-Horizon") == "WHISPER:Rensia Fox", route("w:Rensia Fox-Horizon"))
   check("bnet route uses the numeric id",
         route("bn:77") == "BN_WHISPER:77" and type(Send.RouteFor("bn:77").target) == "number", route("bn:77"))
   check("party route", route("party") == "PARTY:nil", route("party"))
@@ -653,7 +655,7 @@ run(`
     sent[#sent + 1] = chatType .. ":" .. tostring(target) .. ":" .. msg end }
   BNSendWhisper = function(id, msg) sent[#sent + 1] = "BN:" .. id .. ":" .. msg end
 
-  check("send whisper", Send.Send("w:Brisa-Horizon", "sure") == true and sent[1] == "WHISPER:Brisa-Horizon:sure", sent[1])
+  check("send whisper", Send.Send("w:Brisa-Horizon", "sure") == true and sent[1] == "WHISPER:Brisa:sure", sent[1])
   local first = S.Get("w:Brisa-Horizon").messages[1]
   check("a sent whisper waits as pending", first.status == "pending" and first.outgoing, first.status)
   check("send bnet", Send.Send("bn:77", "yo") and sent[2] == "BN:77:yo", sent[2])
@@ -1428,7 +1430,7 @@ run(`
 
   f.edit:SetText("sure, mail them")
   f.edit.scripts.OnEnterPressed(f.edit)
-  check("enter sends to the top conversation", sent[1] == "WHISPER:Brisa-Horizon:sure, mail them", sent[1])
+  check("enter sends to the top conversation", sent[1] == "WHISPER:Brisa:sure, mail them", sent[1])
   check("the reply box empties after sending", f.edit.text == "", f.edit.text)
   check("the stack stays open after sending", f.root:IsShown(), "closed")
   check("sending keeps the same card on top", f.card.name.text == "Brisa", f.card.name.text)
@@ -2242,12 +2244,12 @@ run(`
   local invited
   C_PartyInfo = { InviteUnit = function(target) invited = target end }
   calls[2][3]()
-  check("invite calls C_PartyInfo.InviteUnit with the target", invited == "Brisa-Horizon", tostring(invited))
+  check("invite calls C_PartyInfo.InviteUnit with the target", invited == "Brisa", tostring(invited))
   invited = nil
   C_PartyInfo = nil
   InviteUnit = function(target) invited = target end
   M.Run("w:Brisa-Horizon", "invite")
-  check("invite falls back to the global InviteUnit", invited == "Brisa-Horizon", tostring(invited))
+  check("invite falls back to the global InviteUnit", invited == "Brisa", tostring(invited))
   invited = nil
   InviteUnit = function() error("boom") end
   check("a throwing invite is survived", pcall(M.Run, "w:Brisa-Horizon", "invite"), "threw")
@@ -2351,7 +2353,7 @@ run(`
 
   f.edit:SetText("sure, mail them")
   f.edit.scripts.OnEnterPressed(f.edit)
-  check("enter sends to the card's conversation", sent[1] == "WHISPER:Brisa-Horizon:sure, mail them", sent[1])
+  check("enter sends to the card's conversation", sent[1] == "WHISPER:Brisa:sure, mail them", sent[1])
   check("the box empties after sending", f.edit.text == "", f.edit.text)
   check("your bubble sits on the right", f.bubbles[1].text.text == "sure, mail them" and f.bubbles[1].points[1][1] == "BOTTOMRIGHT", f.bubbles[1].points[1][1])
   local outRR = rawget(f.bubbles[1], "_echoRound")
@@ -2362,7 +2364,7 @@ run(`
   S.MarkFailed("w:Brisa-Horizon")
   check("a failed message offers retry", f.status.retry ~= nil and f.status.text.text:find("ECHO_RETRY", 1, true) ~= nil, f.status.text.text)
   f.status.scripts.OnClick(f.status)
-  check("retry sends again", sent[2] == "WHISPER:Brisa-Horizon:sure, mail them", sent[2])
+  check("retry sends again", sent[2] == "WHISPER:Brisa:sure, mail them", sent[2])
 
   f.edit:SetText("")
   f.edit.scripts.OnEnterPressed(f.edit)
@@ -2746,7 +2748,7 @@ run(`
   Echo.Send.Send = realSend
 
   f.status.scripts.OnClick(f.status)
-  check("retry sends again once it can route", sent[1] == "WHISPER:Brisa-Horizon:first try", sent[1])
+  check("retry sends again once it can route", sent[1] == "WHISPER:Brisa:first try", sent[1])
   check("a successful retry marks the message retried", failedMsg.status == "retried", failedMsg.status)
   local rr2 = rawget(f.bubbles[2], "_echoRound")
   local alpha2 = rr2 and rr2.fill.middleBand.vertexColor and rr2.fill.middleBand.vertexColor[4]
@@ -7162,7 +7164,7 @@ run(`
   f.edit:SetText("/w Vexa see you there")
   C.Submit()
   check("shortcut card: switches to the whisper", C.ShownKey() == "w:Vexa-Horizon", tostring(C.ShownKey()))
-  check("shortcut card: sends the rest there", calls[1] == "w:Vexa-Horizon:see you there" and wire[1] == "WHISPER:Vexa-Horizon:see you there", calls[1])
+  check("shortcut card: sends the rest there", calls[1] == "w:Vexa-Horizon:see you there" and wire[1] == "WHISPER:Vexa:see you there", wire[1])
   check("shortcut card: the box empties", f.edit:GetText() == "", f.edit:GetText())
   check("shortcut card: the shortcut is not parked on the old conversation", Echo.TakeDraft("guild") == "", Echo.TakeDraft("guild"))
   check("shortcut card: the new conversation is first", S.List()[1].key == "w:Vexa-Horizon", S.List()[1].key)
@@ -7780,12 +7782,16 @@ run(`
   C_PartyInfo = { InviteUnit = function(t) invited = t end }
   items = Build("ch:Trade", trade)
   Find(items, "Invite Brisa").fn()
-  check("menu: Invite invites the sender", invited == "Brisa-Horizon", tostring(invited))
+  check("menu: Invite invites the sender", invited == "Brisa", tostring(invited))
   invited = nil
-  check("InviteName: invites a name", M.InviteName("Vexa-Horizon") == true and invited == "Vexa-Horizon", tostring(invited))
+  check("InviteName: invites a name", M.InviteName("Vexa-Horizon") == true and invited == "Vexa", tostring(invited))
+  M.InviteName("Vexa-Argent")
+  check("InviteName: keeps another realm", invited == "Vexa-Argent", tostring(invited))
+  M.InviteName("Rensia Fox-Horizon")
+  check("InviteName: a Forever name drops only your realm", invited == "Rensia Fox", tostring(invited))
   C_PartyInfo, InviteUnit = nil, function(t) invited = t end
   M.InviteName("Thorn-Horizon")
-  check("InviteName: falls back to InviteUnit", invited == "Thorn-Horizon", tostring(invited))
+  check("InviteName: falls back to InviteUnit", invited == "Thorn", tostring(invited))
   InviteUnit = function() error("boom") end
   check("InviteName: survives a throwing invite", pcall(M.InviteName, "Thorn-Horizon"), "threw")
   InviteUnit = nil
@@ -7848,7 +7854,7 @@ run(`
   C.Open("guild")
   f.edit:SetText("/inv Brisa")
   C.Submit()
-  check("inv card: invites", invited == "Brisa-Horizon", tostring(invited))
+  check("inv card: invites", invited == "Brisa", tostring(invited))
   check("inv card: sends nothing", #sent == 0, sent[1])
   check("inv card: empties the box", f.edit:GetText() == "", f.edit:GetText())
   check("inv card: says so", f.hint.shown and f.hint.text.text == "Invited Brisa.", f.hint.text.text)
@@ -7860,7 +7866,7 @@ run(`
   C.Open("w:Vexa-Horizon")
   f.edit:SetText("/inv")
   C.Submit()
-  check("inv card: /inv in a whisper card invites that person", invited == "Vexa-Horizon", tostring(invited))
+  check("inv card: /inv in a whisper card invites that person", invited == "Vexa", tostring(invited))
   f.edit:SetText("/inv")
   C.Open("guild")
   f.edit:SetText("/inv")
@@ -7876,7 +7882,7 @@ run(`
   invited = nil
   k.edit:SetText("/invite Morn")
   k.edit.scripts.OnEnterPressed(k.edit)
-  check("inv stack: invites", invited == "Morn-Horizon", tostring(invited))
+  check("inv stack: invites", invited == "Morn", tostring(invited))
   check("inv stack: sends nothing", #sent == 0, sent[1])
   check("inv stack: empties the box", k.edit:GetText() == "", k.edit:GetText())
   check("inv stack: says so", k.notice.shown and k.notice.text.text == "Invited Morn.", k.notice.text.text)
