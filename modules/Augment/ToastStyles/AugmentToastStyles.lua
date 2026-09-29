@@ -34,13 +34,24 @@ local TOOLTIP_BACKDROP = {
 }
 
 -- Square alternative to the tooltip border: a flat edge with hard corners.
--- edgeSize and insets are set per call from the thickness setting and scale.
-local SQUARE_BACKDROP = {
-    bgFile   = "Interface\\Buttons\\WHITE8X8",
-    edgeFile = "Interface\\Buttons\\WHITE8X8",
-    edgeSize = 1,
-    insets   = { left = 1, right = 1, top = 1, bottom = 1 },
-}
+-- One table per edge width: BackdropTemplateMixin:SetBackdrop returns early
+-- when handed the table a frame already has, so mutating a shared table's
+-- edgeSize would leave pooled toasts at their first thickness.
+local squareBackdrops = {}
+
+local function SquareBackdrop(edge)
+    local backdrop = squareBackdrops[edge]
+    if not backdrop then
+        backdrop = {
+            bgFile   = "Interface\\Buttons\\WHITE8X8",
+            edgeFile = "Interface\\Buttons\\WHITE8X8",
+            edgeSize = edge,
+            insets   = { left = edge, right = edge, top = edge, bottom = edge },
+        }
+        squareBackdrops[edge] = backdrop
+    end
+    return backdrop
+end
 
 local LEGACY = {
     horizon = "framed",
@@ -96,10 +107,7 @@ function TS.ApplyFramedBackdrop(frame, r, g, b, border, scale)
     if border and border.shape == "square" then
         local size = border.size or 1
         local edge = math.max(1, scale and scale(size) or size)
-        SQUARE_BACKDROP.edgeSize = edge
-        local insets = SQUARE_BACKDROP.insets
-        insets.left, insets.right, insets.top, insets.bottom = edge, edge, edge, edge
-        frame:SetBackdrop(SQUARE_BACKDROP)
+        frame:SetBackdrop(SquareBackdrop(edge))
     else
         frame:SetBackdrop(TOOLTIP_BACKDROP)
     end
