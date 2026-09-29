@@ -20,7 +20,7 @@ D.augmentLootFrameEnabled    = true
 D.augmentToastStyle          = "framed"
 -- Framed border, shared by every Augment surface drawn in the Framed style
 D.augmentFramedBorderShape     = "rounded"   -- "rounded" | "square"
-D.augmentFramedBorderSize      = 1           -- square only, unscaled px
+D.augmentFramedBorderSize      = 1           -- square only, screen pixels
 D.augmentFontPath            = "__global__"
 D.augmentFontSize            = 14
 D.augmentUIScale             = 1.0
@@ -76,7 +76,7 @@ LIM.augmentUIScale           = { min = 0.5, max = 2.0  }
 LIM.augmentIconSize          = { min = 8,   max = 64   }
 LIM.augmentIconGap           = { min = 0,   max = 32   }
 LIM.augmentFontSize          = { min = 8,   max = 20   }
-LIM.augmentFramedBorderSize  = { min = 1,   max = 4    }  -- stays inside Framed's 5px row padding
+LIM.augmentFramedBorderSize  = { min = 1,   max = 4    }  -- screen px; stays inside Framed's 5-unit row padding
 LIM.augmentHoldItem          = { min = 1,   max = 12   }
 LIM.augmentHoldEpic          = { min = 1,   max = 12   }
 LIM.augmentHoldLegendary     = { min = 1,   max = 12   }

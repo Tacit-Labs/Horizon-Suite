@@ -230,7 +230,7 @@ function Y.SkinApplyWindowChrome(frame, style, accentR, accentG, accentB)
         local backdropHost = GetBackdropHost(frame)
         local border = TS and TS.GetFramedBorder and TS.GetFramedBorder()
         if border and border.shape == "square" and TS.ApplyFramedBackdrop then
-            TS.ApplyFramedBackdrop(backdropHost, accentR, accentG, accentB, border, S)
+            TS.ApplyFramedBackdrop(backdropHost, accentR, accentG, accentB, border)
         elseif backdropHost.SetBackdrop then
             -- Rounded stays local: the window scales its tooltip edge with S(),
             -- where toast rows keep the shared unscaled edge.

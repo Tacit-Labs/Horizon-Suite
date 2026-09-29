@@ -34,7 +34,7 @@ local TOOLTIP_BACKDROP = {
 }
 
 -- Square alternative to the tooltip border: a flat edge with hard corners.
--- One table per edge width: BackdropTemplateMixin:SetBackdrop returns early
+-- One table per edge width (in UI units): BackdropTemplateMixin:SetBackdrop returns early
 -- when handed the table a frame already has, so mutating a shared table's
 -- edgeSize would leave pooled toasts at their first thickness.
 local squareBackdrops = {}
@@ -51,6 +51,21 @@ local function SquareBackdrop(edge)
         squareBackdrops[edge] = backdrop
     end
     return backdrop
+end
+
+-- UI units covering `pixels` physical screen pixels on `frame`, so the square
+-- edge stays exact whatever the resolution, UI scale or Augment scale.
+local function PixelsToUnits(frame, pixels)
+    local factor
+    if PixelUtil and PixelUtil.GetPixelToUIUnitFactor then
+        factor = PixelUtil.GetPixelToUIUnitFactor()
+    else
+        local _, physicalHeight = GetPhysicalScreenSize()
+        factor = 768 / physicalHeight
+    end
+    local scale = frame.GetEffectiveScale and frame:GetEffectiveScale() or 1
+    if not scale or scale <= 0 then scale = 1 end
+    return pixels * factor / scale
 end
 
 local LEGACY = {
@@ -81,7 +96,7 @@ function TS.Normalize(style)
 end
 
 --- Read Augment's Framed border settings.
---- @return table border { shape = "rounded"|"square", size } where size is the square edge in unscaled px
+--- @return table border { shape = "rounded"|"square", size } where size is the square edge in screen pixels
 function TS.GetFramedBorder()
     local D = addon.AUGMENT_DEFAULTS or {}
     local getDB = addon.GetDB
@@ -100,14 +115,11 @@ end
 --- @param g number
 --- @param b number
 --- @param border table|nil From TS.GetFramedBorder; nil keeps the rounded, tinted default
---- @param scale function|nil Scales the square edge width (border.size); rounded ignores both
 --- @return nil
-function TS.ApplyFramedBackdrop(frame, r, g, b, border, scale)
+function TS.ApplyFramedBackdrop(frame, r, g, b, border)
     if not frame or not frame.SetBackdrop then return end
     if border and border.shape == "square" then
-        local size = border.size or 1
-        local edge = math.max(1, scale and scale(size) or size)
-        frame:SetBackdrop(SquareBackdrop(edge))
+        frame:SetBackdrop(SquareBackdrop(PixelsToUnits(frame, border.size or 1)))
     else
         frame:SetBackdrop(TOOLTIP_BACKDROP)
     end
@@ -277,7 +289,7 @@ function TS.ApplyChrome(entry, style, colors, layout)
         -- EDGE + icon + gap + text still fits inside the backdrop instead of
         -- overflowing past the frame's visual right edge.
         local framedTextWidth = textWidth and math.max(0, textWidth - (2 * M.EDGE))
-        TS.ApplyFramedBackdrop(entry.frame, r, g, b, layout.border, scale)
+        TS.ApplyFramedBackdrop(entry.frame, r, g, b, layout.border)
         ApplyFramed(entry, textMode, iconSide, iconSize, gap, framedTextWidth)
         return
     end
