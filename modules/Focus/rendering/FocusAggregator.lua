@@ -114,6 +114,13 @@ local function SetOwnedSuperTrack(closest)
         focus.proximityAutoOwnedQID = closest
         return
     end
+    -- SetSuperTrackedQuestID fires SUPER_TRACKING_CHANGED synchronously, so Blizzard's world map
+    -- quest pins refresh inside our tainted call and hit the protected SetPassThroughButtons in
+    -- combat (ADDON_ACTION_BLOCKED). Defer: the post-combat layout re-runs Auto-Focus.
+    if InCombatLockdown() then
+        focus.layoutPendingAfterCombat = true
+        return
+    end
     local setOk = pcall(C_SuperTrack.SetSuperTrackedQuestID, closest)
     if not setOk then return end
     local verifyOk, verifyCur = pcall(C_SuperTrack.GetSuperTrackedQuestID)
