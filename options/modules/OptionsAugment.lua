@@ -143,7 +143,7 @@ local categories = {
                                 if addon.ApplyLootRollOptions then addon.ApplyLootRollOptions() end
                             end,
                             preserveOrder = true,
-                            refreshIds = { "augmentFramedBorderShape", "augmentFramedBorderColorMode", "augmentFramedBorderColor" },
+                            refreshIds = { "augmentFramedBorderShape", "augmentFramedBorderSize", "augmentFramedBorderColorMode", "augmentFramedBorderColor" },
                         },
                         -- Framed border rows. Alerts and loot rolls drawn in Framed
                         -- use them too, so each setter also repaints roll frames.
@@ -161,6 +161,22 @@ local categories = {
                             end,
                             preserveOrder = true,
                             visibleWhen = lootFramed,
+                            refreshIds = { "augmentFramedBorderSize" },
+                        },
+                        { type = "slider",
+                            name = L["AUGMENT_FRAMED_BORDER_SIZE"], desc = L["AUGMENT_FRAMED_BORDER_SIZE_DESC"],
+                            dbKey = "augmentFramedBorderSize",
+                            min = LIM.augmentFramedBorderSize.min, max = LIM.augmentFramedBorderSize.max, step = 1,
+                            get = function() return getSlider("augmentFramedBorderSize") end,
+                            set = function(v)
+                                setDB("augmentFramedBorderSize", clamp(v, "augmentFramedBorderSize"))
+                                if addon.ApplyLootRollOptions then addon.ApplyLootRollOptions() end
+                            end,
+                            -- Only the square edge takes a thickness; see ToastStyles.
+                            visibleWhen = function()
+                                return lootFramed()
+                                    and getDB("augmentFramedBorderShape", D.augmentFramedBorderShape) == "square"
+                            end,
                         },
                         { type = "dropdown",
                             name = L["AUGMENT_FRAMED_BORDER_COLOUR_MODE"], desc = L["AUGMENT_FRAMED_BORDER_COLOUR_MODE_DESC"],

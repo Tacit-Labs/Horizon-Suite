@@ -33,8 +33,8 @@ local TOOLTIP_BACKDROP = {
     insets   = { left = 2, right = 2, top = 2, bottom = 2 },
 }
 
--- Square alternative to the tooltip border: a flat 1px edge with hard corners.
--- edgeSize is set per call so the edge tracks the caller's scale.
+-- Square alternative to the tooltip border: a flat edge with hard corners.
+-- edgeSize and insets are set per call from the thickness setting and scale.
 local SQUARE_BACKDROP = {
     bgFile   = "Interface\\Buttons\\WHITE8X8",
     edgeFile = "Interface\\Buttons\\WHITE8X8",
@@ -70,12 +70,16 @@ function TS.Normalize(style)
 end
 
 --- Read Augment's Framed border settings.
---- @return table border { shape = "rounded"|"square", r, g, b } where r/g/b are nil when the border follows the toast colour
+--- @return table border { shape = "rounded"|"square", size, r, g, b } where size is the square edge in unscaled px and r/g/b are nil when the border follows the toast colour
 function TS.GetFramedBorder()
     local D = addon.AUGMENT_DEFAULTS or {}
     local getDB = addon.GetDB
     local shape = getDB and getDB("augmentFramedBorderShape", D.augmentFramedBorderShape)
     local border = { shape = (shape == "square") and "square" or "rounded" }
+    local lim = addon.AUGMENT_LIMITS and addon.AUGMENT_LIMITS.augmentFramedBorderSize
+    local size = tonumber(getDB and getDB("augmentFramedBorderSize", D.augmentFramedBorderSize)) or 1
+    if lim then size = math.max(lim.min, math.min(lim.max, size)) end
+    border.size = math.floor(size + 0.5)
     local mode = getDB and getDB("augmentFramedBorderColorMode", D.augmentFramedBorderColorMode)
     if mode == "custom" then
         local c = getDB("augmentFramedBorderColor", D.augmentFramedBorderColor)
@@ -92,12 +96,13 @@ end
 --- @param g number
 --- @param b number
 --- @param border table|nil From TS.GetFramedBorder; nil keeps the rounded, tinted default
---- @param scale function|nil Scales the square edge width; rounded ignores it
+--- @param scale function|nil Scales the square edge width (border.size); rounded ignores both
 --- @return nil
 function TS.ApplyFramedBackdrop(frame, r, g, b, border, scale)
     if not frame or not frame.SetBackdrop then return end
     if border and border.shape == "square" then
-        local edge = math.max(1, scale and scale(1) or 1)
+        local size = border.size or 1
+        local edge = math.max(1, scale and scale(size) or size)
         SQUARE_BACKDROP.edgeSize = edge
         local insets = SQUARE_BACKDROP.insets
         insets.left, insets.right, insets.top, insets.bottom = edge, edge, edge, edge
