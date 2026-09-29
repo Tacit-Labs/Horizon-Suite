@@ -19,6 +19,16 @@ local addon = _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["6.2.0"] = {
+        date = "2026-09-29",
+        {
+            section = "New Features",
+            bullets = {
+                "Echo: with Blizzard's chat hidden, the combat log moves into Echo on its own tile. Opening it shows Blizzard's combat log, filter buttons and all, and it stays open when a fight starts. The new Combat log setting keeps it in Blizzard's own tab or hides it instead.",
+            },
+        },
+    },
+
     ["6.1.0"] = {
         date = "2026-09-28",
         {
