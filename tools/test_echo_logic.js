@@ -9378,6 +9378,22 @@ run(`
   S.Reset()
 `, 'echo-combat-log');
 
+// --- Every feed kind has its English labels -----------------------------------------------
+// The harness's L returns the key itself, so a missing string never shows up in a check
+// above; in game it shows up as the raw key (the combat log's card title once did).
+{
+  const enUS = read('locales/horizon/enUS.lua');
+  const kinds = read('modules/Echo/EchoStore.lua').match(/Store\.FEED_KINDS = \{([^}]*)\}/)[1]
+    .match(/(\w+) = true/g).map(m => m.split(' ')[0]).filter(k => k !== 'all');
+  run(`check("feed kinds found", ${kinds.length} >= 4, ${kinds.length})`, 'feed-labels-count');
+  for (const kind of kinds) {
+    for (const key of ['ECHO_KIND_' + kind.toUpperCase(), 'ECHO_FEED_SHORT_' + kind.toUpperCase()]) {
+      const has = new RegExp('^L\\["' + key + '"\\]\\s*=', 'm').test(enUS);
+      run(`check("enUS has ${key}", ${has}, "missing")`, 'feed-labels');
+    }
+  }
+}
+
 // --- Hide Blizzard chat: the input line, re-applying, temporary windows (plan 12, final fixes) --
 run(`
   local A, Echo = HorizonSuite, HorizonSuite.Echo
