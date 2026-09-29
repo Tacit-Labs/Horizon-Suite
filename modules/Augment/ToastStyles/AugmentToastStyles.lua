@@ -33,6 +33,41 @@ local TOOLTIP_BACKDROP = {
     insets   = { left = 2, right = 2, top = 2, bottom = 2 },
 }
 
+-- Square alternative to the tooltip border: a flat edge with hard corners.
+-- One table per edge width (in UI units): BackdropTemplateMixin:SetBackdrop returns early
+-- when handed the table a frame already has, so mutating a shared table's
+-- edgeSize would leave pooled toasts at their first thickness.
+local squareBackdrops = {}
+
+local function SquareBackdrop(edge)
+    local backdrop = squareBackdrops[edge]
+    if not backdrop then
+        backdrop = {
+            bgFile   = "Interface\\Buttons\\WHITE8X8",
+            edgeFile = "Interface\\Buttons\\WHITE8X8",
+            edgeSize = edge,
+            insets   = { left = edge, right = edge, top = edge, bottom = edge },
+        }
+        squareBackdrops[edge] = backdrop
+    end
+    return backdrop
+end
+
+-- UI units covering `pixels` physical screen pixels on `frame`, so the square
+-- edge stays exact whatever the resolution, UI scale or Augment scale.
+local function PixelsToUnits(frame, pixels)
+    local factor
+    if PixelUtil and PixelUtil.GetPixelToUIUnitFactor then
+        factor = PixelUtil.GetPixelToUIUnitFactor()
+    else
+        local _, physicalHeight = GetPhysicalScreenSize()
+        factor = 768 / physicalHeight
+    end
+    local scale = frame.GetEffectiveScale and frame:GetEffectiveScale() or 1
+    if not scale or scale <= 0 then scale = 1 end
+    return pixels * factor / scale
+end
+
 local LEGACY = {
     horizon = "framed",
     minimalist = "accent",
@@ -58,6 +93,38 @@ function TS.Normalize(style)
     if style == "compact" or style == "framed" or style == "accent" then return style end
     if LEGACY[style] then return LEGACY[style] end
     return "framed"
+end
+
+--- Read Augment's Framed border settings.
+--- @return table border { shape = "rounded"|"square", size } where size is the square edge in screen pixels
+function TS.GetFramedBorder()
+    local D = addon.AUGMENT_DEFAULTS or {}
+    local getDB = addon.GetDB
+    local shape = getDB and getDB("augmentFramedBorderShape", D.augmentFramedBorderShape)
+    local border = { shape = (shape == "square") and "square" or "rounded" }
+    local lim = addon.AUGMENT_LIMITS and addon.AUGMENT_LIMITS.augmentFramedBorderSize
+    local size = tonumber(getDB and getDB("augmentFramedBorderSize", D.augmentFramedBorderSize)) or 1
+    if lim then size = math.max(lim.min, math.min(lim.max, size)) end
+    border.size = math.floor(size + 0.5)
+    return border
+end
+
+--- Paint the Framed backdrop onto a BackdropTemplate frame.
+--- @param frame Frame Frame with SetBackdrop
+--- @param r number Border tint
+--- @param g number
+--- @param b number
+--- @param border table|nil From TS.GetFramedBorder; nil keeps the rounded, tinted default
+--- @return nil
+function TS.ApplyFramedBackdrop(frame, r, g, b, border)
+    if not frame or not frame.SetBackdrop then return end
+    if border and border.shape == "square" then
+        frame:SetBackdrop(SquareBackdrop(PixelsToUnits(frame, border.size or 1)))
+    else
+        frame:SetBackdrop(TOOLTIP_BACKDROP)
+    end
+    frame:SetBackdropColor(0, 0, 0, 0.75)
+    frame:SetBackdropBorderColor(r, g, b, 0.7)
 end
 
 local function SetTextColor(entry, textMode, r, g, b)
@@ -136,10 +203,6 @@ local function AnchorText(entry, textMode, anchor, iconSide, gap, textWidth)
 end
 
 local function ApplyFramed(entry, textMode, iconSide, iconSize, gap, textWidth)
-    if entry.frame.SetBackdrop then
-        entry.frame:SetBackdrop(TOOLTIP_BACKDROP)
-        entry.frame:SetBackdropColor(0, 0, 0, 0.75)
-    end
     if entry.iconBg then entry.iconBg:Hide() end
     if entry.iconDark then entry.iconDark:Hide() end
 
@@ -198,7 +261,7 @@ end
 --- @param entry table Toast regions and frame
 --- @param style string|nil Raw DB style value
 --- @param colors table Text tint and optional icon fill RGB
---- @param layout table Text mode, icon placement, dimensions, optional unscaled textWidth, and scale helper
+--- @param layout table Text mode, icon placement, dimensions, optional unscaled textWidth, scale helper, and optional Framed border (TS.GetFramedBorder)
 --- @return nil
 function TS.ApplyChrome(entry, style, colors, layout)
     style = TS.Normalize(style)
@@ -226,10 +289,8 @@ function TS.ApplyChrome(entry, style, colors, layout)
         -- EDGE + icon + gap + text still fits inside the backdrop instead of
         -- overflowing past the frame's visual right edge.
         local framedTextWidth = textWidth and math.max(0, textWidth - (2 * M.EDGE))
+        TS.ApplyFramedBackdrop(entry.frame, r, g, b, layout.border)
         ApplyFramed(entry, textMode, iconSide, iconSize, gap, framedTextWidth)
-        if entry.frame.SetBackdropBorderColor then
-            entry.frame:SetBackdropBorderColor(r, g, b, 0.7)
-        end
         return
     end
 

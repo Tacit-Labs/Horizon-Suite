@@ -23,6 +23,15 @@ local function getSlider(key)
     return math.max(lim.min, math.min(lim.max, v))
 end
 
+-- The border rows depend on the Style dropdown above them: they show only
+-- while the loot toasts use Framed, the one style they change.
+local function lootFramed()
+    local style = getDB("augmentToastStyle", D.augmentToastStyle)
+    local TS = addon.Augment and addon.Augment.ToastStyles
+    if TS and TS.Normalize then style = TS.Normalize(style) end
+    return style == "framed"
+end
+
 local categories = {
     -- ── Loot Frame ──────────────────────────────────────────────────────────
     {
@@ -134,6 +143,40 @@ local categories = {
                                 if addon.ApplyLootRollOptions then addon.ApplyLootRollOptions() end
                             end,
                             preserveOrder = true,
+                            refreshIds = { "augmentFramedBorderShape", "augmentFramedBorderSize" },
+                        },
+                        -- Framed border rows. Alerts and loot rolls drawn in Framed
+                        -- use them too, so each setter also repaints roll frames.
+                        { type = "dropdown",
+                            name = L["AUGMENT_FRAMED_BORDER_SHAPE"], desc = L["AUGMENT_FRAMED_BORDER_SHAPE_DESC"],
+                            dbKey = "augmentFramedBorderShape",
+                            options = {
+                                { L["AUGMENT_FRAMED_BORDER_ROUNDED"], "rounded" },
+                                { L["AUGMENT_FRAMED_BORDER_SQUARE"],  "square"  },
+                            },
+                            get = function() return getDB("augmentFramedBorderShape", D.augmentFramedBorderShape) end,
+                            set = function(v)
+                                setDB("augmentFramedBorderShape", v)
+                                if addon.ApplyLootRollOptions then addon.ApplyLootRollOptions() end
+                            end,
+                            preserveOrder = true,
+                            visibleWhen = lootFramed,
+                            refreshIds = { "augmentFramedBorderSize" },
+                        },
+                        { type = "slider",
+                            name = L["AUGMENT_FRAMED_BORDER_SIZE"], desc = L["AUGMENT_FRAMED_BORDER_SIZE_DESC"],
+                            dbKey = "augmentFramedBorderSize",
+                            min = LIM.augmentFramedBorderSize.min, max = LIM.augmentFramedBorderSize.max, step = 1,
+                            get = function() return getSlider("augmentFramedBorderSize") end,
+                            set = function(v)
+                                setDB("augmentFramedBorderSize", clamp(v, "augmentFramedBorderSize"))
+                                if addon.ApplyLootRollOptions then addon.ApplyLootRollOptions() end
+                            end,
+                            -- Only the square edge takes a thickness; see ToastStyles.
+                            visibleWhen = function()
+                                return lootFramed()
+                                    and getDB("augmentFramedBorderShape", D.augmentFramedBorderShape) == "square"
+                            end,
                         },
                         { type = "dropdown",
                             name = L["AUGMENT_FONT"],

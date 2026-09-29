@@ -186,6 +186,7 @@ local function ApplyEntryChrome(entry, r, g, b)
         iconGap   = A.ICON_GAP,
         iconBgPad = A.ICON_BG_PAD,
         scale     = S,
+        border    = TS.GetFramedBorder(),
     })
 end
 

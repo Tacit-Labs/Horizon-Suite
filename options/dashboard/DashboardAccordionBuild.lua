@@ -1040,7 +1040,7 @@ function addon.DashboardAccordionBuild_Init(f, p)
                     widget = cmfContainer
                 elseif opt.type == "columns" then
                     -- Two-column layout: renders left/right option sets side by side in one card.
-                    -- Individual column options do not support visibleWhen (use card-level visibility instead).
+                    -- Column rows support visibleWhen; pair it with refreshIds on the option it depends on.
                     local COL_GAP      = 20
                     local COL_ITEM_GAP = 6
 
@@ -1061,23 +1061,55 @@ function addon.DashboardAccordionBuild_Init(f, p)
                     vDivider:SetPoint("BOTTOM", leftCol, "BOTTOMRIGHT", COL_GAP / 2, 0)
                     vDivider:SetColorTexture(0.25, 0.25, 0.3, 0.6)
 
-                    local function BuildColumnContent(col, colDef)
-                        if not colDef then return 0 end
+                    -- Rows are recorded per column and positioned by LayoutColumn, so a
+                    -- row with visibleWhen can drop out and close its gap on Refresh.
+                    local myCard = currentCard
+                    local leftH, rightH, colH = 0, 0, 0
+                    local RefreshColumnVisibility
+
+                    local function LayoutColumn(col, items)
                         local yOff = 0
+                        for _, it in ipairs(items) do
+                            local show = not it.visibleWhen or it.visibleWhen()
+                            for _, r in ipairs(it.regions) do r.region:SetShown(show) end
+                            if show then
+                                -- extra breathing room between sub-sections
+                                if it.isSection and yOff > 0 then yOff = yOff + 6 end
+                                for _, r in ipairs(it.regions) do
+                                    r.region:ClearAllPoints()
+                                    r.region:SetPoint("TOPLEFT", col, "TOPLEFT", 0, -(yOff + r.dy))
+                                    r.region:SetPoint("RIGHT",   col, "RIGHT",   0,  0)
+                                end
+                                if it.widget then
+                                    yOff = yOff + (it.widget:GetHeight() or 40) + COL_ITEM_GAP
+                                else
+                                    yOff = yOff + it.height
+                                end
+                            end
+                        end
+                        return yOff
+                    end
+
+                    -- Column title or sub-section header: a label with a rule under it.
+                    local function AddHeading(col, items, text, labelGap, isSection)
+                        local fs = MakeText(col, text:upper(), 11, 0.5, 0.52, 0.62, "LEFT")
+                        fs:SetHeight(16)
+                        local rule = col:CreateTexture(nil, "ARTWORK")
+                        rule:SetHeight(1)
+                        rule:SetColorTexture(0.25, 0.25, 0.3, 0.6)
+                        items[#items + 1] = {
+                            regions = { { region = fs, dy = 0 }, { region = rule, dy = 16 + labelGap } },
+                            height = 16 + labelGap + 1 + 8,
+                            isSection = isSection,
+                        }
+                    end
+
+                    local function BuildColumnContent(col, colDef)
+                        local items = {}
+                        if not colDef then return items end
 
                         if colDef.title then
-                            local titleFs = MakeText(col, colDef.title:upper(), 11, 0.5, 0.52, 0.62, "LEFT")
-                            titleFs:SetPoint("TOPLEFT", col, "TOPLEFT", 0, -yOff)
-                            titleFs:SetPoint("RIGHT",   col, "RIGHT",   0,  0)
-                            titleFs:SetHeight(16)
-                            yOff = yOff + 16 + 6
-
-                            local rule = col:CreateTexture(nil, "ARTWORK")
-                            rule:SetHeight(1)
-                            rule:SetColorTexture(0.25, 0.25, 0.3, 0.6)
-                            rule:SetPoint("TOPLEFT", col, "TOPLEFT", 0, -yOff)
-                            rule:SetPoint("RIGHT",   col, "RIGHT",   0,  0)
-                            yOff = yOff + 1 + 8
+                            AddHeading(col, items, colDef.title, 6, false)
                         end
 
                         for _, copt in ipairs(colDef.options or {}) do
@@ -1092,26 +1124,15 @@ function addon.DashboardAccordionBuild_Init(f, p)
                             if copt.refreshIds and cs then
                                 local origCs = cs
                                 local skipKey = copt.dbKey
-                                cs = function(v)
-                                    origCs(v)
+                                cs = function(...)
+                                    origCs(...)
                                     RefreshLinkedTargets(copt.refreshIds, skipKey)
                                 end
                             end
 
                             -- Sub-section header within a column (same visual style as column title).
                             if copt.type == "section" then
-                                if yOff > 0 then yOff = yOff + 6 end  -- extra breathing room between sections
-                                local secFs = MakeText(col, copt.name:upper(), 11, 0.5, 0.52, 0.62, "LEFT")
-                                secFs:SetPoint("TOPLEFT", col, "TOPLEFT", 0, -yOff)
-                                secFs:SetPoint("RIGHT",   col, "RIGHT",   0,  0)
-                                secFs:SetHeight(16)
-                                yOff = yOff + 16 + 4
-                                local secRule = col:CreateTexture(nil, "ARTWORK")
-                                secRule:SetHeight(1)
-                                secRule:SetColorTexture(0.25, 0.25, 0.3, 0.6)
-                                secRule:SetPoint("TOPLEFT", col, "TOPLEFT", 0, -yOff)
-                                secRule:SetPoint("RIGHT",   col, "RIGHT",   0,  0)
-                                yOff = yOff + 1 + 8
+                                AddHeading(col, items, copt.name, 4, true)
                             end
 
                             local w
@@ -1129,11 +1150,21 @@ function addon.DashboardAccordionBuild_Init(f, p)
                             end
 
                             if w then
-                                w:ClearAllPoints()
-                                w:SetPoint("TOPLEFT", col, "TOPLEFT", 0, -(yOff + COL_ITEM_GAP))
-                                w:SetPoint("RIGHT",   col, "RIGHT",   0,  0)
-                                local h = w:GetHeight() or 40
-                                yOff = yOff + h + COL_ITEM_GAP
+                                local visibleWhen = type(copt.visibleWhen) == "function" and copt.visibleWhen or nil
+                                items[#items + 1] = {
+                                    regions = { { region = w, dy = COL_ITEM_GAP } },
+                                    widget = w,
+                                    visibleWhen = visibleWhen,
+                                }
+                                -- The option this row depends on reaches it through
+                                -- refreshIds -> Refresh; re-run the column layout there.
+                                if visibleWhen then
+                                    local origRefresh = w.Refresh
+                                    w.Refresh = function(self)
+                                        if origRefresh then origRefresh(self) end
+                                        RefreshColumnVisibility()
+                                    end
+                                end
 
                                 if copt.dbKey then
                                     detailOptionFrames[copt.dbKey] = w
@@ -1142,13 +1173,18 @@ function addon.DashboardAccordionBuild_Init(f, p)
                             end
                         end
 
-                        return yOff
+                        return items
                     end
 
-                    local myCard = currentCard
-                    local leftH  = BuildColumnContent(leftCol,  opt.left)
-                    local rightH = BuildColumnContent(rightCol, opt.right)
-                    local colH   = math.max(leftH, rightH) + 10
+                    local leftItems  = BuildColumnContent(leftCol,  opt.left)
+                    local rightItems = BuildColumnContent(rightCol, opt.right)
+
+                    local function MeasureColumns()
+                        leftH  = LayoutColumn(leftCol,  leftItems)
+                        rightH = LayoutColumn(rightCol, rightItems)
+                        colH   = math.max(leftH, rightH) + 10
+                    end
+                    MeasureColumns()
 
                     leftCol:SetHeight(colH)
                     rightCol:SetHeight(colH)
@@ -1192,6 +1228,15 @@ function addon.DashboardAccordionBuild_Init(f, p)
                                     UpdateDetailLayout()
                                 end
                             end)
+                        end
+                    end
+
+                    RefreshColumnVisibility = function()
+                        MeasureColumns()
+                        ApplyColumnLayout(colFrame:GetWidth() or 0)
+                        if myCard and myCard.widgetList then
+                            DoInstantRelayout(myCard, false, false)
+                            UpdateDetailLayout()
                         end
                     end
 

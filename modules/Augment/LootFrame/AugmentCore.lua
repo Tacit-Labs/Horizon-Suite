@@ -200,6 +200,7 @@ local function ApplyToastIconLayout(entry)
         iconBgPad = Augment.BORDER_PAD,
         textWidth = Augment.TEXT_WIDTH,
         scale     = S,
+        border    = TS.GetFramedBorder(),
     })
 
     -- Stack fan (iconBg2/iconBg3) is Compact-only; Framed/Accent always render a
