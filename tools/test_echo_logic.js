@@ -9348,6 +9348,17 @@ run(`
   local titles = 0
   for _, e in ipairs(View.MenuSpec(conv)) do if e.kind == "title" or e.kind == "radio" then titles = titles + 1 end end
   check("combat log: its menu has no notification choices", titles == 0, titles)
+  local settingsEntry
+  for _, e in ipairs(View.MenuSpec(conv)) do if e.action == "combatsettings" then settingsEntry = e end end
+  check("combat log: its menu opens Blizzard's settings", settingsEntry ~= nil, "no entry")
+  local shown
+  local savedShow, savedConfig, savedID = ShowUIPanel, ChatConfigFrame, CURRENT_CHAT_FRAME_ID
+  ChatConfigFrame, ShowUIPanel = {}, function(f) shown = f end
+  cf2.GetID = function() return 2 end
+  Echo.Menu.Run(CL.KEY, "combatsettings")
+  check("combat log: settings open on the combat log", shown == ChatConfigFrame and CURRENT_CHAT_FRAME_ID == 2,
+      tostring(CURRENT_CHAT_FRAME_ID))
+  ShowUIPanel, ChatConfigFrame, CURRENT_CHAT_FRAME_ID = savedShow, savedConfig, savedID
 
   -- Leaving "echo" can't put it back live: a reload is asked for.
   db.echoCombatLog = "blizzard"

@@ -20,7 +20,8 @@
     Nothing is put back live: leaving "echo" asks for a reload (HideChat.Refresh).
     Blizzard: ChatFrame2 / ChatFrame2Tab / ChatFrame2ButtonFrame (SetParent, SetPoint,
     ClearAllPoints, SetAllPoints, Show, Hide, SetFrameStrata, SetFrameLevel, ScrollBar),
-    CombatLogQuickButtonFrame_Custom, hooksecurefunc, C_Timer.After, ADDON_LOADED.
+    CombatLogQuickButtonFrame_Custom, hooksecurefunc, C_Timer.After, ADDON_LOADED,
+    ChatConfigFrame / ShowUIPanel / CURRENT_CHAT_FRAME_ID (the settings entry).
 ]]
 
 local addon = _G.HorizonSuite
@@ -201,6 +202,18 @@ end
 --- The card shows something else, or closed.
 function CombatLog.Park()
     if host then host:Hide() end
+end
+
+--- Open Blizzard's chat settings on the combat log, as its tab's right-click menu does:
+-- that menu, hidden with the tab, is where Blizzard keeps the combat log's filters.
+-- @return boolean opened
+function CombatLog.OpenSettings()
+    local window = _G[CombatLog.WINDOW]
+    local config = _G.ChatConfigFrame
+    if type(window) ~= "table" or type(config) ~= "table" or type(ShowUIPanel) ~= "function" then return false end
+    if type(window.GetID) == "function" then _G.CURRENT_CHAT_FRAME_ID = window:GetID() end
+    ShowUIPanel(config)
+    return true
 end
 
 --- Module disable: park the window. It stays hosted until a reload.
