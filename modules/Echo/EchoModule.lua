@@ -51,7 +51,10 @@ end
 local function OnLifecycleEvent(_, event)
     if event == "PLAYER_REGEN_DISABLED" then
         Echo.Stack.Hide()
-        Echo.Card.Hide()
+        -- The combat log stays open through combat: that is when it is read.
+        if not (Echo.Card.IsShown() and Echo.Card.ShownKey() == Echo.CombatLog.KEY) then
+            Echo.Card.Hide()
+        end
         if Echo.Setting("echoHoldToastsInCombat") then Echo.Tiles.Hold(true) end
     elseif event == "PLAYER_REGEN_ENABLED" then
         Echo.Tiles.Hold(false)
@@ -129,6 +132,7 @@ function Echo.Disable()
     Echo.HideChat.Disable()
     Echo.Input.Disable()
     Echo.Card.Disable()
+    Echo.CombatLog.Disable()
     Echo.Stack.Disable()
     Echo.Tiles.Disable()
     Echo.Filter.Apply(false)

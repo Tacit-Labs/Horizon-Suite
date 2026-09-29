@@ -48,6 +48,9 @@ Store.DEFAULT_TIERS = {
     -- All (plan 12): every line Echo files, plus other text printed to the main chat
     -- window (EchoAll.lua). Always quiet: it has no tier setting of its own.
     all = "quiet",
+    -- The combat log (EchoCombatLog.lua): Blizzard's own window shown in the card. It
+    -- never holds a line, so it never rings.
+    combat = "quiet",
 }
 Store.VALID_TIERS = { loud = true, count = true, quiet = true, muted = true }
 
@@ -136,8 +139,9 @@ end
 
 -- Read-only feeds of non-conversation lines (plan 4). Routed by event type, quiet by
 -- default, never persisted or restored. All (plan 12) is a feed too, filled by EchoAll.lua
--- rather than by an event.
-Store.FEED_KINDS = { loot = true, progress = true, system = true, all = true }
+-- rather than by an event. The combat log is one with no lines: the card shows Blizzard's
+-- window in their place (EchoCombatLog.lua).
+Store.FEED_KINDS = { loot = true, progress = true, system = true, all = true, combat = true }
 
 local conversations = {}
 local overrides = {}
@@ -562,6 +566,21 @@ function Store.OpenFeed(convKey)
     conv.dismissed = nil
     seq = seq + 1
     conv.startedSeq = seq
+    Notify(convKey, "update")
+    return conv
+end
+
+--- Make sure a feed's tile exists, without moving it. A new one opens ranked as an idle
+-- tile, below anything started or loud; one already there, even closed, is left as it is.
+-- The combat log's tile (EchoCombatLog.lua) comes this way.
+-- @param convKey string  a feed key
+-- @return table|nil conv  nil for anything that isn't a feed
+function Store.EnsureFeed(convKey)
+    local kind = Store.KindOf(convKey)
+    if not kind or not Store.FEED_KINDS[kind] then return nil end
+    local conv = conversations[convKey]
+    if conv then return conv end
+    conv = GetOrCreate(convKey)
     Notify(convKey, "update")
     return conv
 end

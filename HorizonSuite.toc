@@ -180,6 +180,7 @@ modules/Echo/EchoStack.lua
 modules/Echo/EchoMenu.lua
 modules/Echo/EchoCompose.lua
 modules/Echo/EchoCard.lua
+modules/Echo/EchoCombatLog.lua
 modules/Echo/EchoInput.lua
 modules/Echo/EchoHideChat.lua
 modules/Echo/EchoOptions.lua
