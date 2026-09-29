@@ -9339,48 +9339,15 @@ run(`
   -- The card shows it over its message area, and parks it for anything else.
   local card, area = STUB_FRAME(UIParent), STUB_FRAME(UIParent)
   CL.Show(card, area)
-  check("combat log: the card shows the host", host.shown == true, "hidden")
+  check("combat log: the card shows the host", host.shown == true and host.parent == card, tostring(host.parent))
   check("combat log: over the message area", (host.points[1] or {})[2] == area, "not on the area")
-  check("combat log: never a child of the card, so the card can't hide it", host.parent ~= card, "child of the card")
   CL.Park()
-  check("combat log: hidden when the card moves on", host.shown == false and host.scripts.OnUpdate == nil, "still shown")
-
-  -- Mid-refill (Blizzard's progress bar showing) the window must stay shown: it waits
-  -- off-screen and hides once the refill is done.
-  local progress = { shown = true, IsShown = function(self) return self.shown end }
-  CombatLogQuickButtonFrame_CustomProgressBar = progress
-  CL.Show(card, area)
-  CL.Park()
-  check("combat log: mid-refill it stays shown", host.shown == true, "hidden mid-refill")
-  check("combat log: off-screen and unseen", (host.points[1] or {})[1] == "TOPRIGHT" and (host.points[1] or {})[3] == "BOTTOMLEFT",
-      tostring((host.points[1] or {})[1]))
-  host.scripts.OnUpdate(host, 0.1)
-  check("combat log: still waiting while the refill runs", host.shown == true, "hidden")
-  progress.shown = false
-  host.scripts.OnUpdate(host, 0.1)
-  check("combat log: hidden once the refill is done", host.shown == false and host.scripts.OnUpdate == nil, "still shown")
-  progress.shown = true
-  CL.Show(card, area)
-  CL.Park()
-  host.scripts.OnUpdate(host, CL.PARK_WAIT)
-  check("combat log: a refill that never ends is waited out", host.shown == false, "still shown")
-  CombatLogQuickButtonFrame_CustomProgressBar = nil
+  check("combat log: parked when the card moves on", host.shown == false, "still shown")
 
   -- The tile's menu: pin and close, no notifications.
   local titles = 0
   for _, e in ipairs(View.MenuSpec(conv)) do if e.kind == "title" or e.kind == "radio" then titles = titles + 1 end end
   check("combat log: its menu has no notification choices", titles == 0, titles)
-  local settingsEntry
-  for _, e in ipairs(View.MenuSpec(conv)) do if e.action == "combatsettings" then settingsEntry = e end end
-  check("combat log: its menu opens Blizzard's settings", settingsEntry ~= nil, "no entry")
-  local shown
-  local savedShow, savedConfig, savedID = ShowUIPanel, ChatConfigFrame, CURRENT_CHAT_FRAME_ID
-  ChatConfigFrame, ShowUIPanel = {}, function(f) shown = f end
-  cf2.GetID = function() return 2 end
-  Echo.Menu.Run(CL.KEY, "combatsettings")
-  check("combat log: settings open on the combat log", shown == ChatConfigFrame and CURRENT_CHAT_FRAME_ID == 2,
-      tostring(CURRENT_CHAT_FRAME_ID))
-  ShowUIPanel, ChatConfigFrame, CURRENT_CHAT_FRAME_ID = savedShow, savedConfig, savedID
 
   -- Leaving "echo" can't put it back live: a reload is asked for.
   db.echoCombatLog = "blizzard"

@@ -1024,11 +1024,7 @@ function View.MenuSpec(conv, opts)
     if View.InviteTarget(conv) then
         entries[#entries + 1] = { kind = "button", label = L["ECHO_INVITE"], action = "invite" }
     end
-    -- The combat log holds no lines, so it has no notifications to choose. Its tab, whose
-    -- menu opens Blizzard's filter settings, is hidden: the entry is here instead.
-    if conv.kind == "combat" then
-        entries[#entries + 1] = { kind = "button", label = L["ECHO_COMBAT_LOG_SETTINGS"], action = "combatsettings" }
-    end
+    -- The combat log holds no lines, so it has no notifications to choose.
     local tiers = conv.kind == "combat" and {} or View.TIER_CHOICES
     if #tiers > 0 then
         entries[#entries + 1] = { kind = "divider" }

@@ -117,8 +117,6 @@ function Menu.Run(convKey, action, value)
         Store.SetTier(convKey, (value ~= "default") and value or nil)
     elseif action == "close" then
         Store.Close(convKey)
-    elseif action == "combatsettings" then
-        if Echo.CombatLog then Echo.CombatLog.OpenSettings() end
     end
 end
 
