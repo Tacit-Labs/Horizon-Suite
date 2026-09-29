@@ -70,7 +70,7 @@ function TS.Normalize(style)
 end
 
 --- Read Augment's Framed border settings.
---- @return table border { shape = "rounded"|"square", size, r, g, b } where size is the square edge in unscaled px and r/g/b are nil when the border follows the toast colour
+--- @return table border { shape = "rounded"|"square", size } where size is the square edge in unscaled px
 function TS.GetFramedBorder()
     local D = addon.AUGMENT_DEFAULTS or {}
     local getDB = addon.GetDB
@@ -80,19 +80,12 @@ function TS.GetFramedBorder()
     local size = tonumber(getDB and getDB("augmentFramedBorderSize", D.augmentFramedBorderSize)) or 1
     if lim then size = math.max(lim.min, math.min(lim.max, size)) end
     border.size = math.floor(size + 0.5)
-    local mode = getDB and getDB("augmentFramedBorderColorMode", D.augmentFramedBorderColorMode)
-    if mode == "custom" then
-        local c = getDB("augmentFramedBorderColor", D.augmentFramedBorderColor)
-        if type(c) == "table" and c[1] and c[2] and c[3] then
-            border.r, border.g, border.b = c[1], c[2], c[3]
-        end
-    end
     return border
 end
 
 --- Paint the Framed backdrop onto a BackdropTemplate frame.
 --- @param frame Frame Frame with SetBackdrop
---- @param r number Border tint used when the border has no custom colour
+--- @param r number Border tint
 --- @param g number
 --- @param b number
 --- @param border table|nil From TS.GetFramedBorder; nil keeps the rounded, tinted default
@@ -111,13 +104,7 @@ function TS.ApplyFramedBackdrop(frame, r, g, b, border, scale)
         frame:SetBackdrop(TOOLTIP_BACKDROP)
     end
     frame:SetBackdropColor(0, 0, 0, 0.75)
-    if border and border.r then
-        -- A colour the user picked shows at full strength; the quality tint
-        -- keeps its softer 0.7 so it doesn't overpower the text.
-        frame:SetBackdropBorderColor(border.r, border.g, border.b, 1)
-    else
-        frame:SetBackdropBorderColor(r, g, b, 0.7)
-    end
+    frame:SetBackdropBorderColor(r, g, b, 0.7)
 end
 
 local function SetTextColor(entry, textMode, r, g, b)

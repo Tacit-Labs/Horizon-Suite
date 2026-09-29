@@ -237,11 +237,7 @@ function Y.SkinApplyWindowChrome(frame, style, accentR, accentG, accentB)
             TOOLTIP_BACKDROP.edgeSize = S(10)
             backdropHost:SetBackdrop(TOOLTIP_BACKDROP)
             backdropHost:SetBackdropColor(0, 0, 0, 0.75)
-            if border and border.r then
-                backdropHost:SetBackdropBorderColor(border.r, border.g, border.b, 1)
-            else
-                backdropHost:SetBackdropBorderColor(accentR, accentG, accentB, 0.7)
-            end
+            backdropHost:SetBackdropBorderColor(accentR, accentG, accentB, 0.7)
         end
         strip:Hide()
     elseif style == "accent" then

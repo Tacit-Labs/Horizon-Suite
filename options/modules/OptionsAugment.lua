@@ -143,7 +143,7 @@ local categories = {
                                 if addon.ApplyLootRollOptions then addon.ApplyLootRollOptions() end
                             end,
                             preserveOrder = true,
-                            refreshIds = { "augmentFramedBorderShape", "augmentFramedBorderSize", "augmentFramedBorderColorMode", "augmentFramedBorderColor" },
+                            refreshIds = { "augmentFramedBorderShape", "augmentFramedBorderSize" },
                         },
                         -- Framed border rows. Alerts and loot rolls drawn in Framed
                         -- use them too, so each setter also repaints roll frames.
@@ -176,41 +176,6 @@ local categories = {
                             visibleWhen = function()
                                 return lootFramed()
                                     and getDB("augmentFramedBorderShape", D.augmentFramedBorderShape) == "square"
-                            end,
-                        },
-                        { type = "dropdown",
-                            name = L["AUGMENT_FRAMED_BORDER_COLOUR_MODE"], desc = L["AUGMENT_FRAMED_BORDER_COLOUR_MODE_DESC"],
-                            dbKey = "augmentFramedBorderColorMode",
-                            options = {
-                                { L["AUGMENT_FRAMED_BORDER_COLOUR_QUALITY"], "quality" },
-                                { L["AUGMENT_FRAMED_BORDER_COLOUR_CUSTOM"],  "custom"  },
-                            },
-                            get = function() return getDB("augmentFramedBorderColorMode", D.augmentFramedBorderColorMode) end,
-                            set = function(v)
-                                setDB("augmentFramedBorderColorMode", v)
-                                if addon.ApplyLootRollOptions then addon.ApplyLootRollOptions() end
-                            end,
-                            preserveOrder = true,
-                            refreshIds = { "augmentFramedBorderColor" },
-                            visibleWhen = lootFramed,
-                        },
-                        { type = "color",
-                            name = L["AUGMENT_FRAMED_BORDER_COLOUR"], desc = L["AUGMENT_FRAMED_BORDER_COLOUR_DESC"],
-                            dbKey = "augmentFramedBorderColor",
-                            default = D.augmentFramedBorderColor,
-                            get = function()
-                                local c = getDB("augmentFramedBorderColor", D.augmentFramedBorderColor)
-                                if type(c) == "table" and c[1] and c[2] and c[3] then return c[1], c[2], c[3] end
-                                local d = D.augmentFramedBorderColor
-                                return d[1], d[2], d[3]
-                            end,
-                            set = function(r, g, b)
-                                setDB("augmentFramedBorderColor", { r, g, b })
-                                if addon.ApplyLootRollOptions then addon.ApplyLootRollOptions() end
-                            end,
-                            visibleWhen = function()
-                                return lootFramed()
-                                    and getDB("augmentFramedBorderColorMode", D.augmentFramedBorderColorMode) == "custom"
                             end,
                         },
                         { type = "dropdown",

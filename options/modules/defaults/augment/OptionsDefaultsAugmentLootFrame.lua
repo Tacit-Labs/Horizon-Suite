@@ -21,8 +21,6 @@ D.augmentToastStyle          = "framed"
 -- Framed border, shared by every Augment surface drawn in the Framed style
 D.augmentFramedBorderShape     = "rounded"   -- "rounded" | "square"
 D.augmentFramedBorderSize      = 1           -- square only, unscaled px
-D.augmentFramedBorderColorMode = "quality"   -- "quality" | "custom"
-D.augmentFramedBorderColor     = { 0, 0, 0 }
 D.augmentFontPath            = "__global__"
 D.augmentFontSize            = 14
 D.augmentUIScale             = 1.0
