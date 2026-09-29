@@ -10,6 +10,13 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [6.2.0] – 2026-09-29
+
+### ✨ New Features
+- **(Echo) Combat log in Echo**: With Blizzard's chat hidden, the combat log moves into Echo on its own tile. Opening it shows Blizzard's combat log, filter buttons and all, and it stays open when a fight starts. The new Combat log setting keeps it in Blizzard's own tab or hides it instead.
+
+---
+
 ## [6.1.0] – 2026-09-28
 
 ### ✨ New Features
