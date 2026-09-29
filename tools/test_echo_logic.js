@@ -9339,10 +9339,32 @@ run(`
   -- The card shows it over its message area, and parks it for anything else.
   local card, area = STUB_FRAME(UIParent), STUB_FRAME(UIParent)
   CL.Show(card, area)
-  check("combat log: the card shows the host", host.shown == true and host.parent == card, tostring(host.parent))
+  check("combat log: the card shows the host", host.shown == true, "hidden")
   check("combat log: over the message area", (host.points[1] or {})[2] == area, "not on the area")
+  check("combat log: never a child of the card, so the card can't hide it", host.parent ~= card, "child of the card")
   CL.Park()
-  check("combat log: parked when the card moves on", host.shown == false, "still shown")
+  check("combat log: hidden when the card moves on", host.shown == false and host.scripts.OnUpdate == nil, "still shown")
+
+  -- Mid-refill (Blizzard's progress bar showing) the window must stay shown: it waits
+  -- off-screen and hides once the refill is done.
+  local progress = { shown = true, IsShown = function(self) return self.shown end }
+  CombatLogQuickButtonFrame_CustomProgressBar = progress
+  CL.Show(card, area)
+  CL.Park()
+  check("combat log: mid-refill it stays shown", host.shown == true, "hidden mid-refill")
+  check("combat log: off-screen and unseen", (host.points[1] or {})[1] == "TOPRIGHT" and (host.points[1] or {})[3] == "BOTTOMLEFT",
+      tostring((host.points[1] or {})[1]))
+  host.scripts.OnUpdate(host, 0.1)
+  check("combat log: still waiting while the refill runs", host.shown == true, "hidden")
+  progress.shown = false
+  host.scripts.OnUpdate(host, 0.1)
+  check("combat log: hidden once the refill is done", host.shown == false and host.scripts.OnUpdate == nil, "still shown")
+  progress.shown = true
+  CL.Show(card, area)
+  CL.Park()
+  host.scripts.OnUpdate(host, CL.PARK_WAIT)
+  check("combat log: a refill that never ends is waited out", host.shown == false, "still shown")
+  CombatLogQuickButtonFrame_CustomProgressBar = nil
 
   -- The tile's menu: pin and close, no notifications.
   local titles = 0

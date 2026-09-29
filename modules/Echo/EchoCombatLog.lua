@@ -8,9 +8,13 @@
       - CombatLog.Host (HideChat.Apply, out of combat) moves the window onto Echo's host
         frame for good, its tab and side buttons onto a hidden frame, and opens the tile
         (Store.EnsureFeed). The window keeps its events.
-      - The host frame is the only thing that moves after that. The card parents it and
-        fills its message area with it (CombatLog.Show) or hides it (CombatLog.Park), so
-        opening the card in combat moves only Echo's own frame.
+      - The host frame is the only thing that moves after that. It stays a child of
+        UIParent: the card anchors it over its message area (CombatLog.Show, following the
+        card's alpha) or lets it go (CombatLog.Park), so opening the card in combat moves
+        only Echo's own frame, and the card hiding never hides the window by itself.
+      - Park never hides the window mid-refill (Blizzard's progress bar is showing): that
+        leaves Blizzard's refill reading lines it no longer gets, and it errors every
+        frame. The host waits off-screen until the refill is done, then hides.
       - Blizzard's dock code re-anchors, re-parents and hides docked windows, and the
         combat log parents its filter bar to its tab. Post-hooks on the window put it
         back on the next frame, and Place moves the filter bar (Blizzard_CombatLog loads
@@ -183,25 +187,79 @@ function CombatLog.Host()
     return true
 end
 
---- The card shows the combat log: fill its message area with the host.
+-- Refiltering: Blizzard refills the window from the client's log one line a frame after it
+-- shows, and its progress bar shows meanwhile. Hiding the window part-way stops its lines
+-- while the refill carries on reading them, and Blizzard's refill errors every frame.
+local function Refilling()
+    local bar = _G[CombatLog.BAR .. "ProgressBar"]
+    return type(bar) == "table" and type(bar.IsShown) == "function" and bar:IsShown() == true
+end
+
+local function Number(v)
+    if Echo.IsSecret(v) or type(v) ~= "number" then return nil end
+    return v
+end
+
+local showing   -- the card the host covers, while it does
+local parkedFor = 0  -- seconds the host has waited off-screen for a refill to finish
+
+-- While shown: follow the card's alpha (the genie fades it in) and park if it went away.
+-- While parked: hide once the refill is done, or after CombatLog.PARK_WAIT at most.
+local function OnUpdate(frame, elapsed)
+    if showing then
+        if not showing:IsVisible() then
+            CombatLog.Park()
+            return
+        end
+        frame:SetAlpha(Number(showing:GetAlpha()) or 1)
+        return
+    end
+    parkedFor = parkedFor + (tonumber(elapsed) or 0)
+    if not Refilling() or parkedFor >= CombatLog.PARK_WAIT then
+        frame:SetScript("OnUpdate", nil)
+        frame:Hide()
+    end
+end
+
+CombatLog.PARK_WAIT = 10
+
+--- The card shows the combat log: cover its message area with the host. The host stays a
+-- child of UIParent, anchored to the card, so the card hiding never hides the window
+-- behind Echo's back: CombatLog.Park decides when it goes.
 -- @param parent Frame  the card
 -- @param area Frame  the card's message area, which the host covers
 function CombatLog.Show(parent, area)
     if not hosted then return end
     local frame = Host()
-    if frame:GetParent() ~= parent then frame:SetParent(parent) end
+    showing = parent
     frame:ClearAllPoints()
     frame:SetPoint("TOPLEFT", area, "TOPLEFT", 0, 0)
     frame:SetPoint("BOTTOMRIGHT", area, "BOTTOMRIGHT", 0, 0)
     frame:SetFrameStrata(parent:GetFrameStrata())
     frame:SetFrameLevel(parent:GetFrameLevel() + 20)
+    frame:SetAlpha(Number(parent:GetAlpha()) or 1)
+    frame:SetScript("OnUpdate", OnUpdate)
     frame:Show()
     Place()
 end
 
---- The card shows something else, or closed.
+--- The card shows something else, or closed. Mid-refill the host waits off-screen, still
+-- shown, and hides once the refill is done; otherwise it hides now.
 function CombatLog.Park()
-    if host then host:Hide() end
+    showing = nil
+    if not host or not host:IsShown() then return end
+    if not Refilling() then
+        host:SetScript("OnUpdate", nil)
+        host:Hide()
+        return
+    end
+    local width, height = Number(host:GetWidth()), Number(host:GetHeight())
+    host:ClearAllPoints()
+    if width and height then host:SetSize(width, height) end
+    host:SetPoint("TOPRIGHT", UIParent, "BOTTOMLEFT", -100, -100)
+    host:SetAlpha(0)
+    parkedFor = 0
+    host:SetScript("OnUpdate", OnUpdate)
 end
 
 --- Open Blizzard's chat settings on the combat log, as its tab's right-click menu does:
@@ -227,7 +285,7 @@ function CombatLog._host() return host end
 function CombatLog._holder() return holder end
 function CombatLog._watcher() return watcher end
 function CombatLog._reset()
-    hosted, pending, busy = false, false, false
+    hosted, pending, busy, showing, parkedFor = false, false, false, nil, 0
     host, holder, watcher = nil, nil, nil
     hooked = setmetatable({}, { __mode = "k" })
 end
