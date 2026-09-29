@@ -6,11 +6,19 @@
     read the combat log in Midnight, so Echo never draws its lines: Blizzard parses,
     formats and filters them as it does in its own tab.
       - CombatLog.Host (HideChat.Apply, out of combat) moves the window onto Echo's host
-        frame for good, its tab and side buttons onto a hidden frame, and opens the tile
+        frame for good, its side buttons onto a hidden frame, and opens the tile
         (Store.EnsureFeed). The window keeps its events.
       - The host frame is the only thing that moves after that. The card parents it and
         fills its message area with it (CombatLog.Show) or hides it (CombatLog.Park), so
         opening the card in combat moves only Echo's own frame.
+      - Blizzard's own tab (ChatFrame2Tab) sits, unseen, over Echo's Options chip in the
+        card's header: right-clicking the chip is a real click on Blizzard's tab, so its
+        menu (Settings, where the filters are made) opens without Echo code on the way.
+        Echo only takes the tab's left-click and drag away (RegisterForClicks,
+        RegisterForDrag), so it can't select dock windows or pull the log out of the dock.
+        Echo must never write Blizzard's chat globals (CURRENT_CHAT_FRAME_ID) or open
+        ChatConfigFrame itself: that taints the settings, and the combat log refill they
+        start then fails every frame in Blizzard_CombatLogProcessor.
       - Blizzard's dock code re-anchors, re-parents and hides docked windows, and the
         combat log parents its filter bar to its tab. Post-hooks on the window put it
         back on the next frame, and Place moves the filter bar (Blizzard_CombatLog loads
@@ -19,7 +27,8 @@
         each time the card shows it, Blizzard refills it from the client's log.
     Nothing is put back live: leaving "echo" asks for a reload (HideChat.Refresh).
     Blizzard: ChatFrame2 / ChatFrame2Tab / ChatFrame2ButtonFrame (SetParent, SetPoint,
-    ClearAllPoints, SetAllPoints, Show, Hide, SetFrameStrata, SetFrameLevel, ScrollBar),
+    ClearAllPoints, SetAllPoints, Show, Hide, SetFrameStrata, SetFrameLevel, ScrollBar; the
+    tab's RegisterForClicks, RegisterForDrag),
     CombatLogQuickButtonFrame_Custom, hooksecurefunc, C_Timer.After, ADDON_LOADED.
 ]]
 
@@ -41,7 +50,9 @@ CombatLog.DEFAULT_MODE = "echo"
 
 local hosted = false   -- the window lives on host
 local host             -- Echo's frame the window sits on; the card parents and shows it
-local holder           -- hidden, unnamed: the tab and side buttons sit here
+local holder           -- hidden, unnamed: the side buttons sit here, and the tab until the chip exists
+local chip             -- Echo's Options chip in the card's header; the tab sits over it
+local cover            -- the chip's child at alpha 0 that holds the tab: clickable, unseen
 local busy = false     -- Place is moving things: the post-hooks ignore it
 local pending = false  -- a Place is waiting for the next frame
 local hooked = setmetatable({}, { __mode = "k" })
@@ -128,7 +139,22 @@ local function Place()
         bar:SetFrameStrata(frame:GetFrameStrata())
         bar:SetFrameLevel(frame:GetFrameLevel() + 5)
     end
-    MoveTo(_G[CombatLog.WINDOW .. "Tab"], Holder())
+    local tab = _G[CombatLog.WINDOW .. "Tab"]
+    if type(tab) == "table" then
+        if cover then
+            MoveTo(tab, cover)
+            tab:ClearAllPoints()
+            tab:SetAllPoints(cover)
+            -- Chat tabs keep a strata of their own (LOW), which would sit under the card.
+            tab:SetFrameStrata(cover:GetFrameStrata())
+            tab:SetFrameLevel(cover:GetFrameLevel() + 1)
+        else
+            MoveTo(tab, Holder())
+        end
+        -- Right-click only: a left-click would select dock windows, a drag would undock.
+        tab:RegisterForClicks("RightButtonUp")
+        tab:RegisterForDrag()
+    end
     MoveTo(window.buttonFrame or _G[CombatLog.WINDOW .. "ButtonFrame"], Holder())
     busy = false
 end
@@ -154,7 +180,7 @@ end
 local function HookAll()
     local window = _G[CombatLog.WINDOW]
     Hook(window, { "SetParent", "SetPoint", "SetAllPoints", "ClearAllPoints", "Hide" })
-    Hook(_G[CombatLog.WINDOW .. "Tab"], { "SetParent" })
+    Hook(_G[CombatLog.WINDOW .. "Tab"], { "SetParent", "SetPoint", "ClearAllPoints" })
     Hook(_G[CombatLog.BAR], { "SetParent" })
 end
 
@@ -182,6 +208,29 @@ function CombatLog.Host()
     return true
 end
 
+-- The Options chip: Echo's look, Blizzard's tab over it (Place) taking the clicks.
+local function Chip()
+    if chip then return chip end
+    local View = Echo.View
+    chip = CreateFrame("Frame", nil, Host())
+    chip:SetSize(CombatLog.CHIP_WIDTH, CombatLog.CHIP_HEIGHT)
+    if Echo.Round and Echo.Round.Apply then Echo.Round.Apply(chip, { radius = Echo.Round.SMALL }) end
+    if View and View.TintAccent then View.TintAccent(chip, "round", 0.22) end
+    chip.text = Echo.NewText(chip, 10, "")
+    chip.text:SetPoint("CENTER", chip, "CENTER", 0, 0)
+    chip.text:SetTextColor(0.92, 0.93, 0.98, 1)
+    chip.text:SetText(addon.L["ECHO_COMBAT_LOG_OPTIONS"])
+    cover = CreateFrame("Frame", nil, chip)
+    cover:SetAllPoints(chip)
+    cover:SetAlpha(0)
+    return chip
+end
+
+CombatLog.CHIP_WIDTH = 120
+CombatLog.CHIP_HEIGHT = 20
+CombatLog.CHIP_INSET = 12  -- from the card's right edge (Card.PAD)
+CombatLog.CHIP_TOP = 52    -- from the card's top: level with the card's title
+
 --- The card shows the combat log: fill its message area with the host.
 -- @param parent Frame  the card
 -- @param area Frame  the card's message area, which the host covers
@@ -194,6 +243,11 @@ function CombatLog.Show(parent, area)
     frame:SetPoint("BOTTOMRIGHT", area, "BOTTOMRIGHT", 0, 0)
     frame:SetFrameStrata(parent:GetFrameStrata())
     frame:SetFrameLevel(parent:GetFrameLevel() + 20)
+    local options = Chip()
+    options:ClearAllPoints()
+    options:SetPoint("TOPRIGHT", parent, "TOPRIGHT", -CombatLog.CHIP_INSET, -CombatLog.CHIP_TOP)
+    options:SetFrameLevel(frame:GetFrameLevel() + 10)
+    cover:SetFrameLevel(options:GetFrameLevel() + 2)
     frame:Show()
     Place()
 end
@@ -212,9 +266,10 @@ end
 -- Tests.
 function CombatLog._host() return host end
 function CombatLog._holder() return holder end
+function CombatLog._cover() return cover end
 function CombatLog._watcher() return watcher end
 function CombatLog._reset()
     hosted, pending, busy = false, false, false
-    host, holder, watcher = nil, nil, nil
+    host, holder, watcher, chip, cover = nil, nil, nil, nil, nil
     hooked = setmetatable({}, { __mode = "k" })
 end

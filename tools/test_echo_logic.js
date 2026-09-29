@@ -9245,6 +9245,7 @@ run(`
     f.UnregisterAllEvents = function(self) self.events = {} end
     f.SetParent = function(self, p) self.parent = p end
     f.GetParent = function(self) return self.parent end
+    f.SetAlpha = function(self, a) self.alphaSet = a end
     return f
   end
   local function Reparentable(t)
@@ -9268,7 +9269,14 @@ run(`
     function w:SetFrameStrata(v) self.strata = v end
     function w:SetFrameLevel(v) self.level = v end
     _G[name] = w
-    local tab = Reparentable({})
+    local tab = Reparentable({ points = {}, clicks = { "LeftButtonUp", "RightButtonUp", "MiddleButtonUp" }, drag = { "LeftButton" } })
+    function tab:ClearAllPoints() self.points = {} end
+    function tab:SetPoint(...) self.points[#self.points + 1] = { ... } end
+    function tab:SetAllPoints(t) self.points = { { "ALL", t } } end
+    function tab:SetFrameStrata(v) self.strata = v end
+    function tab:SetFrameLevel(v) self.level = v end
+    function tab:RegisterForClicks(...) self.clicks = { ... } end
+    function tab:RegisterForDrag(...) self.drag = { ... } end
     _G[name .. "Tab"] = tab
     return w, tab
   end
@@ -9300,6 +9308,8 @@ run(`
   check("combat log: the window moves onto Echo's host", cf2.parent == host, tostring(cf2.parent))
   check("combat log: its tab and side buttons go out of sight", tab2.parent == holder and cf2.buttonFrame.parent == holder
       and holder ~= nil and not holder.shown, tostring(tab2.parent))
+  check("combat log: its tab takes right-clicks only", table.concat(tab2.clicks, ",") == "RightButtonUp", table.concat(tab2.clicks, ","))
+  check("combat log: its tab can't be dragged out of the dock", #tab2.drag == 0, table.concat(tab2.drag, ","))
   check("combat log: the window keeps its events", cf2.events.CHAT_MSG_SAY == true, "silenced")
   check("combat log: the window is shown on the host", cf2.shown == true and not host.shown, tostring(cf2.shown))
   local topleft, bottomright = cf2.points[1] or {}, cf2.points[2] or {}
@@ -9340,6 +9350,17 @@ run(`
   local card, area = STUB_FRAME(UIParent), STUB_FRAME(UIParent)
   CL.Show(card, area)
   check("combat log: the card shows the host", host.shown == true and host.parent == card, tostring(host.parent))
+  local cover = CL._cover()
+  check("combat log: Blizzard's tab sits over the Options chip", cover ~= nil and tab2.parent == cover
+      and (tab2.points[1] or {})[2] == cover, tostring(tab2.parent))
+  check("combat log: the tab is unseen", cover and cover.alphaSet == 0, cover and tostring(cover.alphaSet))
+  tab2:SetPoint("LEFT", UIParent, "LEFT", 0, 0)
+  RunTimers()
+  check("combat log: a dock update moving the tab is undone", (tab2.points[1] or {})[2] == cover, tostring((tab2.points[1] or {})[2]))
+  tab2:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+  tab2:SetParent(UIParent)
+  RunTimers()
+  check("combat log: and its left-click stays off", table.concat(tab2.clicks, ",") == "RightButtonUp", table.concat(tab2.clicks, ","))
   check("combat log: over the message area", (host.points[1] or {})[2] == area, "not on the area")
   CL.Park()
   check("combat log: parked when the card moves on", host.shown == false, "still shown")
