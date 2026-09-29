@@ -18,6 +18,8 @@
     sending or switching conversation all count as touching it; a new message doesn't.
     The touch checks run about every Card.IDLE_STEP seconds, not every frame, and the limit
     is read when options apply (Card.ApplyIdleClose), not per frame.
+    The combat log's card (Echo.CombatLog) shows Blizzard's own combat log window over the
+    message area instead of lines.
     Bubbles are laid out newest-first from the bottom of a clipped area and the wheel
     scrolls by message. Readable text is measured; a secret gets the widest bubble and a
     fixed three lines, so nothing ever reads a size from a FontString holding a secret.
@@ -253,6 +255,7 @@ local function Create()
         StopEffects()
         NotifyInput()
         Card.Touch()
+        if Echo.CombatLog then Echo.CombatLog.Park() end
     end)
     -- The idle close's clock. Card.OnIdleUpdate is defined further down.
     root:SetScript("OnUpdate", function(self, elapsed) Card.OnIdleUpdate(self, elapsed) end)
@@ -1162,6 +1165,12 @@ function Card.Render()
     edit:SetShown(not noReply)
     send:SetShown(not noReply)
     AnchorArea(feed and not covered, groupIndex ~= nil, PaintPins(conv, groupIndex ~= nil))
+
+    -- The combat log's card shows Blizzard's own window over the (empty) message area.
+    local CombatLog = Echo.CombatLog
+    if CombatLog then
+        if conv.kind == CombatLog.KEY then CombatLog.Show(root, area) else CombatLog.Park() end
+    end
 
     RenderMessages(conv)
     Store.MarkRead(conv.key)

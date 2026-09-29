@@ -31,11 +31,14 @@ function Echo.FeedKey(kind)
 end
 
 --- False only for a feed the player has switched off. The All view is always on while
--- Blizzard's chat windows are hidden: chat Echo has no tile for goes only there.
+-- Blizzard's chat windows are hidden: chat Echo has no tile for goes only there. The combat
+-- log follows echoCombatLog, through whether its window was moved into Echo.
 -- @param kind string
 -- @return boolean
 function Echo.FeedEnabled(kind)
     if not Echo.Store.FEED_KINDS[kind] then return true end
+    -- The combat log's tile is there exactly while its window is in Echo.
+    if kind == "combat" then return Echo.CombatLog ~= nil and Echo.CombatLog.IsHosted() end
     if kind == "all" and Echo.HideChat and Echo.HideChat.IsApplied() then return true end
     return Echo.Setting(Echo.FeedKey(kind)) ~= false
 end

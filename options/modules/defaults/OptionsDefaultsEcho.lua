@@ -27,7 +27,7 @@ addon.ECHO_DEFAULTS = {
     echoWhisperSound       = "blizzard",
     echoSoundInCombat      = true,
     echoSoundBnet          = true,
-    -- Tier per conversation type; mirrors Store.DEFAULT_TIERS, except All, which is always quiet.
+    -- Tier per conversation type; mirrors Store.DEFAULT_TIERS, except All and the combat log, always quiet.
     echoTierWhisper        = "loud",
     echoTierBnet           = "loud",
     echoTierParty          = "count",
@@ -53,7 +53,10 @@ addon.ECHO_DEFAULTS = {
     echoDockInput          = true,
     echoInputAlwaysVisible = false,
     echoHideBlizzardChat   = true,
-    echoKeepCombatLog      = true,
+    -- Where the combat log goes while Blizzard's chat is hidden (EchoCombatLog.lua):
+    -- "echo" (in Echo's card), "blizzard" (its own tab) or "hide". Read through
+    -- Echo.CombatLog.Mode, which maps an old echoKeepCombatLog = false to "hide".
+    echoCombatLog          = "echo",
     echoCardWidth          = 360,
     echoCardHeight         = 440,
     echoCardTextSize       = 11,

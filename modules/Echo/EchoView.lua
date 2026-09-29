@@ -253,6 +253,7 @@ View.CHAT_TYPE = {
     whisper = "WHISPER", bnet = "BN_WHISPER", party = "PARTY", raid = "RAID",
     instance = "INSTANCE_CHAT", guild = "GUILD", officer = "OFFICER", channel = "CHANNEL",
     loot = "LOOT", progress = "ACHIEVEMENT", system = "SYSTEM", nearby = "SAY",
+    combat = "COMBAT_MISC_INFO",
 }
 
 -- Nearby (plan 11): each line style's ChatTypeInfo key, and Blizzard's default colour for
@@ -1023,9 +1024,13 @@ function View.MenuSpec(conv, opts)
     if View.InviteTarget(conv) then
         entries[#entries + 1] = { kind = "button", label = L["ECHO_INVITE"], action = "invite" }
     end
-    entries[#entries + 1] = { kind = "divider" }
-    entries[#entries + 1] = { kind = "title", label = L["ECHO_NOTIFICATIONS"] }
-    for _, value in ipairs(View.TIER_CHOICES) do
+    -- The combat log holds no lines, so it has no notifications to choose.
+    local tiers = conv.kind == "combat" and {} or View.TIER_CHOICES
+    if #tiers > 0 then
+        entries[#entries + 1] = { kind = "divider" }
+        entries[#entries + 1] = { kind = "title", label = L["ECHO_NOTIFICATIONS"] }
+    end
+    for _, value in ipairs(tiers) do
         local label
         if value == "default" then
             label = L["ECHO_TIER_DEFAULT"]:format(L["ECHO_TIER_" .. defaultTier:upper()])
@@ -1076,9 +1081,10 @@ View.FEED_ICONS = {
     progress = "Interface\\Icons\\Achievement_General",
     system   = "Interface\\Icons\\INV_Misc_Gear_01",
     all      = "Interface\\Icons\\INV_Misc_Note_01",
+    combat   = "Interface\\Icons\\Ability_DualWield",
 }
 
---- True for the read-only feeds (Loot, Progress, System, All).
+--- True for the read-only feeds (Loot, Progress, System, All, the combat log).
 -- @param kind string|nil
 -- @return boolean
 function View.IsFeed(kind)

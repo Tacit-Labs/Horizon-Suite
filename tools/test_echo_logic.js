@@ -139,6 +139,7 @@ const FILES = [
   'modules/Echo/EchoMenu.lua',
   'modules/Echo/EchoCompose.lua',
   'modules/Echo/EchoCard.lua',
+  'modules/Echo/EchoCombatLog.lua',
   'modules/Echo/EchoInput.lua',
   'modules/Echo/EchoHideChat.lua',
   'modules/Echo/EchoOptions.lua',
@@ -3818,9 +3819,10 @@ run(`
   local S = A.Echo.Store
   for kind, tier in pairs(S.DEFAULT_TIERS) do
     local key = A.Echo.TierKey(kind)
-    if kind == "all" then
-      -- The All view is always quiet: it has no tier setting (plan 12, Task 4).
-      check("the All view has no tier setting", A.ECHO_DEFAULTS[key] == nil, tostring(A.ECHO_DEFAULTS[key]))
+    if kind == "all" or kind == "combat" then
+      -- The All view is always quiet: it has no tier setting (plan 12, Task 4). Nor has the
+      -- combat log, which holds no lines.
+      check("no tier setting for " .. kind, A.ECHO_DEFAULTS[key] == nil, tostring(A.ECHO_DEFAULTS[key]))
     else
       check("tier default for " .. kind, A.ECHO_DEFAULTS[key] == tier, tostring(A.ECHO_DEFAULTS[key]))
     end
@@ -3837,7 +3839,8 @@ run(`
   check("guild saving defaults on", A.ECHO_DEFAULTS.echoSaveGuild == true, tostring(A.ECHO_DEFAULTS.echoSaveGuild))
   check("officer saving defaults off", A.ECHO_DEFAULTS.echoSaveOfficer == false, tostring(A.ECHO_DEFAULTS.echoSaveOfficer))
   check("hiding Blizzard chat defaults on", A.ECHO_DEFAULTS.echoHideBlizzardChat == true, tostring(A.ECHO_DEFAULTS.echoHideBlizzardChat))
-  check("the combat log is kept by default", A.ECHO_DEFAULTS.echoKeepCombatLog == true, tostring(A.ECHO_DEFAULTS.echoKeepCombatLog))
+  check("the combat log goes into Echo by default", A.ECHO_DEFAULTS.echoCombatLog == "echo", tostring(A.ECHO_DEFAULTS.echoCombatLog))
+  check("the old keep-the-combat-log setting is gone", A.ECHO_DEFAULTS.echoKeepCombatLog == nil, tostring(A.ECHO_DEFAULTS.echoKeepCombatLog))
   check("the card closes itself after 30s by default", A.ECHO_DEFAULTS.echoCardIdleClose == 30, tostring(A.ECHO_DEFAULTS.echoCardIdleClose))
   local idleLim = A.ECHO_LIMITS.echoCardIdleClose
   check("the idle close runs from 0 (never) to 120", idleLim and idleLim.min == 0 and idleLim.max == 120, idleLim and idleLim.max)
@@ -4366,15 +4369,27 @@ run(`
   check("guild toggle hidden with history off", keys.echoSaveGuild.visibleWhen() == false, "shown")
   check("officer toggle hidden with history off", keys.echoSaveOfficer.visibleWhen() == false, "shown")
   A.OptionsData_SetDB("echoSaveHistory", nil)
-  check("keep combat log shown by default, with hiding on", keys.echoKeepCombatLog and keys.echoKeepCombatLog.visibleWhen
-      and keys.echoKeepCombatLog.visibleWhen() == true, "hidden")
+  local combat = keys.echoCombatLog
+  check("combat log choice shown by default, with hiding on", combat and combat.visibleWhen
+      and combat.visibleWhen() == true, "hidden")
   A.OptionsData_SetDB("echoHideBlizzardChat", false)
-  check("keep combat log hidden while Blizzard chat shows", keys.echoKeepCombatLog and keys.echoKeepCombatLog.visibleWhen
-      and keys.echoKeepCombatLog.visibleWhen() == false, "shown")
+  check("combat log choice hidden while Blizzard chat shows", combat and combat.visibleWhen
+      and combat.visibleWhen() == false, "shown")
   A.OptionsData_SetDB("echoHideBlizzardChat", true)
-  check("keep combat log shown while hiding", keys.echoKeepCombatLog and keys.echoKeepCombatLog.visibleWhen
-      and keys.echoKeepCombatLog.visibleWhen() == true, "hidden")
+  check("combat log choice shown while hiding", combat and combat.visibleWhen
+      and combat.visibleWhen() == true, "hidden")
   A.OptionsData_SetDB("echoHideBlizzardChat", nil)
+  local combatValues = {}
+  for _, o in ipairs(combat and combat.options or {}) do combatValues[#combatValues + 1] = o[2] end
+  check("combat log dropdown lists echo, blizzard and hide", table.concat(combatValues, ",") == "echo,blizzard,hide",
+      table.concat(combatValues, ","))
+  check("the combat log is in Echo by default", combat and combat.get() == "echo", combat and tostring(combat.get()))
+  A.OptionsData_SetDB("echoKeepCombatLog", false)
+  check("an old keep-the-combat-log off reads as hidden", combat and combat.get() == "hide", combat and tostring(combat.get()))
+  combat.set("blizzard")
+  check("a choice made wins over the old setting", combat.get() == "blizzard", tostring(combat.get()))
+  A.OptionsData_SetDB("echoKeepCombatLog", nil)
+  A.OptionsData_SetDB("echoCombatLog", nil)
   local reloadPrompt
   for _, opt in ipairs(cat.options) do if opt.type == "moduleReloadPrompt" then reloadPrompt = opt end end
   check("the Blizzard chat section has the reload prompt", reloadPrompt and reloadPrompt.hintText == A.L["ECHO_HIDE_CHAT_RELOAD"], "missing")
@@ -8965,7 +8980,7 @@ run(`
   local db = {}
   A.GetDB = function(k, d) if db[k] ~= nil then return db[k] end return d end
   A.SetDB = function(k, v) db[k] = v end
-  A.ECHO_DEFAULTS = { echoHideBlizzardChat = false, echoKeepCombatLog = true, echoDockInput = true, echoAllView = true }
+  A.ECHO_DEFAULTS = { echoHideBlizzardChat = false, echoCombatLog = "blizzard", echoDockInput = true, echoAllView = true }
   -- A real post-hook: the original runs, then the hook with the same arguments.
   hooksecurefunc = function(t, name, fn)
     local orig = t[name]
@@ -9162,6 +9177,7 @@ run(`
   cf3, tab3 = Window("ChatFrame3")
   invalid = {}
   cvars.whisperMode = "popout"
+  -- A profile from before echoCombatLog that turned "Keep the combat log" off: hidden.
   db.echoHideBlizzardChat, db.echoKeepCombatLog = true, false
   IsLoggedIn = function() return true end
   inCombat = true
@@ -9195,6 +9211,189 @@ run(`
   S.Reset()
 `, 'echo-hide-chat');
 
+// --- Combat log in Echo (echoCombatLog = "echo") ------------------------------------------
+run(`
+  local A, Echo = HorizonSuite, HorizonSuite.Echo
+  local S, HC, CL, View = Echo.Store, Echo.HideChat, Echo.CombatLog, Echo.View
+  check("combat log: EchoCombatLog.lua is loaded", CL ~= nil and CL.Host ~= nil, "no Echo.CombatLog")
+  if not (CL and CL.Host) then return end
+  local saved = { hook = hooksecurefunc, frames = CHAT_FRAMES, create = CreateFrame, getDB = A.GetDB,
+    setDB = A.SetDB, defaults = A.ECHO_DEFAULTS, combat = InCombatLockdown, after = C_Timer.After,
+    util = C_EventUtils, cvar = C_CVar, logged = IsLoggedIn, refresh = A.Dashboard_Refresh,
+    flag = A._moduleReloadRecommended, group = ChatTypeGroup }
+  ChatTypeGroup = {}
+  HC._reset()
+  S.Reset()
+  local db = {}
+  A.GetDB = function(k, d) if db[k] ~= nil then return db[k] end return d end
+  A.SetDB = function(k, v) db[k] = v end
+  A.ECHO_DEFAULTS = { echoHideBlizzardChat = true, echoCombatLog = "echo", echoDockInput = true, echoAllView = true }
+  hooksecurefunc = function(t, name, fn)
+    if type(t) == "string" then
+      local orig = _G[t]
+      _G[t] = function(...) local r = orig(...); name(...); return r end
+      return
+    end
+    local orig = t[name]
+    t[name] = function(...) orig(...); fn(...) end
+  end
+  CreateFrame = function(...)
+    local f = STUB_CREATE_FRAME(...)
+    f.events = {}
+    f.RegisterEvent = function(self, e) self.events[e] = true end
+    f.UnregisterEvent = function(self, e) self.events[e] = nil end
+    f.UnregisterAllEvents = function(self) self.events = {} end
+    f.SetParent = function(self, p) self.parent = p end
+    f.GetParent = function(self) return self.parent end
+    return f
+  end
+  local function Reparentable(t)
+    t.parent = UIParent
+    function t:SetParent(p) self.parent = p end
+    function t:GetParent() return self.parent end
+    return t
+  end
+  local function Window(name)
+    local w = Reparentable({ name = name, shown = false, points = {},
+      events = { CHAT_MSG_SAY = true, UPDATE_CHAT_COLOR = true } })
+    function w:RegisterEvent(e) self.events[e] = true end
+    function w:UnregisterEvent(e) self.events[e] = nil end
+    function w:UnregisterAllEvents() self.events = {} end
+    function w:ClearAllPoints() self.points = {} end
+    function w:SetPoint(...) self.points[#self.points + 1] = { ... } end
+    function w:SetAllPoints(t) self.points = { { "ALL", t } } end
+    function w:Show() self.shown = true end
+    function w:Hide() self.shown = false end
+    function w:IsShown() return self.shown end
+    function w:SetFrameStrata(v) self.strata = v end
+    function w:SetFrameLevel(v) self.level = v end
+    _G[name] = w
+    local tab = Reparentable({})
+    _G[name .. "Tab"] = tab
+    return w, tab
+  end
+  CHAT_FRAMES = { "ChatFrame1", "ChatFrame2" }
+  local cf1 = Window("ChatFrame1")
+  local cf2, tab2 = Window("ChatFrame2")
+  cf2.ScrollBar = { GetWidth = function() return 16 end }
+  cf2.buttonFrame = Reparentable({})
+  C_EventUtils = { IsEventValid = function() return true end }
+  local cvars = { whisperMode = "inline" }
+  C_CVar = { GetCVar = function(n) return cvars[n] end, SetCVar = function(n, v) cvars[n] = v end }
+  local inCombat = false
+  InCombatLockdown = function() return inCombat end
+  local timers = {}
+  C_Timer.After = function(_, fn) timers[#timers + 1] = fn end
+  local function RunTimers() local t = timers; timers = {}; for _, fn in ipairs(t) do fn() end end
+  IsLoggedIn = function() return true end
+  local refreshes = 0
+  A.Dashboard_Refresh = function() refreshes = refreshes + 1 end
+  A._moduleReloadRecommended = nil
+
+  check("combat log: in Echo by default", CL.Mode() == "echo", CL.Mode())
+  check("combat log: no tile before it is hosted", S.Get(CL.KEY) == nil and Echo.FeedEnabled(CL.KEY) == false, "tile")
+  HC.Enable()
+  HC.Refresh()
+  RunTimers()
+  local host, holder = CL._host(), CL._holder()
+  check("combat log: hosted once Blizzard's chat is hidden", CL.IsHosted() and host ~= nil, tostring(CL.IsHosted()))
+  check("combat log: the window moves onto Echo's host", cf2.parent == host, tostring(cf2.parent))
+  check("combat log: its tab and side buttons go out of sight", tab2.parent == holder and cf2.buttonFrame.parent == holder
+      and holder ~= nil and not holder.shown, tostring(tab2.parent))
+  check("combat log: the window keeps its events", cf2.events.CHAT_MSG_SAY == true, "silenced")
+  check("combat log: the window is shown on the host", cf2.shown == true and not host.shown, tostring(cf2.shown))
+  local topleft, bottomright = cf2.points[1] or {}, cf2.points[2] or {}
+  check("combat log: it fills the host, clear of its scroll bar", topleft[1] == "TOPLEFT" and topleft[2] == host
+      and bottomright[1] == "BOTTOMRIGHT" and bottomright[4] == -16, tostring(bottomright[4]))
+  check("combat log: the main window still hides", cf1.parent ~= UIParent and cf1.parent ~= host, tostring(cf1.parent))
+  local conv = S.Get(CL.KEY)
+  check("combat log: its tile opens", conv ~= nil and conv.open == true and conv.kind == "combat", tostring(conv and conv.open))
+  check("combat log: it is a read-only feed", View.IsFeed("combat") and Echo.FeedEnabled(CL.KEY), "not a feed")
+
+  -- Blizzard's dock moves it back or hides it: Echo puts it back next frame.
+  cf2:SetParent(UIParent)
+  cf2:Hide()
+  check("combat log: nothing is put back at once", cf2.parent == UIParent, tostring(cf2.parent))
+  check("combat log: one put-back is queued", #timers == 1, #timers)
+  RunTimers()
+  check("combat log: re-parented back", cf2.parent == host and cf2.shown == true, tostring(cf2.parent))
+  cf2:SetAllPoints(UIParent)
+  RunTimers()
+  check("combat log: re-anchored back", (cf2.points[1] or {})[2] == host, tostring((cf2.points[1] or {})[2]))
+  tab2:SetParent(UIParent)
+  RunTimers()
+  check("combat log: its tab goes away again", tab2.parent == holder, tostring(tab2.parent))
+
+  -- The filter bar loads with Blizzard_CombatLog, parented to the tab; Echo moves it over.
+  local bar = Reparentable({ GetHeight = function() return 24 end, SetFrameStrata = function() end, SetFrameLevel = function() end })
+  bar.parent = tab2
+  CombatLogQuickButtonFrame_Custom = bar
+  local watcher = CL._watcher()
+  check("combat log: it watches for Blizzard_CombatLog", watcher and watcher.events.ADDON_LOADED == true, "not watching")
+  watcher.scripts.OnEvent(watcher, "ADDON_LOADED", "Blizzard_Other")
+  check("combat log: another addon loading moves nothing", bar.parent == tab2, tostring(bar.parent))
+  watcher.scripts.OnEvent(watcher, "ADDON_LOADED", "Blizzard_CombatLog")
+  check("combat log: the filter bar moves onto the host", bar.parent == host, tostring(bar.parent))
+  check("combat log: the window sits under the filter bar", (cf2.points[1] or {})[5] == -24, tostring((cf2.points[1] or {})[5]))
+
+  -- The card shows it over its message area, and parks it for anything else.
+  local card, area = STUB_FRAME(UIParent), STUB_FRAME(UIParent)
+  CL.Show(card, area)
+  check("combat log: the card shows the host", host.shown == true and host.parent == card, tostring(host.parent))
+  check("combat log: over the message area", (host.points[1] or {})[2] == area, "not on the area")
+  CL.Park()
+  check("combat log: parked when the card moves on", host.shown == false, "still shown")
+
+  -- The tile's menu: pin and close, no notifications.
+  local titles = 0
+  for _, e in ipairs(View.MenuSpec(conv)) do if e.kind == "title" or e.kind == "radio" then titles = titles + 1 end end
+  check("combat log: its menu has no notification choices", titles == 0, titles)
+
+  -- Leaving "echo" can't put it back live: a reload is asked for.
+  db.echoCombatLog = "blizzard"
+  HC.Refresh()
+  RunTimers()
+  check("combat log: moving it out of Echo asks for a reload", A._moduleReloadRecommended == true, tostring(A._moduleReloadRecommended))
+  check("combat log: it stays in Echo until then", cf2.parent == host, tostring(cf2.parent))
+
+  -- EnsureFeed never moves a tile that exists, and ranks a new one below started ones.
+  S.Reset()
+  S.Start("w:Brisa-Horizon")
+  S.EnsureFeed(CL.KEY)
+  check("combat log: a new tile ranks below a started chat", S.List()[1].key == "w:Brisa-Horizon", S.List()[1].key)
+  S.Close(CL.KEY)
+  S.EnsureFeed(CL.KEY)
+  check("combat log: a closed tile stays closed", S.Get(CL.KEY).open == false, "reopened")
+  check("combat log: EnsureFeed refuses a chat", S.EnsureFeed("w:Brisa-Horizon") == nil, "accepted")
+
+  HC.Disable()
+  HC._reset()
+  hooksecurefunc, CHAT_FRAMES, CreateFrame = saved.hook, saved.frames, saved.create
+  A.GetDB, A.SetDB, A.ECHO_DEFAULTS = saved.getDB, saved.setDB, saved.defaults
+  InCombatLockdown, C_Timer.After, C_EventUtils, C_CVar = saved.combat, saved.after, saved.util, saved.cvar
+  IsLoggedIn, ChatTypeGroup = saved.logged, saved.group
+  A.Dashboard_Refresh, A._moduleReloadRecommended = saved.refresh, saved.flag
+  for _, name in ipairs({ "ChatFrame1", "ChatFrame2" }) do _G[name], _G[name .. "Tab"] = nil, nil end
+  CombatLogQuickButtonFrame_Custom = nil
+  S.Reset()
+`, 'echo-combat-log');
+
+// --- Every feed kind has its English labels -----------------------------------------------
+// The harness's L returns the key itself, so a missing string never shows up in a check
+// above; in game it shows up as the raw key (the combat log's card title once did).
+{
+  const enUS = read('locales/horizon/enUS.lua');
+  const kinds = read('modules/Echo/EchoStore.lua').match(/Store\.FEED_KINDS = \{([^}]*)\}/)[1]
+    .match(/(\w+) = true/g).map(m => m.split(' ')[0]).filter(k => k !== 'all');
+  run(`check("feed kinds found", ${kinds.length} >= 4, ${kinds.length})`, 'feed-labels-count');
+  for (const kind of kinds) {
+    for (const key of ['ECHO_KIND_' + kind.toUpperCase(), 'ECHO_FEED_SHORT_' + kind.toUpperCase()]) {
+      const has = new RegExp('^L\\["' + key + '"\\]\\s*=', 'm').test(enUS);
+      run(`check("enUS has ${key}", ${has}, "missing")`, 'feed-labels');
+    }
+  }
+}
+
 // --- Hide Blizzard chat: the input line, re-applying, temporary windows (plan 12, final fixes) --
 run(`
   local A, Echo = HorizonSuite, HorizonSuite.Echo
@@ -9212,7 +9411,7 @@ run(`
   local db = {}
   A.GetDB = function(k, d) if db[k] ~= nil then return db[k] end return d end
   A.SetDB = function(k, v) db[k] = v end
-  A.ECHO_DEFAULTS = { echoHideBlizzardChat = false, echoKeepCombatLog = true, echoDockInput = true, echoAllView = true }
+  A.ECHO_DEFAULTS = { echoHideBlizzardChat = false, echoCombatLog = "blizzard", echoDockInput = true, echoAllView = true }
   hooksecurefunc = function(t, name, fn)
     if type(t) == "string" then
       local orig = _G[t]

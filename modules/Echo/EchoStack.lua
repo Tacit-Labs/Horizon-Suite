@@ -424,6 +424,15 @@ function Stack.Render()
         end
     end
 
+    -- The combat log has no lines of its own: its first line says where to read it.
+    if conv.kind == "combat" then
+        local fs = card.lines[1]
+        fs:SetText(L["ECHO_COMBAT_LOG_PEEK"])
+        fs:SetJustifyH("LEFT")
+        fs:SetTextColor(0.55, 0.57, 0.65, 1)
+        fs:Show()
+    end
+
     local canOpen = Echo.Card ~= nil
     card.open:SetShown(canOpen)
     edit:SetWidth(Stack.WIDTH - 24 - (canOpen and 68 or 0))

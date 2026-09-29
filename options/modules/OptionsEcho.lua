@@ -33,6 +33,12 @@ local WHISPER_SOUND_OPTIONS = {
     { L["ECHO_SOUND_OFF"],      "off"      },
 }
 
+local COMBAT_LOG_OPTIONS = {
+    { L["ECHO_COMBAT_LOG_ECHO"],     "echo"     },
+    { L["ECHO_COMBAT_LOG_BLIZZARD"], "blizzard" },
+    { L["ECHO_COMBAT_LOG_HIDE"],     "hide"     },
+}
+
 local TIER_OPTIONS = {
     { L["ECHO_TIER_LOUD"],  "loud"  },
     { L["ECHO_TIER_COUNT"], "count" },
@@ -316,8 +322,15 @@ local tail = {
     Toggle(L["ECHO_INPUT_ALWAYS_VISIBLE"], L["ECHO_INPUT_ALWAYS_VISIBLE_DESC"], "echoInputAlwaysVisible", D.echoInputAlwaysVisible,
         { visibleWhen = function() return getDB("echoDockInput", D.echoDockInput) ~= false end }),
     Toggle(L["ECHO_HIDE_CHAT"], L["ECHO_HIDE_CHAT_DESC"], "echoHideBlizzardChat", D.echoHideBlizzardChat),
-    Toggle(L["ECHO_KEEP_COMBAT_LOG"], L["ECHO_KEEP_COMBAT_LOG_DESC"], "echoKeepCombatLog", D.echoKeepCombatLog,
-        { visibleWhen = function() return getDB("echoHideBlizzardChat", D.echoHideBlizzardChat) == true end }),
+    { type = "dropdown", name = L["ECHO_COMBAT_LOG"], desc = L["ECHO_COMBAT_LOG_DESC"], dbKey = "echoCombatLog",
+      options = COMBAT_LOG_OPTIONS, preserveOrder = true,
+      visibleWhen = function() return getDB("echoHideBlizzardChat", D.echoHideBlizzardChat) == true end,
+      get = function()
+          local E = Echo()
+          if E and E.CombatLog then return E.CombatLog.Mode(getDB) end
+          return getDB("echoCombatLog", D.echoCombatLog)
+      end,
+      set = function(v) setDB("echoCombatLog", v) end },
     ReloadPrompt({ hintText = L["ECHO_HIDE_CHAT_RELOAD"] }),
 
     Section(L["ECHO_SECTION_CARD"]),
