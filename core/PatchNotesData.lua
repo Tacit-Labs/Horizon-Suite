@@ -19,6 +19,17 @@ local addon = _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["6.3.1"] = {
+        date = "2026-09-30",
+        {
+            section = "Fixes",
+            bullets = {
+                "Focus: quest level colours match the game's own quest log again, so a quest a few levels below you shows green instead of yellow.",
+                "Insight: tooltip level colours match the game's target frame again, so a mob a few levels below you shows green instead of yellow.",
+            },
+        },
+    },
+
     ["6.3.0"] = {
         date = "2026-09-30",
         {
