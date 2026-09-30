@@ -1229,6 +1229,8 @@ L["FOCUS_RESET_SPACING"]                                      = "Reset Spacing"
 -- =====================================================================
 L["FOCUS_SHOW_QUEST_LEVEL"]                                   = "Show Quest Level"
 L["FOCUS_QUEST_LEVEL_NEXT_TITLE"]                             = "Show Quest Level Next to Title."
+L["FOCUS_QUEST_LEVEL_DIFFICULTY_COLOUR"]                      = "Quest Level Difficulty Colour"
+L["FOCUS_QUEST_LEVEL_DIFFICULTY_COLOUR_DESC"]                 = "Colour the quest level by how hard the quest is for you: grey, green, yellow, orange or red."
 L["FOCUS_DIM_FOCUSED_QUESTS"]                                 = "Dim Non-Focused Quests"
 L["FOCUS_SLIGHTLY_DIM_TITLE_ZONE_OBJECTIVES_SECTION"]         = "Slightly dim title, zone, objectives, and section headers that are not focused."
 L["FOCUS_DIM_UNFOCUSED_ENTRIES"]                              = "Dim Unfocused Entries"

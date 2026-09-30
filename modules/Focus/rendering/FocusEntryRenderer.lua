@@ -2017,7 +2017,16 @@ local function PopulateEntry(entry, questData, groupKey)
         displayTitle = displayTitle .. questData.rareSuffix
     end
     if addon.GetDB("showQuestLevel", false) and questData.level then
-        displayTitle = ("%s [%d]"):format(displayTitle, questData.level)
+        local levelStr = ("[%d]"):format(questData.level)
+        if addon.GetDB("questLevelDifficultyColor", true) then
+            -- The client's own quest bands: grey, green, yellow, orange, red.
+            local ok, c = pcall(GetQuestDifficultyColor, questData.level)
+            if ok and type(c) == "table" and c.r then
+                levelStr = ("|cff%02x%02x%02x%s|r"):format(
+                    math.floor(c.r * 255 + 0.5), math.floor(c.g * 255 + 0.5), math.floor(c.b * 255 + 0.5), levelStr)
+            end
+        end
+        displayTitle = displayTitle .. " " .. levelStr
     end
     if showVignetteIcon and vignetteIconAtlas then
         if not entry.vignetteIconTex then

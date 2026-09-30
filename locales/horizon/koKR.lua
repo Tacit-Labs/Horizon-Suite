@@ -1144,6 +1144,8 @@ L["FOCUS_RESET_SPACING"]                                      = "간격 초기�
 -- =====================================================================
 L["FOCUS_SHOW_QUEST_LEVEL"]                                   = "퀘스트 레벨 표시"
 L["FOCUS_QUEST_LEVEL_NEXT_TITLE"]                             = "제목 옆에 퀘스트 레벨을 표시합니다."
+-- L["FOCUS_QUEST_LEVEL_DIFFICULTY_COLOUR"]                   = "Quest Level Difficulty Colour"
+-- L["FOCUS_QUEST_LEVEL_DIFFICULTY_COLOUR_DESC"]              = "Colour the quest level by how hard the quest is for you: grey, green, yellow, orange or red."
 L["FOCUS_DIM_FOCUSED_QUESTS"]                                 = "비활성 퀘스트 흐리게"
 L["FOCUS_SLIGHTLY_DIM_TITLE_ZONE_OBJECTIVES_SECTION"]         = "포커스되지 않은 퀘스트의 제목, 지역, 목표, 구역 헤더를 약간 흐리게 표시합니다."
 -- L["FOCUS_DIM_UNFOCUSED_ENTRIES"]                           = "Dim Unfocused Entries"
