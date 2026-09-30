@@ -10,6 +10,17 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [6.3.0] – 2026-09-30
+
+### ✨ New Features
+- **(Augment) Square Framed border**: The Framed look for loot toasts, alerts, loot rolls and the loot window can use square corners instead of rounded ones, with a border thickness set in screen pixels so it stays crisp at any UI scale. Rounded stays the default.
+- **(Focus) Quest level colours**: With Quest Level on, each quest's level is coloured by how hard it is for you (grey, green, yellow, orange or red), matching the game's quest log. It has its own switch, and it starts on.
+
+### 🐛 Fixes
+- **(Presence)** Boss emotes show once again, in Presence's style only, instead of also appearing in the game's own red text. Raid leader warnings are unaffected.
+
+---
+
 ## [6.2.0] – 2026-09-29
 
 ### ✨ New Features

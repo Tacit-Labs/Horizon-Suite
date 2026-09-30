@@ -19,6 +19,23 @@ local addon = _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["6.3.0"] = {
+        date = "2026-09-30",
+        {
+            section = "New Features",
+            bullets = {
+                "Augment: the Framed look for loot toasts, alerts, loot rolls and the loot window can use square corners instead of rounded ones, with a border thickness set in screen pixels so it stays crisp at any UI scale. Rounded stays the default.",
+                "Focus: with Quest Level on, each quest's level is coloured by how hard it is for you (grey, green, yellow, orange or red), matching the game's quest log. It has its own switch, and it starts on.",
+            },
+        },
+        {
+            section = "Fixes",
+            bullets = {
+                "Presence: boss emotes show once again, in Presence's style only, instead of also appearing in the game's own red text. Raid leader warnings are unaffected.",
+            },
+        },
+    },
+
     ["6.2.0"] = {
         date = "2026-09-29",
         {
