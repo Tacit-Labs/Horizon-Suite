@@ -743,6 +743,19 @@ function Insight.GetLevelDifficultyHex(unit, level)
         if UnitCanAttack("player", unit) then attackable = true end
     end)
     if not attackable then return nil end
+    -- The server's own verdict first, as Blizzard's target frame uses: its bands differ
+    -- by client (Forever's yellow band is narrower than Retail's level-difference rule).
+    if level and level > 0 then
+        local c = nil
+        pcall(function()
+            if C_PlayerInfo and C_PlayerInfo.GetContentDifficultyCreatureForPlayer and GetDifficultyColor then
+                -- nil guard: GetDifficultyColor turns an unknown difficulty into yellow.
+                local d = C_PlayerInfo.GetContentDifficultyCreatureForPlayer(unit)
+                if d ~= nil then c = GetDifficultyColor(d) end
+            end
+        end)
+        if c then return Insight.ColorToHex(c) end
+    end
     return Insight.ColorToHex(Insight.GetDifficultyColorForLevel(level))
 end
 

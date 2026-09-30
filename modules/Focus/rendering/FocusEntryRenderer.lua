@@ -2019,9 +2019,21 @@ local function PopulateEntry(entry, questData, groupKey)
     if addon.GetDB("showQuestLevel", false) and questData.level then
         local levelStr = ("[%d]"):format(questData.level)
         if addon.GetDB("questLevelDifficultyColor", true) then
-            -- The client's own quest bands: grey, green, yellow, orange, red.
-            local ok, c = pcall(GetQuestDifficultyColor, questData.level)
-            if ok and type(c) == "table" and c.r then
+            -- The server's verdict first, as Blizzard's quest log and tracker use: its bands
+            -- differ by client (Forever's yellow band is narrower than the level rule's).
+            local c
+            pcall(function()
+                if questData.questID and C_PlayerInfo and C_PlayerInfo.GetContentDifficultyQuestForPlayer and GetDifficultyColor then
+                    -- nil guard: GetDifficultyColor turns an unknown difficulty into yellow.
+                    local d = C_PlayerInfo.GetContentDifficultyQuestForPlayer(questData.questID)
+                    if d ~= nil then c = GetDifficultyColor(d) end
+                end
+            end)
+            if not (type(c) == "table" and c.r) then
+                local ok, fallback = pcall(GetQuestDifficultyColor, questData.level)
+                c = ok and fallback or nil
+            end
+            if type(c) == "table" and c.r then
                 levelStr = ("|cff%02x%02x%02x%s|r"):format(
                     math.floor(c.r * 255 + 0.5), math.floor(c.g * 255 + 0.5), math.floor(c.b * 255 + 0.5), levelStr)
             end

@@ -243,6 +243,7 @@ read_globals = {
     "UnitCanAttack",
     "GetCreatureDifficultyColor",
     "GetQuestDifficultyColor",
+    "GetDifficultyColor",
     "UnitClassification",
     "UnitCreatureType",
     "UnitHonorLevel",
