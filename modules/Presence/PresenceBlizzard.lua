@@ -92,6 +92,25 @@ local function RestoreBlizzardFrame(frame)
     originalAlphas[frame] = nil
 end
 
+-- Since 12.1.0 there is no RaidBossEmoteFrame: boss emotes share RaidWarningFrame with
+-- leader raid warnings, so only its RAID_BOSS_EMOTE event is muted, never the frame.
+-- RAID_BOSS_WHISPER stays Blizzard's because Presence has no replacement for it.
+local raidWarningBossEmoteMuted = false
+
+-- pcall: frame methods can throw on protected or invalid frames.
+local function SetRaidWarningBossEmoteMuted(shouldMute)
+    local frame = RaidWarningFrame or _G["RaidWarningFrame"]
+    if not (frame and frame.UnregisterEvent) then return end
+    if shouldMute == raidWarningBossEmoteMuted then return end
+    local method = shouldMute and frame.UnregisterEvent or frame.RegisterEvent
+    local ok, err = pcall(method, frame, "RAID_BOSS_EMOTE")
+    if ok then
+        raidWarningBossEmoteMuted = shouldMute
+    elseif addon.HSPrint then
+        addon.HSPrint("Presence boss emote mute failed: " .. tostring(err))
+    end
+end
+
 -- ============================================================================
 -- Public functions
 -- ============================================================================
@@ -134,10 +153,15 @@ local function ApplyBlizzardSuppression()
 
     -- Boss emotes
     local bossEmoteFrame = RaidBossEmoteFrame or _G["RaidBossEmoteFrame"]
-    if addon.GetDB and addon.GetDB("presenceBossEmote", true) then
-        KillBlizzardFrame(bossEmoteFrame)
+    local bossEmoteOn = addon.GetDB and addon.GetDB("presenceBossEmote", true) or false
+    if bossEmoteFrame then
+        if bossEmoteOn then
+            KillBlizzardFrame(bossEmoteFrame)
+        else
+            RestoreBlizzardFrame(bossEmoteFrame)
+        end
     else
-        RestoreBlizzardFrame(bossEmoteFrame)
+        SetRaidWarningBossEmoteMuted(bossEmoteOn)
     end
 
     -- Event toasts (achievements, quest accept/complete/progress, scenario) - shared frame
@@ -196,6 +220,7 @@ local function RestoreBlizzard()
     RestoreBlizzardFrame(ZoneTextFrame)
     RestoreBlizzardFrame(SubZoneTextFrame)
     RestoreBlizzardFrame(RaidBossEmoteFrame or _G["RaidBossEmoteFrame"])
+    SetRaidWarningBossEmoteMuted(false)
     RestoreBlizzardFrame(LevelUpDisplay or _G["LevelUpDisplay"])
     RestoreBlizzardFrame(EventToastManagerFrame or _G["EventToastManagerFrame"])
     RestoreBlizzardFrame(BossBanner)
@@ -236,7 +261,12 @@ local function DumpBlizzardSuppression(p)
 
     local bossEmoteFrame = RaidBossEmoteFrame or _G["RaidBossEmoteFrame"]
     local bossOn = addon.GetDB and addon.GetDB("presenceBossEmote", true)
-    p("Boss emote:    option=" .. tostring(bossOn) .. " | RaidBossEmoteFrame=" .. frameState(bossEmoteFrame))
+    if bossEmoteFrame then
+        p("Boss emote:    option=" .. tostring(bossOn) .. " | RaidBossEmoteFrame=" .. frameState(bossEmoteFrame))
+    else
+        p("Boss emote:    option=" .. tostring(bossOn) .. " | RaidWarningFrame RAID_BOSS_EMOTE="
+            .. (raidWarningBossEmoteMuted and "muted" or "Blizzard"))
+    end
 
     local anyToast = (addon.Presence and addon.Presence.IsAnyToastEnabled and addon.Presence.IsAnyToastEnabled()) or false
     local eventToastFrame = EventToastManagerFrame or _G["EventToastManagerFrame"]

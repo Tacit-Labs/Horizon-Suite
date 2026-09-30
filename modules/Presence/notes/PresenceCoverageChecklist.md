@@ -12,7 +12,7 @@ Baseline coverage matrix, gap analysis, and implementation plan for release read
 |---------|----------------|--------------------|---------------------|---------------------|------------|
 | Zone name | `ZoneTextFrame` | KillBlizzardFrame | ZONE_CHANGED_NEW_AREA | QueueOrPlay ZONE_CHANGE | covered |
 | Subzone name | `SubZoneTextFrame` | KillBlizzardFrame | ZONE_CHANGED, ZONE_CHANGED_INDOORS | QueueOrPlay SUBZONE_CHANGE | covered |
-| Boss emotes | `RaidBossEmoteFrame` | KillBlizzardFrame | RAID_BOSS_EMOTE | QueueOrPlay BOSS_EMOTE | covered |
+| Boss emotes | `RaidBossEmoteFrame` (before 12.1.0); `RaidWarningFrame` from 12.1.0 | KillBlizzardFrame; from 12.1.0, unregister RAID_BOSS_EMOTE on `RaidWarningFrame` (raid warnings and RAID_BOSS_WHISPER stay Blizzard's) | RAID_BOSS_EMOTE | QueueOrPlay BOSS_EMOTE | covered |
 | Level-up | `LevelUpDisplay` | KillBlizzardFrame | PLAYER_LEVEL_UP | QueueOrPlay LEVEL_UP | covered |
 | Boss encounter banner | `BossBanner` | KillBlizzardFrame | (N/A; banner shown via other path) | Presence does not replace boss encounter banners | partial |
 | Tracker bonus banner | `ObjectiveTrackerBonusBannerFrame` | KillBlizzardFrame | — | N/A (suppress only) | covered |
@@ -206,6 +206,7 @@ end
 | ZoneTextFrame | Fly to new zone | Presence zone text only |
 | SubZoneTextFrame | Enter subzone | Presence subzone text only |
 | RaidBossEmoteFrame | Boss emote (raid/dungeon) | Presence BOSS_EMOTE only |
+| RaidWarningFrame (12.1.0+) | Boss emote, then a leader's /rw | Presence BOSS_EMOTE only; the raid warning still shows in Blizzard's frame |
 | LevelUpDisplay | Level up | Presence LEVEL_UP only |
 | EventToastManagerFrame | Achievement / quest complete | Presence toasts only |
 | ObjectiveTrackerBonusBannerFrame | Bonus objective | No Blizzard banner |
