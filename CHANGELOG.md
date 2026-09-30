@@ -10,6 +10,14 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [6.3.1] – 2026-09-30
+
+### 🐛 Fixes
+- **(Focus)** Quest level colours match the game's own quest log again, so a quest a few levels below you shows green instead of yellow.
+- **(Insight)** Tooltip level colours match the game's target frame again, so a mob a few levels below you shows green instead of yellow.
+
+---
+
 ## [6.3.0] – 2026-09-30
 
 ### ✨ New Features
