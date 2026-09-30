@@ -1144,6 +1144,8 @@ L["FOCUS_RESET_SPACING"]                                      = "Réinitialiser 
 -- =====================================================================
 L["FOCUS_SHOW_QUEST_LEVEL"]                                   = "Afficher le niveau de quête"
 L["FOCUS_QUEST_LEVEL_NEXT_TITLE"]                             = "Affiche le niveau de quête à côté du titre."
+-- L["FOCUS_QUEST_LEVEL_DIFFICULTY_COLOUR"]                   = "Quest Level Difficulty Colour"
+-- L["FOCUS_QUEST_LEVEL_DIFFICULTY_COLOUR_DESC"]              = "Colour the quest level by how hard the quest is for you: grey, green, yellow, orange or red."
 L["FOCUS_DIM_FOCUSED_QUESTS"]                                 = "Estomper les quêtes non actives"
 L["FOCUS_SLIGHTLY_DIM_TITLE_ZONE_OBJECTIVES_SECTION"]         = "Estompe légèrement les titres, zones, objectifs et en-têtes non actifs."
 L["FOCUS_DIM_UNFOCUSED_ENTRIES"]                              = "Estomper les éléments non mis en avant"

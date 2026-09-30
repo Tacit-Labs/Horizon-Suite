@@ -1133,6 +1133,8 @@ L["FOCUS_RESET_SPACING"]                                      = "重置间距"
 -- =====================================================================
 L["FOCUS_SHOW_QUEST_LEVEL"]                                   = "显示任务等级"
 L["FOCUS_QUEST_LEVEL_NEXT_TITLE"]                             = "标题旁显示任务等级"
+-- L["FOCUS_QUEST_LEVEL_DIFFICULTY_COLOUR"]                   = "Quest Level Difficulty Colour"
+-- L["FOCUS_QUEST_LEVEL_DIFFICULTY_COLOUR_DESC"]              = "Colour the quest level by how hard the quest is for you: grey, green, yellow, orange or red."
 L["FOCUS_DIM_FOCUSED_QUESTS"]                                 = "淡化非当前任务"
 L["FOCUS_SLIGHTLY_DIM_TITLE_ZONE_OBJECTIVES_SECTION"]         = "稍微淡化未聚焦的标题、区域、目标和分类标题"
 L["FOCUS_DIM_UNFOCUSED_ENTRIES"]                              = "淡化未聚焦条目"

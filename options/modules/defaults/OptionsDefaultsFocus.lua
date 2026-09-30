@@ -147,6 +147,7 @@ addon.FOCUS_DEFAULTS = {
     questCompletedObjectiveDisplay = "off",
     useTickForCompletedObjectives = false,
     showQuestLevel            = false,
+    questLevelDifficultyColor = true,
     showQuestTypeIcons        = true,
     focusIconSize             = 16,
     showInZoneSuffix          = true,
