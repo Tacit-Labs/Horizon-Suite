@@ -441,8 +441,10 @@ function A.ApplyScale()
     if A.GetIconSize then A.ICON_SIZE = A.GetIconSize() end
     if A.GetIconGap then A.ICON_GAP = A.GetIconGap() end
     -- Large icons need a taller row than the 44px default so they don't overflow
-    -- into neighbouring stacked toasts.
-    A.HEIGHT = math.max(44, A.ICON_SIZE + M.CHROME_HEIGHT_PAD)
+    -- into neighbouring stacked toasts. Card draws its icon larger still.
+    local TS = Y.ToastStyles
+    local grow = TS and TS.IconGrow and TS.IconGrow(A.GetToastStyle()) or 0
+    A.HEIGHT = math.max(44, A.ICON_SIZE + grow + M.CHROME_HEIGHT_PAD)
     A.LINE_HEIGHT = A.HEIGHT + A.LINE_SPACING
     UpdateFontObject()
     Frame:SetSize(S(A.WIDTH), S(A.LINE_HEIGHT))

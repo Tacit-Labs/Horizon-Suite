@@ -47,7 +47,10 @@ end
 -- The taller of the icon and three text lines, plus the chrome's headroom and
 -- the timer bar. Always sized for three lines: see R.TEXT_LINE_GAP.
 local function RowHeight()
-    local content = math.max(R.GetIconSize(), 3 * TextLineHeight())
+    -- Card draws its icon larger than the configured size.
+    local TS = Y.ToastStyles
+    local grow = TS and TS.IconGrow and TS.IconGrow(R.GetToastStyle()) or 0
+    local content = math.max(R.GetIconSize() + grow, 3 * TextLineHeight())
     return content + M.CHROME_HEIGHT_PAD + R.TIMER_HEIGHT + M.EDGE
 end
 
