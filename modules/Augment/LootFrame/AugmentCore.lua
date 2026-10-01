@@ -42,6 +42,13 @@ local function GetToastFont()
     return Augment.GetFontPath(), S(GetFontSize()), GetFontFlags()
 end
 
+-- Card's second line sits a little smaller than the name.
+local INFO_FONT_STEP = 2
+
+local function GetInfoFont()
+    return Augment.GetFontPath(), S(math.max(8, GetFontSize() - INFO_FONT_STEP)), GetFontFlags()
+end
+
 -- Per-FontString hook that re-asserts our desired font whenever a font-replacement
 -- addon (e.g. Platynator) overrides SetFont or SetFontObject on that string.
 -- Mirrors the LockDirectFont pattern used in PresenceTalkingHead.lua.
@@ -297,8 +304,17 @@ local function CreateToastEntry(parent)
     text:SetTextColor(1, 1, 1, 1)
     text:SetWordWrap(false)
 
+    -- Card's second line (item level and slot, or a running total). Shown
+    -- only by styles with infoLine; ToastStyles hides it for every other style.
+    local info = f:CreateFontString(nil, "OVERLAY")
+    info:SetFont(GetInfoFont())
+    info:SetTextColor(0.75, 0.75, 0.75, 1)
+    info:SetWordWrap(false)
+    info:Hide()
+
     LockDirectFont(shadow, GetToastFont)
     LockDirectFont(text,   GetToastFont)
+    LockDirectFont(info,   GetInfoFont)
 
     -- Transparent button child: handles hover tooltip and Ctrl+Left item preview while
     -- propagating all other clicks through to the game engine (camera rotation, etc.).
@@ -338,6 +354,7 @@ local function CreateToastEntry(parent)
         shine       = shine,
         shadow      = shadow,
         text        = text,
+        info        = info,
         active      = false,
         elapsed     = 0,
         holdDur     = Augment.HOLD_ITEM,
@@ -847,6 +864,9 @@ local function TryMergeToast(data, effectiveKey)
             end
             e.text:SetText(newText)
             e.shadow:SetText(newText)
+            -- Money and currency totals moved with the merge.
+            e.info:SetText(Augment.BuildCardInfo and Augment.BuildCardInfo(data) or "")
+            ApplyToastIconLayout(e)
             if effectiveKey == JUNK_KEY then
                 -- Shift icon layers so each junk item keeps its own icon.
                 -- icon3 ← icon2's texture, icon2 ← main icon's texture, main ← new item.
@@ -900,6 +920,8 @@ function Augment.ShowToast(data)
     entry.text:SetText(displayText)
     entry.text:SetTextColor(data.r, data.g, data.b, 1)
     entry.shadow:SetText(displayText)
+    -- Before the chrome: Card lays out two lines only when this has text.
+    entry.info:SetText(Augment.BuildCardInfo and Augment.BuildCardInfo(data) or "")
     -- Apply after SetText so width/justify/anchors win over any FontString reset.
     -- Chrome (icon/text anchors + style backdrop) before UpdateStackIcons below,
     -- so the fan positions itself relative to the freshly-placed anchor instead
@@ -1242,9 +1264,16 @@ function Augment.ApplyScale()
     -- the icon (ToastMotion.CHROME_HEIGHT_PAD) so it doesn't crowd the icon/text.
     -- Compact/Accent keep the tight height since their chrome has no hard edge.
     local heightPad = def and def.heightPad or 0
-    Y.ENTRY_HEIGHT = math.max(tightHeight, Y.ICON_SIZE + heightPad)
+    -- Card draws its icon larger than the configured size; widen and heighten
+    -- the row by the same amount so the text keeps its full width.
+    local grow = def and def.iconGrow or 0
+    Y.ENTRY_HEIGHT = math.max(tightHeight, Y.ICON_SIZE + grow + heightPad)
+    if def and def.infoLine then
+        -- Two lines of text must fit even beside a small icon.
+        Y.ENTRY_HEIGHT = math.max(Y.ENTRY_HEIGHT, GetFontSize() * 2 + heightPad)
+    end
     Y.LINE_HEIGHT  = Y.ENTRY_HEIGHT + Y.LINE_SPACING
-    Y.TOTAL_WIDTH  = (Y.ICON_SIZE + Y.BORDER_PAD * 2) + Y.ICON_GAP + Y.TEXT_WIDTH
+    Y.TOTAL_WIDTH  = (Y.ICON_SIZE + grow + Y.BORDER_PAD * 2) + Y.ICON_GAP + Y.TEXT_WIDTH
     if Augment.InvalidateCoinTextures then Augment.InvalidateCoinTextures() end
     if not IsReady() then return end
     UpdateAugmentFontObject()
@@ -1266,6 +1295,7 @@ function Augment.ApplyScale()
             -- Layout after SetFont so justify/anchors are not clobbered.
             if e.shadow then e.shadow:SetFont(fontPath, fontSize, fontFlags) end
             if e.text then e.text:SetFont(fontPath, fontSize, fontFlags) end
+            if e.info then e.info:SetFont(GetInfoFont()) end
             -- Chrome first (icon/text anchors, style backdrop); a stack-fan re-run
             -- must come after so it positions icons off the freshly-placed anchor
             -- instead of being immediately undone by ApplyChrome's anchor reset.
@@ -1274,9 +1304,10 @@ function Augment.ApplyScale()
             if e.active and e._itemKey == JUNK_KEY and e._count and e._count >= 2 then
                 UpdateStackIcons(e, e._count)
             else
+                -- ApplyToastIconLayout already sized the icon for the style
+                -- (Card draws it larger), so leave its size alone here.
                 if e.icon3 then e.icon3:Hide() end
                 if e.icon2 then e.icon2:Hide() end
-                if e.icon  then e.icon:SetSize(S(Augment.ICON_SIZE), S(Augment.ICON_SIZE)) end
             end
         end
     end

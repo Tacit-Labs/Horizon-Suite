@@ -103,6 +103,10 @@ end
 --   window    string    Loot window chrome: "backdrop", "strip", "wash" or "plain"
 --   slotPad   table|nil Loot window slot icon pad { extra, alpha }; nil keeps
 --                       Blizzard's own slot border
+--   iconGrow  number|nil Unscaled px added to the icon. Each stack's row height
+--                       must include it (TS.IconGrow)
+--   infoLine  boolean   Shows the caller's optional entry.info line under a
+--                       single-line toast's text
 
 local DEFAULT_STYLE = "framed"
 local styles = {}
@@ -132,6 +136,13 @@ end
 --- @return table def Registered style definition
 function TS.Get(style)
     return styleByID[TS.Normalize(style)]
+end
+
+--- Extra icon size a style asks for, for stacks that size their rows from the icon.
+--- @param style string|nil Raw toast style
+--- @return number grow Unscaled px
+function TS.IconGrow(style)
+    return TS.Get(style).iconGrow or 0
 end
 
 --- All registered styles, in dropdown order.
@@ -301,6 +312,8 @@ local function HideStyleRegions(entry)
     for key in pairs(STYLE_REGIONS) do
         if entry[key] then entry[key]:Hide() end
     end
+    -- The caller owns entry.info; only a style with infoLine shows it.
+    if entry.info then entry.info:Hide() end
 end
 
 local function ClearBackdrop(frame)
@@ -371,6 +384,47 @@ local function ApplyUnframed(entry, style, textMode, iconSide, iconSize, gap, te
     entry.icon:SetPoint("CENTER", background, "CENTER", 0, 0)
     AnchorText(entry, textMode, anchor, iconSide, gap, textWidth)
 end
+
+-- Card on a single-line toast: name on the top line and entry.info on the
+-- bottom line, both beside the icon. Runs after ApplyInset, which centred the
+-- name; with no info text the name stays centred.
+local function AnchorInfoLine(entry, ctx, inset)
+    local info = entry.info
+    if not info or ctx.textMode ~= "single" then return end
+    local value = info:GetText()
+    if not value or value == "" then return end
+
+    local anchor = entry.iconBgAnchor or entry.icon
+    local right = ctx.iconSide == "right"
+    local gap = ctx.gap
+    local width = ctx.textWidth and math.max(0, ctx.textWidth - (2 * inset))
+
+    local function place(fontString, point, relPoint, x, y)
+        if not fontString then return end
+        fontString:ClearAllPoints()
+        fontString:SetPoint(point, anchor, relPoint, x, y)
+        if right then
+            fontString:SetWidth(0)
+        elseif width then
+            fontString:SetWidth(width)
+        end
+    end
+
+    if right then
+        place(entry.shadow, "TOPRIGHT", "TOPLEFT", -(gap + 1), -2)
+        place(entry.text, "TOPRIGHT", "TOPLEFT", -gap, -1)
+        place(info, "BOTTOMRIGHT", "BOTTOMLEFT", -gap, 1)
+    else
+        place(entry.shadow, "TOPLEFT", "TOPRIGHT", gap + 1, -2)
+        place(entry.text, "TOPLEFT", "TOPRIGHT", gap, -1)
+        place(info, "BOTTOMLEFT", "BOTTOMRIGHT", gap, 1)
+    end
+    info:SetJustifyH(right and "RIGHT" or "LEFT")
+    info:Show()
+end
+
+-- Card: how much bigger than the configured size its icon is drawn.
+local CARD_ICON_GROW = 8
 
 -- Ribbon: how far the text tint is pulled toward white so it reads on the wash.
 local RIBBON_TEXT_LIFT = 0.6
@@ -450,6 +504,19 @@ TS.Register({
     end,
 })
 
+-- Card: Framed's plate around a larger icon. On loot toasts a second line
+-- (item level and slot, or a running total) sits under the name.
+TS.Register({
+    id = "card", label = "AUGMENT_TOAST_STYLE_CARD",
+    heightPad = M.CHROME_HEIGHT_PAD, iconGrow = CARD_ICON_GROW, border = true,
+    window = "backdrop", infoLine = true,
+    apply = function(entry, ctx)
+        TS.ApplyFramedBackdrop(entry.frame, ctx.r, ctx.g, ctx.b, ctx.border)
+        ApplyInset(entry, ctx, M.EDGE)
+        AnchorInfoLine(entry, ctx, M.EDGE)
+    end,
+})
+
 --- Apply shared toast chrome. Does not set text strings.
 --- @param entry table Toast regions and frame
 --- @param style string|nil Raw DB style value
@@ -463,7 +530,7 @@ function TS.ApplyChrome(entry, style, colors, layout)
     local ctx = {
         textMode  = layout.textMode,
         iconSide  = iconSide,
-        iconSize  = scale(layout.iconSize),
+        iconSize  = scale(layout.iconSize + (def.iconGrow or 0)),
         gap       = scale(layout.iconGap),
         textWidth = layout.textWidth and scale(layout.textWidth),
         pad       = scale(layout.iconBgPad),

@@ -266,6 +266,7 @@ function Y.ParseCurrency(msg)
         baseName = name,
         count    = qty,
         itemKey  = "currency_" .. currencyID,
+        currencyID = currencyID,
         r = Y.CURRENCY_COLOR[1], g = Y.CURRENCY_COLOR[2], b = Y.CURRENCY_COLOR[3],
         br = Y.CURRENCY_COLOR[1], bg = Y.CURRENCY_COLOR[2], bb = Y.CURRENCY_COLOR[3],
     }
@@ -313,6 +314,67 @@ function Y.ParseReputation(msg)
                 br = Y.REP_GAIN_COLOR[1], bg = Y.REP_GAIN_COLOR[2], bb = Y.REP_GAIN_COLOR[3],
             }
         end
+    end
+
+    return nil
+end
+
+-- ============================================================================
+-- CARD INFO LINE
+-- ============================================================================
+
+local function ItemInfoInstant(link)
+    local fn = (C_Item and C_Item.GetItemInfoInstant) or GetItemInfoInstant
+    if not fn then return nil end
+    local _, itemType, subType, equipLoc = fn(link)
+    return itemType, subType, equipLoc
+end
+
+local function ItemLevel(link)
+    local fn = (C_Item and C_Item.GetDetailedItemLevelInfo) or GetDetailedItemLevelInfo
+    if not fn then return nil end
+    return fn(link)
+end
+
+local function Total(value)
+    local L = addon.L
+    return format(L["AUGMENT_CARD_TOTAL"], value)
+end
+
+--- Second line for Card-style loot toasts: item level and slot for gear, the
+--- item's type for anything else, and the new total for money and currency.
+--- Rep toasts carry no faction ID, so they get none.
+--- @param data table|nil Parsed toast data (Y.ParseItemLoot and friends)
+--- @return string|nil info Nil when there is nothing worth a second line
+function Y.BuildCardInfo(data)
+    if not data then return nil end
+
+    if data.kind == "item" and data.link then
+        local itemType, subType, equipLoc = ItemInfoInstant(data.link)
+        if not itemType then return nil end
+        local slot = equipLoc and equipLoc ~= "" and _G[equipLoc]
+        local level = slot and ItemLevel(data.link)
+        if slot and level then
+            return format(addon.L["AUGMENT_CARD_ITEM_INFO"], level, slot)
+        end
+        return subType or itemType
+    end
+
+    if data.kind == "currency" and data.currencyID then
+        local info = C_CurrencyInfo and C_CurrencyInfo.GetCurrencyInfo
+            and C_CurrencyInfo.GetCurrencyInfo(data.currencyID)
+        if not info or not info.quantity then return nil end
+        local qty = BreakUpLargeNumbers and BreakUpLargeNumbers(info.quantity) or info.quantity
+        return Total(qty)
+    end
+
+    if data.kind == "money" and GetMoney then
+        local copper = GetMoney() or 0
+        local gold = math.floor(copper / 10000)
+        -- Whole gold is enough once there is any; the silver and copper only
+        -- matter while the total is still under a gold.
+        if gold > 0 then return Total(Y.FormatMoney(gold, 0, 0)) end
+        return Total(Y.FormatMoney(0, math.floor(copper / 100) % 100, copper % 100))
     end
 
     return nil
