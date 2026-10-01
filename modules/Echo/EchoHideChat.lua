@@ -270,7 +270,7 @@ function HideChat.Apply()
     end
     -- ChatFrame1 keeps its whisper events so Blizzard sets R's target: the whisper filter
     -- goes off (Echo.ApplyOptions keeps it off from now on).
-    if Echo.Filter and Echo.Filter.active then Echo.Filter.Apply(false) end
+    if Echo.Filter and Echo.Filter.active then Echo.Filter.Apply(nil) end
     -- The All view collects from now on even with echoAllView off (Echo.FeedEnabled), so a
     -- tile switched off earlier comes back for its next line.
     if first and Echo.Setting("echoAllView") == false then Echo.Store.Undismiss(Echo.All and Echo.All.KEY or "all") end

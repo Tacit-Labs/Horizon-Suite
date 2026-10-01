@@ -4224,11 +4224,11 @@ run(`
   local lastTell
   ChatEdit_SetLastTellTarget = function(name, chatType) lastTell = { name, chatType } end
 
-  F.Apply(true)
+  F.Apply({ whisper = true, bnet = true })
   check("filter on registers whispers", added.CHAT_MSG_WHISPER == F.Handler and added.CHAT_MSG_WHISPER_INFORM == F.Handler, "missing")
   check("filter on registers Battle.net whispers", added.CHAT_MSG_BN_WHISPER == F.Handler, "missing")
   check("filter active", F.active == true, F.active)
-  F.Apply(true)
+  F.Apply({ whisper = true, bnet = true })
   check("applying twice is harmless", added.CHAT_MSG_WHISPER == F.Handler, "lost")
 
   local hide = F.Handler(nil, "CHAT_MSG_WHISPER", "hi", "Brisa-Horizon", "", "", "", "", 0, 0, "", 0, 1, "Player-1-DRUID")
@@ -4244,11 +4244,11 @@ run(`
   check("a secret sender stays in Blizzard chat", keep == false, keep)
 
   HorizonSuite.Platform.caps.bnetWhispers = false
-  F.Apply(false); F.Apply(true)
+  F.Apply(nil); F.Apply({ whisper = true, bnet = true })
   check("no Battle.net filter without Battle.net whispers", added.CHAT_MSG_BN_WHISPER == nil, "registered")
   HorizonSuite.Platform.caps.bnetWhispers = true
 
-  F.Apply(false)
+  F.Apply(nil)
   check("filter off removes whispers", added.CHAT_MSG_WHISPER == nil and added.CHAT_MSG_WHISPER_INFORM == nil, "still there")
   check("filter inactive", F.active == false, F.active)
 
@@ -4343,6 +4343,50 @@ run(`
   C_ChatInfo = nil
   PlaySound, SOUNDKIT, ChatEdit_SetLastTellTarget = nil, nil, nil
 `, 'echo-filter-lockdown');
+
+// --- The filter hides any set of kinds ---------------------------------------------
+run(`
+  local Echo = HorizonSuite.Echo
+  local F = Echo.Filter
+  local savedUtil = ChatFrameUtil
+  ChatFrameUtil = nil
+  local added = {}
+  ChatFrame_AddMessageEventFilter = function(event, fn) added[event] = fn end
+  ChatFrame_RemoveMessageEventFilter = function(event, fn) if added[event] == fn then added[event] = nil end end
+  local tells = 0
+  ChatEdit_SetLastTellTarget = function() tells = tells + 1 end
+  local savedWhisper, sounds = Echo.Sound.Whisper, 0
+  Echo.Sound.Whisper = function() sounds = sounds + 1 end
+
+  F.Apply({ guild = true, party = true })
+  check("kinds: guild is hidden", added.CHAT_MSG_GUILD == F.Handler, "missing")
+  check("kinds: party and its leader are hidden", added.CHAT_MSG_PARTY == F.Handler and added.CHAT_MSG_PARTY_LEADER == F.Handler, "missing")
+  check("kinds: whispers are not", added.CHAT_MSG_WHISPER == nil, "hidden")
+  check("kinds: active", F.active == true, F.active)
+  check("kinds: the same set", F.SameKinds({ party = true, guild = true }) == true, "differs")
+  check("kinds: a different set", F.SameKinds({ guild = true }) == false and F.SameKinds(nil) == false, "same")
+
+  local hide = F.Handler(nil, "CHAT_MSG_GUILD", "hello", "Brisa-Horizon", "", "", "", "", 0, 0, "", 0, 1, "Player-1-DRUID")
+  check("kinds: a filed guild line is hidden", hide == true, hide)
+  check("kinds: it sets no reply target and plays no sound", tells == 0 and sounds == 0, tells .. "/" .. sounds)
+  local keep = F.Handler(nil, "CHAT_MSG_GUILD", SECRET("hello"), "Brisa-Horizon", "", "", "", "", 0, 0, "", 0, 1, "Player-1-DRUID")
+  check("kinds: a secret guild line stays", keep == false, keep)
+
+  F.Apply({ loot = true })
+  check("kinds: a feed has nothing to hide", next(added) == nil and F.active == false, next(added))
+
+  HorizonSuite.Platform.caps.bnetWhispers = false
+  F.Apply({ bnet = true })
+  check("kinds: no Battle.net filter without Battle.net whispers", added.CHAT_MSG_BN_WHISPER == nil and F.active == false, "registered")
+  HorizonSuite.Platform.caps.bnetWhispers = true
+
+  F.Apply(nil)
+  check("kinds: off", next(added) == nil and F.active == false and F.SameKinds(nil), next(added))
+
+  Echo.Sound.Whisper = savedWhisper
+  ChatFrameUtil = savedUtil
+  ChatFrame_AddMessageEventFilter, ChatFrame_RemoveMessageEventFilter, ChatEdit_SetLastTellTarget = nil, nil, nil
+`, 'echo-filter-kinds');
 
 // --- OptionsData: the global-font override pushes Echo's font too -------------------------
 run(`
@@ -9042,11 +9086,11 @@ run(`
   }
   local savedWhisper = Echo.Sound.Whisper
   Echo.Sound.Whisper = function() end
-  Echo.Filter.Apply(true)
+  Echo.Filter.Apply({ whisper = true })
   E.Dispatch("CHAT_MSG_WHISPER", "ping", "Brisa-Horizon", nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
   check("filter: Echo's own whisper filter never blocks Echo", S.Get("w:Brisa-Horizon") and #S.Get("w:Brisa-Horizon").messages == 1, "blocked")
   check("filter: and still hides it from Blizzard's windows", Echo.Filter.Handler(chatFrame, "CHAT_MSG_WHISPER", "ping", "Brisa-Horizon") == true, "shown")
-  Echo.Filter.Apply(false)
+  Echo.Filter.Apply(nil)
   Echo.Sound.Whisper = savedWhisper
 
   -- Older clients: loop over ChatFrame_GetMessageEventFilters.

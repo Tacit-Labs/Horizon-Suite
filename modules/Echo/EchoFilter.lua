@@ -1,12 +1,13 @@
 --[[
     Horizon Suite - Echo - Filter
-    "Hide whispers Echo has stored": while on, a whisper Echo files in a conversation is
-    hidden from Blizzard's chat windows. A whisper Echo could not read (secret text or a
-    secret sender) is never hidden, so nothing is lost. Blizzard sets the reply target
-    after the filters run, so a hidden incoming whisper sets it here instead. Blizzard
-    also plays the whisper sound and flashes the taskbar icon after the filters run; a
-    hidden incoming whisper does both here instead, once per chat frame, via
-    Echo.Sound.Whisper (EchoSound.lua) and FlashClientIcon.
+    Hides chat Echo has filed from Blizzard's chat windows, for each kind whose route is
+    "echo" (Echo.Route; Echo.ApplyOptions passes the set). A line Echo could not read
+    (secret text or a secret sender) is never hidden, so nothing is lost. For whispers,
+    Blizzard sets the reply target after the filters run, so a hidden incoming whisper sets
+    it here instead. Blizzard also plays the whisper sound and flashes the taskbar icon
+    after the filters run; a hidden incoming whisper does both here instead, once per chat
+    frame, via Echo.Sound.Whisper (EchoSound.lua) and FlashClientIcon. Other kinds need
+    neither.
     While C_ChatInfo.InChatMessagingLockdown() is true, nothing is hidden: Blizzard's own
     secure code owns the line, the sound and the reply target during that window.
     Blizzard: ChatFrameUtil.AddMessageEventFilter / RemoveMessageEventFilter (legacy
@@ -23,11 +24,10 @@ local Echo = addon.Echo
 local Filter = { active = false }
 Echo.Filter = Filter
 
-local EVENTS = { "CHAT_MSG_WHISPER", "CHAT_MSG_WHISPER_INFORM" }
-local BN_EVENTS = { "CHAT_MSG_BN_WHISPER", "CHAT_MSG_BN_WHISPER_INFORM" }
 local INCOMING = { CHAT_MSG_WHISPER = "WHISPER", CHAT_MSG_BN_WHISPER = "BN_WHISPER" }
 
 local registered = {}  -- events this filter is currently registered on
+Filter.kinds = {}      -- kind -> true: the kinds hidden now
 
 local function AddFn()
     local util = _G.ChatFrameUtil
@@ -97,26 +97,59 @@ function Filter.Handler(_, event, ...)
     return false
 end
 
---- Register or remove the filter.
--- @param on boolean
-function Filter.Apply(on)
+--- The chat events hidden for a set of kinds: each event Store.EVENT_KIND gives one of
+-- them, never a feed's, Battle.net's only where the client has Battle.net whispers, and
+-- only events this client has.
+-- @param kinds table|nil  kind -> true
+-- @return table events  sorted
+function Filter.EventsFor(kinds)
+    local out = {}
+    if type(kinds) ~= "table" then return out end
+    local Store = Echo.Store
+    local hasBnet = addon.Platform and addon.Platform.Has("bnetWhispers")
+    for event, kind in pairs(Store.EVENT_KIND) do
+        if kinds[kind] == true and not Store.FEED_KINDS[kind] and (hasBnet or kind ~= "bnet")
+            and Echo.IsEventValid(event) then
+            out[#out + 1] = event
+        end
+    end
+    table.sort(out)
+    return out
+end
+
+--- True when kinds names exactly the kinds hidden now (nil is none).
+-- @param kinds table|nil
+-- @return boolean
+function Filter.SameKinds(kinds)
+    if type(kinds) ~= "table" then kinds = {} end
+    for kind, on in pairs(kinds) do
+        if on == true and not Filter.kinds[kind] then return false end
+    end
+    for kind in pairs(Filter.kinds) do
+        if kinds[kind] ~= true then return false end
+    end
+    return true
+end
+
+--- Hide these kinds' chat from Blizzard's windows, and stop hiding the rest.
+-- @param kinds table|nil  kind -> true; nil or empty turns the filter off
+function Filter.Apply(kinds)
     local remove = RemoveFn()
     for event in pairs(registered) do
         if remove then remove(event, Filter.Handler) end
     end
     registered = {}
+    Filter.kinds = {}
     Filter.active = false
-    if not on then return end
+    if type(kinds) ~= "table" then return end
+    for kind, on in pairs(kinds) do
+        if on == true then Filter.kinds[kind] = true end
+    end
     local add = AddFn()
     if not add then return end
-    local events = {}
-    for _, e in ipairs(EVENTS) do events[#events + 1] = e end
-    if addon.Platform and addon.Platform.Has("bnetWhispers") then
-        for _, e in ipairs(BN_EVENTS) do events[#events + 1] = e end
-    end
-    for _, event in ipairs(events) do
+    for _, event in ipairs(Filter.EventsFor(Filter.kinds)) do
         add(event, Filter.Handler)
         registered[event] = true
     end
-    Filter.active = true
+    Filter.active = next(registered) ~= nil
 end
