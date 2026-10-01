@@ -40,7 +40,7 @@ The old `echoHideStoredWhispers` toggle is retired. `Echo.Route` reads it as a l
 - **Strings:** everything shown to the player goes through `addon.L`. New keys go in `locales/horizon/enUS.lua` only, next to the Echo keys they sit with, aligned with their neighbours. Other locales fall back to enUS.
 - **Settings:** every new setting is in `addon.ECHO_DEFAULTS`, and `ECHO_KEYS` derives from it. Every setting except `echoHoverDelay` must appear on `options/modules/OptionsEcho.lua`; an existing test enforces this.
 - **Commits:** Conventional Commits with scope `echo`, one per task. Run `git add` and `git commit` as separate commands. Each message ends with exactly `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`. Never use `git stash`.
-- **Branch:** `feature/echo-chat-routing`, from `main`.
+- **Branch:** `feature/echo-chat-type-routing`, from `main`.
 - **Test command:** `NODE_PATH="$HOME/.cache/hs-test/node_modules" node tools/test_echo_logic.js` (2833 passing at the start).
 - **Parse check:** every changed Lua file, with:
   `NODE_PATH="$HOME/.cache/hs-test/node_modules" node -e "const {lauxlib,lua,to_luastring,to_jsstring}=require('fengari');const L=lauxlib.luaL_newstate();for(const f of process.argv.slice(1)){const s=require('fs').readFileSync(f,'utf8').replace(/^\uFEFF/,'');console.log(f,lauxlib.luaL_loadbuffer(L,to_luastring(s),null,to_luastring(f))===lua.LUA_OK?'parses':to_jsstring(lua.lua_tostring(L,-1)))}" <files>`
@@ -683,10 +683,10 @@ git commit -m "feat(echo): choose where each type of chat shows on the options p
 
 ### Task 5: In-game check and pull request
 
-- [ ] **Step 1: Push the branch.** `git push -u origin feature/echo-chat-routing`. Hand Chris the Windows command:
+- [ ] **Step 1: Push the branch.** `git push -u origin feature/echo-chat-type-routing`. Hand Chris the Windows command:
 
 ```powershell
-cd "C:\Users\chris\HorizonSuite"; git fetch origin; git switch feature/echo-chat-routing; git pull --rebase --autostash
+cd "C:\Users\chris\HorizonSuite"; git fetch origin; git switch feature/echo-chat-type-routing; git pull --rebase --autostash
 ```
 
 - [ ] **Step 2: In-game checklist (Retail, then Forever).** `/reload`, then:
