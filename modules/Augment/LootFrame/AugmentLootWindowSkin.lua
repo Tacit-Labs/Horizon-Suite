@@ -619,6 +619,9 @@ end
 --- hooksInstalled stays true (hooksecurefunc cannot unhook); skinActive gates work.
 --- @return nil
 function Y.DisableLootWindowSkin()
+    -- Nothing to restore if the skin never ran; restoring anyway would
+    -- re-Show slot borders Blizzard had hidden on its own.
+    if not skinActive then return end
     skinActive = false
     for region, wasShown in pairs(savedRegions) do
         if wasShown and region and region.Show then pcall(region.Show, region) end
@@ -633,3 +636,11 @@ function Y.DisableLootWindowSkin()
     end
     RestoreLootSlotArt()
 end
+
+-- Blizzard_LootFrame can load after the skin is switched on. Watch for it
+-- here rather than in AugmentEvents, whose events are off while loot toasts are.
+local loadWatcher = CreateFrame("Frame")
+loadWatcher:RegisterEvent("ADDON_LOADED")
+loadWatcher:SetScript("OnEvent", function(_, _, name)
+    if name == "Blizzard_LootFrame" and skinActive then Y.EnableLootWindowSkin() end
+end)
