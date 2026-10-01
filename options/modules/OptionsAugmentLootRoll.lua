@@ -47,12 +47,10 @@ local QUALITY_OPTIONS = {
     { L["LOOT_ROLL_QUALITY_EPIC"],      4 },
 }
 
-local STYLE_OPTIONS = {
-    { L["LOOT_ROLL_STYLE_MATCH"], "__loot__" },
-    { L["AUGMENT_TOAST_STYLE_COMPACT"], "compact" },
-    { L["AUGMENT_TOAST_STYLE_FRAMED"],  "framed"  },
-    { L["AUGMENT_TOAST_STYLE_ACCENT"],  "accent"  },
-}
+-- "Match loot toasts" first, then every registered toast style.
+local TS = addon.Augment and addon.Augment.ToastStyles
+local STYLE_OPTIONS = TS and TS.StyleOptions(L, { { L["LOOT_ROLL_STYLE_MATCH"], "__loot__" } })
+    or { { L["LOOT_ROLL_STYLE_MATCH"], "__loot__" } }
 
 local SIDE_OPTIONS = {
     { L["AUGMENT_LAYOUT_LEFT"],  "left"  },

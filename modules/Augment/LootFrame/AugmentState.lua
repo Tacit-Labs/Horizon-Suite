@@ -53,7 +53,7 @@ function Y.GetIconGap()
 end
 
 --- Return the normalized loot-toast style.
---- @return string styleID "compact", "framed", or "accent"
+--- @return string styleID A registered ToastStyles ID (see TS.Register)
 function Y.GetToastStyle()
     local D = addon.AUGMENT_DEFAULTS
     local raw = addon.GetDB and addon.GetDB("augmentToastStyle", D.augmentToastStyle) or D.augmentToastStyle

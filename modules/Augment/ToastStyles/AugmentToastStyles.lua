@@ -86,13 +86,73 @@ function M.Ease(t, mode)
     return 1 - (1 - t) * (1 - t)
 end
 
+-- ============================================================================
+-- STYLE REGISTRY
+-- ============================================================================
+-- Every toast stack (loot, alerts, loot rolls, Echo), the options dropdowns and
+-- the loot window skin read their style list and per-style traits from here,
+-- so a new style is one TS.Register call plus its locale label.
+--
+-- Definition fields:
+--   id        string    Saved-variable value
+--   label     string    Locale key for the dropdown label
+--   apply     function  (entry, ctx) paints the chrome; ctx is built in TS.ApplyChrome
+--   heightPad number    Unscaled px a loot row needs beyond the icon (0 keeps it tight)
+--   stackFan  boolean   Loot's fanned stack of icons for condensed junk
+--   border    boolean   The Framed border shape and size options apply
+--   window    string    Loot window chrome: "backdrop", "strip", "wash" or "plain"
+--   slotPad   table|nil Loot window slot icon pad { extra, alpha }; nil keeps
+--                       Blizzard's own slot border
+
+local DEFAULT_STYLE = "framed"
+local styles = {}
+local styleByID = {}
+
+--- Register a toast style. Order of registration is dropdown order.
+--- @param def table Style definition (see the field list above)
+--- @return nil
+function TS.Register(def)
+    if not def or not def.id or styleByID[def.id] then return end
+    def.heightPad = def.heightPad or 0
+    styles[#styles + 1] = def
+    styleByID[def.id] = def
+end
+
 --- Normalize current and legacy toast style IDs.
 --- @param style string|nil Raw toast style
---- @return string styleID "compact", "framed", or "accent"
+--- @return string styleID A registered style ID; unknown values become "framed"
 function TS.Normalize(style)
-    if style == "compact" or style == "framed" or style == "accent" then return style end
+    if styleByID[style] then return style end
     if LEGACY[style] then return LEGACY[style] end
-    return "framed"
+    return DEFAULT_STYLE
+end
+
+--- Look up a style definition, normalizing legacy and unknown IDs first.
+--- @param style string|nil Raw toast style
+--- @return table def Registered style definition
+function TS.Get(style)
+    return styleByID[TS.Normalize(style)]
+end
+
+--- All registered styles, in dropdown order.
+--- @return table styles Array of style definitions (do not modify)
+function TS.List()
+    return styles
+end
+
+--- Dropdown options for a style picker.
+--- @param L table Locale table
+--- @param leading table|nil Options placed before the styles, e.g. Loot Rolls' "match loot"
+--- @return table options Array of { label, value }
+function TS.StyleOptions(L, leading)
+    local out = {}
+    if leading then
+        for _, opt in ipairs(leading) do out[#out + 1] = opt end
+    end
+    for _, def in ipairs(styles) do
+        out[#out + 1] = { L[def.label], def.id }
+    end
+    return out
 end
 
 --- Read Augment's Framed border settings.
@@ -202,15 +262,70 @@ local function AnchorText(entry, textMode, anchor, iconSide, gap, textWidth)
     end
 end
 
-local function ApplyFramed(entry, textMode, iconSide, iconSize, gap, textWidth)
+-- Bare icon inset from the frame edge, no colour chip: the layout Framed,
+-- Ribbon and Rail share. Single-text mode uses a fixed textWidth sized for
+-- the unframed (0-inset) layout, so shrink it by both insets to keep
+-- inset + icon + gap + text inside the frame.
+local function ApplyInset(entry, ctx, inset)
     if entry.iconBg then entry.iconBg:Hide() end
     if entry.iconDark then entry.iconDark:Hide() end
 
+    local iconSize = ctx.iconSize
     entry.icon:SetSize(iconSize, iconSize)
     local anchor = entry.iconBgAnchor or entry.icon
     if anchor ~= entry.icon then anchor:SetSize(iconSize, iconSize) end
-    AnchorIcon(entry, anchor, iconSide, M.EDGE)
-    AnchorText(entry, textMode, anchor, iconSide, gap, textWidth)
+    AnchorIcon(entry, anchor, ctx.iconSide, inset)
+    local textWidth = ctx.textWidth and math.max(0, ctx.textWidth - (2 * inset))
+    AnchorText(entry, ctx.textMode, anchor, ctx.iconSide, ctx.gap, textWidth)
+end
+
+-- Regions only Ribbon and Rail use, created on first use and kept on the
+-- entry so pooled toasts reuse them. Sublevels sit under every caller's own
+-- BACKGROUND regions (Echo's icon chip is BACKGROUND 0).
+local STYLE_REGIONS = {
+    _tsPlate = -8,
+    _tsWash  = -7,
+    _tsRail  = -6,
+}
+
+local function StyleTexture(entry, key)
+    local tex = entry[key]
+    if not tex then
+        tex = entry.frame:CreateTexture(nil, "BACKGROUND", nil, STYLE_REGIONS[key])
+        entry[key] = tex
+    end
+    return tex
+end
+
+local function HideStyleRegions(entry)
+    for key in pairs(STYLE_REGIONS) do
+        if entry[key] then entry[key]:Hide() end
+    end
+end
+
+local function ClearBackdrop(frame)
+    if frame.SetBackdrop then frame:SetBackdrop(nil) end
+end
+
+--- Paint a horizontal colour wash that fades from one edge.
+--- @param tex Texture
+--- @param fromLeft boolean Strongest at the left edge when true
+--- @param r number
+--- @param g number
+--- @param b number
+--- @param alpha number Alpha at the strong edge; the far edge is transparent
+--- @return nil
+function TS.SetWash(tex, fromLeft, r, g, b, alpha)
+    local aLeft, aRight = alpha, 0
+    if not fromLeft then aLeft, aRight = 0, alpha end
+    tex:SetColorTexture(1, 1, 1, 1)
+    -- Clients before 10.0 take alpha only through SetGradientAlpha, and their
+    -- SetGradient wants plain numbers; 10.0 removed SetGradientAlpha.
+    if tex.SetGradientAlpha then
+        tex:SetGradientAlpha("HORIZONTAL", r, g, b, aLeft, r, g, b, aRight)
+    elseif CreateColor then
+        tex:SetGradient("HORIZONTAL", CreateColor(r, g, b, aLeft), CreateColor(r, g, b, aRight))
+    end
 end
 
 -- Extra unscaled px per side on Accent's colour square beyond Compact's tight chip.
@@ -257,43 +372,112 @@ local function ApplyUnframed(entry, style, textMode, iconSide, iconSize, gap, te
     AnchorText(entry, textMode, anchor, iconSide, gap, textWidth)
 end
 
+-- Ribbon: how far the text tint is pulled toward white so it reads on the wash.
+local RIBBON_TEXT_LIFT = 0.6
+local RIBBON_WASH_ALPHA = 0.75
+local RIBBON_INSET = 4
+local RAIL_WIDTH = 3
+local PLATE_ALPHA = 0.75
+
+local function Lift(c)
+    return c + (1 - c) * RIBBON_TEXT_LIFT
+end
+
+TS.Register({
+    id = "compact", label = "AUGMENT_TOAST_STYLE_COMPACT",
+    stackFan = true, window = "plain", slotPad = { extra = 1, alpha = 0.8 },
+    apply = function(entry, ctx)
+        ApplyUnframed(entry, "compact", ctx.textMode, ctx.iconSide, ctx.iconSize, ctx.gap,
+            ctx.textWidth, ctx.pad, 0, ctx.fillR, ctx.fillG, ctx.fillB)
+    end,
+})
+
+TS.Register({
+    id = "framed", label = "AUGMENT_TOAST_STYLE_FRAMED",
+    heightPad = M.CHROME_HEIGHT_PAD, border = true, window = "backdrop",
+    apply = function(entry, ctx)
+        TS.ApplyFramedBackdrop(entry.frame, ctx.r, ctx.g, ctx.b, ctx.border)
+        ApplyInset(entry, ctx, M.EDGE)
+    end,
+})
+
+TS.Register({
+    id = "accent", label = "AUGMENT_TOAST_STYLE_ACCENT",
+    window = "strip", slotPad = { extra = ACCENT_PAD_EXTRA, alpha = 0.85 },
+    apply = function(entry, ctx)
+        ApplyUnframed(entry, "accent", ctx.textMode, ctx.iconSide, ctx.iconSize, ctx.gap,
+            ctx.textWidth, ctx.pad, ctx.scale(ACCENT_PAD_EXTRA), ctx.fillR, ctx.fillG, ctx.fillB)
+    end,
+})
+
+-- Ribbon: a fill-coloured wash fading away from the icon, light text on top.
+TS.Register({
+    id = "ribbon", label = "AUGMENT_TOAST_STYLE_RIBBON",
+    heightPad = 6, window = "wash",
+    apply = function(entry, ctx)
+        ClearBackdrop(entry.frame)
+        local wash = StyleTexture(entry, "_tsWash")
+        wash:ClearAllPoints()
+        wash:SetAllPoints(entry.frame)
+        TS.SetWash(wash, ctx.iconSide ~= "right", ctx.fillR, ctx.fillG, ctx.fillB, RIBBON_WASH_ALPHA)
+        wash:Show()
+        SetTextColor(entry, ctx.textMode, Lift(ctx.r), Lift(ctx.g), Lift(ctx.b))
+        ApplyInset(entry, ctx, ctx.scale(RIBBON_INSET))
+    end,
+})
+
+-- Rail: a dark plate with a fill-coloured bar down the icon's edge.
+TS.Register({
+    id = "rail", label = "AUGMENT_TOAST_STYLE_RAIL",
+    heightPad = M.CHROME_HEIGHT_PAD, window = "strip",
+    apply = function(entry, ctx)
+        ClearBackdrop(entry.frame)
+        local plate = StyleTexture(entry, "_tsPlate")
+        plate:ClearAllPoints()
+        plate:SetAllPoints(entry.frame)
+        plate:SetColorTexture(0, 0, 0, PLATE_ALPHA)
+        plate:Show()
+
+        local rail = StyleTexture(entry, "_tsRail")
+        rail:ClearAllPoints()
+        local side = ctx.iconSide == "right" and "RIGHT" or "LEFT"
+        rail:SetPoint("TOP" .. side, entry.frame, "TOP" .. side, 0, 0)
+        rail:SetPoint("BOTTOM" .. side, entry.frame, "BOTTOM" .. side, 0, 0)
+        rail:SetWidth(ctx.scale(RAIL_WIDTH))
+        rail:SetColorTexture(ctx.fillR, ctx.fillG, ctx.fillB, 1)
+        rail:Show()
+        ApplyInset(entry, ctx, M.EDGE)
+    end,
+})
+
 --- Apply shared toast chrome. Does not set text strings.
 --- @param entry table Toast regions and frame
 --- @param style string|nil Raw DB style value
---- @param colors table Text tint and optional icon fill RGB
+--- @param colors table Text tint and optional icon fill RGB (br/bg/bb)
 --- @param layout table Text mode, icon placement, dimensions, optional unscaled textWidth, scale helper, and optional Framed border (TS.GetFramedBorder)
 --- @return nil
 function TS.ApplyChrome(entry, style, colors, layout)
-    style = TS.Normalize(style)
-
-    local r, g, b = colors.r, colors.g, colors.b
-    local fillR = colors.br or r
-    local fillG = colors.bg or g
-    local fillB = colors.bb or b
-    local textMode = layout.textMode
-    local iconSide = layout.iconSide == "right" and "right" or "left"
-    local justify = iconSide == "right" and "RIGHT" or "LEFT"
+    local def = TS.Get(style)
     local scale = layout.scale
-    local iconSize = scale(layout.iconSize)
-    local gap = scale(layout.iconGap)
-    local textWidth = layout.textWidth and scale(layout.textWidth)
-    local pad = scale(layout.iconBgPad)
+    local iconSide = layout.iconSide == "right" and "right" or "left"
+    local ctx = {
+        textMode  = layout.textMode,
+        iconSide  = iconSide,
+        iconSize  = scale(layout.iconSize),
+        gap       = scale(layout.iconGap),
+        textWidth = layout.textWidth and scale(layout.textWidth),
+        pad       = scale(layout.iconBgPad),
+        scale     = scale,
+        border    = layout.border,
+        r = colors.r, g = colors.g, b = colors.b,
+        fillR = colors.br or colors.r,
+        fillG = colors.bg or colors.g,
+        fillB = colors.bb or colors.b,
+    }
 
-    SetTextColor(entry, textMode, r, g, b)
-    SetJustification(entry, textMode, justify)
-
-    if style == "framed" then
-        -- Framed insets the icon by EDGE on the near side (see ApplyFramed's
-        -- AnchorIcon call below) but single-text mode uses a fixed textWidth
-        -- sized for the unframed (0-inset) layout. Shrink it by 2*EDGE so
-        -- EDGE + icon + gap + text still fits inside the backdrop instead of
-        -- overflowing past the frame's visual right edge.
-        local framedTextWidth = textWidth and math.max(0, textWidth - (2 * M.EDGE))
-        TS.ApplyFramedBackdrop(entry.frame, r, g, b, layout.border)
-        ApplyFramed(entry, textMode, iconSide, iconSize, gap, framedTextWidth)
-        return
-    end
-
-    local accentExtra = (style == "accent") and scale(ACCENT_PAD_EXTRA) or 0
-    ApplyUnframed(entry, style, textMode, iconSide, iconSize, gap, textWidth, pad, accentExtra, fillR, fillG, fillB)
+    SetTextColor(entry, ctx.textMode, ctx.r, ctx.g, ctx.b)
+    SetJustification(entry, ctx.textMode, iconSide == "right" and "RIGHT" or "LEFT")
+    -- A pooled entry still carries the previous style's regions.
+    HideStyleRegions(entry)
+    def.apply(entry, ctx)
 end

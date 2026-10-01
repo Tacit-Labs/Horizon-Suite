@@ -19,6 +19,12 @@ local FONT_USE_GLOBAL                  = addon.FONT_USE_GLOBAL
 local GetPerElementFontDropdownOptions = addon.GetPerElementFontDropdownOptions
 local DisplayPerElementFont            = addon.DisplayPerElementFont
 
+-- Style picker entries come from the shared ToastStyles registry.
+local function toastStyleOptions()
+    local TS = addon.Augment and addon.Augment.ToastStyles
+    return TS and TS.StyleOptions(L) or {}
+end
+
 -- One colour picker per kind, all sharing the same get/set/default shape
 -- (3 float DB keys per kind — see AugmentAlertsState.lua's A.GetKindColor).
 local function ColorOption(nameKey, descKey, prefix)
@@ -325,11 +331,7 @@ local category = {
                     { type = "dropdown",
                       name = L["AUGMENT_TOAST_STYLE"], desc = L["AUGMENT_TOAST_STYLE_DESC"],
                       dbKey = "alertsToastStyle",
-                      options = {
-                          { L["AUGMENT_TOAST_STYLE_COMPACT"], "compact" },
-                          { L["AUGMENT_TOAST_STYLE_FRAMED"],  "framed"  },
-                          { L["AUGMENT_TOAST_STYLE_ACCENT"],  "accent"  },
-                      },
+                      options = toastStyleOptions(),
                       get = function() return getDB("alertsToastStyle", D.alertsToastStyle) end,
                       set = function(v) setDB("alertsToastStyle", v); applyAlerts() end,
                       preserveOrder = true,

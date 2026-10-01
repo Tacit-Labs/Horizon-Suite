@@ -186,7 +186,7 @@ local function ApplyToastIconLayout(entry)
     local TS = Augment.ToastStyles
     if not TS or not TS.ApplyChrome then return end
 
-    local style = TS.Normalize(Augment.GetToastStyle and Augment.GetToastStyle() or "framed")
+    local style = Augment.GetToastStyle and Augment.GetToastStyle() or "framed"
     TS.ApplyChrome(entry, style, {
         r  = entry._r   or 1, g  = entry._g   or 1, b  = entry._b   or 1,
         br = entry._bgR or entry._r or 1,
@@ -203,10 +203,10 @@ local function ApplyToastIconLayout(entry)
         border    = TS.GetFramedBorder(),
     })
 
-    -- Stack fan (iconBg2/iconBg3) is Compact-only; Framed/Accent always render a
+    -- Stack fan (iconBg2/iconBg3) is Compact-only; every other style renders a
     -- single icon, so hide fan siblings here to avoid fighting the single-icon
     -- anchor ApplyChrome just set.
-    if style ~= "compact" then
+    if not TS.Get(style).stackFan then
         if entry.icon2   then entry.icon2:Hide()   end
         if entry.icon3   then entry.icon3:Hide()   end
         if entry.iconBg2 then entry.iconBg2:Hide() end
@@ -741,14 +741,14 @@ end
 -- Each layer gets its own border/background so they look like individual item slots.
 -- count < 2 restores everything to single-icon state.
 local function UpdateStackIcons(entry, count)
-    -- Stack fan is Compact-only (see ApplyToastIconLayout); Framed/Accent chrome
+    -- Stack fan is Compact-only (see ApplyToastIconLayout); other styles' chrome
     -- is owned by ApplyChrome. Returning early here is required: the single-icon
     -- restore below uses Compact chip size/alpha and would wipe Accent's larger
     -- colour square (ACCENT_PAD_EXTRA) when ShowToast/TryMergeToast call this
     -- after ApplyToastIconLayout.
     local TS = Augment.ToastStyles
-    local style = (TS and TS.Normalize and TS.Normalize(Augment.GetToastStyle and Augment.GetToastStyle() or "framed")) or "framed"
-    if style ~= "compact" then
+    local def = TS and TS.Get and TS.Get(Augment.GetToastStyle and Augment.GetToastStyle() or "framed")
+    if not (def and def.stackFan) then
         if entry.icon2   then entry.icon2:Hide()   end
         if entry.icon3   then entry.icon3:Hide()   end
         if entry.iconBg2 then entry.iconBg2:Hide() end
@@ -1236,14 +1236,13 @@ function Augment.ApplyScale()
     Y.ICON_SIZE    = Y.GetIconSize()
     Y.ICON_GAP     = Y.GetIconGap()
     local tightHeight = Y.ICON_SIZE + Y.BORDER_PAD * 2
-    local style = Y.ToastStyles and Y.ToastStyles.Normalize
-        and Y.ToastStyles.Normalize(Y.GetToastStyle and Y.GetToastStyle() or "framed")
-    -- Framed's tooltip-style backdrop needs headroom beyond the icon (see
-    -- ToastMotion.CHROME_HEIGHT_PAD) so its border doesn't overlap the icon/text.
-    -- Compact/Accent keep the tight height since their chrome has no hard border.
-    Y.ENTRY_HEIGHT = (style == "framed")
-        and math.max(tightHeight, Y.ICON_SIZE + Y.ToastMotion.CHROME_HEIGHT_PAD)
-        or tightHeight
+    local def = Y.ToastStyles and Y.ToastStyles.Get
+        and Y.ToastStyles.Get(Y.GetToastStyle and Y.GetToastStyle() or "framed")
+    -- Styles that draw a plate or border (Framed, Rail) need headroom beyond
+    -- the icon (ToastMotion.CHROME_HEIGHT_PAD) so it doesn't crowd the icon/text.
+    -- Compact/Accent keep the tight height since their chrome has no hard edge.
+    local heightPad = def and def.heightPad or 0
+    Y.ENTRY_HEIGHT = math.max(tightHeight, Y.ICON_SIZE + heightPad)
     Y.LINE_HEIGHT  = Y.ENTRY_HEIGHT + Y.LINE_SPACING
     Y.TOTAL_WIDTH  = (Y.ICON_SIZE + Y.BORDER_PAD * 2) + Y.ICON_GAP + Y.TEXT_WIDTH
     if Augment.InvalidateCoinTextures then Augment.InvalidateCoinTextures() end

@@ -77,7 +77,7 @@ end
 A.GetDB = getDB
 
 --- Return the normalized alerts-toast style.
---- @return string styleID "compact", "framed", or "accent"
+--- @return string styleID A registered ToastStyles ID (see TS.Register)
 function A.GetToastStyle()
     local D = addon.AUGMENT_DEFAULTS
     local raw = A.GetDB("alertsToastStyle", D.alertsToastStyle)

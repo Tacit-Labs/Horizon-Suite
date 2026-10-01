@@ -23,13 +23,19 @@ local function getSlider(key)
     return math.max(lim.min, math.min(lim.max, v))
 end
 
+local TS = addon.Augment and addon.Augment.ToastStyles
+
+-- Style picker entries come from the ToastStyles registry, so every stack
+-- offers the same styles in the same order.
+local function toastStyleOptions()
+    return TS and TS.StyleOptions(L) or {}
+end
+
 -- The border rows depend on the Style dropdown above them: they show only
--- while the loot toasts use Framed, the one style they change.
+-- while the loot toasts use a style that takes them (Framed).
 local function lootFramed()
-    local style = getDB("augmentToastStyle", D.augmentToastStyle)
-    local TS = addon.Augment and addon.Augment.ToastStyles
-    if TS and TS.Normalize then style = TS.Normalize(style) end
-    return style == "framed"
+    local def = TS and TS.Get(getDB("augmentToastStyle", D.augmentToastStyle))
+    return def and def.border or false
 end
 
 local categories = {
@@ -129,11 +135,7 @@ local categories = {
                         { type = "dropdown",
                             name = L["AUGMENT_TOAST_STYLE"], desc = L["AUGMENT_TOAST_STYLE_DESC"],
                             dbKey = "augmentToastStyle",
-                            options = {
-                                { L["AUGMENT_TOAST_STYLE_COMPACT"], "compact" },
-                                { L["AUGMENT_TOAST_STYLE_FRAMED"],  "framed"  },
-                                { L["AUGMENT_TOAST_STYLE_ACCENT"],  "accent"  },
-                            },
+                            options = toastStyleOptions(),
                             get = function() return getDB("augmentToastStyle", D.augmentToastStyle) end,
                             -- Roll frames default to following this one, so
                             -- repaint them too rather than making the match
