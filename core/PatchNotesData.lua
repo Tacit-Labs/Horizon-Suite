@@ -19,6 +19,17 @@ local addon = _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["6.4.0"] = {
+        date = "2026-10-01",
+        {
+            section = "New Features",
+            bullets = {
+                "Augment: two new toast styles, Ribbon (a colour wash fading away from the icon) and Rail (a dark bar with a thin coloured stripe along the icon's edge), for loot toasts, alerts, loot rolls, Echo pop-ups and the loot window.",
+                "Augment: the new Card toast style has a larger framed icon and, on loot toasts, a second line with the item level and slot for gear, the type for other items, and your new total for gold and currencies.",
+            },
+        },
+    },
+
     ["6.3.1"] = {
         date = "2026-09-30",
         {
