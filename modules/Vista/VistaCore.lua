@@ -260,6 +260,15 @@ do
     -- Landing defaults false: Omnium Folio / expansion pulses must stay visible.
     G.MouseoverLanding  = function() return DB("vistaMouseoverLanding",  false) end
 
+    -- Frame strata for the reparented queue and Omnium Folio buttons. They sit on
+    -- UIParent, not the Minimap, so they need their own layer. MEDIUM keeps them
+    -- under the world map (HIGH); HIGH and DIALOG lift them over most windows.
+    local BUTTON_STRATA = { MEDIUM = true, HIGH = true, DIALOG = true }
+    G.ButtonStrata = function()
+        local s = DB("vistaButtonStrata", "MEDIUM")
+        return BUTTON_STRATA[s] and s or "MEDIUM"
+    end
+
     -- Button sizes
     G.TrackingBtnSize = function() return tonumber(DB("vistaTrackingBtnSize", BTN_DEFAULTS.tracking)) or BTN_DEFAULTS.tracking end
     G.CalendarBtnSize = function() return tonumber(DB("vistaCalendarBtnSize", BTN_DEFAULTS.calendar)) or BTN_DEFAULTS.calendar end
@@ -2562,7 +2571,7 @@ do
             pcall(function() realBtn:ClearAllPoints() end)
             pcall(function() realBtn:SetPoint("CENTER", queueAnchor, "CENTER", 0, 0) end)
             pcall(function() realBtn:SetSize(btnSz, btnSz) end)
-            pcall(function() realBtn:SetFrameStrata("HIGH") end)
+            pcall(function() realBtn:SetFrameStrata(G.ButtonStrata()) end)
             pcall(function() realBtn:SetFrameLevel(queueAnchor:GetFrameLevel() + 1) end)
             pcall(function() realBtn:SetIgnoreParentAlpha(true) end)
 
@@ -2605,6 +2614,20 @@ do
         end)
     end
 
+    -- Re-apply the layer on refresh so the option takes effect without a reload.
+    local function ApplyQueueStrata(realBtn)
+        local strata = G.ButtonStrata()
+        if queueAnchor:GetFrameStrata() ~= strata then queueAnchor:SetFrameStrata(strata) end
+        if realBtn and not InCombatLockdown() then
+            pcall(function()
+                if realBtn:GetParent() == queueAnchor and realBtn:GetFrameStrata() ~= strata then
+                    realBtn:SetFrameStrata(strata)
+                    realBtn:SetFrameLevel(queueAnchor:GetFrameLevel() + 1)
+                end
+            end)
+        end
+    end
+
     RefreshQueueAnchor = function()
         if not queueAnchor then return end
         if DB("vistaQueueHandlingDisabled", false) then
@@ -2618,6 +2641,7 @@ do
         local locked  = DB("vistaLocked_proxy_queue", true)
         local queued  = realBtn and realBtn:IsShown()
 
+        ApplyQueueStrata(realBtn)
         if realBtn and QueueButtonNeedsReattach(realBtn) then
             AttachQueueButtonToAnchor()
         end
@@ -2654,7 +2678,7 @@ do
 
         queueAnchor = CreateFrame("Frame", "HorizonSuiteVistaQueueAnchor", UIParent)
         queueAnchor:SetSize(anchorSz, anchorSz)
-        queueAnchor:SetFrameStrata("HIGH")
+        queueAnchor:SetFrameStrata(G.ButtonStrata())
         queueAnchor:SetClampedToScreen(true)
         queueAnchor:SetMovable(true)
         queueAnchor:EnableMouse(true)
@@ -2794,7 +2818,7 @@ do
             pcall(function() realBtn:SetPoint("CENTER", landingPageAnchor, "CENTER", 0, 0) end)
             pcall(function() realBtn:SetSize(btnSz, btnSz) end)
             pcall(function() realBtn:SetScale(1) end)
-            pcall(function() realBtn:SetFrameStrata("HIGH") end)
+            pcall(function() realBtn:SetFrameStrata(G.ButtonStrata()) end)
             pcall(function() realBtn:SetFrameLevel(landingPageAnchor:GetFrameLevel() + 1) end)
             pcall(function() realBtn:SetIgnoreParentAlpha(true) end)
         end)
@@ -2870,10 +2894,25 @@ do
         SaveLandingAnchorFromFrame(frame)
     end
 
+    -- Re-apply the layer on refresh so the option takes effect without a reload.
+    local function ApplyLandingStrata(realBtn)
+        local strata = G.ButtonStrata()
+        if landingPageAnchor:GetFrameStrata() ~= strata then landingPageAnchor:SetFrameStrata(strata) end
+        if realBtn and not InCombatLockdown() then
+            pcall(function()
+                if realBtn:GetParent() == landingPageAnchor and realBtn:GetFrameStrata() ~= strata then
+                    realBtn:SetFrameStrata(strata)
+                    realBtn:SetFrameLevel(landingPageAnchor:GetFrameLevel() + 1)
+                end
+            end)
+        end
+    end
+
     RefreshLandingPageAnchor = function()
         if not landingPageAnchor then return end
         local realBtn = GetLandingPageButton()
         local locked = DB("vistaLocked_proxy_landing", true)
+        ApplyLandingStrata(realBtn)
 
         if not G.ShowLanding() then
             landingPageAnchor:SetAlpha(0)
@@ -2925,7 +2964,7 @@ do
 
         landingPageAnchor = CreateFrame("Frame", "HorizonSuiteVistaLandingAnchor", UIParent)
         landingPageAnchor:SetSize(anchorSz, anchorSz)
-        landingPageAnchor:SetFrameStrata("HIGH")
+        landingPageAnchor:SetFrameStrata(G.ButtonStrata())
         landingPageAnchor:SetClampedToScreen(true)
         landingPageAnchor:SetMovable(true)
         landingPageAnchor:EnableMouse(true)
