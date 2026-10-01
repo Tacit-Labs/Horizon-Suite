@@ -46,6 +46,16 @@ local TIER_OPTIONS = {
     { L["ECHO_TIER_MUTED"], "muted" },
 }
 
+local ROUTE_OPTIONS = {
+    { L["ECHO_ROUTE_ECHO"],     "echo"     },
+    { L["ECHO_ROUTE_BOTH"],     "both"     },
+    { L["ECHO_ROUTE_BLIZZARD"], "blizzard" },
+}
+
+-- Kinds with a route: their tier means nothing while Echo leaves them to Blizzard's chat.
+local ROUTED = {}
+for _, kind in ipairs(addon.Echo.ROUTE_KINDS) do ROUTED[kind] = true end
+
 local HISTORY_DAYS_OPTIONS = {
     { L["ECHO_HISTORY_DAYS_7"],  7  },
     { L["ECHO_HISTORY_DAYS_30"], 30 },
@@ -55,9 +65,21 @@ local HISTORY_DAYS_OPTIONS = {
 
 local function TierDropdown(kind, label)
     local key = addon.Echo.TierKey(kind)
-    return { type = "dropdown", name = label, desc = L["ECHO_TIER_DESC"], dbKey = key,
+    local opt = { type = "dropdown", name = label, desc = L["ECHO_TIER_DESC"], dbKey = key,
         options = TIER_OPTIONS, preserveOrder = true,
         get = function() return getDB(key, D[key]) end,
+        set = function(v) setDB(key, v) end }
+    if ROUTED[kind] then
+        opt.visibleWhen = function() return addon.Echo.Route(kind, getDB) ~= "blizzard" end
+    end
+    return opt
+end
+
+local function RouteDropdown(kind, label)
+    local key = addon.Echo.RouteKey(kind)
+    return { type = "dropdown", name = label, desc = L["ECHO_ROUTE_DESC"], dbKey = key,
+        options = ROUTE_OPTIONS, preserveOrder = true,
+        get = function() return addon.Echo.Route(kind, getDB) end,
         set = function(v) setDB(key, v) end }
 end
 
@@ -134,6 +156,17 @@ local options = {
       dbKey = "echoKeywords", height = 24,
       get = function() return getDB("echoKeywords", D.echoKeywords) or "" end,
       set = function(v) setDB("echoKeywords", type(v) == "string" and v:gsub("[\r\n]+", ",") or "") end },
+
+    Section(L["ECHO_SECTION_ROUTES"]),
+    RouteDropdown("whisper",  L["ECHO_KIND_WHISPER"]),
+    RouteDropdown("bnet",     L["ECHO_KIND_BNET"]),
+    RouteDropdown("party",    L["ECHO_KIND_PARTY"]),
+    RouteDropdown("raid",     L["ECHO_KIND_RAID"]),
+    RouteDropdown("instance", L["ECHO_KIND_INSTANCE"]),
+    RouteDropdown("guild",    L["ECHO_KIND_GUILD"]),
+    RouteDropdown("officer",  L["ECHO_KIND_OFFICER"]),
+    RouteDropdown("channel",  L["ECHO_KIND_CHANNEL"]),
+    RouteDropdown("nearby",   L["ECHO_NEARBY"]),
 
     Section(L["ECHO_SECTION_TIERS"]),
     TierDropdown("whisper",  L["ECHO_KIND_WHISPER"]),
@@ -317,7 +350,6 @@ local tail = {
     end),
 
     Section(L["ECHO_SECTION_BLIZZARD_CHAT"]),
-    Toggle(L["ECHO_HIDE_STORED"], L["ECHO_HIDE_STORED_DESC"], "echoHideStoredWhispers", D.echoHideStoredWhispers),
     Toggle(L["ECHO_DOCK_INPUT"], L["ECHO_DOCK_INPUT_DESC"], "echoDockInput", D.echoDockInput),
     Toggle(L["ECHO_INPUT_ALWAYS_VISIBLE"], L["ECHO_INPUT_ALWAYS_VISIBLE_DESC"], "echoInputAlwaysVisible", D.echoInputAlwaysVisible,
         { visibleWhen = function() return getDB("echoDockInput", D.echoDockInput) ~= false end }),
