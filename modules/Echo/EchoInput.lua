@@ -377,7 +377,11 @@ local function Follow(box)
     end
     if key == followed then return end
     followed = key
-    if key == "all" then Echo.Store.OpenFeed(key) else Echo.Store.Start(key) end
+    if key == "all" then
+        Echo.Store.OpenFeed(key)
+    elseif not Echo.Store.Start(key) then
+        return  -- a kind left to Blizzard's chat has no conversation to follow
+    end
     Card.Show(key, nil)  -- no tile, so no genie: the line is being typed in
 end
 
