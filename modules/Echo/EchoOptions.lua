@@ -132,7 +132,8 @@ function Echo.ApplyOptions()
     -- Blizzard's own code sets R's target, which a hidden line would skip.
     local hiding = Echo.HideChat and Echo.HideChat.IsApplied()
     local filterOn = Echo.Setting("echoHideStoredWhispers") == true and not hiding
-    if filterOn ~= Echo.Filter.active then Echo.Filter.Apply(filterOn) end
+    local kinds = filterOn and { whisper = true, bnet = true } or nil
+    if not Echo.Filter.SameKinds(kinds) then Echo.Filter.Apply(kinds) end
     -- Hide Blizzard's chat windows, or ask for a reload to bring them back. First, as hiding
     -- turns docking on.
     if Echo.HideChat then Echo.HideChat.Refresh() end
