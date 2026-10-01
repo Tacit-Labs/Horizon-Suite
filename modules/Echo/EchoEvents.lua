@@ -498,11 +498,13 @@ function Events.Dispatch(event, ...)
     -- pending whisper.
     if event == "CHAT_MSG_SYSTEM" then Events.OnSystemMessage((...)) end
     -- A switched-off feed files nothing (the system line above still checked for a failed whisper).
-    local feedKind = Store.EVENT_KIND[event]
-    if Store.FEED_KINDS[feedKind] and Echo.FeedEnabled and not Echo.FeedEnabled(feedKind) then return end
+    local kind = Store.EVENT_KIND[event]
+    if Store.FEED_KINDS[kind] and Echo.FeedEnabled and not Echo.FeedEnabled(kind) then return end
+    -- A kind left to Blizzard's chat (Echo.Route "blizzard") files nothing either.
+    if kind and not Store.Handles(kind) then return end
     local blocked, args = Events.RunFilters(event, ...)
     -- The probe is for conversations; feed lines (loot, progress, system) never spend it.
-    if (Events.probeRemaining or 0) > 0 and Events.probeOut and not Store.FEED_KINDS[feedKind] then
+    if (Events.probeRemaining or 0) > 0 and Events.probeOut and not Store.FEED_KINDS[kind] then
         Events.probeRemaining = Events.probeRemaining - 1
         if blocked then
             Events.probeOut(Events.DescribeArgs(event, ...) .. " filtered")

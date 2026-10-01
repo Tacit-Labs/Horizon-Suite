@@ -191,6 +191,35 @@ run(`
   check("IsSecret passes nil", HorizonSuite.Echo.IsSecret(nil) == false, "true")
 `, 'store-keys');
 
+// --- Chat routing: kinds Echo leaves to Blizzard's chat ------------------------
+run(`
+  local Echo = HorizonSuite.Echo
+  local S, E = Echo.Store, Echo.Events
+  local savedUtil, savedGet = ChatFrameUtil, ChatFrame_GetMessageEventFilters
+  ChatFrameUtil, ChatFrame_GetMessageEventFilters = nil, nil
+  S.Reset()
+  check("routing: every kind handled by default", S.Handles("whisper") and S.Handles("guild") and S.Handles(nil), "unhandled")
+  check("routing: a feed can't be left to Blizzard here", S.SetKindHandled("loot", false) == false and S.Handles("loot"), "accepted")
+  check("routing: an unknown kind is refused", S.SetKindHandled("say", false) == false, "accepted")
+  check("routing: a kind can be left to Blizzard", S.SetKindHandled("guild", false) == true and S.Handles("guild") == false, "still handled")
+
+  E.Dispatch("CHAT_MSG_GUILD", "hello", "Brisa-Horizon", nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+  check("routing: an unhandled kind files nothing", S.Get("guild") == nil, "filed")
+  E.Dispatch("CHAT_MSG_PARTY", "hi", "Brisa-Horizon", nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+  check("routing: other kinds still file", S.Get("party") ~= nil and #S.Get("party").messages == 1, "missing")
+
+  S.SetKindHandled("whisper", false)
+  check("routing: an unhandled kind can't be started", S.Start("w:Brisa-Horizon") == nil and S.Get("w:Brisa-Horizon") == nil, "started")
+  check("routing: nor restored", S.Restore({ "w:Brisa-Horizon", "w:Varo-Horizon" }) == 0 and S.Get("w:Varo-Horizon") == nil, "restored")
+
+  S.SetKindHandled("whisper", true)
+  S.SetKindHandled("guild", true)
+  check("routing: handled again", S.Handles("whisper") and S.Handles("guild"), "unhandled")
+  check("routing: and startable again", S.Start("w:Brisa-Horizon") ~= nil, "refused")
+  S.Reset()
+  ChatFrameUtil, ChatFrame_GetMessageEventFilters = savedUtil, savedGet
+`, 'routing-store');
+
 // --- Store: conversations, ordering, unread -------------------------------------
 run(`
   local S = HorizonSuite.Echo.Store
@@ -8273,6 +8302,17 @@ run(`
   check("target: Battle.net without a friends list has none", target("BN_WHISPER", { tellTarget = "Friend" }) == nil, I.TargetKey())
   check("target: a secret chat type has none", target(SECRET("GUILD")) == nil, "keyed")
   check("target: a secret whisper name has none", target("WHISPER", { tellTarget = SECRET("Brisa-Horizon") }) == nil, "keyed")
+
+  -- A kind left to Blizzard's chat opens no card as the line targets it.
+  local S = HorizonSuite.Echo.Store
+  S.SetKindHandled("officer", false)
+  C.Hide()
+  fire("ActivateChat", box)
+  target("OFFICER")
+  fire("UpdateHeader", box)
+  check("input: a kind left to Blizzard's chat opens no card", S.Get("officer") == nil and C.ShownKey() ~= "officer", "opened")
+  fire("DeactivateChat", box)
+  S.SetKindHandled("officer", true)
 
   -- The card hides its reply box while the line targets its conversation.
   local f = C._frames()
