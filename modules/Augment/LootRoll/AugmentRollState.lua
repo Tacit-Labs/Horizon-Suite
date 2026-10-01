@@ -168,7 +168,7 @@ end
 -- skinned personal loot window, so following it matches either.
 R.STYLE_MATCH_LOOT = "__loot__"
 
---- @return string styleID "compact", "framed", or "accent"
+--- @return string styleID A registered ToastStyles ID (see TS.Register)
 function R.GetToastStyle()
     local D = addon.AUGMENT_DEFAULTS
     local raw = getDB("lootRollToastStyle", D.lootRollToastStyle)

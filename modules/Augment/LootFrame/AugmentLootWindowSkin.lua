@@ -199,8 +199,10 @@ function Y.SkinStripDefaultArt(frame)
     end
 end
 
---- Apply Compact / Framed / Accent chrome to a window frame.
---- Framed uses tooltip backdrop; Accent draws a left colour strip; Compact is minimal dark fill.
+--- Apply a toast style's window chrome to a window frame. The style's
+--- `window` trait picks the treatment: "backdrop" (Framed's tooltip or square
+--- border), "strip" (dark fill with a colour strip on the left), "wash" (dark
+--- fill with a colour wash fading from the left) or "plain" (dark fill only).
 --- @param frame Frame Must support BackdropTemplate methods when style is framed (ensure template or CreateTexture fallback)
 --- @param style string|nil
 --- @param accentR number
@@ -210,7 +212,8 @@ end
 function Y.SkinApplyWindowChrome(frame, style, accentR, accentG, accentB)
     if not frame then return end
     local TS = Y.ToastStyles
-    style = (TS and TS.Normalize and TS.Normalize(style)) or "framed"
+    local def = TS and TS.Get and TS.Get(style)
+    local kind = def and def.window or "backdrop"
     accentR, accentG, accentB = accentR or 0.6, accentG or 0.6, accentB or 0.6
 
     if not frame._hsAugmentChromeStrip then
@@ -221,8 +224,9 @@ function Y.SkinApplyWindowChrome(frame, style, accentR, accentG, accentB)
     end
     local strip = frame._hsAugmentChromeStrip
     strip:SetWidth(S(3))
+    if frame._hsAugmentChromeWash then frame._hsAugmentChromeWash:Hide() end
 
-    if style == "framed" then
+    if kind == "backdrop" then
         ClearWindowBackdrop(frame) -- reset then re-apply framed backdrop below
         if frame._hsAugmentChromeBg then
             frame._hsAugmentChromeBg:Hide()
@@ -240,27 +244,34 @@ function Y.SkinApplyWindowChrome(frame, style, accentR, accentG, accentB)
             backdropHost:SetBackdropBorderColor(accentR, accentG, accentB, 0.7)
         end
         strip:Hide()
-    elseif style == "accent" then
-        ClearWindowBackdrop(frame)
-        if not frame._hsAugmentChromeBg then
-            local bg = frame:CreateTexture(nil, "BACKGROUND")
-            bg:SetAllPoints(frame)
-            bg:SetColorTexture(0, 0, 0, 0.85)
-            frame._hsAugmentChromeBg = bg
-        end
-        frame._hsAugmentChromeBg:Show()
+        return
+    end
+
+    ClearWindowBackdrop(frame)
+    if not frame._hsAugmentChromeBg then
+        local bg = frame:CreateTexture(nil, "BACKGROUND")
+        bg:SetAllPoints(frame)
+        bg:SetColorTexture(0, 0, 0, 0.85)
+        frame._hsAugmentChromeBg = bg
+    end
+    frame._hsAugmentChromeBg:Show()
+
+    if kind == "strip" then
         strip:SetColorTexture(accentR, accentG, accentB, 1)
         strip:Show()
-    else -- compact
-        ClearWindowBackdrop(frame)
-        if not frame._hsAugmentChromeBg then
-            local bg = frame:CreateTexture(nil, "BACKGROUND")
-            bg:SetAllPoints(frame)
-            bg:SetColorTexture(0, 0, 0, 0.85)
-            frame._hsAugmentChromeBg = bg
-        end
-        frame._hsAugmentChromeBg:Show()
+    else
         strip:Hide()
+    end
+
+    if kind == "wash" then
+        if not frame._hsAugmentChromeWash then
+            local wash = frame:CreateTexture(nil, "BACKGROUND", nil, 1)
+            wash:SetAllPoints(frame)
+            frame._hsAugmentChromeWash = wash
+        end
+        -- Fainter than a toast's wash: the window is larger and holds a list.
+        TS.SetWash(frame._hsAugmentChromeWash, true, accentR, accentG, accentB, 0.35)
+        frame._hsAugmentChromeWash:Show()
     end
 end
 
@@ -324,7 +335,9 @@ local function SkinOneLootButton(button, quality)
         Y.SkinApplySlotQuality(text, quality)
     end
 
-    local style = Y.GetToastStyle and Y.GetToastStyle() or "framed"
+    local TS = Y.ToastStyles
+    local def = TS and TS.Get and TS.Get(Y.GetToastStyle and Y.GetToastStyle() or "framed")
+    local slotPad = def and def.slotPad
     local r, g, b = 1, 1, 1
     if ITEM_QUALITY_COLORS and quality and ITEM_QUALITY_COLORS[quality] then
         local c = ITEM_QUALITY_COLORS[quality]
@@ -334,9 +347,9 @@ local function SkinOneLootButton(button, quality)
         r, g, b = c[1] or c.r, c[2] or c.g, c[3] or c.b
     end
 
-    -- Accent/Compact: quality-tinted icon pad behind icon (create once; resize on style change).
-    -- Accent padExtra=4 / alpha=0.85 matches ToastStyles ACCENT_PAD_EXTRA fidelity (via S()).
-    if style == "accent" or style == "compact" then
+    -- Styles with a slotPad (Compact, Accent): quality-tinted icon pad behind the
+    -- icon (create once; resize on style change), sized to match the toast chip.
+    if slotPad then
         if icon then
             if not button._hsIconPad then
                 -- sublevel -1 so pad draws under ItemButtonTemplate icon (also BACKGROUND)
@@ -345,7 +358,7 @@ local function SkinOneLootButton(button, quality)
                 button._hsIconPad:SetDrawLayer("BACKGROUND", -1)
             end
             local pad = button._hsIconPad
-            local padExtra = S((style == "accent") and 4 or 1)
+            local padExtra = S(slotPad.extra)
             if button._hsIconPadExtra ~= padExtra or button._hsIconPadIcon ~= icon then
                 pad:ClearAllPoints()
                 pad:SetPoint("TOPLEFT", icon, "TOPLEFT", -padExtra, padExtra)
@@ -353,16 +366,17 @@ local function SkinOneLootButton(button, quality)
                 button._hsIconPadExtra = padExtra
                 button._hsIconPadIcon = icon
             end
-            pad:SetColorTexture(r, g, b, style == "accent" and 0.85 or 0.8)
+            pad:SetColorTexture(r, g, b, slotPad.alpha)
             pad:Show()
         end
     elseif button._hsIconPad then
         button._hsIconPad:Hide()
     end
 
-    -- Hide default slot border textures when present; Framed re-shows if we hid them earlier.
+    -- The pad replaces Blizzard's slot border; styles without one keep it,
+    -- re-showing it if an earlier style hid it.
     local border = button.IconBorder or button.NormalTexture
-    if border and border.Hide and style ~= "framed" then
+    if border and border.Hide and slotPad then
         RememberRegion(border)
         pcall(border.Hide, border)
     elseif border and border.Show then
@@ -614,6 +628,7 @@ function Y.DisableLootWindowSkin()
     if frame then
         if frame._hsAugmentChromeStrip then frame._hsAugmentChromeStrip:Hide() end
         if frame._hsAugmentChromeBg then frame._hsAugmentChromeBg:Hide() end
+        if frame._hsAugmentChromeWash then frame._hsAugmentChromeWash:Hide() end
         ClearWindowBackdrop(frame)
     end
     RestoreLootSlotArt()

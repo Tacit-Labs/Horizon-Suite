@@ -26,6 +26,12 @@ end
 
 local function Echo() return addon.Echo end
 
+-- Style picker entries come from the shared ToastStyles registry.
+local function toastStyleOptions()
+    local TS = addon.Augment and addon.Augment.ToastStyles
+    return TS and TS.StyleOptions(L) or {}
+end
+
 local WHISPER_SOUND_OPTIONS = {
     { L["ECHO_SOUND_BLIZZARD"], "blizzard" },
     { L["ECHO_SOUND_TOAST"],    "toast"    },
@@ -111,11 +117,7 @@ local options = {
 
     Section(L["ECHO_SECTION_NOTIFICATIONS"]),
     { type = "dropdown", name = L["ECHO_TOAST_STYLE"], desc = L["ECHO_TOAST_STYLE_DESC"], dbKey = "echoToastStyle",
-      options = {
-          { L["AUGMENT_TOAST_STYLE_COMPACT"], "compact" },
-          { L["AUGMENT_TOAST_STYLE_FRAMED"],  "framed"  },
-          { L["AUGMENT_TOAST_STYLE_ACCENT"],  "accent"  },
-      }, preserveOrder = true,
+      options = toastStyleOptions(), preserveOrder = true,
       get = function() return getDB("echoToastStyle", D.echoToastStyle) end,
       set = function(v) setDB("echoToastStyle", v) end },
     IntSlider("echoToastSeconds", L["ECHO_TOAST_SECONDS"], L["ECHO_TOAST_SECONDS_DESC"], 1),
