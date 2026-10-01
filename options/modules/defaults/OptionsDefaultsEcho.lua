@@ -40,6 +40,19 @@ addon.ECHO_DEFAULTS = {
     echoTierLoot           = "quiet",
     echoTierProgress       = "quiet",
     echoTierSystem         = "quiet",
+    -- Where each type of chat shows (Echo.Route, EchoOptions.lua): "echo" (Echo only;
+    -- Blizzard's windows hide each line Echo files), "both", or "blizzard" (Echo leaves it
+    -- alone). Echo.Route reads an old echoHideStoredWhispers = true as "echo" for whispers
+    -- and Battle.net whispers.
+    echoRouteWhisper       = "both",
+    echoRouteBnet          = "both",
+    echoRouteParty         = "both",
+    echoRouteRaid          = "both",
+    echoRouteInstance      = "both",
+    echoRouteGuild         = "both",
+    echoRouteOfficer       = "both",
+    echoRouteChannel       = "both",
+    echoRouteNearby        = "both",
     echoKeywords           = "",
     echoFeedLoot           = true,
     echoFeedProgress       = true,
@@ -49,7 +62,6 @@ addon.ECHO_DEFAULTS = {
     echoHistoryDays        = 30,
     echoSaveGuild          = true,
     echoSaveOfficer        = false,
-    echoHideStoredWhispers = false,
     echoDockInput          = true,
     echoInputAlwaysVisible = false,
     -- What the card opens as the docked line starts in Say, Yell or Emote (EchoInput.lua):

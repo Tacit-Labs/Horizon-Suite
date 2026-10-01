@@ -4388,6 +4388,72 @@ run(`
   ChatFrame_AddMessageEventFilter, ChatFrame_RemoveMessageEventFilter, ChatEdit_SetLastTellTarget = nil, nil, nil
 `, 'echo-filter-kinds');
 
+// --- Routes: where each type of chat shows -----------------------------------------
+run(`
+  local Echo = HorizonSuite.Echo
+  local S, F = Echo.Store, Echo.Filter
+  local db = {}
+  HorizonSuite.GetDB = function(k, d) if db[k] ~= nil then return db[k] end return d end
+  local savedUtil, savedGroups, savedWindow = ChatFrameUtil, ChatTypeGroup, GetChatWindowMessages
+  ChatFrameUtil, GetChatWindowMessages = nil, nil
+  ChatTypeGroup = { GUILD = { "CHAT_MSG_GUILD" }, WHISPER = { "CHAT_MSG_WHISPER", "CHAT_MSG_WHISPER_INFORM" } }
+  local added, adds = {}, 0
+  ChatFrame_AddMessageEventFilter = function(event, fn) adds = adds + 1; added[event] = fn end
+  ChatFrame_RemoveMessageEventFilter = function(event, fn) if added[event] == fn then added[event] = nil end end
+  CreateFrame = STUB_CREATE_FRAME
+  local function AllTakes(event)
+    for _, e in ipairs(Echo.All.ExtraEvents()) do if e == event then return true end end
+    return false
+  end
+  S.Reset()
+
+  check("route: both by default", Echo.Route("guild") == "both" and Echo.Route("whisper") == "both", Echo.Route("guild"))
+  db.echoHideStoredWhispers = true
+  check("route: the old whisper setting reads as Echo only", Echo.Route("whisper") == "echo" and Echo.Route("bnet") == "echo", Echo.Route("whisper"))
+  check("route: and leaves other kinds alone", Echo.Route("guild") == "both", Echo.Route("guild"))
+  db.echoRouteWhisper = "blizzard"
+  check("route: a set route beats the old setting", Echo.Route("whisper") == "blizzard", Echo.Route("whisper"))
+  db.echoRouteWhisper = "shouty"
+  check("route: an invalid route falls back", Echo.Route("whisper") == "echo", Echo.Route("whisper"))
+  db.echoHideStoredWhispers, db.echoRouteWhisper = nil, nil
+  check("route: a getter can be passed", Echo.Route("guild", function(k, d) return k == "echoRouteGuild" and "echo" or d end) == "echo", "ignored")
+
+  -- Whispers in Echo only, everything else in Blizzard's chat.
+  S.Add({ convKey = "guild", text = "old", sender = "Brisa-Horizon" })
+  check("route: a guild tile is open", S.Get("guild").open == true, "closed")
+  for _, kind in ipairs(Echo.ROUTE_KINDS) do db[Echo.RouteKey(kind)] = "blizzard" end
+  db.echoRouteWhisper, db.echoRouteBnet = "echo", "echo"
+  Echo.ApplyOptions()
+  check("route: Blizzard-only kinds are not handled", not S.Handles("guild") and not S.Handles("nearby"), "handled")
+  check("route: Echo-only kinds are", S.Handles("whisper") and S.Handles("bnet"), "unhandled")
+  check("route: an open tile of a Blizzard-only kind closes", S.Get("guild").open == false, "open")
+  check("route: whispers are hidden from Blizzard's windows", added.CHAT_MSG_WHISPER == F.Handler and added.CHAT_MSG_WHISPER_INFORM == F.Handler, "missing")
+  check("route: guild chat is not", added.CHAT_MSG_GUILD == nil, "hidden")
+  check("route: All takes the guild chat Echo leaves", AllTakes("CHAT_MSG_GUILD"), "missing")
+  check("route: All doesn't take whispers Echo files", not AllTakes("CHAT_MSG_WHISPER"), "taken")
+
+  adds = 0
+  Echo.ApplyOptions()
+  check("route: re-applying the same routes registers nothing", adds == 0, adds)
+
+  db.echoRouteGuild = "both"
+  Echo.ApplyOptions()
+  check("route: both is handled and not hidden", S.Handles("guild") and added.CHAT_MSG_GUILD == nil, "wrong")
+  check("route: All leaves guild chat to Echo again", not AllTakes("CHAT_MSG_GUILD"), "taken")
+  db.echoRouteGuild = "echo"
+  Echo.ApplyOptions()
+  check("route: Echo-only guild is hidden from Blizzard", added.CHAT_MSG_GUILD == F.Handler, "shown")
+
+  for _, kind in ipairs(Echo.ROUTE_KINDS) do db[Echo.RouteKey(kind)] = nil end
+  Echo.ApplyOptions()
+  check("route: back to both everywhere", F.active == false and S.Handles("guild") and S.Handles("nearby"), tostring(F.active))
+
+  HorizonSuite.GetDB = nil
+  ChatFrameUtil, ChatTypeGroup, GetChatWindowMessages = savedUtil, savedGroups, savedWindow
+  ChatFrame_AddMessageEventFilter, ChatFrame_RemoveMessageEventFilter = nil, nil
+  S.Reset()
+`, 'echo-routes');
+
 // --- OptionsData: the global-font override pushes Echo's font too -------------------------
 run(`
   local A = HorizonSuite
@@ -4478,6 +4544,18 @@ run(`
   keys.echoMaxTiles.set(1)
   check("max tiles at least two", A.OptionsData_GetDB("echoMaxTiles") == 2, A.OptionsData_GetDB("echoMaxTiles"))
   check("guild tier default", keys.echoTierGuild.get() == "quiet", keys.echoTierGuild.get())
+  check("route: on the page, both by default", keys.echoRouteGuild and keys.echoRouteGuild.get() == "both", keys.echoRouteGuild and keys.echoRouteGuild.get())
+  local routeValues = {}
+  for _, o in ipairs(keys.echoRouteGuild.options) do routeValues[#routeValues + 1] = o[2] end
+  check("route: Echo only, both, Blizzard only", table.concat(routeValues, ",") == "echo,both,blizzard", table.concat(routeValues, ","))
+  A.OptionsData_SetDB("echoRouteGuild", "blizzard")
+  check("route: the guild tier hides when guild is left to Blizzard", keys.echoTierGuild.visibleWhen() == false, "shown")
+  A.OptionsData_SetDB("echoRouteGuild", nil)
+  check("route: and shows otherwise", keys.echoTierGuild.visibleWhen() == true, "hidden")
+  A.OptionsData_SetDB("echoHideStoredWhispers", true)
+  check("route: the whisper route reads the old setting", keys.echoRouteWhisper.get() == "echo", keys.echoRouteWhisper.get())
+  A.OptionsData_SetDB("echoHideStoredWhispers", nil)
+  check("route: the old whisper toggle is gone", keys.echoHideStoredWhispers == nil, "still there")
   A.OptionsData_SetDB("echoFeedLoot", false)
   check("loot tier hidden with its feed off", keys.echoTierLoot.visibleWhen() == false, "shown")
   check("keyword box tooltip, not desc", keys.echoKeywords.tooltip == A.L["ECHO_KEYWORDS_DESC"], keys.echoKeywords.tooltip)
