@@ -10,6 +10,14 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [6.4.0] – 2026-10-01
+
+### ✨ New Features
+- **(Augment) Ribbon and Rail toast styles**: Two new looks for loot toasts, alerts, loot rolls, Echo pop-ups and the loot window. Ribbon is a colour wash fading away from the icon, and Rail is a dark bar with a thin coloured stripe along the icon's edge.
+- **(Augment) Card toast style**: A larger icon in a framed box, with a second line on loot toasts showing the item level and slot for gear, the type for other items, and your new total for gold and currencies. It can be picked anywhere the other styles can.
+
+---
+
 ## [6.3.1] – 2026-09-30
 
 ### 🐛 Fixes
