@@ -3,9 +3,10 @@
     Client detection and the capability table modules consult before touching a
     game system that only some clients have.
 
-    Two clients share the Retail (Mainline) UI API today:
+    Two clients share the Retail UI API today:
       - Retail / Midnight  - interface 12xxxx, WOW_PROJECT_MAINLINE
-      - WoW: Forever       - interface 16001 (build 1.60.x), also WOW_PROJECT_MAINLINE
+      - WoW: Forever       - interface 16001 (build 1.60.x), project ID 18 since
+                             build 70170 (WOW_PROJECT_MAINLINE before it)
 
     Forever ships the full Retail namespace set, so "does C_ChallengeMode exist"
     is not enough to know whether Mythic+ exists as a game system there. Each
@@ -26,12 +27,49 @@ Platform.interfaceVersion = tonumber(interface) or 0
 Platform.buildNumber      = tonumber(build) or 0
 Platform.projectID        = WOW_PROJECT_ID
 
--- Forever is the only Mainline-project client below interface 20000; Classic
--- flavours carry their own project IDs, so the pair is unambiguous.
-local isMainline = (WOW_PROJECT_ID == nil) or (WOW_PROJECT_ID == WOW_PROJECT_MAINLINE)
-Platform.isForever = isMainline and Platform.interfaceVersion > 0 and Platform.interfaceVersion < 20000
-Platform.isRetail  = isMainline and not Platform.isForever
-Platform.name      = Platform.isForever and "Forever" or (Platform.isRetail and "Retail" or "Unknown")
+-- Which client this is. Forever reported WOW_PROJECT_MAINLINE (1) until beta
+-- build 70170 (2026-10-01), which moved it to a project ID of its own (18) with
+-- no named constant we know of. Detection therefore never requires a specific
+-- Forever project ID; it rules out the clients it can name instead:
+--   - Retail: the Mainline project at interface 20000 or above.
+--   - Classic flavours: their WOW_PROJECT_* constants, listed below. The TOC
+--     carries no Classic interface number, so they only reach this file with
+--     "load out-of-date addons" ticked, and must not be mistaken for Forever.
+--   - Forever: anything else that loaded this Retail-API package, which the TOC
+--     limits to 120100 and 16001. A WOW_PROJECT_*FOREVER* constant, should
+--     Blizzard add one, is taken at its word first.
+-- Inputs are arguments so tools/test_platform_logic.js can feed it each
+-- client's values without a game client.
+local CLASSIC_PROJECT_KEYS = {
+    "WOW_PROJECT_CLASSIC",
+    "WOW_PROJECT_BURNING_CRUSADE_CLASSIC",
+    "WOW_PROJECT_WRATH_CLASSIC",
+    "WOW_PROJECT_CATACLYSM_CLASSIC",
+    "WOW_PROJECT_MISTS_CLASSIC",
+}
+local FOREVER_PROJECT_KEYS = { "WOW_PROJECT_FOREVER", "WOW_PROJECT_WOW_FOREVER" }
+
+-- @param projectID number|nil  WOW_PROJECT_ID
+-- @param interface number      Interface version from GetBuildInfo
+-- @param env table             Where the WOW_PROJECT_* constants live (_G in game)
+-- @return string "Retail" | "Forever" | "Unknown"
+function Platform.Classify(projectID, interface, env)
+    local function Is(key) return env[key] ~= nil and env[key] == projectID end
+    for _, key in ipairs(FOREVER_PROJECT_KEYS) do
+        if Is(key) then return "Forever" end
+    end
+    for _, key in ipairs(CLASSIC_PROJECT_KEYS) do
+        if Is(key) then return "Unknown" end
+    end
+    local isMainline = projectID == nil or Is("WOW_PROJECT_MAINLINE")
+    if isMainline and interface >= 20000 then return "Retail" end
+    if interface > 0 then return "Forever" end
+    return "Unknown"
+end
+
+Platform.name      = Platform.Classify(WOW_PROJECT_ID, Platform.interfaceVersion, _G)
+Platform.isForever = Platform.name == "Forever"
+Platform.isRetail  = Platform.name == "Retail"
 
 local function HasFunction(namespace, key)
     return type(namespace) == "table" and type(namespace[key]) == "function"
