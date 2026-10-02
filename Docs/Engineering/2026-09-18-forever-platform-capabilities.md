@@ -17,7 +17,7 @@ addon needs one place that knows which client it is on and what that client has.
 
 | Field | Meaning |
 |---|---|
-| `addon.Platform.isForever` / `isRetail` | Mainline project ID with interface below 20000 is Forever |
+| `addon.Platform.isForever` / `isRetail` | `Platform.Classify`: Mainline at interface 20000+ is Retail, a Classic project constant is neither, anything else this package loads on is Forever |
 | `addon.Platform.has[key]` / `Has(key)` | Namespace present **and** not on the known-absent list for this client |
 | `addon.Platform.unverified` | Keys whose content has not yet been seen on the beta |
 
@@ -61,6 +61,21 @@ down, in the functions themselves: they answer, and the answer is wrong.
 **The rule both cases point at:** gate on the capability table, not on whether
 the call returns something. A call that answers for a system the client does not
 have is the normal case here, not the surprise.
+
+## Beta build 70170: Forever got its own project ID
+
+Until 2026-10-01 Forever reported `WOW_PROJECT_ID == WOW_PROJECT_MAINLINE`.
+Build 70170 changed it to `18`, with no named constant. Detection required
+Mainline, so `/h platform` reported `Unknown`, the known-absent list stopped
+applying, and Delves came back in ordinary dungeons and zones (with Mythic+,
+housing and the vault options).
+
+Detection no longer requires any particular Forever project ID. It names the
+clients it can rule out (Retail by Mainline plus interface 20000+, Classic
+flavours by their `WOW_PROJECT_*` constants) and treats the rest as Forever,
+because the TOC only admits `120100` and `16001`. A `WOW_PROJECT_FOREVER`
+constant, should one appear, is trusted first.
+`node tools/test_platform_logic.js` covers each client's values.
 
 ## How modules use it
 
