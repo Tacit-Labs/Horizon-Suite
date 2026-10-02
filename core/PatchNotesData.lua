@@ -19,6 +19,16 @@ local addon = _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["6.4.1"] = {
+        date = "2026-10-02",
+        {
+            section = "Fixes",
+            bullets = {
+                "Core (Forever): Horizon Suite recognises World of Warcraft: Forever again after the October 1 beta update, so dungeons and zones are no longer labelled as Delves, and settings for systems Forever does not have stay hidden.",
+            },
+        },
+    },
+
     ["6.4.0"] = {
         date = "2026-10-01",
         {
