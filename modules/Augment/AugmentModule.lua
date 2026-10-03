@@ -20,7 +20,6 @@ addon:RegisterModule("augment", {
     OnEnable = function()
         if addon.Augment then
             local GetDB = addon.GetDB
-            local lootOn   = not GetDB or GetDB("augmentLootFrameEnabled",          true)  ~= false
             local vendorOn = not GetDB or GetDB("augmentVendorEnabled",            true)  ~= false
             local shOn     = not GetDB or GetDB("augmentSelfHighlightEnabled",     false) ~= false
             local atOn     = (not GetDB or GetDB("augmentAchievementTrackerEnabled", false) ~= false)
@@ -30,12 +29,9 @@ addon:RegisterModule("augment", {
             -- (see options/modules/defaults/augment/OptionsDefaultsAugmentLootRoll.lua).
             local rollOn   = GetDB and GetDB("augmentLootRollEnabled",              false) ~= false
             if addon.Augment.InitFrames then addon.Augment.InitFrames() end
-            -- Loot Frame mini-module: only register loot events + suppress Blizzard toasts when on.
-            if lootOn then
-                if addon.Augment.EnableEvents then addon.Augment.EnableEvents() end
-                if addon.Augment.ApplyBlizzardSuppression then addon.Augment.ApplyBlizzardSuppression() end
-                if addon.Augment.EnableLootWindowSkin then addon.Augment.EnableLootWindowSkin() end
-            end
+            -- Loot Frame mini-module: toasts (loot events + Blizzard suppression)
+            -- and the loot window skin each follow their own switch.
+            if addon.Augment.ApplyLootFrameState then addon.Augment.ApplyLootFrameState() end
             if addon.Augment.SetFrameVisible then addon.Augment.SetFrameVisible(true) end
             if addon.Augment.RestoreSavedPosition then addon.Augment.RestoreSavedPosition() end
             if addon.Augment.ApplyAugmentClassChrome then addon.Augment.ApplyAugmentClassChrome() end

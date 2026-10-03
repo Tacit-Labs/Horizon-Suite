@@ -73,14 +73,8 @@ handlers.ADDON_LOADED = function(msg)
     then
         Y.ApplyBlizzardSuppression()
     end
-    -- Skin personal LootFrame once Blizzard_LootFrame loads (loot mini-module on).
-    if msg == "Blizzard_LootFrame"
-        and addon:IsModuleEnabled("augment")
-        and addon.GetDB and addon.GetDB("augmentLootFrameEnabled", true) ~= false
-        and Y.EnableLootWindowSkin
-    then
-        Y.EnableLootWindowSkin()
-    end
+    -- The loot window skin watches for Blizzard_LootFrame itself
+    -- (AugmentLootWindowSkin.lua), since it can run with these events off.
 end
 
 local function OnPlayerReady()
@@ -244,6 +238,30 @@ function Y.DisableEvents()
     end
     ClearQueues()
     eventsRegistered = false
+end
+
+--- Bring loot toasts and the loot window skin in line with the Loot Frame
+--- master switch and its two parts. Either part can run without the other.
+--- Callers check the augment module is on: during OnEnable it is not yet
+--- marked enabled, so this cannot ask IsModuleEnabled itself.
+--- @return nil
+function Y.ApplyLootFrameState()
+    local GetDB = addon.GetDB
+    local function on(key) return not GetDB or GetDB(key, true) ~= false end
+    local masterOn = on("augmentLootFrameEnabled")
+    if masterOn and on("augmentLootToastsEnabled") then
+        Y.EnableEvents()
+        if Y.ApplyBlizzardSuppression then Y.ApplyBlizzardSuppression() end
+    else
+        Y.DisableEvents()
+        if Y.RestoreBlizzard then Y.RestoreBlizzard() end
+        if Y.ClearActiveToasts then Y.ClearActiveToasts() end
+    end
+    if masterOn and on("augmentLootWindowSkinEnabled") then
+        if Y.EnableLootWindowSkin then Y.EnableLootWindowSkin() end
+    else
+        if Y.DisableLootWindowSkin then Y.DisableLootWindowSkin() end
+    end
 end
 
 function Y.SetDebugLive(v)

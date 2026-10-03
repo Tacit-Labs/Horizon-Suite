@@ -38,6 +38,12 @@ local function lootFramed()
     return def and def.border or false
 end
 
+local function applyLootFrameState()
+    if addon.IsModuleEnabled and not addon:IsModuleEnabled("augment") then return end
+    local Y = addon.Augment
+    if Y and Y.ApplyLootFrameState then Y.ApplyLootFrameState() end
+end
+
 local categories = {
     -- ── Loot Frame ──────────────────────────────────────────────────────────
     {
@@ -51,23 +57,17 @@ local categories = {
         enabledKey = "augmentLootFrameEnabled",
         getEnabled = function() return getDB("augmentLootFrameEnabled", true) ~= false end,
         setEnabled = function(v)
-            v = v and true or false
-            setDB("augmentLootFrameEnabled", v)
-            if addon.IsModuleEnabled and not addon:IsModuleEnabled("augment") then return end
-            local Y = addon.Augment
-            if not Y then return end
-            if v then
-                if Y.EnableEvents then Y.EnableEvents() end
-                if Y.ApplyBlizzardSuppression then Y.ApplyBlizzardSuppression() end
-                if Y.EnableLootWindowSkin then Y.EnableLootWindowSkin() end
-            else
-                if Y.DisableEvents then Y.DisableEvents() end
-                if Y.RestoreBlizzard then Y.RestoreBlizzard() end
-                if Y.DisableLootWindowSkin then Y.DisableLootWindowSkin() end
-                if Y.ClearActiveToasts then Y.ClearActiveToasts() end
-            end
+            setDB("augmentLootFrameEnabled", v and true or false)
+            applyLootFrameState()
         end,
         options = {
+            -- Parts: loot toasts and the loot window skin switch independently.
+            Section(L["AUGMENT_LOOT_PARTS_SECTION"]),
+            Toggle(L["AUGMENT_LOOT_TOASTS_ENABLED"], L["AUGMENT_LOOT_TOASTS_ENABLED_DESC"], "augmentLootToastsEnabled", D.augmentLootToastsEnabled,
+                { set = function(v) setDB("augmentLootToastsEnabled", v); applyLootFrameState() end }),
+            Toggle(L["AUGMENT_LOOT_WINDOW_SKIN_ENABLED"], L["AUGMENT_LOOT_WINDOW_SKIN_ENABLED_DESC"], "augmentLootWindowSkinEnabled", D.augmentLootWindowSkinEnabled,
+                { set = function(v) setDB("augmentLootWindowSkinEnabled", v); applyLootFrameState() end }),
+
             -- Toast Settings (two-column: Visibility | Toast Types)
             Section(L["AUGMENT_TOAST_SETTINGS"]),
             { type = "columns",

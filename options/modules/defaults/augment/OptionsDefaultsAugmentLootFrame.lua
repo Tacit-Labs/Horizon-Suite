@@ -15,6 +15,9 @@ local LIM = addon.AUGMENT_LIMITS
 
 -- Loot Frame mini-module master switch
 D.augmentLootFrameEnabled    = true
+-- Its two parts, switched independently beneath the master switch
+D.augmentLootToastsEnabled     = true
+D.augmentLootWindowSkinEnabled = true
 
 -- Toast appearance
 D.augmentToastStyle          = "framed"
