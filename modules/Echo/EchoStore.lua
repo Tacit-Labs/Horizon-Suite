@@ -147,6 +147,7 @@ local conversations = {}
 local overrides = {}
 local sendModes = {}  -- convKey -> "YELL" | "EMOTE"; in memory only, Say when unset
 local kindTiers = {}
+local unhandled = {}  -- kind -> true while its chat is left to Blizzard's windows (Echo.Route "blizzard")
 local listeners = {}
 local unrouted = 0
 local seq = 0  -- monotonic: time() has one-second resolution, ordering needs better
@@ -235,6 +236,25 @@ function Store.SetKindTier(kind, tier)
     kindTiers[kind] = tier
     Notify(nil, nil)
     return true
+end
+
+--- Set whether Echo takes a conversation kind's chat (Echo.ApplyOptions, from the
+-- echoRoute* settings). A kind Echo doesn't take is filed, started and restored by
+-- nobody: its chat stays in Blizzard's windows. Feeds always are taken. Store.Reset keeps
+-- this, as it keeps tiers.
+-- @param kind string  A Store.DEFAULT_TIERS key
+-- @param handled boolean
+-- @return boolean accepted
+function Store.SetKindHandled(kind, handled)
+    if not Store.DEFAULT_TIERS[kind] or Store.FEED_KINDS[kind] then return false end
+    unhandled[kind] = (handled == false) or nil
+    return true
+end
+
+--- @param kind string|nil
+-- @return boolean  false only for a conversation kind left to Blizzard's chat
+function Store.Handles(kind)
+    return not (kind ~= nil and unhandled[kind])
 end
 
 -- Save a conversation's pin and tier (Task 1 of plan 3).
@@ -540,10 +560,10 @@ end
 -- goes above it in turn; lastLoud itself is untouched, so it never counts as a loud one
 -- (View.NewestLoud, Groups.Newest).
 -- @param convKey string
--- @return table|nil conv  nil for an invalid key or a feed
+-- @return table|nil conv  nil for an invalid key, a feed, or a kind left to Blizzard's chat
 function Store.Start(convKey)
     local kind = Store.KindOf(convKey)
-    if not kind or Store.FEED_KINDS[kind] then return nil end
+    if not kind or Store.FEED_KINDS[kind] or not Store.Handles(kind) then return nil end
     local conv = GetOrCreate(convKey)
     conv.open = true
     conv.dismissed = nil
@@ -807,7 +827,7 @@ function Store.Restore(keys)
         local existing = conversations[key]
         if existing then
             if existing.restoreRank then existing.restoreRank = i end
-        elseif Store.IsPersisted(Store.KindOf(key)) then
+        elseif Store.IsPersisted(Store.KindOf(key)) and Store.Handles(Store.KindOf(key)) then
             GetOrCreate(key).restoreRank = i
             restored = restored + 1
         end

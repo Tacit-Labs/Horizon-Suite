@@ -23,8 +23,9 @@
         saved yet. Once the world is loaded with the setting off (turned off, or another
         character that doesn't hide chat), a saved value is put back while whisperMode is
         still inline, then forgotten; a whisperMode the player changed meanwhile is kept.
-      - While hiding is applied, "Hide whispers Echo has stored" stays off: ChatFrame1 keeps
-        its whisper events so Blizzard's own code sets R's target (Echo.ApplyOptions).
+      - While hiding is applied, the Blizzard chat filter stays off for every kind:
+        ChatFrame1 keeps its whisper events so Blizzard's own code sets R's target
+        (Echo.ApplyOptions).
       - While hiding is applied, the All view collects even when echoAllView is off
         (Echo.FeedEnabled), since chat Echo has no tile for goes only there.
         A client without ChatTypeGroup gets one line saying that chat can't reach it.
@@ -270,7 +271,7 @@ function HideChat.Apply()
     end
     -- ChatFrame1 keeps its whisper events so Blizzard sets R's target: the whisper filter
     -- goes off (Echo.ApplyOptions keeps it off from now on).
-    if Echo.Filter and Echo.Filter.active then Echo.Filter.Apply(false) end
+    if Echo.Filter and Echo.Filter.active then Echo.Filter.Apply(nil) end
     -- The All view collects from now on even with echoAllView off (Echo.FeedEnabled), so a
     -- tile switched off earlier comes back for its next line.
     if first and Echo.Setting("echoAllView") == false then Echo.Store.Undismiss(Echo.All and Echo.All.KEY or "all") end

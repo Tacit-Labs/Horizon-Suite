@@ -15,8 +15,9 @@
         file's own events below do), as is one from Echo's own code, and one whose stack
         is secret.
       - Chat types Echo has no tile for: while All collects, Echo's own frame here registers
-        every CHAT_MSG_* in ChatTypeGroup that Echo doesn't route (and
-        CHAT_MSG_COMMUNITIES_CHANNEL), in the message groups the player gives ChatFrame1
+        every CHAT_MSG_* in ChatTypeGroup that Echo doesn't file (a kind left to
+        Blizzard's chat, Echo.Route "blizzard", counts), and CHAT_MSG_COMMUNITIES_CHANNEL,
+        in the message groups the player gives ChatFrame1
         (GetChatWindowMessages), runs other addons' filters over each, and files it. While
         Blizzard's chat is shown, ChatFrame1 shows them too, and the AddMessage skip above
         keeps them from arriving twice. A type whose text is a code is formatted from
@@ -269,7 +270,7 @@ local function WindowGroups()
 end
 
 --- Every chat event All takes on its own: each CHAT_MSG_* in ChatTypeGroup that Echo
--- doesn't route and this client has, in a message group the player gives ChatFrame1 (all
+-- doesn't file (a kind left to Blizzard's chat counts) and this client has, in a message group the player gives ChatFrame1 (all
 -- groups when that can't be read), never one of All.EXCLUDED unless that list names it,
 -- and no combat types (All.COMBAT_KEEP aside); plus All.MORE_EVENTS.
 -- @return table events  sorted
@@ -279,7 +280,9 @@ function All.ExtraEvents()
     local routed = Store.EVENT_KIND
     local window = WindowGroups()
     local function Wanted(event)
-        if routed[event] ~= nil then return false end
+        -- Echo files a routed event itself, unless its kind is left to Blizzard's chat.
+        local kind = routed[event]
+        if kind ~= nil and Store.Handles(kind) then return false end
         if event:sub(1, 16) == "CHAT_MSG_COMBAT_" and not All.COMBAT_KEEP[event] then return false end
         return true
     end

@@ -30,6 +30,33 @@ function Echo.FeedKey(kind)
     return "echoFeed" .. Capitalise(kind)
 end
 
+-- Conversation kinds whose chat can go to Echo, Blizzard's windows, or both.
+Echo.ROUTE_KINDS = { "whisper", "bnet", "party", "raid", "instance", "guild", "officer", "channel", "nearby" }
+Echo.ROUTES = { echo = true, both = true, blizzard = true }
+
+--- The setting holding where a kind's chat shows.
+-- @param kind string
+-- @return string
+function Echo.RouteKey(kind)
+    return "echoRoute" .. Capitalise(kind)
+end
+
+--- Where a kind's chat shows: "echo", "both" or "blizzard". An unset route for whispers
+-- or Battle.net whispers is "echo" when the retired echoHideStoredWhispers was on.
+-- @param kind string
+-- @param get function|nil  (key, default) -> value; the options page passes its own
+-- @return string
+function Echo.Route(kind, get)
+    get = get or addon.GetDB or function(_, d) return d end
+    local key = Echo.RouteKey(kind)
+    local route = get(key, nil)
+    if Echo.ROUTES[route] then return route end
+    if (kind == "whisper" or kind == "bnet") and get("echoHideStoredWhispers", nil) == true then return "echo" end
+    local default = addon.ECHO_DEFAULTS and addon.ECHO_DEFAULTS[key]
+    if Echo.ROUTES[default] then return default end
+    return "both"
+end
+
 --- False only for a feed the player has switched off. The All view is always on while
 -- Blizzard's chat windows are hidden: chat Echo has no tile for goes only there. The combat
 -- log follows echoCombatLog, through whether its window was moved into Echo.
@@ -128,11 +155,21 @@ function Echo.ApplyOptions()
     local card = _G.HorizonSuiteEchoCard
     if card and card:IsShown() and Echo.Card.Reanchor then Echo.Card.Reanchor() end
     if Echo.Redraw then Echo.Redraw.Mark("tiles") end
-    -- Inert while Blizzard's chat is hidden: ChatFrame1 keeps its whisper events so that
+    -- Where each kind's chat goes. "blizzard": Echo files, starts and restores none of it,
+    -- and its open tiles close. "echo": Blizzard's windows hide each line Echo files, except
+    -- while Blizzard's chat is hidden: ChatFrame1 then keeps its whisper events so that
     -- Blizzard's own code sets R's target, which a hidden line would skip.
     local hiding = Echo.HideChat and Echo.HideChat.IsApplied()
-    local filterOn = Echo.Setting("echoHideStoredWhispers") == true and not hiding
-    if filterOn ~= Echo.Filter.active then Echo.Filter.Apply(filterOn) end
+    local filtered = {}
+    for _, kind in ipairs(Echo.ROUTE_KINDS) do
+        local route = Echo.Route(kind)
+        Store.SetKindHandled(kind, route ~= "blizzard")
+        if route == "echo" and not hiding then filtered[kind] = true end
+    end
+    for _, conv in ipairs(Store.List()) do
+        if not Store.Handles(conv.kind) then Store.Close(conv.key) end
+    end
+    if not Echo.Filter.SameKinds(filtered) then Echo.Filter.Apply(filtered) end
     -- Hide Blizzard's chat windows, or ask for a reload to bring them back. First, as hiding
     -- turns docking on.
     if Echo.HideChat then Echo.HideChat.Refresh() end
