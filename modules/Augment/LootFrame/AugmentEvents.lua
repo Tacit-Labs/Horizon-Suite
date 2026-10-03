@@ -195,6 +195,35 @@ handlers.BONUS_LOOT_ITEM_RECEIVED         = OnBlizzardLootToast
 handlers.SCENARIO_COMPLETED               = OnBlizzardLootToast
 handlers.QUEST_TURNED_IN                  = OnBlizzardLootToast
 
+-- Auto-loot opens Blizzard's loot window, empties it and closes it within a
+-- fraction of a second, which reads as a second toast beside Augment's own.
+-- Keep the window invisible while auto-loot runs. If it is still open after
+-- AUTOLOOT_REVEAL_DELAY (full bags, a unique item already owned), show it so
+-- no loot is hidden.
+local AUTOLOOT_REVEAL_DELAY = 1
+local autoLootHidden = false
+local autoLootToken  = 0
+
+local function RevealLootWindow()
+    if not autoLootHidden then return end
+    autoLootHidden = false
+    local frame = _G.LootFrame
+    if frame then frame:SetAlpha(1) end
+end
+
+handlers.LOOT_OPENED = function(autoLoot)
+    local frame = _G.LootFrame
+    if not (autoLoot and frame) then return end
+    autoLootHidden = true
+    frame:SetAlpha(0)
+    autoLootToken = autoLootToken + 1
+    local token = autoLootToken
+    C_Timer.After(AUTOLOOT_REVEAL_DELAY, function()
+        if token == autoLootToken then RevealLootWindow() end
+    end)
+end
+handlers.LOOT_CLOSED = RevealLootWindow
+
 local function OnEvent(_, event, msg, ...)
     local handler = handlers[event]
     if handler then handler(msg, ...) end
@@ -228,6 +257,8 @@ function Y.EnableEvents()
     pcall(eventFrame.RegisterEvent, eventFrame, "BONUS_LOOT_ITEM_RECEIVED")
     pcall(eventFrame.RegisterEvent, eventFrame, "SCENARIO_COMPLETED")
     pcall(eventFrame.RegisterEvent, eventFrame, "QUEST_TURNED_IN")
+    eventFrame:RegisterEvent("LOOT_OPENED")
+    eventFrame:RegisterEvent("LOOT_CLOSED")
     eventsRegistered = true
 end
 
@@ -237,6 +268,8 @@ function Y.DisableEvents()
         eventFrame:UnregisterAllEvents()
     end
     ClearQueues()
+    -- LOOT_CLOSED no longer reaches us, so don't leave the window invisible.
+    RevealLootWindow()
     eventsRegistered = false
 end
 
