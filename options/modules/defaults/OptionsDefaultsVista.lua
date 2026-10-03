@@ -61,7 +61,6 @@ addon.VISTA_KEYS = {
     ["vistaLocked_proxy_mail"]     = true,
     ["vistaLocked_proxy_craftingOrder"] = true,
     ["vistaQueueHandlingDisabled"] = true,
-    vistaButtonStrata = true,
     ["vistaCoordPrecision"] = true,
     -- Addon button layout
     vistaBtnLayoutCols = true, vistaBtnLayoutDir = true,
@@ -141,7 +140,6 @@ addon.VISTA_SKIP_FULL_LAYOUT_KEYS = {
     ["vistaLocked_proxy_mail"]         = true,
     ["vistaLocked_proxy_craftingOrder"] = true,
     ["vistaQueueHandlingDisabled"] = true,
-    vistaButtonStrata = true,
     vistaMouseoverLocked    = true,
     vistaRightClickLocked   = true,
     vistaDrawerButtonLocked = true,
@@ -176,7 +174,6 @@ addon.VISTA_DEFAULTS = {
     vistaLocked_proxy_mail = true,
     vistaLocked_proxy_craftingOrder = true,
     vistaQueueHandlingDisabled = false,
-    vistaButtonStrata = "MEDIUM",
     vistaTrackingBtnSize = 22, vistaCalendarBtnSize = 22, vistaTeleportBtnSize = 22, vistaQueueBtnSize = 22,
     vistaLandingBtnSize = 36,
     vistaMailIconSize = 20, vistaMailBlink = true,
