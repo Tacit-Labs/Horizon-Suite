@@ -223,6 +223,9 @@ local function StopLootWindowFade(frame)
         hooksecurefunc(frame, "SetAlpha", function(self, alpha)
             if autoLootHidden and alpha ~= 0 then self:SetAlpha(0) end
         end)
+        -- The window stays shown for about 100ms after LOOT_CLOSED while it
+        -- closes, so restoring alpha at LOOT_CLOSED flashed it. Wait for OnHide.
+        frame:HookScript("OnHide", RevealLootWindow)
     end
     for _, group in ipairs({ frame:GetAnimationGroups() }) do
         if not group._hsAutoLootHooked then
@@ -255,7 +258,6 @@ local function HideForAutoLoot(autoLoot)
 end
 handlers.LOOT_READY  = HideForAutoLoot
 handlers.LOOT_OPENED = HideForAutoLoot
-handlers.LOOT_CLOSED = RevealLootWindow
 
 local function OnEvent(_, event, msg, ...)
     local handler = handlers[event]
@@ -292,7 +294,6 @@ function Y.EnableEvents()
     pcall(eventFrame.RegisterEvent, eventFrame, "QUEST_TURNED_IN")
     eventFrame:RegisterEvent("LOOT_READY")
     eventFrame:RegisterEvent("LOOT_OPENED")
-    eventFrame:RegisterEvent("LOOT_CLOSED")
     eventsRegistered = true
 end
 
@@ -302,7 +303,7 @@ function Y.DisableEvents()
         eventFrame:UnregisterAllEvents()
     end
     ClearQueues()
-    -- LOOT_CLOSED no longer reaches us, so don't leave the window invisible.
+    -- Toasts are off, so stop hiding the window.
     RevealLootWindow()
     eventsRegistered = false
 end
