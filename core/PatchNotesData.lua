@@ -19,6 +19,23 @@ local addon = _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["6.5.0"] = {
+        date = "2026-10-03",
+        {
+            section = "New Features",
+            bullets = {
+                "Augment: two new switches on the Loot Frame page, Loot Toasts and Loot Window Skin, let you use Augment's loot toasts and its loot window skin independently. Both start on.",
+            },
+        },
+        {
+            section = "Fixes",
+            bullets = {
+                "Vista: the queue eye and the Omnium Folio button sit behind the World Map instead of drawing on top of it.",
+                "Augment: with auto-loot on, Blizzard's loot window no longer flashes up beside Augment's loot toast.",
+            },
+        },
+    },
+
     ["6.4.1"] = {
         date = "2026-10-02",
         {
