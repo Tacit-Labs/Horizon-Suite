@@ -197,67 +197,59 @@ handlers.QUEST_TURNED_IN                  = OnBlizzardLootToast
 
 -- Auto-loot opens Blizzard's loot window, empties it and closes it within a
 -- fraction of a second, which reads as a second toast beside Augment's own.
--- Keep the window invisible while auto-loot runs. If it is still open after
--- AUTOLOOT_REVEAL_DELAY (full bags, a unique item already owned), show it so
--- no loot is hidden.
+-- The window animates in, out and per row, so hiding it by alpha still let it
+-- flash. Instead, stop it opening: LOOT_READY says whether the coming loot is
+-- auto-loot before LOOT_OPENED reaches the window, so take LOOT_OPENED off the
+-- window for auto-loot and leave Blizzard to open it normally otherwise. If
+-- items are still there after AUTOLOOT_REVEAL_DELAY (full bags, a unique item
+-- already owned), open the window so no loot is hidden.
 local AUTOLOOT_REVEAL_DELAY = 1
-local autoLootHidden = false
-local autoLootToken  = 0
+local lootOpen      = false
+local autoLootToken = 0
 
-local function RevealLootWindow()
-    if not autoLootHidden then return end
-    autoLootHidden = false
+local function SetLootWindowOpens(opens)
     local frame = _G.LootFrame
-    if frame then frame:SetAlpha(1) end
-end
-
--- The loot window fades in on open, and a playing alpha animation overrides
--- SetAlpha. Stop any that are playing, and hook each group so one that starts
--- after we hid the window is stopped too.
-local alphaHookInstalled = false
-
-local function StopLootWindowFade(frame)
-    -- A fade driven by UIFrameFadeIn calls SetAlpha every frame instead.
-    if not alphaHookInstalled then
-        alphaHookInstalled = true
-        hooksecurefunc(frame, "SetAlpha", function(self, alpha)
-            if autoLootHidden and alpha ~= 0 then self:SetAlpha(0) end
-        end)
-        -- The window stays shown for about 100ms after LOOT_CLOSED while it
-        -- closes, so restoring alpha at LOOT_CLOSED flashed it. Wait for OnHide.
-        frame:HookScript("OnHide", RevealLootWindow)
-    end
-    for _, group in ipairs({ frame:GetAnimationGroups() }) do
-        if not group._hsAutoLootHooked then
-            group._hsAutoLootHooked = true
-            group:HookScript("OnPlay", function(self)
-                if autoLootHidden then
-                    self:Stop()
-                    frame:SetAlpha(0)
-                end
-            end)
-        end
-        if group:IsPlaying() then group:Stop() end
+    if not frame then return end
+    if opens then
+        if not frame:IsEventRegistered("LOOT_OPENED") then frame:RegisterEvent("LOOT_OPENED") end
+    else
+        frame:UnregisterEvent("LOOT_OPENED")
     end
 end
 
--- LOOT_READY arrives before the window is shown, so setting alpha there means
--- the window is never drawn visible. LOOT_OPENED repeats it as a fallback and
--- re-arms the reveal timer.
-local function HideForAutoLoot(autoLoot)
-    local frame = _G.LootFrame
-    if not (autoLoot and frame) then return end
-    autoLootHidden = true
-    StopLootWindowFade(frame)
-    frame:SetAlpha(0)
+local function LootLeftOver()
+    for slot = 1, (GetNumLootItems() or 0) do
+        if LootSlotHasItem(slot) then return true end
+    end
+    return false
+end
+
+handlers.LOOT_READY = function(autoLoot)
+    -- The second LOOT_READY of a loot arrives after LOOT_OPENED; ignore it.
+    if lootOpen then return end
+    SetLootWindowOpens(not autoLoot)
+end
+
+handlers.LOOT_OPENED = function(autoLoot, acquiredFromItem)
+    lootOpen = true
+    if not autoLoot then return end
     autoLootToken = autoLootToken + 1
     local token = autoLootToken
     C_Timer.After(AUTOLOOT_REVEAL_DELAY, function()
-        if token == autoLootToken then RevealLootWindow() end
+        if token ~= autoLootToken or not lootOpen or not LootLeftOver() then return end
+        local frame = _G.LootFrame
+        local onEvent = frame and frame:GetScript("OnEvent")
+        if not onEvent then return end
+        SetLootWindowOpens(true)
+        -- Opened as a manual loot, so the rows stay put rather than sliding out.
+        onEvent(frame, "LOOT_OPENED", false, acquiredFromItem)
     end)
 end
-handlers.LOOT_READY  = HideForAutoLoot
-handlers.LOOT_OPENED = HideForAutoLoot
+
+handlers.LOOT_CLOSED = function()
+    lootOpen = false
+    SetLootWindowOpens(true)
+end
 
 local function OnEvent(_, event, msg, ...)
     local handler = handlers[event]
@@ -294,6 +286,7 @@ function Y.EnableEvents()
     pcall(eventFrame.RegisterEvent, eventFrame, "QUEST_TURNED_IN")
     eventFrame:RegisterEvent("LOOT_READY")
     eventFrame:RegisterEvent("LOOT_OPENED")
+    eventFrame:RegisterEvent("LOOT_CLOSED")
     eventsRegistered = true
 end
 
@@ -303,8 +296,9 @@ function Y.DisableEvents()
         eventFrame:UnregisterAllEvents()
     end
     ClearQueues()
-    -- Toasts are off, so stop hiding the window.
-    RevealLootWindow()
+    -- Toasts are off: let Blizzard open the loot window again.
+    lootOpen = false
+    SetLootWindowOpens(true)
     eventsRegistered = false
 end
 
