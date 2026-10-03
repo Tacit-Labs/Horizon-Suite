@@ -211,10 +211,38 @@ local function RevealLootWindow()
     if frame then frame:SetAlpha(1) end
 end
 
+-- The loot window fades in on open, and a playing alpha animation overrides
+-- SetAlpha. Stop any that are playing, and hook each group so one that starts
+-- after LOOT_OPENED is stopped too.
+local alphaHookInstalled = false
+
+local function StopLootWindowFade(frame)
+    -- A fade driven by UIFrameFadeIn calls SetAlpha every frame instead.
+    if not alphaHookInstalled then
+        alphaHookInstalled = true
+        hooksecurefunc(frame, "SetAlpha", function(self, alpha)
+            if autoLootHidden and alpha ~= 0 then self:SetAlpha(0) end
+        end)
+    end
+    for _, group in ipairs({ frame:GetAnimationGroups() }) do
+        if not group._hsAutoLootHooked then
+            group._hsAutoLootHooked = true
+            group:HookScript("OnPlay", function(self)
+                if autoLootHidden then
+                    self:Stop()
+                    frame:SetAlpha(0)
+                end
+            end)
+        end
+        if group:IsPlaying() then group:Stop() end
+    end
+end
+
 handlers.LOOT_OPENED = function(autoLoot)
     local frame = _G.LootFrame
     if not (autoLoot and frame) then return end
     autoLootHidden = true
+    StopLootWindowFade(frame)
     frame:SetAlpha(0)
     autoLootToken = autoLootToken + 1
     local token = autoLootToken
