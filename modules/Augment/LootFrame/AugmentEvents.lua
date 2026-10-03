@@ -195,6 +195,62 @@ handlers.BONUS_LOOT_ITEM_RECEIVED         = OnBlizzardLootToast
 handlers.SCENARIO_COMPLETED               = OnBlizzardLootToast
 handlers.QUEST_TURNED_IN                  = OnBlizzardLootToast
 
+-- Auto-loot opens Blizzard's loot window, empties it and closes it within a
+-- fraction of a second, which reads as a second toast beside Augment's own.
+-- The window animates in, out and per row, so hiding it by alpha still let it
+-- flash. Instead, stop it opening: LOOT_READY says whether the coming loot is
+-- auto-loot before LOOT_OPENED reaches the window, so take LOOT_OPENED off the
+-- window for auto-loot and leave Blizzard to open it normally otherwise. If
+-- items are still there after AUTOLOOT_REVEAL_DELAY (full bags, a unique item
+-- already owned), open the window so no loot is hidden.
+local AUTOLOOT_REVEAL_DELAY = 1
+local lootOpen      = false
+local autoLootToken = 0
+
+local function SetLootWindowOpens(opens)
+    local frame = _G.LootFrame
+    if not frame then return end
+    if opens then
+        if not frame:IsEventRegistered("LOOT_OPENED") then frame:RegisterEvent("LOOT_OPENED") end
+    else
+        frame:UnregisterEvent("LOOT_OPENED")
+    end
+end
+
+local function LootLeftOver()
+    for slot = 1, (GetNumLootItems() or 0) do
+        if LootSlotHasItem(slot) then return true end
+    end
+    return false
+end
+
+handlers.LOOT_READY = function(autoLoot)
+    -- The second LOOT_READY of a loot arrives after LOOT_OPENED; ignore it.
+    if lootOpen then return end
+    SetLootWindowOpens(not autoLoot)
+end
+
+handlers.LOOT_OPENED = function(autoLoot, acquiredFromItem)
+    lootOpen = true
+    if not autoLoot then return end
+    autoLootToken = autoLootToken + 1
+    local token = autoLootToken
+    C_Timer.After(AUTOLOOT_REVEAL_DELAY, function()
+        if token ~= autoLootToken or not lootOpen or not LootLeftOver() then return end
+        local frame = _G.LootFrame
+        local onEvent = frame and frame:GetScript("OnEvent")
+        if not onEvent then return end
+        SetLootWindowOpens(true)
+        -- Opened as a manual loot, so the rows stay put rather than sliding out.
+        onEvent(frame, "LOOT_OPENED", false, acquiredFromItem)
+    end)
+end
+
+handlers.LOOT_CLOSED = function()
+    lootOpen = false
+    SetLootWindowOpens(true)
+end
+
 local function OnEvent(_, event, msg, ...)
     local handler = handlers[event]
     if handler then handler(msg, ...) end
@@ -228,6 +284,9 @@ function Y.EnableEvents()
     pcall(eventFrame.RegisterEvent, eventFrame, "BONUS_LOOT_ITEM_RECEIVED")
     pcall(eventFrame.RegisterEvent, eventFrame, "SCENARIO_COMPLETED")
     pcall(eventFrame.RegisterEvent, eventFrame, "QUEST_TURNED_IN")
+    eventFrame:RegisterEvent("LOOT_READY")
+    eventFrame:RegisterEvent("LOOT_OPENED")
+    eventFrame:RegisterEvent("LOOT_CLOSED")
     eventsRegistered = true
 end
 
@@ -237,6 +296,9 @@ function Y.DisableEvents()
         eventFrame:UnregisterAllEvents()
     end
     ClearQueues()
+    -- Toasts are off: let Blizzard open the loot window again.
+    lootOpen = false
+    SetLootWindowOpens(true)
     eventsRegistered = false
 end
 
