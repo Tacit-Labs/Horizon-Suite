@@ -10,6 +10,17 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [6.5.0] – 2026-10-03
+
+### ✨ New Features
+- **(Augment) Separate switches for loot toasts and the loot window**: The Loot Frame page has two new switches, Loot Toasts and Loot Window Skin, so you can keep Augment's toasts with Blizzard's loot window, or the skinned loot window with Blizzard's loot alerts. Both start on, so nothing changes unless you turn one off.
+
+### 🐛 Fixes
+- **(Vista)** The queue eye and the Omnium Folio button sit behind the World Map instead of drawing on top of it.
+- **(Augment)** With auto-loot on, Blizzard's loot window no longer flashes up beside Augment's loot toast. Looting by hand opens it as before.
+
+---
+
 ## [6.4.1] – 2026-10-02
 
 ### 🐛 Fixes
