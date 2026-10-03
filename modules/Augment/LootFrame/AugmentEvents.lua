@@ -213,7 +213,7 @@ end
 
 -- The loot window fades in on open, and a playing alpha animation overrides
 -- SetAlpha. Stop any that are playing, and hook each group so one that starts
--- after LOOT_OPENED is stopped too.
+-- after we hid the window is stopped too.
 local alphaHookInstalled = false
 
 local function StopLootWindowFade(frame)
@@ -238,7 +238,10 @@ local function StopLootWindowFade(frame)
     end
 end
 
-handlers.LOOT_OPENED = function(autoLoot)
+-- LOOT_READY arrives before the window is shown, so setting alpha there means
+-- the window is never drawn visible. LOOT_OPENED repeats it as a fallback and
+-- re-arms the reveal timer.
+local function HideForAutoLoot(autoLoot)
     local frame = _G.LootFrame
     if not (autoLoot and frame) then return end
     autoLootHidden = true
@@ -250,6 +253,8 @@ handlers.LOOT_OPENED = function(autoLoot)
         if token == autoLootToken then RevealLootWindow() end
     end)
 end
+handlers.LOOT_READY  = HideForAutoLoot
+handlers.LOOT_OPENED = HideForAutoLoot
 handlers.LOOT_CLOSED = RevealLootWindow
 
 local function OnEvent(_, event, msg, ...)
@@ -285,6 +290,7 @@ function Y.EnableEvents()
     pcall(eventFrame.RegisterEvent, eventFrame, "BONUS_LOOT_ITEM_RECEIVED")
     pcall(eventFrame.RegisterEvent, eventFrame, "SCENARIO_COMPLETED")
     pcall(eventFrame.RegisterEvent, eventFrame, "QUEST_TURNED_IN")
+    eventFrame:RegisterEvent("LOOT_READY")
     eventFrame:RegisterEvent("LOOT_OPENED")
     eventFrame:RegisterEvent("LOOT_CLOSED")
     eventsRegistered = true
