@@ -2562,7 +2562,7 @@ do
             pcall(function() realBtn:ClearAllPoints() end)
             pcall(function() realBtn:SetPoint("CENTER", queueAnchor, "CENTER", 0, 0) end)
             pcall(function() realBtn:SetSize(btnSz, btnSz) end)
-            pcall(function() realBtn:SetFrameStrata("HIGH") end)
+            pcall(function() realBtn:SetFrameStrata("MEDIUM") end)
             pcall(function() realBtn:SetFrameLevel(queueAnchor:GetFrameLevel() + 1) end)
             pcall(function() realBtn:SetIgnoreParentAlpha(true) end)
 
@@ -2654,7 +2654,9 @@ do
 
         queueAnchor = CreateFrame("Frame", "HorizonSuiteVistaQueueAnchor", UIParent)
         queueAnchor:SetSize(anchorSz, anchorSz)
-        queueAnchor:SetFrameStrata("HIGH")
+        -- MEDIUM, not HIGH: this anchor sits on UIParent, and HIGH is the World Map's
+        -- layer, so the button would draw over the open map.
+        queueAnchor:SetFrameStrata("MEDIUM")
         queueAnchor:SetClampedToScreen(true)
         queueAnchor:SetMovable(true)
         queueAnchor:EnableMouse(true)
@@ -2794,7 +2796,7 @@ do
             pcall(function() realBtn:SetPoint("CENTER", landingPageAnchor, "CENTER", 0, 0) end)
             pcall(function() realBtn:SetSize(btnSz, btnSz) end)
             pcall(function() realBtn:SetScale(1) end)
-            pcall(function() realBtn:SetFrameStrata("HIGH") end)
+            pcall(function() realBtn:SetFrameStrata("MEDIUM") end)
             pcall(function() realBtn:SetFrameLevel(landingPageAnchor:GetFrameLevel() + 1) end)
             pcall(function() realBtn:SetIgnoreParentAlpha(true) end)
         end)
@@ -2925,7 +2927,9 @@ do
 
         landingPageAnchor = CreateFrame("Frame", "HorizonSuiteVistaLandingAnchor", UIParent)
         landingPageAnchor:SetSize(anchorSz, anchorSz)
-        landingPageAnchor:SetFrameStrata("HIGH")
+        -- MEDIUM, not HIGH: this anchor sits on UIParent, and HIGH is the World Map's
+        -- layer, so the button would draw over the open map.
+        landingPageAnchor:SetFrameStrata("MEDIUM")
         landingPageAnchor:SetClampedToScreen(true)
         landingPageAnchor:SetMovable(true)
         landingPageAnchor:EnableMouse(true)
