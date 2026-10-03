@@ -14,7 +14,7 @@
 const fs = require('fs');
 const path = require('path');
 const { parseEnUS, parseLocaleTranslations } = require('./lib/parseLocalisationEnUS.js');
-const { hashFromLuaRhs, decodedStringFromLuaRhs } = require('./lib/localeHash.js');
+const { decodedStringFromLuaRhs } = require('./lib/localeHash.js');
 
 const ROOT = path.resolve(__dirname, '..');
 const LOC = path.join(ROOT, 'locales/horizon');
@@ -64,17 +64,6 @@ for (const locale of LOCALES) {
     const missingKeys = keys.filter((k) => !isReallyTranslated(k, translated, enByKey[k]));
     const structuralMissing = keys.filter((k) => !keyRowInLocale(fileContent, k));
 
-    const hashMismatch = [];
-    for (const k of keys) {
-        if (!isReallyTranslated(k, translated, enByKey[k])) continue;
-        const enRhs = enByKey[k];
-        if (!enRhs) continue;
-        const cur = hashFromLuaRhs(enRhs);
-        if (m.source_hash && m.source_hash !== cur) {
-            hashMismatch.push(k);
-        }
-    }
-
     rows.push({
         locale,
         translatedCount,
@@ -82,10 +71,6 @@ for (const locale of LOCALES) {
         pct,
         missingKeys,
         structuralMissing,
-        v,
-        u,
-        r,
-        hashMismatch,
     });
     if (structuralMissing.length) strictFail = true;
 }
@@ -93,11 +78,11 @@ for (const locale of LOCALES) {
 console.log(
     `${'Locale'.padEnd(10)} ${'Translated'.padEnd(12)} ${'enUS fallbk'.padEnd(12)} ${'Coverage'.padEnd(10)}`
 );
-console.log(`${'─'.repeat(10)} ${'─'.repeat(12)} ${'─'.repeat(10)} ${'─'.repeat(10)} ${'─'.repeat(28)}`);
+console.log(`${'─'.repeat(10)} ${'─'.repeat(12)} ${'─'.repeat(12)} ${'─'.repeat(10)}`);
 
 for (const row of rows) {
     console.log(
-        `${row.locale.padEnd(10)} ${String(row.translatedCount).padEnd(12)} ${String(row.missing).padEnd(12)} ${String(row.pct + '%').padEnd(10)} ${row.v}/${row.u}/${row.r}${row.hashMismatch.length ? ' !hash:' + row.hashMismatch.length : ''}`
+        `${row.locale.padEnd(10)} ${String(row.translatedCount).padEnd(12)} ${String(row.missing).padEnd(12)} ${String(row.pct + '%').padEnd(10)}`
     );
 }
 
