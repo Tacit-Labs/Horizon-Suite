@@ -211,7 +211,7 @@ local categories = {
             },
 
             -- Item toasts, with the hold times that follow the same switches
-            Section(L["AUGMENT_SHOW_ITEMS"], { page = "loot" }),
+            Section(L["AUGMENT_CARD_ITEMS"], { page = "loot" }),
             Toggle(L["AUGMENT_SHOW_ITEMS"],        L["AUGMENT_SHOW_ITEMS_DESC"],        "augmentShowItems",       D.augmentShowItems),
             Toggle(L["AUGMENT_SHOW_PUSHED_ITEMS"], L["AUGMENT_SHOW_PUSHED_ITEMS_DESC"], "augmentShowPushedItems", D.augmentShowPushedItems, { parent = "augmentShowItems" }),
             Toggle(L["AUGMENT_CONDENSE_JUNK"],           L["AUGMENT_CONDENSE_JUNK_DESC"],           "augmentCondenseJunk",         D.augmentCondenseJunk,    { parent = "augmentShowItems" }),

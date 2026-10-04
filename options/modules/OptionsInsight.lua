@@ -178,7 +178,7 @@ local categories = {
         desc = L["INSIGHT_CATEGORY_NPC_DESC"],
         moduleKey = "insight",
         options = {
-            Section(L["INSIGHT_SECTION_NPC_TOOLTIP"], { page = "npcsItems", card = "npc" }),
+            Section(L["INSIGHT_SECTION_NPC_TOOLTIP"], { page = "npcsItems", card = "npc", subheading = false }),
             Toggle(L["INSIGHT_NPC_REACTION_BORDER"], L["INSIGHT_NPC_REACTION_BORDER_DESC"], "insightNpcReactionBorder", D.insightNpcReactionBorder),
             Toggle(L["INSIGHT_NPC_REACTION_NAME"],   L["INSIGHT_NPC_REACTION_NAME_DESC"],   "insightNpcReactionName",   D.insightNpcReactionName),
             Toggle(L["INSIGHT_NPC_LEVEL_LINE"],      L["INSIGHT_NPC_LEVEL_LINE_DESC"],      "insightNpcShowLevelLine",  D.insightNpcShowLevelLine),

@@ -752,7 +752,7 @@ local categories = {
             { type = "color", name = L["FOCUS_RUN_LABEL_COLOUR"], desc = L["FOCUS_RUN_LABEL_COLOUR_DESC"], dbKey = "runLabelColor", get = function() return getDB("runLabelColorR", D.runLabelColorR), getDB("runLabelColorG", D.runLabelColorG), getDB("runLabelColorB", D.runLabelColorB) end, set = function(r, g, b) setDB("runLabelColorR", r); setDB("runLabelColorG", g); setDB("runLabelColorB", b) end },
             { type = "color", name = L["FOCUS_RUN_VALUE_COLOUR"], desc = L["FOCUS_RUN_VALUE_COLOUR_DESC"], dbKey = "runValueColor", get = function() return getDB("runValueColorR", D.runValueColorR), getDB("runValueColorG", D.runValueColorG), getDB("runValueColorB", D.runValueColorB) end, set = function(r, g, b) setDB("runValueColorR", r); setDB("runValueColorG", g); setDB("runValueColorB", b) end },
             { type = "color", name = L["FOCUS_RUN_RATE_COLOUR"], desc = L["FOCUS_RUN_RATE_COLOUR_DESC"], dbKey = "runRateColor", get = function() return getDB("runRateColorR", D.runRateColorR), getDB("runRateColorG", D.runRateColorG), getDB("runRateColorB", D.runRateColorB) end, set = function(r, g, b) setDB("runRateColorR", r); setDB("runRateColorG", g); setDB("runRateColorB", b) end },
-            Section(L["FOCUS_RUN_TRACKER"], { page = "instances", card = "runTracker" }),
+            Section(L["FOCUS_RUN_TRACKER"], { page = "instances", card = "runStyle" }),
             Button(L["FOCUS_RUN_RESET_STYLING"], nil, function()
                 setDB("runNameSize", D.runNameSize)
                 setDB("runTimerSize", D.runTimerSize)

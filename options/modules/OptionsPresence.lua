@@ -39,7 +39,7 @@ end
 addon.GetPresencePreviewDropdownOptions = GetPresencePreviewDropdownOptions
 
 addon.RegisterModulePages("presence", {
-    { key = "look", cardNames = { textSizes = L["PRESENCE_CARD_TEXT_SIZES"] } },
+    { key = "look", cardNames = { textSizes = L["FOCUS_FONT_SIZES"] } },
     { key = "notifications", name = L["PRESENCE_NOTIFICATIONS"], desc = L["CHOOSE_WHICH_EVENTS_TRIGGER_SCREEN_ALERTS"] },
 })
 
@@ -207,7 +207,7 @@ local categories = {
             Section(L["PRESENCE_SMALL_NOTIFICATIONS"], { page = "look", card = "textSizes" }),
             { type = "slider", name = L["PRESENCE_SMALL_PRIMARY_SIZE"], desc = L["PRESENCE_FONT_SIZE_SMALL_NOTIFICATION_TITLES_QUEST"], dbKey = "presencePrimarySmallSz", min = LIM.presencePrimarySmallSz.min, max = LIM.presencePrimarySmallSz.max, get = function() return math.max(LIM.presencePrimarySmallSz.min, math.min(LIM.presencePrimarySmallSz.max, tonumber(getDB("presencePrimarySmallSz", D.presencePrimarySmallSz)) or D.presencePrimarySmallSz)) end, set = function(v) setDB("presencePrimarySmallSz", clamp(v, "presencePrimarySmallSz")) end, refreshIds = { "presencePreview" } },
             { type = "slider", name = L["PRESENCE_SMALL_SECONDARY_SIZE"], desc = L["PRESENCE_FONT_SIZE_SMALL_NOTIFICATION_SUBTITLES"], dbKey = "presenceSecondarySmallSz", min = LIM.presenceSecondarySmallSz.min, max = LIM.presenceSecondarySmallSz.max, get = function() return math.max(LIM.presenceSecondarySmallSz.min, math.min(LIM.presenceSecondarySmallSz.max, tonumber(getDB("presenceSecondarySmallSz", D.presenceSecondarySmallSz)) or D.presenceSecondarySmallSz)) end, set = function(v) setDB("presenceSecondarySmallSz", clamp(v, "presenceSecondarySmallSz")) end, refreshIds = { "presencePreview" } },
-            Section(L["DASH_COLOURS"], { page = "look", card = "colours" }),
+            Section(L["DASH_COLOURS"], { page = "look", card = "colours", subheading = false }),
             Color(L["PRESENCE_BOSS_EMOTE_COLOUR"], L["PRESENCE_COLOUR_RAID_DUNGEON_BOSS_EMOTE"],             "presenceBossEmoteColor",    addon.PRESENCE_BOSS_EMOTE_COLOR, { refreshIds = { "presencePreview" } }),
             Color(L["PRESENCE_DISCOVERY_LINE_COLOUR"], L["PRESENCE_COLOUR_OF_DISCOVERED_LINE_UNDER_ZONE_TIP"], "presenceDiscoveryColor",  addon.PRESENCE_DISCOVERY_COLOR,  { refreshIds = { "presencePreview" } }),
             Section(L["ZONE_TYPE_COLOURING"], { page = "look", card = "colours" }),
