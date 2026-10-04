@@ -154,6 +154,7 @@ addon.FOCUS_DEFAULTS = {
     autoTrackIcon             = "radar1",
     activeQuestHighlight      = "bar-left",
     showQuestItemButtons      = false,
+    showGroupFinderButton     = true,
     focusShowTooltipOnHover   = false,
     focusShowWoWheadLink      = true,
     -- Progress/Timers
