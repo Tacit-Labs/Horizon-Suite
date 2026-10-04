@@ -162,7 +162,7 @@ function assemble(capsOff) {
     local A = addon.OptionsAssemble
     local function q(s) return '"' .. tostring(s):gsub('[%c"\\\\]', " ") .. '"' end
     local function list(t) local o = {} for i, v in ipairs(t) do o[i] = q(v) end return "[" .. table.concat(o, ",") .. "]" end
-    local pages, untagged, columns, survivors = {}, {}, {}, {}
+    local pages, untagged, columns, cards, survivors = {}, {}, {}, {}, {}
     for _, cat in ipairs(addon.OptionCategories) do
       local mk = cat.moduleKey or "axis"
       pages[mk] = pages[mk] or {}
@@ -175,12 +175,26 @@ function assemble(capsOff) {
       if not ok then
         columns[#columns + 1] = tostring(cat.key) .. " (builder failed: " .. tostring(opts) .. ")"
       else
+        -- Each card as "<name>#<settings>", where settings counts rows that are not the
+        -- card header, a More row, or the zero-height talkingHeadPreview proxy (marked "+proxy").
+        local shape, cur = {}, nil
         for _, r in ipairs(opts or {}) do
           if type(r) == "table" and r.type == "columns" then columns[#columns + 1] = tostring(cat.key) end
           if type(r) == "table" and r.requires and CAPS_OFF[r.requires] then
             survivors[#survivors + 1] = tostring(cat.key) .. " › " .. tostring(r.dbKey or r.name or r.type) .. " (" .. r.requires .. ")"
           end
+          if type(r) == "table" and r.type == "section" then
+            cur = { name = tostring(r.name), n = 0, proxy = false }
+            shape[#shape + 1] = cur
+          elseif type(r) == "table" and cur and r.type == "talkingHeadPreview" then
+            cur.proxy = true
+          elseif type(r) == "table" and cur and r.type ~= "moreToggle" then
+            cur.n = cur.n + 1
+          end
         end
+        local parts = {}
+        for i, c in ipairs(shape) do parts[i] = q(c.name .. "#" .. c.n .. (c.proxy and "+proxy" or "")) end
+        cards[#cards + 1] = q(cat.key) .. ":[" .. table.concat(parts, ",") .. "]"
       end
     end
     local mods = {}
@@ -193,6 +207,7 @@ function assemble(capsOff) {
       '"untagged":' .. list(untagged),
       '"columns":' .. list(columns),
       '"survivors":' .. list(survivors),
+      '"cards":{' .. table.concat(cards, ",") .. "}",
       '"pages":{' .. table.concat(mods, ",") .. "}",
       '"missing":' .. list(missing),
     }, ",") .. "}"
@@ -208,6 +223,17 @@ function common(label, r) {
   check(label + ': no page contains a columns row', r.columns.length === 0, r.columns.join(', '));
   check(label + ': no row survives whose capability is absent', r.survivors.length === 0,
     r.survivors.join(', '));
+  // A card holding nothing but the zero-height preview proxy looks empty on screen.
+  const empty = [];
+  for (const [key, list] of Object.entries(r.cards)) {
+    for (const c of list) if (/#0\+proxy$/.test(c)) empty.push(key + ' › ' + c);
+  }
+  check(label + ': no card holds only the preview proxy', empty.length === 0, empty.join(', '));
+  const th = r.cards['augment:talkingHead'] || [];
+  check(label + ': Talking Head opens on a card with settings', th.length > 0 && !/#0(\+proxy)?$/.test(th[0]),
+    th.join(', '));
+  check(label + ': Talking Head keeps its preview proxy', th.some(c => c.endsWith('+proxy')), th.join(', '));
+  if (label === 'Retail') console.log('  (Retail augment:talkingHead cards: ' + th.join(', ') + ')');
   if (r.missing.length) console.log('  (' + label + ' read unstubbed addon fields: ' + r.missing.join(', ') + ')');
 }
 
