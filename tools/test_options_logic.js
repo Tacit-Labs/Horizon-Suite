@@ -69,7 +69,7 @@ run(`
   _G.HorizonSuite.OptionCategories = SEED_LIST
 
   local L = HorizonSuite.L
-  L["DASH_NEEDS_PARENT"] = "Turn on %s to use this."
+  L["DASH_NEEDS_PARENT"] = "Depends on %s."
 
   PASS, FAIL = 0, 0
   function check(name, ok, got)
@@ -331,8 +331,9 @@ run(`
   check("parentIs false hides while the parent is on", by.fixedW.visibleWhen() == false, "true")
   check("own visibleWhen still applies", by.both.visibleWhen() == false, "true")
   check("parent refreshes its children", table.concat(by.dyn.refreshIds or {}, ",") == "maxW,fixedW,both", table.concat(by.dyn.refreshIds or {}, ","))
-  check("tooltip names the parent", by.maxW.tooltip == "Turn on dyn to use this.", by.maxW.tooltip)
+  check("no hint while the parent matches", by.maxW.tooltip() == nil, tostring(by.maxW.tooltip()))
   DB_VALUES.dyn = false
+  check("hint names the parent once it stops matching", by.maxW.tooltip() == "Depends on dyn.", tostring(by.maxW.tooltip()))
   check("child hides when the parent is off", by.maxW.visibleWhen() == false, "true")
   check("child disabled when the parent is off", by.maxW.disabled() == true, "false")
   check("parentIs false shows when the parent is off", by.fixedW.visibleWhen() == true, "false")
@@ -346,6 +347,23 @@ run(`
   A.revealId = nil
   check("source rows untouched", src.options[3].visibleWhen == nil and src.options[2].refreshIds == nil, "mutated")
 `, 'dependent-rows');
+
+// --- Get-less parent ---------------------------------------------------------------------
+run(`
+  local A = HorizonSuite.OptionsAssemble
+  RESET()
+  DB_VALUES = { gl = true }
+  local out = A.Run({ { key = "L", moduleKey = "focus", options = {
+    SEC("Size", { page = "layout", card = "size" }),
+    { type = "toggle", name = "gl", dbKey = "gl" },
+    ROW("kid", { parent = "gl" }),
+  } } })
+  local by = {}
+  for _, r in ipairs(OPTS(out[1])) do if r.dbKey then by[r.dbKey] = r end end
+  check("get-less parent shows the child", by.kid.visibleWhen() == true, "false")
+  DB_VALUES.gl = false
+  check("get-less parent hides the child", by.kid.visibleWhen() == false, "true")
+`, 'getless-parent');
 
 // --- More fold ------------------------------------------------------------------------
 run(`

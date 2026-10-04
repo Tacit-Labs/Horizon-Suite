@@ -218,12 +218,22 @@ local function ModuleChunks(moduleKey, sources)
 end
 
 -- ---------------------------------------------------------------------------
--- Dependent rows: `parent = "<dbKey>"`, optional `parentIs`. Filled in by Task 3.
+-- Dependent rows: `parent = "<dbKey>"`, optional `parentIs`. ExpandParents indents each child,
+-- shows it only while the parent matches, disables it otherwise, and adds a hint to its tooltip.
 -- ---------------------------------------------------------------------------
 
 local function ParentMatches(parentRow, row)
     local v
-    if parentRow.get then v = parentRow.get() end
+    if parentRow.get then
+        v = parentRow.get()
+    elseif parentRow.dbKey then
+        -- Same fallback the card builder uses for rows without a getter.
+        if _G.OptionsData_GetDB then
+            v = _G.OptionsData_GetDB(parentRow.dbKey, parentRow.default)
+        elseif addon.GetDB then
+            v = addon.GetDB(parentRow.dbKey, parentRow.default)
+        end
+    end
     local want = row.parentIs
     if type(want) == "function" then return want(v) and true or false end
     if want == nil then return v and true or false end
@@ -240,7 +250,7 @@ end
 local function ExpandParents(rows, moduleKey, pageKey)
     local byKey = {}
     for _, r in ipairs(rows) do
-        if r.dbKey then byKey[r.dbKey] = r end
+        if r.dbKey and r.type ~= "section" then byKey[r.dbKey] = r end
     end
     for _, r in ipairs(rows) do
         if r.parent then
@@ -263,12 +273,12 @@ local function ExpandParents(rows, moduleKey, pageKey)
                 end
                 local hint = addon.L["DASH_NEEDS_PARENT"]:format(Label(p))
                 local tip = r.tooltip
-                if type(tip) == "function" then
-                    r.tooltip = function() return tip() .. "\n\n" .. hint end
-                elseif tip and tip ~= "" then
-                    r.tooltip = tip .. "\n\n" .. hint
-                else
-                    r.tooltip = hint
+                r.tooltip = function()
+                    local base
+                    if type(tip) == "function" then base = tip() else base = tip end
+                    if match() then return base end
+                    if base and base ~= "" then return base .. "\n\n" .. hint end
+                    return hint
                 end
                 local ids = {}
                 for _, id in ipairs(p.refreshIds or {}) do ids[#ids + 1] = id end

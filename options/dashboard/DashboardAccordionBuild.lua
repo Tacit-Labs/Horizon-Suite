@@ -1288,7 +1288,7 @@ function addon.DashboardAccordionBuild_Init(f, p)
                     end
 
                     -- Dependent rows sit indented under their parent with a thin accent line.
-                    if opt.indent and not widget._indentBar then
+                    if opt.indent and widget.CreateTexture and not widget._indentBar then
                         local bar = widget:CreateTexture(nil, "ARTWORK")
                         bar:SetWidth(2)
                         bar:SetPoint("TOPLEFT", widget, "TOPLEFT", -12, -2)
@@ -1327,7 +1327,11 @@ function addon.DashboardAccordionBuild_Init(f, p)
         if Assemble then
             local firstDone = false
             for _, card in ipairs(currentDetailCards) do
-                if card.cardId and not card.headerToggleEnabled then
+                if card.cardId and card.headerToggleEnabled then
+                    -- A visible header-switch card still counts as the page's first card; it
+                    -- expands by its switch, not by this rule.
+                    if not (card.visibleWhen and not card.visibleWhen()) then firstDone = true end
+                elseif card.cardId then
                     if card.visibleWhen and not card.visibleWhen() then
                         -- Hidden by its own condition: sync content alpha and chevron through
                         -- SetExpandedInstant, then put back the hidden state it overwrote. A hidden
