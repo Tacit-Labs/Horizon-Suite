@@ -40,7 +40,7 @@ const PREREQS = [
   'modules/Echo/EchoOptions.lua',  // Echo.TierKey / Echo.FeedKey name Echo's settings
 ];
 
-// The options files in HorizonSuite.toc order, from the helpers through the assembler.
+// The options files in HorizonSuite.toc order, from the helpers through the platform prune.
 const FILES = [
   'options/OptionsHelpers.lua',
   'options/OptionsPages.lua',
@@ -73,6 +73,7 @@ const FILES = [
   'options/modules/OptionsAugmentLootRoll.lua',
   'options/modules/OptionsFocusIntegrations.lua',
   'options/OptionsAssemble.lua',
+  'options/OptionsPlatform.lua',  // prunes rows whose `requires` capability is absent
 ];
 
 // Each module's page keys, in sidebar order, on a client with every capability.
@@ -161,7 +162,7 @@ function assemble(capsOff) {
     local A = addon.OptionsAssemble
     local function q(s) return '"' .. tostring(s):gsub('[%c"\\\\]', " ") .. '"' end
     local function list(t) local o = {} for i, v in ipairs(t) do o[i] = q(v) end return "[" .. table.concat(o, ",") .. "]" end
-    local pages, untagged, columns = {}, {}, {}
+    local pages, untagged, columns, survivors = {}, {}, {}, {}
     for _, cat in ipairs(addon.OptionCategories) do
       local mk = cat.moduleKey or "axis"
       pages[mk] = pages[mk] or {}
@@ -176,6 +177,9 @@ function assemble(capsOff) {
       else
         for _, r in ipairs(opts or {}) do
           if type(r) == "table" and r.type == "columns" then columns[#columns + 1] = tostring(cat.key) end
+          if type(r) == "table" and r.requires and CAPS_OFF[r.requires] then
+            survivors[#survivors + 1] = tostring(cat.key) .. " › " .. tostring(r.dbKey or r.name or r.type) .. " (" .. r.requires .. ")"
+          end
         end
       end
     end
@@ -188,6 +192,7 @@ function assemble(capsOff) {
       '"warnings":' .. list(A and A.warnings or { "OptionsAssemble did not load" }),
       '"untagged":' .. list(untagged),
       '"columns":' .. list(columns),
+      '"survivors":' .. list(survivors),
       '"pages":{' .. table.concat(mods, ",") .. "}",
       '"missing":' .. list(missing),
     }, ",") .. "}"
@@ -201,6 +206,8 @@ function common(label, r) {
   check(label + ': every category came from the assembler', r.untagged.length === 0,
     r.untagged.join(', '));
   check(label + ': no page contains a columns row', r.columns.length === 0, r.columns.join(', '));
+  check(label + ': no row survives whose capability is absent', r.survivors.length === 0,
+    r.survivors.join(', '));
   if (r.missing.length) console.log('  (' + label + ' read unstubbed addon fields: ' + r.missing.join(', ') + ')');
 }
 
