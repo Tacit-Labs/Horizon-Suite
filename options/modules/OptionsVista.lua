@@ -22,6 +22,10 @@ local function getSlider(key)
     return math.max(lim.min, math.min(lim.max, v))
 end
 
+addon.RegisterModulePages("vista", {
+    { key = "buttons", name = L["VISTA_ADDON_BUTTONS"], desc = L["VISTA_ICON_MANAGEMENT"] },
+})
+
 local categories = {
     {
         key = "VistaMinimap",
@@ -29,27 +33,27 @@ local categories = {
         desc = L["CONFIGURE_MINIMAP_S_SHAPE_SIZE_POSITION"],
         moduleKey = "vista",
         options = {
-            Section(L["SIZE_SHAPE"]),
+            Section(L["SIZE_SHAPE"], { page = "layout", card = "size" }),
             { type = "slider", name = L["VISTA_SIZE"],
               desc = L["VISTA_WIDTH_HEIGHT_OF_MINIMAP_PIXELS"],
               dbKey = "vistaMapSize", min = LIM.vistaMapSize.min, max = LIM.vistaMapSize.max,
               get = function() return getSlider("vistaMapSize") end,
               set = function(v) setDB("vistaMapSize", clamp(v, "vistaMapSize")) end },
             Toggle(L["VISTA_CIRCULAR_SHAPE"], L["VISTA_A_CIRCULAR_MINIMAP_INSTEAD_OF_SQUARE"], "vistaCircular", D.vistaCircular),
-            Section(L["AXIS_POSITION"]),
+            Section(L["AXIS_POSITION"], { page = "layout", card = "position" }),
             Toggle(L["LOCK_MINIMAP"], L["VISTA_PREVENT_DRAGGING_MINIMAP"], "vistaLock", D.vistaLock),
             Button(L["VISTA_RESET_MINIMAP_POSITION"], L["VISTA_RESET_MINIMAP_DEFAULT_POSITION_TOP_RIGHT"], function()
                 if addon.Vista and addon.Vista.ResetMinimapPosition then
                     addon.Vista.ResetMinimapPosition()
                 end
             end),
-            Section(L["VISTA_AUTO_ZOOM"]),
+            Section(L["VISTA_AUTO_ZOOM"], { page = "general", card = "behaviour" }),
             { type = "slider", name = L["VISTA_AUTO_ZOOM_DELAY"],
               desc = L["VISTA_SECONDS_AFTER_ZOOMING_BEFORE_AUTO_ZOOM"],
               dbKey = "vistaAutoZoom", min = LIM.vistaAutoZoom.min, max = LIM.vistaAutoZoom.max,
               get = function() return getSlider("vistaAutoZoom") end,
               set = function(v) setDB("vistaAutoZoom", clamp(v, "vistaAutoZoom")) end },
-            Section(L["VISTA_TEXT_ELEMENTS"]),
+            Section(L["VISTA_TEXT_ELEMENTS"], { page = "general", card = "visibility" }),
             Toggle(L["VISTA_ZONE_TEXT"], L["VISTA_ZONE_NAME_BELOW_MINIMAP"], "vistaShowZoneText", D.vistaShowZoneText),
             { type = "dropdown", name = L["VISTA_ZONE_TEXT_DISPLAY_MODE"],
               desc = L["VISTA_WHAT_ZONE_SUBZONE"],
@@ -67,7 +71,7 @@ local categories = {
             Toggle(L["VISTA_FPS_LATENCY"], L["VISTA_FPS_LATENCY_MS_BELOW_MINIMAP"], "vistaShowPerfText", D.vistaShowPerfText),
             Toggle(L["VISTA_LOCAL_TIME"], L["LOCAL_SYSTEM"], "vistaTimeUseLocal", D.vistaTimeUseLocal, { tooltip = L["VISTA_LOCAL_TIME_TIP"], disabled = function() return not getDB("vistaShowTimeText", D.vistaShowTimeText) end }),
             Toggle(L["VISTA_HOUR_CLOCK"], L["VISTA_DISPLAY_HOUR_FORMAT_24"], "vistaTime24Hour", D.vistaTime24Hour, { disabled = function() return not getDB("vistaShowTimeText", D.vistaShowTimeText) end }),
-            Section(L["VISTA_MINIMAP_BUTTONS"]),
+            Section(L["VISTA_MINIMAP_BUTTONS"], { page = "buttons" }),
             Header(L["VISTA_QUEUE_STATUS_MAIL_INDICATOR_ALWAYS_SHOWN"]),
             Toggle(L["VISTA_TRACKING_BUTTON"], L["VISTA_MINIMAP_TRACKING_BUTTON"], "vistaShowTracking", D.vistaShowTracking, { refreshIds = { "vistaMouseoverTracking" } }),
             Toggle(L["VISTA_TRACKING_BUTTON_MOUSEOVER"], L["HOVER"], "vistaMouseoverTracking", D.vistaMouseoverTracking, { tooltip = L["VISTA_HIDE_TRACKING_BUTTON_UNTIL_YOU_HOVER"], disabled = function() return not getDB("vistaShowTracking", D.vistaShowTracking) end }),
@@ -77,7 +81,7 @@ local categories = {
             Toggle(L["VISTA_TELEPORT_BUTTON_MOUSEOVER"], L["VISTA_TELEPORT_BUTTON_MOUSEOVER_DESC"], "vistaMouseoverTeleport", D.vistaMouseoverTeleport, { disabled = function() return not getDB("vistaShowTeleport", D.vistaShowTeleport) end }),
             Toggle(L["VISTA_LANDING_BUTTON"], L["VISTA_LANDING_BUTTON_DESC"], "vistaShowLanding", D.vistaShowLanding, { refreshIds = { "vistaMouseoverLanding" } }),
             Toggle(L["VISTA_LANDING_BUTTON_MOUSEOVER"], L["VISTA_LANDING_BUTTON_MOUSEOVER_DESC"], "vistaMouseoverLanding", D.vistaMouseoverLanding, { disabled = function() return not getDB("vistaShowLanding", D.vistaShowLanding) end }),
-            Section(L["VISTA_TELEPORT_MENU"]),
+            Section(L["VISTA_TELEPORT_MENU"], { page = "general", card = "teleport" }),
             Header(L["VISTA_TELEPORT_GROUPS_HEADER"]),
             Toggle(L["VISTA_TELEPORT_GROUP_HEARTHSTONE"], L["VISTA_TELEPORT_GROUP_HEARTHSTONE_DESC"], "vistaTeleportGroup_hearthstone", D.vistaTeleportGroup_hearthstone),
             Toggle(L["VISTA_TELEPORT_GROUP_PROFESSION"], L["VISTA_TELEPORT_GROUP_PROFESSION_DESC"], "vistaTeleportGroup_profession", D.vistaTeleportGroup_profession),
@@ -127,7 +131,7 @@ local categories = {
             end
 
             return {
-            Section(L["VISTA_BORDER"]),
+            Section(L["VISTA_BORDER"], { page = "look", card = "background" }),
             Toggle(L["FOCUS_BORDER"], L["VISTA_BORDER_TIP"], "vistaBorderShow", D.vistaBorderShow),
             { type = "color", name = L["VISTA_BORDER_COLOUR"],
               desc = L["VISTA_COLOUR_OPACITY_OF_MINIMAP_BORDER"],
@@ -166,7 +170,7 @@ local categories = {
               dbKey = "vistaCombatOpacity", min = LIM.vistaCombatOpacity.min, max = LIM.vistaCombatOpacity.max, step = 1,
               get = function() return getSlider("vistaCombatOpacity") end,
               set = function(v) setDB("vistaCombatOpacity", clamp(v, "vistaCombatOpacity")) end },
-            Section(L["VISTA_TEXT_POSITIONS"]),
+            Section(L["VISTA_TEXT_POSITIONS"], { page = "layout", card = "textPositions" }),
             Header(L["VISTA_DRAG_TEXT_ELEMENTS_REPOSITION_LOCK_PREVEN"]),
             { type = "dropdown", name = L["VISTA_LOCATION_POSITION"],
               desc = L["VISTA_PLACE_ZONE_NAME_ABOVE_BELOW_MINIMAP"],
@@ -219,7 +223,7 @@ local categories = {
                   setDB("vistaEX_diff", nil); setDB("vistaEY_diff", nil)
               end },
             Toggle(L["VISTA_LOCK_DIFFICULTY_TEXT_POSITION"], L["VISTA_DIFFICULTY_TEXT_CANNOT_DRAGGED"], "vistaLocked_diff", D.vistaLocked_diff),
-            Section(L["VISTA_BUTTON_POSITIONS"]),
+            Section(L["VISTA_BUTTON_POSITIONS"], { page = "buttons" }),
             Header(L["VISTA_DRAG_BUTTONS_REPOSITION_LOCK_PREVENT_MOVE"]),
             Button(L["VISTA_RESET_OVERLAY_POSITIONS"], L["VISTA_RESET_OVERLAY_POSITIONS_DESC"], function()
                 if addon.Vista and addon.Vista.ResetOverlayPositionsToDefaults then
@@ -234,7 +238,7 @@ local categories = {
             Toggle(L["VISTA_LOCK_MAIL_INDICATOR"], L["VISTA_PREVENT_DRAGGING_MAIL_ICON"], "vistaLocked_proxy_mail", D.vistaLocked_proxy_mail),
             Toggle(L["VISTA_LOCK_CRAFTING_ORDER_INDICATOR"], L["VISTA_PREVENT_DRAGGING_CRAFTING_ORDER_ICON"], "vistaLocked_proxy_craftingOrder", D.vistaLocked_proxy_craftingOrder),
             Toggle(L["VISTA_DISABLE_QUEUE_HANDLING"], L["VISTA_TURN_QUEUE_BUTTON_ANCHORING_OFF_ADDON_CONFLICT"], "vistaQueueHandlingDisabled", D.vistaQueueHandlingDisabled),
-            Section(L["VISTA_BUTTON_SIZES"]),
+            Section(L["VISTA_BUTTON_SIZES"], { page = "buttons" }),
             Header(L["VISTA_ADJUST_SIZE_OF_MINIMAP_OVERLAY_BUTTONS"]),
             { type = "slider", name = L["VISTA_TRACKING_BUTTON_SIZE"],
               desc = L["VISTA_SIZE_OF_TRACKING_BUTTON_PIXELS"],
@@ -291,7 +295,7 @@ local categories = {
                       end)
                   end
               end },
-            Section(L["VISTA_ZONE_TEXT_HEADER"]),
+            Section(L["VISTA_ZONE_TEXT_HEADER"], { page = "look", card = "text" }),
             { type = "dropdown", name = L["VISTA_ZONE_FONT"],
               desc = L["VISTA_FONT_ZONE_NAME_BELOW_MINIMAP"],
               dbKey = "vistaZoneFontPath", searchable = true,
@@ -313,7 +317,7 @@ local categories = {
               set = function(r, g, b)
                   setDB("vistaZoneColorR", r); setDB("vistaZoneColorG", g); setDB("vistaZoneColorB", b)
               end },
-            Section(L["VISTA_COORDINATES_TEXT"]),
+            Section(L["VISTA_COORDINATES_TEXT"], { page = "look", card = "text" }),
             { type = "dropdown", name = L["VISTA_COORDINATES_FONT"],
               desc = L["VISTA_FONT_COORDINATES_TEXT_BELOW_MINIMAP"],
               dbKey = "vistaCoordFontPath", searchable = true,
@@ -345,7 +349,7 @@ local categories = {
               } end,
               get = function() return tonumber(getDB("vistaCoordPrecision", D.vistaCoordPrecision)) or D.vistaCoordPrecision end,
               set = function(v) setDB("vistaCoordPrecision", tonumber(v) or D.vistaCoordPrecision) end },
-            Section(L["VISTA_TEXT"]),
+            Section(L["VISTA_TEXT"], { page = "look", card = "text" }),
             { type = "dropdown", name = L["VISTA_FONT"],
               desc = L["VISTA_FONT_TEXT_BELOW_MINIMAP"],
               dbKey = "vistaTimeFontPath", searchable = true,
@@ -367,7 +371,7 @@ local categories = {
               set = function(r, g, b)
                   setDB("vistaTimeColorR", r); setDB("vistaTimeColorG", g); setDB("vistaTimeColorB", b)
               end },
-            Section(L["VISTA_PERFORMANCE_TEXT"]),
+            Section(L["VISTA_PERFORMANCE_TEXT"], { page = "look", card = "text" }),
             { type = "dropdown", name = L["VISTA_PERFORMANCE_FONT"],
               desc = L["VISTA_FONT_FPS_LATENCY_TEXT_BELOW_MINIMAP"],
               dbKey = "vistaPerfFontPath", searchable = true,
@@ -392,7 +396,7 @@ local categories = {
                   setDB("vistaPerfColorR", r); setDB("vistaPerfColorG", g); setDB("vistaPerfColorB", b)
               end,
               disabled = function() return not getDB("vistaShowPerfText", D.vistaShowPerfText) end },
-            Section(L["VISTA_DIFFICULTY_TEXT"]),
+            Section(L["VISTA_DIFFICULTY_TEXT"], { page = "look", card = "text" }),
             { type = "color", name = L["VISTA_DIFFICULTY_TEXT_COLOUR_FALLBACK"],
               desc = L["VISTA_DEFAULT_COLOUR_PER_DIFFICULTY_COLOUR"],
               dbKey = "vistaDiffColor",
@@ -414,7 +418,7 @@ local categories = {
               dbKey = "vistaDiffFontSize", min = LIM.vistaDiffFontSize.min, max = LIM.vistaDiffFontSize.max,
               get = function() return getSlider("vistaDiffFontSize") end,
               set = function(v) setDB("vistaDiffFontSize", clamp(v, "vistaDiffFontSize")) end },
-            Section(L["VISTA_PER_DIFFICULTY_COLOURS"]),
+            Section(L["VISTA_PER_DIFFICULTY_COLOURS"], { page = "look", card = "colours" }),
             { type = "color", name = L["VISTA_MYTHIC_COLOUR"],
               desc = L["VISTA_COLOUR_MYTHIC_DIFFICULTY_TEXT"],
               dbKey = "vistaDiffColor_mythic",
@@ -450,7 +454,7 @@ local categories = {
             }
 
             local opts = {
-                Section(L["VISTA_BUTTON_MANAGEMENT"]),
+                Section(L["VISTA_BUTTON_MANAGEMENT"], { page = "buttons" }),
                 { type = "toggle", name = L["MANAGE_ADDON_BUTTONS"],
                   desc = L["COLLECT_GROUP_ADDON_MINIMAP_BUTTONS"], tooltip = L["GROUPS_SELECTED_LAYOUT_MODE_BELOW"],
                   dbKey = "vistaHandleAddonButtons",
@@ -521,7 +525,7 @@ local categories = {
                 Toggle(L["VISTA_ALWAYS_BAR"], L["KEEP_BAR_VISIBLE_REPOSITIONING"], "vistaMouseoverBarVisible", D.vistaMouseoverBarVisible, { tooltip = L["VISTA_DISABLE_DONE"], disabled = function() return not getDB("vistaHandleAddonButtons", D.vistaHandleAddonButtons) or getDB("vistaButtonMode", D.vistaButtonMode) ~= "mouseover" end }),
                 Toggle(L["LOCK_RIGHT_CLICK_PANEL"], L["VISTA_PREVENT_DRAGGING_RIGHT_CLICK_PANEL"], "vistaRightClickLocked", D.vistaRightClickLocked, { disabled = function() return not getDB("vistaHandleAddonButtons", D.vistaHandleAddonButtons) or getDB("vistaButtonMode", D.vistaButtonMode) ~= "rightclick" end }),
 
-                Section(L["VISTA_CLOSE_FADE_TIMING"]),
+                Section(L["VISTA_CLOSE_FADE_TIMING"], { page = "buttons" }),
                 { type = "slider", name = L["MOUSEOVER_CLOSE_DELAY"],
                   desc = L["VISTA_LONG_SECONDS_BAR_STAYS_VISIBLE_AFTER"],
                   dbKey = "vistaMouseoverCloseDelay", min = LIM.vistaMouseoverCloseDelay.min, max = LIM.vistaMouseoverCloseDelay.max, step = 0.5,
@@ -545,7 +549,7 @@ local categories = {
                   disabled = function() return not getDB("vistaHandleAddonButtons", D.vistaHandleAddonButtons) end,
                 },
 
-                Section(L["DASH_LAYOUT"]),
+                Section(L["DASH_LAYOUT"], { page = "buttons" }),
             }
 
             local DIR_OPTIONS = function() return {
@@ -582,7 +586,7 @@ local categories = {
                 disabled = function() return not getDB("vistaHandleAddonButtons", D.vistaHandleAddonButtons) end,
             }
 
-            opts[#opts + 1] = Section(L["VISTA_PANEL_APPEARANCE"])
+            opts[#opts + 1] = Section(L["VISTA_PANEL_APPEARANCE"], { page = "buttons" })
             opts[#opts + 1] = Header(L["VISTA_COLOURS_DRAWER_RIGHT_CLICK_BUTTON_PANELS"])
             opts[#opts + 1] = {
                 type = "color", name = L["VISTA_PANEL_BG_COLOUR_LABEL"],
@@ -615,7 +619,7 @@ local categories = {
                 hasAlpha = true,
             }
 
-            opts[#opts + 1] = Section(L["VISTA_MOUSEOVER_BAR_APPEARANCE"])
+            opts[#opts + 1] = Section(L["VISTA_MOUSEOVER_BAR_APPEARANCE"], { page = "buttons" })
             opts[#opts + 1] = Header(L["VISTA_BACKGROUND_BORDER_MOUSEOVER_BUTTON_BAR"])
             opts[#opts + 1] = {
                 type = "color", name = L["VISTA_BAR_BACKGROUND_COLOUR"],
@@ -651,7 +655,7 @@ local categories = {
                 disabled = function() return not getDB("vistaHandleAddonButtons", D.vistaHandleAddonButtons) or not getDB("vistaBarBorderShow", D.vistaBarBorderShow) end,
             }
 
-            opts[#opts + 1] = Section(L["VISTA_MANAGED_BUTTONS"])
+            opts[#opts + 1] = Section(L["VISTA_MANAGED_BUTTONS"], { page = "buttons" })
 
             local function getButtonNames()
                 if addon.Vista and addon.Vista.GetDiscoveredButtonNames then
@@ -689,7 +693,7 @@ local categories = {
                 }
             end
 
-            opts[#opts + 1] = Section(L["VISTA_VISIBLE_BUTTONS_CHECK_INCLUDE"])
+            opts[#opts + 1] = Section(L["VISTA_VISIBLE_BUTTONS_CHECK_INCLUDE"], { page = "buttons" })
 
             local names = getButtonNames()
             for _, btnName in ipairs(names) do
