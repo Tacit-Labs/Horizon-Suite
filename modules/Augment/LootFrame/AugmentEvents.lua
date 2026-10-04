@@ -203,10 +203,12 @@ handlers.QUEST_TURNED_IN                  = OnBlizzardLootToast
 -- window for auto-loot and leave Blizzard to open it normally otherwise.
 --
 -- Auto-loot can leave items behind (full bags, a unique item already owned).
--- Those must show at once: a hidden window made players loot the corpse again
--- and again, and each retry restarted the wait. So the window is not held back
--- when the bags have no free slot, opens the moment the game reports a loot
--- error, and as a last resort opens after AUTOLOOT_REVEAL_DELAY.
+-- Only those items warrant the window, and they must show at once: a hidden
+-- window made players loot the corpse again and again, and each retry
+-- restarted the wait. The game reports each item it could not take as a UI
+-- error, so open the window on that error if anything is still unlooted. As a
+-- fallback for a refusal that raises no error, open it after
+-- AUTOLOOT_REVEAL_DELAY if items remain.
 local AUTOLOOT_REVEAL_DELAY = 0.5
 local lootOpen        = false
 local lootHeld        = false
@@ -228,19 +230,6 @@ local function LootLeftOver()
         if LootSlotHasItem(slot) then return true end
     end
     return false
-end
-
-local GetFreeSlots = (C_Container and C_Container.GetContainerNumFreeSlots) or _G.GetContainerNumFreeSlots
-
--- True when no backpack or bag slot is free. Only bag type 0 (general) counts:
--- a free slot in a profession or reagent bag takes only some items.
-local function BagsFull()
-    if not GetFreeSlots then return false end
-    for bag = 0, (NUM_BAG_SLOTS or 4) do
-        local free, bagType = GetFreeSlots(bag)
-        if (free or 0) > 0 and (bagType or 0) == 0 then return false end
-    end
-    return true
 end
 
 -- Under Blizzard's gamepad UI the window runs its own auto-loot flow (it slides
@@ -266,7 +255,7 @@ end
 handlers.LOOT_READY = function(autoLoot)
     -- The second LOOT_READY of a loot arrives after LOOT_OPENED; ignore it.
     if lootOpen or GamepadUI() then return end
-    SetLootWindowOpens(not autoLoot or BagsFull())
+    SetLootWindowOpens(not autoLoot)
 end
 
 handlers.LOOT_OPENED = function(autoLoot, acquiredFromItem)
@@ -283,7 +272,7 @@ handlers.LOOT_OPENED = function(autoLoot, acquiredFromItem)
 end
 
 -- "Inventory is full", "You can't carry any more of those" and the like.
--- Wait a frame so the slot the error is about still reads as unlooted.
+-- Wait a frame so slots the game did take have cleared before checking.
 handlers.UI_ERROR_MESSAGE = function()
     if lootHeld then C_Timer.After(0, RevealHeldLoot) end
 end
