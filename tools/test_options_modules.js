@@ -216,7 +216,7 @@ function assemble(capsOff) {
     -- visible at defaults when its condition (its own and its parent chain's) passes with the
     -- harness's default settings. Subheadings print as "── name ──" and are not counted.
     -- Rows still carrying the retired advanced field are listed in the advanced list.
-    local dump, advanced = {}, {}
+    local dump, advanced, oversized = {}, {}, {}
     local function rowName(r)
       local n = r.name or r.searchName or r.labelText or r.type
       if type(n) == "function" then local ok, v = pcall(n); n = ok and v or r.type end
@@ -231,6 +231,7 @@ function assemble(capsOff) {
         local mk, pk = cat.moduleKey or "axis", cat.pageKey or cat.key
         local head, lines, shown, total
         local function flush()
+          if head and total > 12 then oversized[#oversized + 1] = mk .. " › " .. pk .. " › " .. head .. " (" .. total .. ")" end
           if head then dump[#dump + 1] = mk .. " › " .. pk .. " › " .. head .. "  (" .. shown .. "/" .. total .. ")"
             for _, l in ipairs(lines) do dump[#dump + 1] = l end end
         end
@@ -282,6 +283,7 @@ function assemble(capsOff) {
       '"missing":' .. list(missing),
       '"dump":' .. list(dump),
       '"advanced":' .. list(advanced),
+      '"oversized":' .. list(oversized),
     }, ",") .. "}"
   `, 'collect');
   return JSON.parse(json);
@@ -309,6 +311,10 @@ function common(label, r) {
     th.join(', '));
   check(label + ': Talking Head keeps its preview proxy', th.some(c => c.endsWith('+proxy')), th.join(', '));
   if (label === 'Retail') console.log('  (Retail augment:talkingHead cards: ' + th.join(', ') + ')');
+  // Every setting shows once its card is open: no row keeps the retired advanced field, and no
+  // card holds more than 12 rows (headers excluded, a font row counts as one).
+  check(label + ': no row carries the retired advanced field', r.advanced.length === 0, r.advanced.join(', '));
+  check(label + ': no card holds more than 12 rows', r.oversized.length === 0, r.oversized.join(', '));
   if (r.missing.length) console.log('  (' + label + ' read unstubbed addon fields: ' + r.missing.join(', ') + ')');
 }
 
@@ -317,10 +323,6 @@ function common(label, r) {
   const r = assemble([]);
   common('Retail', r);
   if (process.argv.includes('--dump')) console.log(r.dump.join('\n'));
-  // Not a failing check yet: each module's task removes its `advanced` fields, and the last
-  // task turns this into a check.
-  console.log('  (rows still carrying advanced: ' + r.advanced.length + ')');
-  if (process.argv.includes('--dump')) for (const a of r.advanced) console.log('    advanced: ' + a);
   for (const [mk, want] of Object.entries(EXPECTED)) {
     const got = r.pages[mk] || [];
     check('Retail: ' + mk + ' pages', JSON.stringify(got) === JSON.stringify(want), got.join(', '));
