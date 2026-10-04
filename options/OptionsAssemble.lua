@@ -465,9 +465,10 @@ local function HideWhenEmpty(header, rows)
     if type(has) == "function" then header.visibleWhen = Both(header.visibleWhen, has) end
 end
 
--- A subheading shows while any row in its scope would show. A section subheading's scope runs
--- to the next section subheading or the card's end; a column title's runs to the next header
--- of either kind. A subheading over rows that always show keeps no condition.
+-- A subheading shows while any row in its scope would show, ANDed with any condition of its
+-- own. A section subheading's scope runs to the next section subheading or the card's end; a
+-- column title's runs to the next header of either kind. A subheading over rows that always
+-- show keeps only its own condition.
 local function HideEmptySubheadings(rows)
     for i, r in ipairs(rows) do
         if r.type == "header" then
@@ -481,20 +482,26 @@ local function HideEmptySubheadings(rows)
             if has == false then
                 r.visibleWhen = function() return false end
             elseif has then
-                r.visibleWhen = has
+                r.visibleWhen = Both(r.visibleWhen, has)
             end
         end
     end
 end
 
 -- The subheading a merged card shows before one of its sections, or nil for none. A section
--- may set `subheading` to a label of its own, or to false for none. Otherwise the section's
--- name is used, unless it matches the name the card itself shows.
-local function SubheadingFor(section, cardName)
+-- may set `subheading` to a label of its own, which always shows, or to false for none.
+-- Otherwise the section's name is used, unless it matches the name the card itself shows or
+-- the section holds at most one row besides column titles: a one-row group needs no label.
+local function SubheadingFor(section, cardName, rows)
     local sub = section.subheading
     if sub == false then return nil end
     if sub ~= nil then return sub end
     if Resolve(section.name) == Resolve(cardName) then return nil end
+    local n = 0
+    for _, r in ipairs(rows) do
+        if r.type ~= "header" then n = n + 1 end
+    end
+    if n <= 1 then return nil end
     return section.name
 end
 
@@ -580,7 +587,7 @@ function Assemble.BuildPage(moduleKey, pageKey, chunks)
                     kept[#kept + 1] = r
                 end
             end
-            local sub = merged and #kept > 0 and SubheadingFor(chunk.section, header.name)
+            local sub = merged and #kept > 0 and SubheadingFor(chunk.section, header.name, kept)
             if sub then
                 local h = { type = "header", name = sub, _subheading = true }
                 out[#out + 1] = h

@@ -55,12 +55,15 @@ Look & Feel
 ## Subheadings (assembler)
 
 - When a card merges two or more sections, the assembler emits a `type = "header"` row before
-  each section's rows, using that section's name. The exception is a section whose name matches
-  the card's own displayed name.
-- A section may set `subheading = <string>` to override the label, or `subheading = false` to
-  suppress it.
+  each section's rows, using that section's name. There are two exceptions:
+  - a section whose name matches the card's own displayed name;
+  - a section with at most one row (column titles don't count), since a one-row group needs no
+    label.
+- A section may set `subheading = <string>` to override the label, which also overrides both
+  exceptions, or `subheading = false` to suppress it.
 - A subheading row is visible while any row between it and the next subheading (or the end of
-  the card) would show. This uses the same content rule as card auto-hide.
+  the card) would show. This uses the same content rule as card auto-hide. A subheading row that
+  has a condition of its own keeps it, and both must pass.
 - Subheadings are not search results. Search results keep showing their section name as the
   location.
 

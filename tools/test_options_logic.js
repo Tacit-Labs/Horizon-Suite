@@ -88,13 +88,11 @@ run(`
     for k, v in pairs(extra or {}) do s[k] = v end
     return s
   end
-  -- Compact picture of an option list: "S:<section>|H:<subheading>|<row>|...". A More row,
-  -- which no longer exists, would show as "M:<count>".
+  -- Compact picture of an option list: "S:<section>|H:<subheading>|<row>|...".
   function SHAPE(list)
     local parts = {}
     for _, r in ipairs(list or {}) do
       if r.type == "section" then parts[#parts + 1] = "S:" .. tostring(r.name)
-      elseif r.type == "moreToggle" then parts[#parts + 1] = "M:" .. tostring(r.count)
       elseif r.type == "header" then parts[#parts + 1] = "H:" .. tostring(r.name)
       else parts[#parts + 1] = tostring(r.dbKey or r.name) end
     end
@@ -206,8 +204,8 @@ run(`
   check("untagged category passes through after the module block", out[4] and out[4].key == "Untagged", out[4] and out[4].key)
   check("input list untouched", #cats == 3 and cats[1].key == "Old1", #cats)
   local layout = FIND(out, "focus:layout")
-  check("cards: shared order, merged across categories", SHAPE(OPTS(layout)) == "S:CARD_POSITION|lock|S:CARD_SIZE|H:Spacing|gap|H:Width|width", SHAPE(OPTS(layout)))
-  check("text card merges two sections under subheadings", SHAPE(OPTS(FIND(out, "focus:look"))) == "S:CARD_TEXT|H:Fonts|fontA|H:Sizes|fontSize", SHAPE(OPTS(FIND(out, "focus:look"))))
+  check("cards: shared order, merged across categories", SHAPE(OPTS(layout)) == "S:CARD_POSITION|lock|S:CARD_SIZE|gap|width", SHAPE(OPTS(layout)))
+  check("text card merges two one-row sections without subheadings", SHAPE(OPTS(FIND(out, "focus:look"))) == "S:CARD_TEXT|fontA|fontSize", SHAPE(OPTS(FIND(out, "focus:look"))))
   check("module page keeps section name", SHAPE(OPTS(FIND(out, "focus:tracked"))) == "S:Quests|q1", SHAPE(OPTS(FIND(out, "focus:tracked"))))
   check("shared page name", layout.name == "PAGE_LAYOUT", layout.name)
   check("module page name", FIND(out, "focus:tracked").name == "What's tracked", FIND(out, "focus:tracked").name)
@@ -520,30 +518,35 @@ run(`
   DB_VALUES = { master = false }
   local out = A.Run({ { key = "L", moduleKey = "focus", options = {
     -- A module card: its displayed name is its first section's name.
-    SEC("Quests", { page = "tracked", card = "q" }), ROW("q1"),
-    SEC("Quest extras", { page = "tracked", card = "q" }), ROW("q2"),
+    SEC("Quests", { page = "tracked", card = "q" }), ROW("q1"), ROW("q1b"),
+    SEC("Quest extras", { page = "tracked", card = "q" }), ROW("q2"), ROW("q2b"),
     -- A single-section card.
-    SEC("Alone", { page = "tracked", card = "solo" }), ROW("s1"),
+    SEC("Alone", { page = "tracked", card = "solo" }), ROW("s1"), ROW("s2"),
+    -- A module card whose first section names its own subheading, despite matching the card name.
+    SEC("Forced", { page = "tracked", card = "f", subheading = "X" }), ROW("f1"), ROW("f2"),
+    SEC("Forced more", { page = "tracked", card = "f" }), ROW("f3"), ROW("f4"),
     -- A shared card: no section is named like the card.
-    SEC("Fonts", { page = "look", card = "text" }), ROW("master"),
+    SEC("Fonts", { page = "look", card = "text" }), ROW("master"), ROW("face"),
     SEC("Per-element", { page = "look", card = "text" }), ROW("k1", { parent = "master" }), ROW("k2", { parent = "master" }),
     SEC("Renamed", { page = "look", card = "text", subheading = "Case" }), ROW("c1"),
-    SEC("Quiet", { page = "look", card = "text", subheading = false }), ROW("z1"),
+    SEC("Quiet", { page = "look", card = "text", subheading = false }), ROW("z1"), ROW("z2"),
     SEC("Empty", { page = "look", card = "text" }),
-    -- subheading on the first section of a module card overrides the name-match rule.
-    SEC("Spacing", { page = "layout", card = "size" }), ROW("g1"),
-    SEC("Width", { page = "layout", card = "size", subheading = false }), ROW("w1"),
+    -- A one-row section gets no subheading of its own.
+    SEC("Spacing", { page = "layout", card = "size" }), ROW("g1"), ROW("g2"),
+    SEC("Width", { page = "layout", card = "size" }), ROW("w1"),
   } } })
   local tracked = SHAPE(OPTS(FIND(out, "focus:tracked")))
   check("second section of a merged card gets a subheading; the one named like the card does not",
-    tracked == "S:Quests|q1|H:Quest extras|q2|S:Alone|s1", tracked)
-  check("a single-section card has no subheading", not tracked:find("H:Alone", 1, true), tracked)
+    tracked:find("S:Quests|q1|q1b|H:Quest extras|q2|q2b|", 1, true) == 1, tracked)
+  check("a single-section card has no subheading", tracked:find("S:Alone|s1|s2|", 1, true) ~= nil, tracked)
+  check("subheading = string on a module card's first section beats the name-match rule",
+    tracked:find("S:Forced|H:X|f1|f2|H:Forced more|f3|f4", 1, true) ~= nil, tracked)
   local lookRows = OPTS(FIND(out, "focus:look"))
   local look = SHAPE(lookRows)
-  check("every section of a shared card gets a subheading; override renames, false suppresses, empty skipped",
-    look == "S:CARD_TEXT|H:Fonts|master|H:Per-element|k1|k2|H:Case|c1|z1", look)
+  check("every section of a shared card gets a subheading; override renames and forces a one-row section, false suppresses, empty skipped",
+    look == "S:CARD_TEXT|H:Fonts|master|face|H:Per-element|k1|k2|H:Case|c1|z1|z2", look)
   local layout = SHAPE(OPTS(FIND(out, "focus:layout")))
-  check("subheading = false leaves the other sections' subheadings", layout == "S:CARD_SIZE|H:Spacing|g1|w1", layout)
+  check("a one-row section gets no subheading", layout == "S:CARD_SIZE|H:Spacing|g1|g2|w1", layout)
 
   local hdr = {}
   for _, r in ipairs(lookRows) do if r.type == "header" then hdr[r.name] = r end end
@@ -566,14 +569,15 @@ run(`
   RESET()
   DB_VALUES = { gate = false }
   local out = A.Run({ { key = "L", moduleKey = "focus", options = {
-    SEC("Main", { page = "look", card = "text" }), ROW("gate"),
+    SEC("Main", { page = "look", card = "text" }), ROW("gate"), ROW("other"),
     SEC("Cols", { page = "look", card = "text" }),
     { type = "columns",
       left = { title = "Left", options = { ROW("l1", { parent = "gate" }) } },
       right = { title = "Right", options = { ROW("r1") } } },
   } } })
   local rows = OPTS(out[1])
-  check("column titles follow the section subheading", SHAPE(rows) == "S:CARD_TEXT|H:Main|gate|H:Cols|H:Left|l1|H:Right|r1", SHAPE(rows))
+  check("column titles follow the section subheading, and do not count as its rows",
+    SHAPE(rows) == "S:CARD_TEXT|H:Main|gate|other|H:Cols|H:Left|l1|H:Right|r1", SHAPE(rows))
   local hdr = {}
   for _, r in ipairs(rows) do if r.type == "header" then hdr[r.name] = r end end
   local function shows(h) return h ~= nil and (not h.visibleWhen or h.visibleWhen()) and true or false end
@@ -581,6 +585,24 @@ run(`
   check("column title hides when its own rows all hide", shows(hdr.Left) == false, "shown")
   DB_VALUES.gate = true
   check("column title shows with its rows", shows(hdr.Left) == true, "hidden")
+
+  -- A header's own condition is kept and joined with the content rule.
+  RESET()
+  DB_VALUES = { gate = true }
+  local OWN = true
+  local out2 = A.Run({ { key = "L", moduleKey = "focus", options = {
+    SEC("Main", { page = "look", card = "text" }), ROW("gate"),
+    { type = "header", name = "Own", visibleWhen = function() return OWN end },
+    ROW("o1", { parent = "gate" }),
+  } } })
+  local own
+  for _, r in ipairs(OPTS(out2[1])) do if r.type == "header" then own = r end end
+  check("header with its own condition shows while both pass", own and own.visibleWhen() == true, "hidden")
+  OWN = false
+  check("header's own condition still hides it", own and own.visibleWhen() == false, "shown")
+  OWN = true
+  DB_VALUES.gate = false
+  check("content rule still hides a header with its own condition", own and own.visibleWhen() == false, "shown")
 `, 'subheading-scope');
 
 // --- Cards with nothing to show -------------------------------------------------------
@@ -695,8 +717,8 @@ run(`
   local A = HorizonSuite.OptionsAssemble
   RESET()
   HorizonSuite.OptionCategories = A.Run({ { key = "F", moduleKey = "focus", options = {
-    SEC("Fonts", { page = "look", card = "text" }), ROW("fa", { name = "Font face" }),
-    SEC("Sizes", { page = "look", card = "text" }), ROW("fs", { name = "Font size" }),
+    SEC("Fonts", { page = "look", card = "text" }), ROW("fa", { name = "Font face" }), ROW("fb", { name = "Font fallback" }),
+    SEC("Sizes", { page = "look", card = "text" }), ROW("fs", { name = "Font size" }), ROW("ft", { name = "Title size" }),
   } } })
   HorizonSuite.OptionsSearch_Invalidate()
   local idx = OptionsData_BuildSearchIndex()
@@ -705,7 +727,9 @@ run(`
     if e.option.type == "header" then headers = headers + 1 end
     by[e.optionId] = e
   end
-  check("subheading rows are not search results", headers == 0 and #idx == 2, #idx)
+  local rows = SHAPE(OPTS(HorizonSuite.OptionCategories[1]))
+  check("fixture has subheadings", rows == "S:CARD_TEXT|H:Fonts|fa|fb|H:Sizes|fs|ft", rows)
+  check("subheading rows are not search results", headers == 0 and #idx == 4, #idx)
   check("a result under a subheading names its card", by.fs and by.fs.sectionName == "CARD_TEXT", by.fs and by.fs.sectionName)
   HorizonSuite.OptionCategories = nil
 `, 'search-subheadings');

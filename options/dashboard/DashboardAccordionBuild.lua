@@ -35,6 +35,8 @@ function addon.DashboardAccordionBuild_Init(f, p)
     -- 22px in all, and takes the same left inset as the rows (DoInstantRelayout anchors it).
     local SUBHEADING_HEIGHT = 14
     local SUBHEADING_TOP_GAP = 8
+    local SUBHEADING_RULE_GAP = 8
+    local SUBHEADING_RULE_MIN = 16
     local function CreateSubheading(parent, name)
         local WDef = addon.OptionsWidgetsDef or {}
         local tc = WDef.TextColorSection or { 0.58, 0.64, 0.74 }
@@ -44,14 +46,33 @@ function addon.DashboardAccordionBuild_Init(f, p)
         row:SetHeight(SUBHEADING_HEIGHT)
         local label = MakeText(row, tostring(name or ""), (WDef.SectionSize or 11), tc[1], tc[2], tc[3], "LEFT")
         label:SetPoint("LEFT", row, "LEFT", 0, 0)
+        if label.SetWordWrap then label:SetWordWrap(false) end
+        if label.SetNonSpaceWrap then label:SetNonSpaceWrap(false) end
+        if label.SetMaxLines then label:SetMaxLines(1) end
+        local rule
         if row.CreateTexture then
-            local rule = row:CreateTexture(nil, "ARTWORK")
+            rule = row:CreateTexture(nil, "ARTWORK")
             rule:SetHeight(1)
-            rule:SetPoint("LEFT", label, "RIGHT", 8, 0)
+            rule:SetPoint("LEFT", label, "RIGHT", SUBHEADING_RULE_GAP, 0)
             rule:SetPoint("RIGHT", row, "RIGHT", 0, 0)
             rule:SetColorTexture(rc[1], rc[2], rc[3], rc[4] or 0.25)
             row._rule = rule
         end
+        -- Keep the label inside the row (truncated when it is too long), and show the rule only
+        -- while it has room to the label's right. Re-run whenever the row's size or the
+        -- dashboard font changes its width.
+        local function Fit()
+            local rowW = row:GetWidth() or 0
+            if rowW <= 0 then return end
+            local textW = (label.GetUnboundedStringWidth and label:GetUnboundedStringWidth()) or label:GetStringWidth() or 0
+            local maxW = math.max(1, rowW - SUBHEADING_RULE_GAP - SUBHEADING_RULE_MIN)
+            local w = math.min(math.ceil(textW), maxW)
+            -- Width 0 lets a label that fits size itself, so a later font change still shows it whole.
+            label:SetWidth(textW > maxW and maxW or 0)
+            if rule then rule:SetShown(rowW - w - SUBHEADING_RULE_GAP >= SUBHEADING_RULE_MIN) end
+        end
+        row:SetScript("OnSizeChanged", Fit)
+        row:SetScript("OnShow", Fit)
         row.label = label
         return row
     end
