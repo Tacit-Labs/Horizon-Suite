@@ -497,6 +497,7 @@ L["AXIS_MINIMAP_ICON_CIRCULAR_DESC"]                          = "Darstellung des
 -- L["AXIS_SHOW_GAME_MENU_BUTTON"]                            = "Show in Game Menu"
 -- L["AXIS_SHOW_GAME_MENU_BUTTON_DESC"]                       = "Show a Horizon Suite shortcut in the Game menu for quick access to the dashboard."
 L["AXIS_CLASS_THEME_SECTION"]                                 = "Klassenmotiv"
+-- L["AXIS_CLASS_THEME_MODULES_SECTION"]                      = "Class Theme per Module"
 L["AXIS_GLOBAL_CLASS_THEME"]                                  = "Globales Klassenmotiv"
 -- L["AXIS_CLASS_THEME_DASHBOARD"]                            = "Dashboard"
 L["AXIS_CLASS_THEME_DASHBOARD_DESC"]                          = "Verwendung des Dashboard-Klassenmotivs: Klassenfärbung, Dashboard-Klassensymbol und Hinterggrund; Jeder Unteroption kann unabhängig angepasst werden. Das Hauptmotiv bleibt stets eingeschaltet."

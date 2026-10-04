@@ -496,6 +496,7 @@ L["AXIS_MINIMAP_ICON_CIRCULAR_DESC"]                          = "Round the Horiz
 -- L["AXIS_SHOW_GAME_MENU_BUTTON"]                            = "Show in Game Menu"
 -- L["AXIS_SHOW_GAME_MENU_BUTTON_DESC"]                       = "Show a Horizon Suite shortcut in the Game menu for quick access to the dashboard."
 -- L["AXIS_CLASS_THEME_SECTION"]                              = "Class Theme"
+-- L["AXIS_CLASS_THEME_MODULES_SECTION"]                      = "Class Theme per Module"
 -- L["AXIS_GLOBAL_CLASS_THEME"]                               = "Global Class Theme"
 -- L["AXIS_CLASS_THEME_DASHBOARD"]                            = "Dashboard"
 -- L["AXIS_CLASS_THEME_DASHBOARD_DESC"]                       = "Enables Dashboard class theming. Flipping it on turns on Class Colours, Dashboard Class Icon, and Override Background; each sub-option can then be adjusted independently while the master stays on."
