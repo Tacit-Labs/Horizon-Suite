@@ -388,6 +388,8 @@ local NOT_CONTENT = { section = true, header = true, moreToggle = true, talkingH
 -- A card whose rows are all unconditional is left alone. The dashboard re-reads this when any
 -- conditional row in the card is refreshed, which a parent's refreshIds already trigger.
 local function HideWhenEmpty(header, rows)
+    -- The card's own condition, before the content rule joins it. Search skips cards it hides.
+    header.cardWhen = header.visibleWhen
     if header.headerToggle then return end
     local conds, always = {}, false
     for _, r in ipairs(rows) do

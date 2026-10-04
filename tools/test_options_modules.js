@@ -201,7 +201,7 @@ function assemble(capsOff) {
       end
     end
     -- Search results with no name to show (the dashboard shows name, searchName or labelText).
-    local blank = {}
+    local blank, hiddenHits = {}, {}
     local okIdx, idx = pcall(OptionsData_BuildSearchIndex)
     if not okIdx then blank[1] = "index failed: " .. tostring(idx) end
     for _, e in ipairs(okIdx and idx or {}) do
@@ -209,6 +209,8 @@ function assemble(capsOff) {
       local n = o.name or o.searchName or o.labelText
       if type(n) == "function" then n = n() end
       if not n or n == "" then blank[#blank + 1] = tostring(e.categoryKey) .. " › " .. tostring(o.type) end
+      -- The alert sounds card is hidden until the feature ships, so none of its rows may be results.
+      if type(o.dbKey) == "string" and o.dbKey:find("^alertsSound") then hiddenHits[#hiddenHits + 1] = o.dbKey end
     end
     -- Layout dump for --dump: one block per card with everyday/advanced counts.
     local dump = {}
@@ -253,6 +255,7 @@ function assemble(capsOff) {
       '"columns":' .. list(columns),
       '"survivors":' .. list(survivors),
       '"blank":' .. list(blank),
+      '"hiddenHits":' .. list(hiddenHits),
       '"cards":{' .. table.concat(cards, ",") .. "}",
       '"pages":{' .. table.concat(mods, ",") .. "}",
       '"missing":' .. list(missing),
@@ -271,6 +274,8 @@ function common(label, r) {
   check(label + ': no row survives whose capability is absent', r.survivors.length === 0,
     r.survivors.join(', '));
   check(label + ': every search result has a name', r.blank.length === 0, r.blank.join(', '));
+  check(label + ': search skips rows in a card hidden by its own condition', r.hiddenHits.length === 0,
+    r.hiddenHits.join(', '));
   // A card holding nothing but the zero-height preview proxy looks empty on screen.
   const empty = [];
   for (const [key, list] of Object.entries(r.cards)) {

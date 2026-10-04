@@ -127,7 +127,7 @@ local function BuildSearchIndexUncached()
     local L = addon.L
     local cats = addon.OptionCategories or {}
     for catIdx, cat in ipairs(cats) do
-        local currentSection, currentCardId = "", nil
+        local currentSection, currentCardId, currentCardHidden = "", nil, false
         local moduleKey = cat.moduleKey
         local moduleLabel
         if addon.Dashboard_IsAxisCategoryKey and addon.Dashboard_IsAxisCategoryKey(cat.key) then
@@ -142,7 +142,10 @@ local function BuildSearchIndexUncached()
             if opt.type == "section" then
                 currentSection = ResolveText(opt.name) or ""
                 currentCardId = opt.cardId
-            elseif not NOT_SEARCHABLE[opt.type] then
+                -- A card hidden by its own condition (another addon missing, a feature not shipped)
+                -- cannot be opened, so its rows are not results.
+                currentCardHidden = type(opt.cardWhen) == "function" and not opt.cardWhen()
+            elseif not NOT_SEARCHABLE[opt.type] and not currentCardHidden then
                 local rawName = ResolveText(opt.name) or ResolveText(opt.searchName) or ResolveText(opt.labelText)
                 local name = (rawName or ""):lower()
                 local rawDesc, rawTooltip = ResolveText(opt.desc), ResolveText(opt.tooltip)
