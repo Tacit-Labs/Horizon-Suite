@@ -10,6 +10,18 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [6.5.1] – 2026-10-04
+
+### ✨ New Features
+- **(Focus) Hide the group finder button** — A new Focus option hides the group finder eye beside group quests, and the quest text uses the space it leaves. It starts on, so nothing changes unless you turn it off.
+
+### 🐛 Fixes
+- **(Augment)** With auto-loot on, items you can't pick up, such as when your bags are full, show in the loot window straight away instead of after several clicks.
+- **(Augment)** With Blizzard's controller interface on, taking loot no longer triggers a "blocked action" warning; the loot window keeps Blizzard's own look in that mode.
+- **(Core)** With Blizzard's controller interface on, the Escape menu no longer triggers a "blocked action" warning. Horizon Suite's button is left off that menu in controller mode, and `/horizon` still opens the settings.
+
+---
+
 ## [6.5.0] – 2026-10-03
 
 ### ✨ New Features
