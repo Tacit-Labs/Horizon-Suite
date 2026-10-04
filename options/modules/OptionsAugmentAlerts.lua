@@ -184,7 +184,8 @@ local category = {
             },
             right = {
                 options = {
-                    { type = "section", name = L["AUGMENT_ALERTS_SOUND"] },
+                    -- The card returns when alert sounds ship.
+                    { type = "section", name = L["AUGMENT_ALERTS_SOUND"], visibleWhen = function() return false end },
                     { type = "toggle",
                       name = L["AUGMENT_ALERTS_SOUND_ENABLED"], desc = L["AUGMENT_ALERTS_SOUND_ENABLED_DESC"],
                       dbKey = "alertsSoundEnabled",
