@@ -1,5 +1,7 @@
 # Dashboard module prunes (phase 3)
 
+> **Superseded in part:** the More fold is replaced by `2026-10-05-dashboard-cards-subheadings-design.md`.
+
 **Date:** 2026-10-05
 **Status:** Written for autonomous overnight execution, to be reviewed by the director
 **Parent spec:** `2026-10-04-dashboard-settings-consolidation-design.md` (phase 3)

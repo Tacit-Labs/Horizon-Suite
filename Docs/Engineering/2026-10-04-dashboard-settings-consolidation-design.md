@@ -1,5 +1,7 @@
 # Dashboard settings consolidation
 
+> **Superseded in part:** the More fold is replaced by `2026-10-05-dashboard-cards-subheadings-design.md`.
+
 **Date:** 2026-10-04
 **Status:** Approved for planning (phase 1); phases 2 and 3 need their own specs
 **Module:** Axis (dashboard), touching every module's options file
