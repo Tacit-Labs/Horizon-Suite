@@ -591,6 +591,9 @@ function Assemble.BuildPage(moduleKey, pageKey, chunks)
         local header
         if merged then
             header = { type = "section", name = first.name, headerToggle = first.headerToggle, dbKey = first.dbKey }
+            -- A header-switch card never hides for want of rows, so it keeps its first section's
+            -- condition on the card itself (the rows still carry it too).
+            if first.headerToggle then header.visibleWhen = first.visibleWhen end
         else
             header = Copy(first)
         end

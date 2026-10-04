@@ -624,6 +624,26 @@ run(`
     look == "S:CARD_TEXT|f1|S:Sizes|s1|S:Style|st1|S:CARD_COLOURS|c1|S:Theme|t1|S:CARD_BACKGROUND|b1|S:Plain|p1|S:Lost|l1", look)
 `, 'overflow-after');
 
+// --- A header-switch card that merges a second section keeps its own condition -------------
+run(`
+  local A = HorizonSuite.OptionsAssemble
+  RESET()
+  local INSTALLED = false
+  local function installed() return INSTALLED end
+  local out = A.Run({ { key = "L", moduleKey = "insight", options = {
+    SEC("Addon", { page = "look", card = "addon", headerToggle = { dbKey = "on" }, visibleWhen = installed }), ROW("a1"), ROW("a2"),
+    SEC("Details", { page = "look", card = "addon" }), ROW("d1"), ROW("d2"),
+  } } })
+  local rows = OPTS(out[1])
+  check("merged header-switch card keeps its switch and a subheading for the second section",
+    SHAPE(rows) == "S:Addon|a1|a2|H:Details|d1|d2", SHAPE(rows))
+  local head = rows[1]
+  check("merged header-switch card keeps its first section's condition",
+    head.headerToggle ~= nil and type(head.visibleWhen) == "function" and head.visibleWhen() == false, tostring(head.visibleWhen))
+  INSTALLED = true
+  check("merged header-switch card shows once its condition passes", head.visibleWhen and head.visibleWhen() == true, "hidden")
+`, 'merged-switch-card');
+
 // --- Cards with nothing to show -------------------------------------------------------
 run(`
   local A = HorizonSuite.OptionsAssemble

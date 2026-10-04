@@ -34,9 +34,6 @@ local function TRP3Installed()
     return false
 end
 
--- The TRP3 details card sits beside the header-switch card, so it greys out with the same switch.
-local function TRP3Off() return not getDB("insightTRP3Enabled", true) end
-
 addon.RegisterModulePages("insight", {
     { key = "general", dashboardPreviewMode = "global" },
     { key = "layout", dashboardPreviewMode = "global" },
@@ -166,13 +163,13 @@ local categories = {
             { type = "dropdown", name = L["INSIGHT_TRP3_WOW_TITLE"], desc = L["INSIGHT_TRP3_WOW_TITLE_DESC"], dbKey = "insightTRP3WowTitle", options = INSIGHT_FORCE_MODIFIER_OPTIONS, preserveOrder = true, get = function() return getDB("insightTRP3WowTitle", "force") end, set = function(v) setDB("insightTRP3WowTitle", v) end, parent = "insightTRP3RPName" },
             Toggle(L["INSIGHT_TITLE_CUSTOM_COLOUR"], L["INSIGHT_TRP3_COLOUR_DESC"], "insightTRP3CustomColor", true),
             Toggle(L["INSIGHT_TRP3_BORDER_COLOUR"], L["INSIGHT_TRP3_BORDER_COLOUR_DESC"], "insightTRP3BorderColor", false),
-            Section(L["INSIGHT_TRP3_CARD_DETAILS"], { page = "players", card = "trp3Details", visibleWhen = TRP3Installed }),
-            { type = "toggle", name = L["INSIGHT_TRP3_STATUS"],     desc = L["INSIGHT_TRP3_STATUS_DESC"],                             dbKey = "insightTRP3ICStatus",     get = function() return getDB("insightTRP3ICStatus",    true)  end, set = function(v) setDB("insightTRP3ICStatus",    v) end, refreshIds = { "insightTRP3Section" }, disabled = TRP3Off },
-            { type = "toggle", name = L["INSIGHT_TRP3_STATUS_ICON"],  desc = L["INSIGHT_TRP3_STATUS_ICON_DESC"],                                  dbKey = "insightTRP3ICStatusIcon", get = function() return getDB("insightTRP3ICStatusIcon", false) end, set = function(v) setDB("insightTRP3ICStatusIcon", v) end, parent = "insightTRP3ICStatus", disabled = TRP3Off },
-            Toggle(L["INSIGHT_TRP3_PRONOUNS"], L["INSIGHT_TRP3_PRONOUNS_DESC"], "insightTRP3Pronouns", true, { disabled = TRP3Off }),
-            Toggle(L["INSIGHT_TRP3_RACE_CLASS"], L["INSIGHT_TRP3_RACE_CLASS_DESC"], "insightTRP3RaceClass", true, { disabled = TRP3Off }),
-            Toggle(L["INSIGHT_TRP3_GUILD"], L["INSIGHT_TRP3_GUILD_DESC"], "insightTRP3Guild", true, { disabled = TRP3Off }),
-            Toggle(L["INSIGHT_TRP3_CURRENTLY"], L["INSIGHT_TRP3_CURRENTLY_DESC"], "insightTRP3Currently", true, { disabled = TRP3Off }),
+            Section(L["INSIGHT_TRP3_DETAILS"], { page = "players", card = "trp3" }),
+            { type = "toggle", name = L["INSIGHT_TRP3_STATUS"],     desc = L["INSIGHT_TRP3_STATUS_DESC"],                             dbKey = "insightTRP3ICStatus",     get = function() return getDB("insightTRP3ICStatus",    true)  end, set = function(v) setDB("insightTRP3ICStatus",    v) end, refreshIds = { "insightTRP3Section" } },
+            { type = "toggle", name = L["INSIGHT_TRP3_STATUS_ICON"],  desc = L["INSIGHT_TRP3_STATUS_ICON_DESC"],                                  dbKey = "insightTRP3ICStatusIcon", get = function() return getDB("insightTRP3ICStatusIcon", false) end, set = function(v) setDB("insightTRP3ICStatusIcon", v) end, parent = "insightTRP3ICStatus" },
+            Toggle(L["INSIGHT_TRP3_PRONOUNS"], L["INSIGHT_TRP3_PRONOUNS_DESC"], "insightTRP3Pronouns", true),
+            Toggle(L["INSIGHT_TRP3_RACE_CLASS"], L["INSIGHT_TRP3_RACE_CLASS_DESC"], "insightTRP3RaceClass", true),
+            Toggle(L["INSIGHT_TRP3_GUILD"], L["INSIGHT_TRP3_GUILD_DESC"], "insightTRP3Guild", true),
+            Toggle(L["INSIGHT_TRP3_CURRENTLY"], L["INSIGHT_TRP3_CURRENTLY_DESC"], "insightTRP3Currently", true),
         },
     },
     {
