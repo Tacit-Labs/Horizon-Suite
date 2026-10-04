@@ -14,7 +14,7 @@
 
 - No saved-setting key, default or getter/setter behaviour changes. A part's get and set are the old row's get and set, moved unchanged.
 - Each replaced row's name goes into the font row's `keywords`, so old searches still match.
-- A font row is advanced exactly when its family part (or, without one, its size part) was advanced. Rows that used to `parent` a part key must keep working (the assembler resolves part keys).
+- A font row is advanced only when every part was advanced; if any part was everyday the row is everyday. Never merge parts that had different `parent`/`disabled` gating. Rows that used to `parent` a part key must keep working (the assembler resolves part keys).
 - Size stepper: clamps to the old slider's min and max, and steps by its step (1 when none was set).
 - The row stays a single line at 640px wide or more; below that it wraps to two lines.
 - No list, search or font-preview code may be copied out of `OptionsWidgets_CreateCustomDropdown`; extend that factory with an optional trailing layout table instead.
@@ -69,6 +69,6 @@
 **Files:** `options/modules/OptionsVista.lua`, `options/modules/OptionsFocus.lua`, `options/modules/OptionsPresence.lua`.
 
 - [ ] Same as Task 2, following the spec's table.
-  - **Focus:** the main row is font + outline (`fontOutline`), everyday. The seven per-element rows are font + size, advanced, with `parent = "usePerElementFonts"`. Header size, the global size offset and the M+ and run-timer sizes stay as sliders.
+  - **Focus:** the main row is font + outline (`fontOutline`), everyday. The seven per-element families and sizes stay separate rows. Header size, the global size offset and the M+ and run-timer sizes stay as sliders.
   - **Presence:** discovery is font + size + outline. Title and subtitle are font + outline, and their sizes stay as sliders. Keep `refreshIds = { "presencePreview" }` on every part.
 - [ ] Run the before and after `--dump`, then all four test commands. Commit `refactor(options): use font rows in Vista, Focus and Presence`.

@@ -55,9 +55,7 @@ FontRow(L["TITLE_TEXT"], L["TITLE_TEXT_DESC"], {
 
 ## Rules
 
-- **Advanced.** A font row is advanced when its family (or, with no family, its size) was
-  advanced. The outline used to be advanced while family and size were not; it now shows out
-  front inside the row. That adds no rows, and it is the point of merging them.
+- **Advanced.** A font row is advanced only when every one of its parts was advanced; if any part was everyday, the row is everyday, so no control becomes harder to reach. A row is never gated by a `parent` or `disabled` that only some of its parts had: parts gated differently stay as separate rows (Focus per-element fonts).
 - **Parents.** A row's `parent` applies to the whole row. The assembler also indexes the part
   keys, so a row elsewhere that names a part key as its `parent` resolves against that part's
   value. Today no row does.
@@ -73,7 +71,7 @@ FontRow(L["TITLE_TEXT"], L["TITLE_TEXT_DESC"], {
 | Augment | Loot window, Alerts and Loot Roll: font + size + outline. Talking Head name and dialogue: font + size + outline toggle | |
 | Axis | Dashboard text: font + size + outline | Global font override (font only, under its toggle) |
 | Vista | Zone, coordinates, time, performance and difficulty: font + size | |
-| Focus | Main: font + outline (the outline applies to every Focus font). Title, zone, objective, section, progress bar, timer and options: font + size, advanced, under per-element fonts | Header size, global size offset, M+ and run-timer sizes |
+| Focus | Main: font + outline (the outline applies to every Focus font). Per-element families and sizes stay separate rows (the families sit under per-element fonts, the sizes do not) | Header size, global size offset, M+ and run-timer sizes |
 | Presence | Discovery: font + size + outline. Title and subtitle: font + outline | Title and subtitle large, medium and small sizes |
 | Insight, Echo | | One font each, with sizes on other cards |
 
