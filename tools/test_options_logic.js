@@ -450,6 +450,72 @@ run(`
   A.revealId = nil
 `, 'more-fold');
 
+// --- Cards with nothing to show -------------------------------------------------------
+run(`
+  local A = HorizonSuite.OptionsAssemble
+  RESET()
+  DB_VALUES = { master = false, sw = false, gate = true }
+  local OWN = true
+  local out = A.Run({ { key = "L", moduleKey = "focus", options = {
+    SEC("Main", { page = "layout", card = "size" }),
+    ROW("master"),
+    ROW("near", { parent = "master" }),
+    SEC("Far", { page = "layout", card = "position" }),
+    ROW("k1", { parent = "master" }),
+    ROW("k2", { parent = "master" }),
+    { type = "talkingHeadPreview" },
+    { type = "header", name = "Group" },
+  } }, { key = "M", moduleKey = "focus", options = {
+    SEC("Switched", { page = "look", card = "text", headerToggle = { dbKey = "sw" } }),
+    ROW("sw"),
+    ROW("gate"),
+    ROW("s1", { parent = "gate", parentIs = false }),
+    SEC("Folded", { page = "look", card = "colours" }),
+    ROW("f1", { parent = "gate", parentIs = false }),
+    ROW("f2", { advanced = true }),
+    SEC("Own", { page = "look", card = "background", visibleWhen = function() return OWN end }),
+    ROW("o1", { parent = "gate" }),
+  } } })
+  local function rowsOf(key)
+    local c = FIND(out, key)
+    return c and OPTS(c) or {}
+  end
+  local hdr, by = {}, {}
+  for _, k in ipairs({ "focus:layout", "focus:look" }) do
+    for _, r in ipairs(rowsOf(k)) do
+      if r.type == "section" then hdr[r.card] = r end
+      if r.dbKey and r.type ~= "section" then by[r.dbKey] = r end
+    end
+  end
+  local function shows(card)
+    local h = hdr[card]
+    return h ~= nil and (not h.visibleWhen or h.visibleWhen()) and true or false
+  end
+  check("card fixture wires every parent", not WARNED("not on this page"), "parent missing")
+  check("card whose rows all wait on an unmatched parent hides", shows("position") == false, "shown")
+  DB_VALUES.master = true
+  check("that card shows once the parent matches", shows("position") == true, "hidden")
+  DB_VALUES.master = false
+  check("card holding the parent stays", shows("size") == true, "hidden")
+  check("header-switch card is never auto-hidden", shows("text") == true, "hidden")
+  check("advanced rows keep a card with hidden everyday rows", shows("colours") == true, "hidden")
+  check("own section condition kept while content shows", shows("background") == true, "hidden")
+  OWN = false
+  check("own section condition still hides the card", shows("background") == false, "shown")
+  OWN = true
+  DB_VALUES.gate = false
+  check("auto rule ANDs with the own condition", shows("background") == false, "shown")
+  DB_VALUES.gate = true
+  A.revealId = "k1"
+  check("a revealed row keeps its card", shows("position") == true, "hidden")
+  A.revealId = nil
+  check("child in the parent's card is indented", by.near.indent == true, tostring(by.near.indent))
+  check("child in another card is not indented", not by.k1.indent, tostring(by.k1.indent))
+  check("cross-card child still hides with its parent", by.k1.visibleWhen() == false, "true")
+  check("cross-card child still gets the hint", by.k1.tooltip() == "Depends on master.", tostring(by.k1.tooltip()))
+  check("parent refreshes cross-card children", table.concat(by.master.refreshIds or {}, ",") == "k1,k2,near", table.concat(by.master.refreshIds or {}, ","))
+`, 'empty-cards');
+
 // --- Search ---------------------------------------------------------------------------
 run(`
   local A = HorizonSuite.OptionsAssemble
