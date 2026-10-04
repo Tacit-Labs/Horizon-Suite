@@ -4352,8 +4352,20 @@ run(`
   keys.echoMaxTiles.set(1)
   check("max tiles at least two", A.OptionsData_GetDB("echoMaxTiles") == 2, A.OptionsData_GetDB("echoMaxTiles"))
   check("guild tier default", keys.echoTierGuild.get() == "quiet", keys.echoTierGuild.get())
+  -- A row's parent and parentIs fields decide when it shows (see options/OptionsAssemble.lua):
+  -- value from the parent row's get; nil = truthy, boolean = truthiness, function = predicate, else equality.
+  local function childShown(row)
+    local v = keys[row.parent].get()
+    local want = row.parentIs
+    if want == nil then return v and true or false end
+    if type(want) == "boolean" then return (v and true or false) == want end
+    if type(want) == "function" then return want(v) and true or false end
+    return v == want
+  end
+  check("loot tier nests under its feed toggle", keys.echoTierLoot.parent == "echoFeedLoot" and keys.echoTierLoot.visibleWhen == nil, tostring(keys.echoTierLoot.parent))
+  check("loot tier shown with its feed on", childShown(keys.echoTierLoot) == true, "hidden")
   A.OptionsData_SetDB("echoFeedLoot", false)
-  check("loot tier hidden with its feed off", keys.echoTierLoot.visibleWhen() == false, "shown")
+  check("loot tier hidden with its feed off", childShown(keys.echoTierLoot) == false, "shown")
   check("keyword box tooltip, not desc", keys.echoKeywords.tooltip == A.L["ECHO_KEYWORDS_DESC"], keys.echoKeywords.tooltip)
 
   local edgeValues = {}
@@ -4365,20 +4377,22 @@ run(`
   for _, o in ipairs(keys.echoHistoryDays.options) do historyDaysValues[#historyDaysValues + 1] = o[2] end
   check("history days dropdown lists 7, 30, 90 and Forever", table.concat(historyDaysValues, ",") == "7,30,90,0",
       table.concat(historyDaysValues, ","))
-  check("guild history toggle hides with saving off", keys.echoSaveGuild.visibleWhen ~= nil, "no visibleWhen")
+  check("guild history toggle hides with saving off", keys.echoSaveGuild.parent == "echoSaveHistory" and keys.echoSaveGuild.visibleWhen == nil, tostring(keys.echoSaveGuild.parent))
   A.OptionsData_SetDB("echoSaveHistory", false)
-  check("guild toggle hidden with history off", keys.echoSaveGuild.visibleWhen() == false, "shown")
-  check("officer toggle hidden with history off", keys.echoSaveOfficer.visibleWhen() == false, "shown")
+  check("guild toggle hidden with history off", childShown(keys.echoSaveGuild) == false, "shown")
+  check("officer toggle hidden with history off", childShown(keys.echoSaveOfficer) == false, "shown")
+  check("officer toggle shown with history on", (function() A.OptionsData_SetDB("echoSaveHistory", true); return childShown(keys.echoSaveOfficer) end)() == true, "hidden")
   A.OptionsData_SetDB("echoSaveHistory", nil)
+  check("input-always-visible nests under dock input", keys.echoInputAlwaysVisible.parent == "echoDockInput", tostring(keys.echoInputAlwaysVisible.parent))
   local combat = keys.echoCombatLog
-  check("combat log choice shown by default, with hiding on", combat and combat.visibleWhen
-      and combat.visibleWhen() == true, "hidden")
+  check("combat log choice shown by default, with hiding on", combat and combat.parent == "echoHideBlizzardChat"
+      and childShown(combat) == true, "hidden")
   A.OptionsData_SetDB("echoHideBlizzardChat", false)
-  check("combat log choice hidden while Blizzard chat shows", combat and combat.visibleWhen
-      and combat.visibleWhen() == false, "shown")
+  check("combat log choice hidden while Blizzard chat shows", combat and combat.parent == "echoHideBlizzardChat"
+      and childShown(combat) == false, "shown")
   A.OptionsData_SetDB("echoHideBlizzardChat", true)
-  check("combat log choice shown while hiding", combat and combat.visibleWhen
-      and combat.visibleWhen() == true, "hidden")
+  check("combat log choice shown while hiding", combat and combat.parent == "echoHideBlizzardChat"
+      and childShown(combat) == true, "hidden")
   A.OptionsData_SetDB("echoHideBlizzardChat", nil)
   local combatValues = {}
   for _, o in ipairs(combat and combat.options or {}) do combatValues[#combatValues + 1] = o[2] end

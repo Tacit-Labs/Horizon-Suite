@@ -163,7 +163,8 @@ for _, kind in ipairs({ "loot", "progress", "system" }) do
     local feedKey = addon.Echo.FeedKey(kind)
     options[#options + 1] = Toggle(L["ECHO_FEED_SHOW"]:format(name), L["ECHO_FEED_SHOW_DESC"], feedKey, D[feedKey])
     local tier = TierDropdown(kind, L["ECHO_FEED_TIER"]:format(name))
-    tier.visibleWhen = function() return getDB(feedKey, D[feedKey]) ~= false end
+    tier.parent = feedKey
+    tier.parentIs = function(v) return v ~= false end
     options[#options + 1] = tier
 end
 
@@ -314,9 +315,9 @@ local tail = {
     Section(L["ECHO_SECTION_HISTORY"], { page = "general", card = "history" }),
     Toggle(L["ECHO_SAVE_HISTORY"], L["ECHO_SAVE_HISTORY_DESC"], "echoSaveHistory", D.echoSaveHistory),
     Toggle(L["ECHO_SAVE_GUILD"], L["ECHO_SAVE_GUILD_DESC"], "echoSaveGuild", D.echoSaveGuild,
-        { visibleWhen = function() return getDB("echoSaveHistory", D.echoSaveHistory) ~= false end, advanced = true }),
+        { parent = "echoSaveHistory", parentIs = function(v) return v ~= false end, advanced = true }),
     Toggle(L["ECHO_SAVE_OFFICER"], L["ECHO_SAVE_OFFICER_DESC"], "echoSaveOfficer", D.echoSaveOfficer,
-        { visibleWhen = function() return getDB("echoSaveHistory", D.echoSaveHistory) ~= false end, advanced = true }),
+        { parent = "echoSaveHistory", parentIs = function(v) return v ~= false end, advanced = true }),
     { type = "dropdown", name = L["ECHO_HISTORY_DAYS"], desc = L["ECHO_HISTORY_DAYS_DESC"], dbKey = "echoHistoryDays",
       options = HISTORY_DAYS_OPTIONS, preserveOrder = true,
       get = function() return getDB("echoHistoryDays", D.echoHistoryDays) end,
@@ -330,11 +331,11 @@ local tail = {
     Toggle(L["ECHO_HIDE_STORED"], L["ECHO_HIDE_STORED_DESC"], "echoHideStoredWhispers", D.echoHideStoredWhispers),
     Toggle(L["ECHO_DOCK_INPUT"], L["ECHO_DOCK_INPUT_DESC"], "echoDockInput", D.echoDockInput),
     Toggle(L["ECHO_INPUT_ALWAYS_VISIBLE"], L["ECHO_INPUT_ALWAYS_VISIBLE_DESC"], "echoInputAlwaysVisible", D.echoInputAlwaysVisible,
-        { visibleWhen = function() return getDB("echoDockInput", D.echoDockInput) ~= false end, advanced = true }),
+        { parent = "echoDockInput", parentIs = function(v) return v ~= false end, advanced = true }),
     Toggle(L["ECHO_HIDE_CHAT"], L["ECHO_HIDE_CHAT_DESC"], "echoHideBlizzardChat", D.echoHideBlizzardChat),
     { type = "dropdown", name = L["ECHO_COMBAT_LOG"], desc = L["ECHO_COMBAT_LOG_DESC"], dbKey = "echoCombatLog",
       options = COMBAT_LOG_OPTIONS, preserveOrder = true,
-      visibleWhen = function() return getDB("echoHideBlizzardChat", D.echoHideBlizzardChat) == true end,
+      parent = "echoHideBlizzardChat", parentIs = function(v) return v == true end,
       get = function()
           local E = Echo()
           if E and E.CombatLog then return E.CombatLog.Mode(getDB) end
