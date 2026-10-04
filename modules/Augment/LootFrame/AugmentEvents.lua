@@ -200,12 +200,20 @@ handlers.QUEST_TURNED_IN                  = OnBlizzardLootToast
 -- The window animates in, out and per row, so hiding it by alpha still let it
 -- flash. Instead, stop it opening: LOOT_READY says whether the coming loot is
 -- auto-loot before LOOT_OPENED reaches the window, so take LOOT_OPENED off the
--- window for auto-loot and leave Blizzard to open it normally otherwise. If
--- items are still there after AUTOLOOT_REVEAL_DELAY (full bags, a unique item
--- already owned), open the window so no loot is hidden.
-local AUTOLOOT_REVEAL_DELAY = 1
-local lootOpen      = false
-local autoLootToken = 0
+-- window for auto-loot and leave Blizzard to open it normally otherwise.
+--
+-- Auto-loot can leave items behind (full bags, a unique item already owned).
+-- Only those items warrant the window, and they must show at once: a hidden
+-- window made players loot the corpse again and again, and each retry
+-- restarted the wait. The game reports each item it could not take as a UI
+-- error, so open the window on that error if anything is still unlooted. As a
+-- fallback for a refusal that raises no error, open it after
+-- AUTOLOOT_REVEAL_DELAY if items remain.
+local AUTOLOOT_REVEAL_DELAY = 0.5
+local lootOpen        = false
+local lootHeld        = false
+local autoLootToken   = 0
+local heldFromItem    = nil
 
 local function SetLootWindowOpens(opens)
     local frame = _G.LootFrame
@@ -231,6 +239,19 @@ local function GamepadUI()
     return addon.Platform and addon.Platform.IsGamepadUI() or false
 end
 
+-- Open the held-back window if auto-loot left anything behind.
+local function RevealHeldLoot()
+    if not (lootOpen and lootHeld) or not LootLeftOver() then return end
+    local frame = _G.LootFrame
+    local onEvent = frame and frame:GetScript("OnEvent")
+    if not onEvent then return end
+    lootHeld = false
+    autoLootToken = autoLootToken + 1
+    SetLootWindowOpens(true)
+    -- Opened as a manual loot, so the rows stay put rather than sliding out.
+    onEvent(frame, "LOOT_OPENED", false, heldFromItem)
+end
+
 handlers.LOOT_READY = function(autoLoot)
     -- The second LOOT_READY of a loot arrives after LOOT_OPENED; ignore it.
     if lootOpen or GamepadUI() then return end
@@ -239,22 +260,27 @@ end
 
 handlers.LOOT_OPENED = function(autoLoot, acquiredFromItem)
     lootOpen = true
-    if not autoLoot or GamepadUI() then return end
+    local frame = _G.LootFrame
+    lootHeld = autoLoot and not GamepadUI() and frame and not frame:IsEventRegistered("LOOT_OPENED") or false
+    if not lootHeld then return end
+    heldFromItem = acquiredFromItem
     autoLootToken = autoLootToken + 1
     local token = autoLootToken
     C_Timer.After(AUTOLOOT_REVEAL_DELAY, function()
-        if token ~= autoLootToken or not lootOpen or not LootLeftOver() then return end
-        local frame = _G.LootFrame
-        local onEvent = frame and frame:GetScript("OnEvent")
-        if not onEvent then return end
-        SetLootWindowOpens(true)
-        -- Opened as a manual loot, so the rows stay put rather than sliding out.
-        onEvent(frame, "LOOT_OPENED", false, acquiredFromItem)
+        if token == autoLootToken then RevealHeldLoot() end
     end)
+end
+
+-- "Inventory is full", "You can't carry any more of those" and the like.
+-- Wait a frame so slots the game did take have cleared before checking.
+handlers.UI_ERROR_MESSAGE = function()
+    if lootHeld then C_Timer.After(0, RevealHeldLoot) end
 end
 
 handlers.LOOT_CLOSED = function()
     lootOpen = false
+    lootHeld = false
+    heldFromItem = nil
     SetLootWindowOpens(true)
 end
 
@@ -294,6 +320,7 @@ function Y.EnableEvents()
     eventFrame:RegisterEvent("LOOT_READY")
     eventFrame:RegisterEvent("LOOT_OPENED")
     eventFrame:RegisterEvent("LOOT_CLOSED")
+    eventFrame:RegisterEvent("UI_ERROR_MESSAGE")
     eventsRegistered = true
 end
 
@@ -305,6 +332,7 @@ function Y.DisableEvents()
     ClearQueues()
     -- Toasts are off: let Blizzard open the loot window again.
     lootOpen = false
+    lootHeld = false
     SetLootWindowOpens(true)
     eventsRegistered = false
 end
