@@ -160,9 +160,9 @@ local categories = {
         moduleKey = "insight",
         options = {
             { type = "section", name = L["INSIGHT_CATEGORY_TRP3"], headerToggle = { dbKey = "insightTRP3Enabled", default = true }, dbKey = "insightTRP3Section", page = "players", card = "trp3", visibleWhen = TRP3Installed },
-            { type = "toggle", name = L["INSIGHT_TRP3_CHARACTER_ICON"],      desc = L["INSIGHT_TRP3_CHARACTER_ICON_DESC"],                          dbKey = "insightTRP3Icon",         get = function() return getDB("insightTRP3Icon",         true)  end, set = function(v) setDB("insightTRP3Icon",         v) end, parent = "insightTRP3RPName" },
             Toggle(L["INSIGHT_TRP3_TITLE"], L["INSIGHT_TRP3_TITLE_DESC"], "insightTRP3Title", true),
             { type = "toggle", name = L["INSIGHT_TRP3_NAME"],             desc = L["INSIGHT_TRP3_NAME_DESC"],                                   dbKey = "insightTRP3RPName",       get = function() return getDB("insightTRP3RPName",       true)  end, set = function(v) setDB("insightTRP3RPName",       v) end, refreshIds = { "insightTRP3Section" } },
+            { type = "toggle", name = L["INSIGHT_TRP3_CHARACTER_ICON"],      desc = L["INSIGHT_TRP3_CHARACTER_ICON_DESC"],                          dbKey = "insightTRP3Icon",         get = function() return getDB("insightTRP3Icon",         true)  end, set = function(v) setDB("insightTRP3Icon",         v) end, parent = "insightTRP3RPName" },
             { type = "dropdown", name = L["INSIGHT_TRP3_WOW_TITLE"], desc = L["INSIGHT_TRP3_WOW_TITLE_DESC"], dbKey = "insightTRP3WowTitle", options = INSIGHT_FORCE_MODIFIER_OPTIONS, preserveOrder = true, get = function() return getDB("insightTRP3WowTitle", "force") end, set = function(v) setDB("insightTRP3WowTitle", v) end, parent = "insightTRP3RPName" },
             Toggle(L["INSIGHT_TITLE_CUSTOM_COLOUR"], L["INSIGHT_TRP3_COLOUR_DESC"], "insightTRP3CustomColor", true),
             Toggle(L["INSIGHT_TRP3_BORDER_COLOUR"], L["INSIGHT_TRP3_BORDER_COLOUR_DESC"], "insightTRP3BorderColor", false),

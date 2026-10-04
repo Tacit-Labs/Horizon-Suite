@@ -74,9 +74,9 @@ local categories = {
               parent = "vistaShowZoneText" },
             Toggle(L["VISTA_COORDINATES"], L["VISTA_PLAYER_COORDINATES_BELOW_MINIMAP"], "vistaShowCoordText", D.vistaShowCoordText),
             Toggle(L["VISTA_TIME"], L["VISTA_CURRENT_GAME_BELOW_MINIMAP"], "vistaShowTimeText", D.vistaShowTimeText),
-            Toggle(L["VISTA_FPS_LATENCY"], L["VISTA_FPS_LATENCY_MS_BELOW_MINIMAP"], "vistaShowPerfText", D.vistaShowPerfText),
             Toggle(L["VISTA_LOCAL_TIME"], L["LOCAL_SYSTEM"], "vistaTimeUseLocal", D.vistaTimeUseLocal, { tooltip = L["VISTA_LOCAL_TIME_TIP"], parent = "vistaShowTimeText" }),
             Toggle(L["VISTA_HOUR_CLOCK"], L["VISTA_DISPLAY_HOUR_FORMAT_24"], "vistaTime24Hour", D.vistaTime24Hour, { parent = "vistaShowTimeText" }),
+            Toggle(L["VISTA_FPS_LATENCY"], L["VISTA_FPS_LATENCY_MS_BELOW_MINIMAP"], "vistaShowPerfText", D.vistaShowPerfText),
             Section(L["VISTA_MINIMAP_BUTTONS"], { page = "buttons" }),
             Header(L["VISTA_QUEUE_STATUS_MAIL_INDICATOR_ALWAYS_SHOWN"]),
             Toggle(L["VISTA_TRACKING_BUTTON"], L["VISTA_MINIMAP_TRACKING_BUTTON"], "vistaShowTracking", D.vistaShowTracking),
@@ -518,18 +518,6 @@ local categories = {
                       end
                   end,
                   parent = "vistaHandleAddonButtons" },
-                { type = "button",
-                  name = L["VISTA_CHOOSE_DRAWER_ICON"],
-                  dbKey = "vistaDrawerIcon",
-                  visibleWhen = function()
-                      return getDB("vistaHandleAddonButtons", D.vistaHandleAddonButtons) and getDB("vistaButtonMode", D.vistaButtonMode) == "drawer"
-                  end,
-                  tooltip = L["VISTA_DRAWER_BUTTON_ICON_DESC"],
-                  onClick = function()
-                      if addon.OpenVistaDrawerIconPicker then
-                          addon.OpenVistaDrawerIconPicker()
-                      end
-                  end },
                 { type = "toggle", name = L["LOCK_DRAWER_BUTTON"],
                   desc = L["VISTA_PREVENT_DRAGGING_FLOATING_DRAWER_BUTTON"],
                   dbKey = "vistaDrawerButtonLocked",
@@ -543,6 +531,18 @@ local categories = {
                 Toggle(L["LOCK_MOUSEOVER_BAR"], L["VISTA_PREVENT_DRAGGING_MOUSEOVER_BUTTON_BAR"], "vistaMouseoverLocked", D.vistaMouseoverLocked, { parent = "vistaButtonMode", parentIs = "mouseover"  }),
                 Toggle(L["VISTA_ALWAYS_BAR"], L["KEEP_BAR_VISIBLE_REPOSITIONING"], "vistaMouseoverBarVisible", D.vistaMouseoverBarVisible, { tooltip = L["VISTA_DISABLE_DONE"], parent = "vistaButtonMode", parentIs = "mouseover"  }),
                 Toggle(L["LOCK_RIGHT_CLICK_PANEL"], L["VISTA_PREVENT_DRAGGING_RIGHT_CLICK_PANEL"], "vistaRightClickLocked", D.vistaRightClickLocked, { parent = "vistaButtonMode", parentIs = "rightclick"  }),
+                { type = "button",
+                  name = L["VISTA_CHOOSE_DRAWER_ICON"],
+                  dbKey = "vistaDrawerIcon",
+                  visibleWhen = function()
+                      return getDB("vistaHandleAddonButtons", D.vistaHandleAddonButtons) and getDB("vistaButtonMode", D.vistaButtonMode) == "drawer"
+                  end,
+                  tooltip = L["VISTA_DRAWER_BUTTON_ICON_DESC"],
+                  onClick = function()
+                      if addon.OpenVistaDrawerIconPicker then
+                          addon.OpenVistaDrawerIconPicker()
+                      end
+                  end },
 
                 Section(L["VISTA_CLOSE_FADE_TIMING"], { page = "buttons", card = "drawerTiming" }),
                 { type = "slider", name = L["MOUSEOVER_CLOSE_DELAY"],

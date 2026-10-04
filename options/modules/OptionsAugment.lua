@@ -230,6 +230,12 @@ local categories = {
                 set = function(v) setDB("augmentMinQuality", v) end,
                 parent = "augmentShowItems",
             },
+            { type = "slider", name = L["AUGMENT_HOLD_LEGENDARY"], desc = L["AUGMENT_HOLD_LEGENDARY_DESC"], dbKey = "augmentHoldLegendary",
+                min = LIM.augmentHoldLegendary.min, max = LIM.augmentHoldLegendary.max, step = 0.5,
+                get = function() return getSlider("augmentHoldLegendary") end,
+                set = function(v) setDB("augmentHoldLegendary", clamp(v, "augmentHoldLegendary")) end,
+                parent = "augmentShowItems",
+            },
             { type = "slider", name = L["AUGMENT_HOLD_ITEM"],      desc = L["AUGMENT_HOLD_ITEM_DESC"],      dbKey = "augmentHoldItem",
                 min = LIM.augmentHoldItem.min, max = LIM.augmentHoldItem.max, step = 0.5,
                 get = function() return getSlider("augmentHoldItem") end,
@@ -247,12 +253,6 @@ local categories = {
                     local minQ = tonumber(getDB("augmentMinQuality", D.augmentMinQuality)) or 0
                     return getDB("augmentShowItems", D.augmentShowItems) == false or minQ > 4
                 end,
-            },
-            { type = "slider", name = L["AUGMENT_HOLD_LEGENDARY"], desc = L["AUGMENT_HOLD_LEGENDARY_DESC"], dbKey = "augmentHoldLegendary",
-                min = LIM.augmentHoldLegendary.min, max = LIM.augmentHoldLegendary.max, step = 0.5,
-                get = function() return getSlider("augmentHoldLegendary") end,
-                set = function(v) setDB("augmentHoldLegendary", clamp(v, "augmentHoldLegendary")) end,
-                parent = "augmentShowItems",
             },
 
             Section(L["AUGMENT_CARD_OTHER_TOASTS"], { page = "loot" }),
