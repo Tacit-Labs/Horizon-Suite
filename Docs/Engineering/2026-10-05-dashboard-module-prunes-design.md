@@ -80,6 +80,12 @@ A row converts to `parent` when its `visibleWhen` reads exactly one setting on t
 | `... return getDB("x") ~= "off" end` | `parent = "x", parentIs = function(v) return v ~= "off" end` |
 | `not getDB("a") and getDB("b")`, where `b` itself depends on `a` | `parent = "b"` (the chain covers `a`) |
 
+The same goes for a row **greyed** by one setting on the same page
+(`disabled = function() return not getDB("x", D.x) end`): it becomes `parent = "x"`, so it hides
+instead of greying. That is a deliberate change in what players see, and the one the director
+asked for: sub-settings stay out of sight until their parent applies. Greying stays for blockers
+outside the card, such as the module being off.
+
 The matching entry comes out of the parent's hand-written `refreshIds`. Anything else stays as
 `visibleWhen`: conditions on another page, on another addon being loaded, on game state, or on
 two settings that are not a chain.
