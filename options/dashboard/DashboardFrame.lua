@@ -1324,6 +1324,7 @@ function addon.Dashboard_BuildMainFrame()
 
             C_Timer.After(0, DashboardApplyKeyboardPropagation)
             f:HookScript("OnShow", function()
+                if addon.OptionsSearch_Invalidate then addon.OptionsSearch_Invalidate() end
                 C_Timer.After(0, DashboardApplyKeyboardPropagation)
             end)
             f:HookScript("OnHide", function()

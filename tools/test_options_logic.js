@@ -391,6 +391,47 @@ run(`
   A.revealId = nil
 `, 'more-fold');
 
+// --- Search ---------------------------------------------------------------------------
+run(`
+  local A = HorizonSuite.OptionsAssemble
+  RESET()
+  HorizonSuite.RegisterModulePages("augment", { { key = "loot", name = "Loot" } })
+  HorizonSuite.OptionCategories = A.Run({
+    { key = "F", moduleKey = "focus", options = {
+      SEC("Size", { page = "layout", card = "size" }),
+      ROW("panelWidth", { name = "Panel width", keywords = { "breadth" } }),
+      ROW("breadthName", { name = "Breadth" }),
+      ROW("descOnly", { name = "Other", desc = "Sets the breadth" }),
+      ROW("advRow", { name = "Hidden gem", advanced = true }),
+      { type = "colorMatrixFull", dbKey = "colorMatrix", searchName = "Colour matrix" },
+    } },
+    { key = "AugmentImprovements", moduleKey = "augment", options = {
+      SEC("Toasts", { page = "loot" }),
+      { type = "columns", left = { options = { ROW("toastOpacity", { name = "Toast opacity" }) } }, right = { options = {} } },
+    } },
+  })
+  HorizonSuite.OptionsSearch_Invalidate()
+  local idx = OptionsData_BuildSearchIndex()
+  local by = {}
+  for _, e in ipairs(idx) do by[e.optionId] = e end
+  check("More row is not a result", by["F_"] == nil and #idx == 6, #idx)
+  check("advanced row is indexed", by.advRow ~= nil, "nil")
+  check("former columns row is indexed", by.toastOpacity ~= nil, "nil")
+  check("searchName makes a special widget findable", by.colorMatrix and OptionsData_SearchEntryScore(by.colorMatrix, "colour") ~= nil, "nil")
+  check("entry knows its card", by.panelWidth.cardId == "focus:layout:size", by.panelWidth.cardId)
+  check("entry shows page and card", by.panelWidth.categoryName == "PAGE_LAYOUT" and by.panelWidth.sectionName == "CARD_SIZE", tostring(by.panelWidth.categoryName) .. " " .. tostring(by.panelWidth.sectionName))
+  local sName = OptionsData_SearchEntryScore(by.breadthName, "breadth")
+  local sKw = OptionsData_SearchEntryScore(by.panelWidth, "breadth")
+  local sDesc = OptionsData_SearchEntryScore(by.descOnly, "breadth")
+  check("keyword matches", sKw ~= nil, "nil")
+  check("keyword ranks below name", sKw and sName and sKw < sName, tostring(sKw) .. " vs " .. tostring(sName))
+  check("keyword ranks above description", sKw and sDesc and sKw > sDesc, tostring(sKw) .. " vs " .. tostring(sDesc))
+  check("index is cached", OptionsData_BuildSearchIndex() == idx, "rebuilt")
+  HorizonSuite.OptionsSearch_Invalidate()
+  check("invalidate rebuilds", OptionsData_BuildSearchIndex() ~= idx, "same table")
+  HorizonSuite.OptionCategories = nil
+`, 'search');
+
 // --- Summary -----------------------------------------------------------------------
 run(`
   REAL_PRINT(PASS .. " passed, " .. FAIL .. " failed")

@@ -121,6 +121,7 @@ end
 -- @param enabled boolean
 -- @param opts table|nil Optional; opts.deferReload skips ReloadUI until the user reloads (e.g. dashboard module toggles).
 function addon:SetModuleEnabled(key, enabled, opts)
+    if self.OptionsSearch_Invalidate then self.OptionsSearch_Invalidate() end
     if enabled then self:EnableModule(key) else self:DisableModule(key) end
     -- Set before Dashboard_Refresh: relayout reads _moduleReloadRecommended in visibleWhen for the reload prompt.
     if opts and opts.deferReload then

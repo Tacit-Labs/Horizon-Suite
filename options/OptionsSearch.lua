@@ -45,7 +45,7 @@ local function TermScoreAgainstTokens(term, tokens, exactScore, prefixScore)
 end
 
 -- Score an index entry for a lowercased search string; nil if no match.
--- Multi-word queries require every term to match some token (AND). Higher = better (name > section > category > module > option id > desc).
+-- Multi-word queries require every term to match some token (AND). Higher = better (name > keywords > section > category > module > option id > desc).
 -- @param entry table Row from OptionsData_BuildSearchIndex()
 -- @param queryLower string Trimmed, lowercased query
 -- @return number|nil
@@ -62,6 +62,7 @@ function OptionsData_SearchEntryScore(entry, queryLower)
             if s > best then best = s end
         end
         bump(entry.searchTokensName, 1000, 700)
+        bump(entry.searchTokensKeywords, 450, 320)
         bump(entry.searchTokensSection, 400, 280)
         bump(entry.searchTokensCategory, 350, 240)
         bump(entry.searchTokensModule, 300, 200)
@@ -110,36 +111,45 @@ function OptionsData_SearchResultDetailText(opt, maxLen)
     return string.sub(combined, 1, maxLen - 3) .. "..."
 end
 
-function OptionsData_BuildSearchIndex()
+-- Row types that are layout, not settings, and never appear as results.
+local NOT_SEARCHABLE = { section = true, header = true, moduleReloadPrompt = true, moreToggle = true }
+
+local function ResolveText(v)
+    if type(v) == "function" then return v() end
+    return v
+end
+
+local function BuildSearchIndexUncached()
     local index = {}
     local L = addon.L
-    local cats = addon.OptionCategories
+    local cats = addon.OptionCategories or {}
     for catIdx, cat in ipairs(cats) do
-        local currentSection = ""
+        local currentSection, currentCardId = "", nil
         local moduleKey = cat.moduleKey
         local moduleLabel
-        if cat.key == "Profiles" or cat.key == "Modules" or cat.key == "GlobalToggles" then
+        if addon.Dashboard_IsAxisCategoryKey and addon.Dashboard_IsAxisCategoryKey(cat.key) then
             moduleLabel = addon.BrandModule and addon.BrandModule("axis") or "Axis"
         else
             moduleLabel = addon.BrandModule and addon.BrandModule(moduleKey) or (L and L["MODULES"])
         end
-        local catNameRaw = type(cat.name) == "function" and cat.name() or cat.name
-        local catNameStr = tostring(catNameRaw or "")
+        local catNameStr = tostring(ResolveText(cat.name) or "")
         local catNameLower = catNameStr:lower()
-        local catOpts = type(cat.options) == "function" and cat.options() or cat.options
+        local catOpts = ResolveText(cat.options) or {}
         for _, opt in ipairs(catOpts) do
             if opt.type == "section" then
-                currentSection = type(opt.name) == "function" and opt.name() or opt.name or ""
-            elseif opt.type ~= "section" and opt.type ~= "header" and opt.type ~= "moduleReloadPrompt" then
-                local rawName = type(opt.name) == "function" and opt.name() or opt.name
+                currentSection = ResolveText(opt.name) or ""
+                currentCardId = opt.cardId
+            elseif not NOT_SEARCHABLE[opt.type] then
+                local rawName = ResolveText(opt.name) or ResolveText(opt.searchName)
                 local name = (rawName or ""):lower()
-                local rawDesc, rawTooltip
-                if type(opt.desc)    == "function" then rawDesc    = opt.desc()    else rawDesc    = opt.desc    end
-                if type(opt.tooltip) == "function" then rawTooltip = opt.tooltip() else rawTooltip = opt.tooltip end
+                local rawDesc, rawTooltip = ResolveText(opt.desc), ResolveText(opt.tooltip)
                 local desc = ((rawDesc or "") .. " " .. (rawTooltip or "")):lower()
+                local keywords = {}
+                for _, k in ipairs(opt.keywords or {}) do keywords[#keywords + 1] = tostring(ResolveText(k) or "") end
+                local keywordText = table.concat(keywords, " "):lower()
                 local sectionLower = (currentSection or ""):lower()
                 local moduleLower = (moduleLabel or ""):lower()
-                local searchText = name .. " " .. desc .. " " .. sectionLower .. " " .. moduleLower
+                local searchText = name .. " " .. keywordText .. " " .. desc .. " " .. sectionLower .. " " .. moduleLower
                 local optionId = opt.dbKey or (cat.key .. "_" .. (rawName or ""):gsub("%s+", "_"))
                 local idForTokens = tostring(optionId or ""):lower():gsub("_+", " ")
                 index[#index + 1] = {
@@ -149,10 +159,12 @@ function OptionsData_BuildSearchIndex()
                     moduleKey = moduleKey,
                     moduleLabel = moduleLabel,
                     sectionName = currentSection,
+                    cardId = currentCardId,
                     option = opt,
                     optionId = optionId,
                     searchText = searchText,
                     searchTokensName = TokenizeSearchCorpus(name),
+                    searchTokensKeywords = TokenizeSearchCorpus(keywordText),
                     searchTokensDesc = TokenizeSearchCorpus(desc),
                     searchTokensSection = TokenizeSearchCorpus(sectionLower),
                     searchTokensModule = TokenizeSearchCorpus(moduleLower),
@@ -163,6 +175,21 @@ function OptionsData_BuildSearchIndex()
         end
     end
     return index
+end
+
+local cachedIndex
+
+--- The search index over every assembled page. Built once and reused until
+--- addon.OptionsSearch_Invalidate() (dashboard opened, module toggled).
+--- @return table
+function OptionsData_BuildSearchIndex()
+    if not cachedIndex then cachedIndex = BuildSearchIndexUncached() end
+    return cachedIndex
+end
+
+--- Drop the cached index so the next search rebuilds it.
+function addon.OptionsSearch_Invalidate()
+    cachedIndex = nil
 end
 
 addon.OptionsData_BuildSearchIndex        = OptionsData_BuildSearchIndex

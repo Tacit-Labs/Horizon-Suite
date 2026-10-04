@@ -331,6 +331,15 @@ function addon.DashboardDetailView_Init(env)
         end
 
         if targetCat then
+            local Assemble = addon.OptionsAssemble
+            if Assemble then
+                Assemble.revealId = entry.optionId
+                Assemble.revealPending = true
+                if entry.cardId then
+                    Assemble.SetCardExpanded(entry.cardId, true)
+                    if entry.option and entry.option.advanced then Assemble.SetMoreOpen(entry.cardId, true) end
+                end
+            end
             -- Get the effective moduleKey (Profiles/Modules map to "axis")
             local effectiveMk = targetCat.moduleKey
             if OptionCategoryKeyIsAxis(targetCat.key) then
@@ -344,16 +353,16 @@ function addon.DashboardDetailView_Init(env)
             local options = type(targetCat.options) == "function" and targetCat.options() or targetCat.options
             f.OpenCategoryDetail(modName, entry.categoryName, options, true)
 
-            -- Find and expand the relevant accordion card
-            C_Timer.After(0.1, function()
+            -- Cards are built synchronously; wait one frame so their positions are laid out.
+            C_Timer.After(0, function()
                 for _, card in ipairs(currentDetailCards) do
-                    if card.optionIds and card.optionIds[entry.optionId] then
+                    local hit = (entry.cardId and card.cardId == entry.cardId)
+                        or (card.optionIds and card.optionIds[entry.optionId])
+                    if hit then
                         if not card.expanded then
                             card.expanded = true
                             card.anim:Play()
                         end
-                        
-                        -- Scroll to the card
                         local _, _, _, _, yOffset = card:GetPoint()
                         local frameH = detailScroll:GetHeight() or 0
                         local maxScroll = math.max(0, detailContent:GetHeight() - frameH)
@@ -1002,6 +1011,11 @@ function addon.DashboardDetailView_Init(env)
 
     --- @param skipEntranceCascade boolean|nil When true, skip staggered card entrance (search navigation expands accordions and must not snapshot pre-expand Y positions).
     f.OpenCategoryDetail = function(modName, catName, options, skipEntranceCascade)
+        -- A search jump reveals its row for this one page; any other navigation clears it.
+        local Assemble = addon.OptionsAssemble
+        if Assemble then
+            if Assemble.revealPending then Assemble.revealPending = false else Assemble.revealId = nil end
+        end
         if searchBox then searchBox:ClearFocus() end
 
         local matchedModuleKey = f.currentModuleKey or "modules"
