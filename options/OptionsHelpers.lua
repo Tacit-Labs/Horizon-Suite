@@ -118,7 +118,6 @@ function addon.RequireCapability(capability, option)
 end
 
 -- Return a copy of an option list without rows whose capability is absent.
--- Recurses into column layouts ({ type = "columns", left = { options }, right = { options } }).
 -- @param list table|nil
 -- @return table|nil
 function addon.PruneOptionsForPlatform(list)
@@ -131,13 +130,6 @@ function addon.PruneOptionsForPlatform(list)
             keep = false
         end
         if keep then
-            if type(row) == "table" and row.type == "columns" then
-                for _, side in ipairs({ "left", "right" }) do
-                    if type(row[side]) == "table" and type(row[side].options) == "table" then
-                        row[side].options = addon.PruneOptionsForPlatform(row[side].options)
-                    end
-                end
-            end
             out[#out + 1] = row
         end
     end

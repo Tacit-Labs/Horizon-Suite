@@ -6,7 +6,7 @@
     first (OptionsPages.SHARED), then the module's own pages in RegisterModulePages order.
     The result is written back into addon.OptionCategories, so the sidebar, detail view,
     search and platform prune read assembled pages without knowing about tags.
-    Categories with no tagged section pass through unchanged until `strict` is on.
+    A category with no tagged section passes through unchanged and, with `strict` on, warns.
     Builders must return the same sections whatever the saved settings hold, because the page
     list is fixed at load.
     Must load after every module options file and before OptionsPlatform.lua.
@@ -18,8 +18,8 @@ local Pages = addon.OptionsPages
 
 local Assemble = {
     warnings = {},
-    -- When true, a category with no tagged section is reported as a load-time error.
-    strict = false,
+    -- A category with no tagged section is a load-time error.
+    strict = true,
     -- dbKey of a row search is jumping to; that row shows even when its parent or More hides it.
     revealId = nil,
     revealPending = false,

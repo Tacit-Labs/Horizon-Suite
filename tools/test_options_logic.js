@@ -432,6 +432,20 @@ run(`
   HorizonSuite.OptionCategories = nil
 `, 'search');
 
+run(`
+  local A = HorizonSuite.OptionsAssemble
+  RESET()
+  HorizonSuite.RegisterModulePages("augment", { { key = "loot", name = "Loot" } })
+  local out = A.Run({ { key = "X", moduleKey = "augment", options = {
+    SEC("T", { page = "loot" }),
+    { type = "columns", left = { options = { ROW("l") } }, right = { options = { ROW("r") } } },
+  } } })
+  local found = false
+  for _, r in ipairs(OPTS(out[1])) do if r.type == "columns" then found = true end end
+  check("assembled pages never contain columns", not found, "columns row present")
+  check("strict is on by default", A.strict == true, A.strict)
+`, 'strict');
+
 // --- Summary -----------------------------------------------------------------------
 run(`
   REAL_PRINT(PASS .. " passed, " .. FAIL .. " failed")
