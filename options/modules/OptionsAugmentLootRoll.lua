@@ -80,7 +80,7 @@ local category = {
         if v then R.Enable() else R.Disable() end
     end,
     options = {
-        Section(L["LOOT_ROLL_PREVIEW"]),
+        Section(L["LOOT_ROLL_PREVIEW"], { page = "lootRoll" }),
         { type = "button",
           name = L["LOOT_ROLL_DEMO"], desc = L["LOOT_ROLL_DEMO_DESC"],
           onClick = function()
@@ -96,7 +96,7 @@ local category = {
           end,
         },
 
-        Section(L["LOOT_ROLL_INFORMATION"]),
+        Section(L["LOOT_ROLL_INFORMATION"], { page = "lootRoll" }),
         { type = "columns",
             left = {
                 options = {
@@ -142,7 +142,7 @@ local category = {
           set = function(v) setDB("lootRollMinQuality", tonumber(v) or 0); applyRoll() end,
         },
 
-        Section(L["LOOT_ROLL_APPEARANCE"]),
+        Section(L["LOOT_ROLL_APPEARANCE"], { page = "lootRoll" }),
         { type = "columns",
             left = {
                 options = {
@@ -250,6 +250,8 @@ local category = {
 -- tally needs lootHistory, the appearance badge needs transmog), which the
 -- existing prune handles.
 if addon.Platform and not addon.Platform.Has("groupLootRolls") then return end
+
+addon.RegisterModulePages("augment", { addon.OptionsPages.FromCategory(category, "lootRoll") })
 
 -- Insert after the last Augment category to preserve sidebar order.
 local insertAt = #addon.OptionCategories + 1

@@ -63,7 +63,7 @@ local category = {
         updateTalkingHead()
     end,
     options = {
-        Section(L["TALKING_HEAD_STYLE"]),
+        Section(L["TALKING_HEAD_STYLE"], { page = "talkingHead" }),
         { type = "columns",
             left = {
                 options = {
@@ -182,6 +182,8 @@ local category = {
         { type = "talkingHeadPreview" },
     },
 }
+
+addon.RegisterModulePages("augment", { addon.OptionsPages.FromCategory(category, "talkingHead") })
 
 -- Insert after the last Augment category to preserve sidebar order
 local insertAt = #addon.OptionCategories + 1

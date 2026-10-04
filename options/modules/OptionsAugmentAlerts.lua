@@ -107,7 +107,7 @@ local category = {
         if v then A.Enable() else A.Disable() end
     end,
     options = {
-        Section(L["AUGMENT_ALERTS_KINDS"]),
+        Section(L["AUGMENT_ALERTS_KINDS"], { page = "alerts" }),
         { type = "columns",
             left = {
                 options = {
@@ -256,7 +256,7 @@ local category = {
             },
         },
 
-        Section(L["AUGMENT_ALERTS_DISPLAY"]),
+        Section(L["AUGMENT_ALERTS_DISPLAY"], { page = "alerts" }),
         { type = "columns",
             left = {
                 options = {
@@ -376,7 +376,7 @@ local category = {
             },
         },
 
-        Section(L["AUGMENT_ALERTS_COLOURS"]),
+        Section(L["AUGMENT_ALERTS_COLOURS"], { page = "alerts" }),
         { type = "columns",
             left = {
                 options = {
@@ -395,6 +395,16 @@ local category = {
         },
     },
 }
+
+addon.RegisterModulePages("augment", {
+    addon.OptionsPages.FromCategory(category, "alerts", {
+        headerButtons = {
+            preview = function() if addon.Augment and addon.Augment.Alerts and addon.Augment.Alerts.PreviewAlerts then addon.Augment.Alerts.PreviewAlerts() end end,
+            reset   = function() if addon.Augment and addon.Augment.Alerts and addon.Augment.Alerts.ResetPosition then addon.Augment.Alerts.ResetPosition() end end,
+            anchor  = function() if addon.Augment and addon.Augment.Alerts and addon.Augment.Alerts.ToggleEditMode then addon.Augment.Alerts.ToggleEditMode() end end,
+        },
+    }),
+})
 
 -- Insert after the last Augment category to preserve sidebar order
 local insertAt = #addon.OptionCategories + 1

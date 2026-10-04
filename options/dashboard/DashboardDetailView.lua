@@ -982,6 +982,24 @@ function addon.DashboardDetailView_Init(env)
         return true
     end
 
+    -- Fixed header buttons come from the page's `headerButtons` field.
+    local function ApplyPageHeaderButtons(cat)
+        local hb = (cat and cat.headerButtons) or {}
+        local function Wire(btn, fn)
+            if not btn then return end
+            if fn then
+                btn._onClick = fn
+                btn:Show()
+            else
+                btn:Hide()
+            end
+        end
+        Wire(f.detailPreviewBtn, hb.preview)
+        Wire(f.detailResetBtn, hb.reset)
+        Wire(f.detailAnchorBtn, hb.anchor)
+        if f.detailEnableBtn then f.detailEnableBtn:Hide() end
+    end
+
     --- @param skipEntranceCascade boolean|nil When true, skip staggered card entrance (search navigation expands accordions and must not snapshot pre-expand Y positions).
     f.OpenCategoryDetail = function(modName, catName, options, skipEntranceCascade)
         if searchBox then searchBox:ClearFocus() end
@@ -1024,63 +1042,7 @@ function addon.DashboardDetailView_Init(env)
         end
 
         -- Show fixed header buttons only for pages that expose them.
-            do
-                local selCat = matchedCatIdx and addon.OptionCategories[matchedCatIdx]
-                local isAugment = selCat and selCat.key == "AugmentImprovements"
-                local isAugmentAlerts = selCat and selCat.key == "AugmentAlerts"
-                if f.detailPreviewBtn then
-                    if isAugment then
-                        f.detailPreviewBtn._onClick = function()
-                            if addon.Augment and addon.Augment.PreviewToasts then addon.Augment.PreviewToasts() end
-                        end
-                        f.detailPreviewBtn:Show()
-                    elseif isAugmentAlerts then
-                        f.detailPreviewBtn._onClick = function()
-                            if addon.Augment and addon.Augment.Alerts and addon.Augment.Alerts.PreviewAlerts then
-                                addon.Augment.Alerts.PreviewAlerts()
-                            end
-                        end
-                        f.detailPreviewBtn:Show()
-                    else
-                        f.detailPreviewBtn:Hide()
-                    end
-                end
-                if f.detailResetBtn then
-                    if isAugment then
-                        f.detailResetBtn._onClick = function()
-                            if addon.Augment and addon.Augment.ResetPosition then addon.Augment.ResetPosition() end
-                        end
-                        f.detailResetBtn:Show()
-                    elseif isAugmentAlerts then
-                        f.detailResetBtn._onClick = function()
-                            if addon.Augment and addon.Augment.Alerts and addon.Augment.Alerts.ResetPosition then
-                                addon.Augment.Alerts.ResetPosition()
-                            end
-                        end
-                        f.detailResetBtn:Show()
-                    else
-                        f.detailResetBtn:Hide()
-                    end
-                end
-                if f.detailAnchorBtn then
-                    if isAugment then
-                        f.detailAnchorBtn._onClick = function()
-                            if addon.Augment and addon.Augment.ToggleAnchorFrame then addon.Augment.ToggleAnchorFrame() end
-                        end
-                        f.detailAnchorBtn:Show()
-                    elseif isAugmentAlerts then
-                        f.detailAnchorBtn._onClick = function()
-                            if addon.Augment and addon.Augment.Alerts and addon.Augment.Alerts.ToggleEditMode then
-                                addon.Augment.Alerts.ToggleEditMode()
-                            end
-                        end
-                        f.detailAnchorBtn:Show()
-                    else
-                        f.detailAnchorBtn:Hide()
-                    end
-                end
-                if f.detailEnableBtn then f.detailEnableBtn:Hide() end
-            end
+        ApplyPageHeaderButtons(matchedCatIdx and addon.OptionCategories[matchedCatIdx])
 
         f.BuildAccordionDetail(catName, options)
 
@@ -1296,62 +1258,7 @@ function addon.DashboardDetailView_Init(env)
             end
 
             -- Show fixed header buttons only for pages that expose them.
-            do
-                local isAugment = cats[1] and cats[1].key == "AugmentImprovements"
-                local isAugmentAlerts = cats[1] and cats[1].key == "AugmentAlerts"
-                if f.detailPreviewBtn then
-                    if isAugment then
-                        f.detailPreviewBtn._onClick = function()
-                            if addon.Augment and addon.Augment.PreviewToasts then addon.Augment.PreviewToasts() end
-                        end
-                        f.detailPreviewBtn:Show()
-                    elseif isAugmentAlerts then
-                        f.detailPreviewBtn._onClick = function()
-                            if addon.Augment and addon.Augment.Alerts and addon.Augment.Alerts.PreviewAlerts then
-                                addon.Augment.Alerts.PreviewAlerts()
-                            end
-                        end
-                        f.detailPreviewBtn:Show()
-                    else
-                        f.detailPreviewBtn:Hide()
-                    end
-                end
-                if f.detailResetBtn then
-                    if isAugment then
-                        f.detailResetBtn._onClick = function()
-                            if addon.Augment and addon.Augment.ResetPosition then addon.Augment.ResetPosition() end
-                        end
-                        f.detailResetBtn:Show()
-                    elseif isAugmentAlerts then
-                        f.detailResetBtn._onClick = function()
-                            if addon.Augment and addon.Augment.Alerts and addon.Augment.Alerts.ResetPosition then
-                                addon.Augment.Alerts.ResetPosition()
-                            end
-                        end
-                        f.detailResetBtn:Show()
-                    else
-                        f.detailResetBtn:Hide()
-                    end
-                end
-                if f.detailAnchorBtn then
-                    if isAugment then
-                        f.detailAnchorBtn._onClick = function()
-                            if addon.Augment and addon.Augment.ToggleAnchorFrame then addon.Augment.ToggleAnchorFrame() end
-                        end
-                        f.detailAnchorBtn:Show()
-                    elseif isAugmentAlerts then
-                        f.detailAnchorBtn._onClick = function()
-                            if addon.Augment and addon.Augment.Alerts and addon.Augment.Alerts.ToggleEditMode then
-                                addon.Augment.Alerts.ToggleEditMode()
-                            end
-                        end
-                        f.detailAnchorBtn:Show()
-                    else
-                        f.detailAnchorBtn:Hide()
-                    end
-                end
-                if f.detailEnableBtn then f.detailEnableBtn:Hide() end
-            end
+            ApplyPageHeaderButtons(cats[1])
 
             if cats[1] then
                 local options = type(cats[1].options) == "function" and cats[1].options() or cats[1].options

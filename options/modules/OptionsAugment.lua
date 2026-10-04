@@ -62,14 +62,14 @@ local categories = {
         end,
         options = {
             -- Parts: loot toasts and the loot window skin switch independently.
-            Section(L["AUGMENT_LOOT_PARTS_SECTION"]),
+            Section(L["AUGMENT_LOOT_PARTS_SECTION"], { page = "loot" }),
             Toggle(L["AUGMENT_LOOT_TOASTS_ENABLED"], L["AUGMENT_LOOT_TOASTS_ENABLED_DESC"], "augmentLootToastsEnabled", D.augmentLootToastsEnabled,
                 { set = function(v) setDB("augmentLootToastsEnabled", v); applyLootFrameState() end }),
             Toggle(L["AUGMENT_LOOT_WINDOW_SKIN_ENABLED"], L["AUGMENT_LOOT_WINDOW_SKIN_ENABLED_DESC"], "augmentLootWindowSkinEnabled", D.augmentLootWindowSkinEnabled,
                 { set = function(v) setDB("augmentLootWindowSkinEnabled", v); applyLootFrameState() end }),
 
             -- Toast Settings (two-column: Visibility | Toast Types)
-            Section(L["AUGMENT_TOAST_SETTINGS"]),
+            Section(L["AUGMENT_TOAST_SETTINGS"], { page = "loot" }),
             { type = "columns",
                 left = {
                     title = L["AUGMENT_MAX_VISIBLE_SECTION"],
@@ -223,7 +223,7 @@ local categories = {
             },
 
             -- Style (two-column: Stacking | Hold Durations)
-            Section(L["AUGMENT_STYLE_SECTION"]),
+            Section(L["AUGMENT_STYLE_SECTION"], { page = "loot" }),
             { type = "columns",
                 left = {
                     options = {
@@ -298,7 +298,7 @@ local categories = {
             },
 
             -- Sounds
-            Section(L["AUGMENT_SOUNDS"]),
+            Section(L["AUGMENT_SOUNDS"], { page = "loot" }),
             Toggle(L["AUGMENT_SOUND_ENABLED"], L["AUGMENT_SOUND_ENABLED_DESC"], "augmentSoundEnabled", D.augmentSoundEnabled),
             { type = "dropdown", name = L["AUGMENT_SOUND_CHANNEL"], desc = L["AUGMENT_SOUND_CHANNEL_DESC"], dbKey = "augmentSoundChannel",
                 options = {
@@ -368,7 +368,7 @@ local categories = {
                 { L["AUGMENT_VENDOR_VERBOSITY_SUMMARY"], "summary" },
             }
             return {
-                Section(L["AUGMENT_VENDOR_SELLER_SECTION"]),
+                Section(L["AUGMENT_VENDOR_SELLER_SECTION"], { page = "vendor" }),
                 Toggle(L["AUGMENT_VENDOR_SELLER_ENABLE"],        L["AUGMENT_VENDOR_SELLER_ENABLE_DESC"],        "autoSellerEnabled",  D.autoSellerEnabled),
                 Toggle(L["AUGMENT_VENDOR_SELLER_GREY"],          L["AUGMENT_VENDOR_SELLER_GREY_DESC"],          "autoSellerGrey",     D.autoSellerGrey,     { disabled = sellerDisabled }),
                 Toggle(L["AUGMENT_VENDOR_SELLER_UNUSABLE"],      L["AUGMENT_VENDOR_SELLER_UNUSABLE_DESC"],      "autoSellerUnusable",  D.autoSellerUnusable,  { disabled = sellerDisabled }),
@@ -395,7 +395,7 @@ local categories = {
                     set = function(v) setDB("autoSellerVerbosity", v) end,
                 },
 
-                Section(L["AUGMENT_VENDOR_REPAIR_SECTION"]),
+                Section(L["AUGMENT_VENDOR_REPAIR_SECTION"], { page = "vendor" }),
                 Toggle(L["AUGMENT_VENDOR_REPAIR_ENABLE"],     L["AUGMENT_VENDOR_REPAIR_ENABLE_DESC"],     "autoRepairEnabled",  D.autoRepairEnabled),
                 Toggle(L["AUGMENT_VENDOR_REPAIR_GUILDBANK"],  L["AUGMENT_VENDOR_REPAIR_GUILDBANK_DESC"],  "autoRepairGuildBank", D.autoRepairGuildBank, { disabled = repairDisabled }),
                 { type = "dropdown",
@@ -431,7 +431,7 @@ local categories = {
         end,
         options = function()
             return {
-                Section(L["AUGMENT_SELF_HIGHLIGHT_BEHAVIOUR"]),
+                Section(L["AUGMENT_SELF_HIGHLIGHT_BEHAVIOUR"], { page = "selfHighlight" }),
                 { type = "dropdown",
                     name     = L["AUGMENT_SELF_HIGHLIGHT_MODE"],
                     desc     = L["AUGMENT_SELF_HIGHLIGHT_MODE_DESC"],
@@ -465,6 +465,31 @@ local categories = {
 
 }
 
+local byKey = {}
+for _, cat in ipairs(categories) do byKey[cat.key] = cat end
+local FromCategory = addon.OptionsPages.FromCategory
+
+-- One page per Augment feature, in this order. Alerts, Loot Roll and Talking Head
+-- replace their placeholder defs from their own files, keeping this order.
+addon.RegisterModulePages("augment", {
+    FromCategory(byKey.AugmentImprovements, "loot", {
+        headerButtons = {
+            preview = function() if addon.Augment and addon.Augment.PreviewToasts then addon.Augment.PreviewToasts() end end,
+            reset   = function() if addon.Augment and addon.Augment.ResetPosition then addon.Augment.ResetPosition() end end,
+            anchor  = function() if addon.Augment and addon.Augment.ToggleAnchorFrame then addon.Augment.ToggleAnchorFrame() end end,
+        },
+    }),
+    { key = "alerts" },
+    { key = "lootRoll" },
+    { key = "talkingHead" },
+    FromCategory(byKey.AugmentVendor, "vendor"),
+    FromCategory(byKey.AugmentSelfHighlight, "selfHighlight"),
+    -- Its only control is the page's on/off switch, so it is emitted with no cards.
+    FromCategory(byKey.AugmentAchievementTracker, "achievementTracker", { allowEmpty = true }),
+})
+
 for i = 1, #categories do
-    addon.OptionCategories[#addon.OptionCategories + 1] = categories[i]
+    if categories[i].key ~= "AugmentAchievementTracker" then
+        addon.OptionCategories[#addon.OptionCategories + 1] = categories[i]
+    end
 end

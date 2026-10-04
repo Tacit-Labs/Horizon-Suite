@@ -80,3 +80,21 @@ function addon.RegisterModulePages(moduleKey, defs)
         m.defs[def.key] = def
     end
 end
+
+-- Fields a page def can take over from a legacy category table.
+local CATEGORY_PAGE_FIELDS = {
+    "desc", "icon", "accentColor", "enabledKey", "getEnabled", "setEnabled",
+    "hidden", "dashboardPreviewMode",
+}
+
+--- Build a page def from a legacy category table (Augment's feature pages).
+--- @param cat table  The category table
+--- @param key string  Page key
+--- @param extra table|nil  Extra def fields (headerButtons, allowEmpty, ...)
+--- @return table def
+function Pages.FromCategory(cat, key, extra)
+    local def = { key = key, name = cat.name }
+    for _, f in ipairs(CATEGORY_PAGE_FIELDS) do def[f] = cat[f] end
+    for k, v in pairs(extra or {}) do def[k] = v end
+    return def
+end
