@@ -236,7 +236,6 @@ for i = 1, 4 do
         type = "editbox", name = L["ECHO_GROUP_NAME"]:format(i), labelText = L["ECHO_GROUP_NAME"]:format(i),
         tooltip = L["ECHO_GROUP_NAME_DESC"], height = 24,
         dbKey = (i == 1) and "echoGroupNames" or nil,
-        advanced = (i > 2) or nil,
         get = function()
             local names = getDB("echoGroupNames", D.echoGroupNames)
             if type(names) ~= "table" or type(names[i]) ~= "string" then return "" end
@@ -266,7 +265,7 @@ for i = 1, 4 do
             end,
             allowDefault = true,
         })
-    end, { dbKey = (i == 1) and "echoGroupIcons" or nil, advanced = (i > 2) or nil })
+    end, { dbKey = (i == 1) and "echoGroupIcons" or nil })
 end
 
 for i, member in ipairs(GROUP_MEMBERS) do
@@ -274,7 +273,6 @@ for i, member in ipairs(GROUP_MEMBERS) do
     options[#options + 1] = {
         type = "dropdown", name = member.label, desc = L["ECHO_GROUP_MEMBER_DESC"],
         dbKey = (i == 1) and "echoGroupOf" or nil,
-        advanced = true,
         preserveOrder = true,
         options = function()
             local names = getDB("echoGroupNames", D.echoGroupNames)
