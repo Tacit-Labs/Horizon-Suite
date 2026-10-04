@@ -388,7 +388,7 @@ local categories = {
               set = function(r, g, b)
                   setDB("vistaTimeColorR", r); setDB("vistaTimeColorG", g); setDB("vistaTimeColorB", b)
               end },
-            Section(L["VISTA_PERFORMANCE_TEXT"], { page = "look", card = "perfDiffText" }),
+            Section(L["VISTA_PERFORMANCE_TEXT"], { page = "look", card = "perfDiffText", after = "text" }),
             FontRow(L["VISTA_PERFORMANCE_FONT"], L["VISTA_FONT_FPS_LATENCY_TEXT_BELOW_MINIMAP"], {
                 family = {
                     dbKey = "vistaPerfFontPath", searchable = true,

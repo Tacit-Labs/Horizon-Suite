@@ -319,7 +319,7 @@ local categories = {
                 parent = "dashboardClassTheme",
                 refreshIds = { "dashboardBackgroundTheme" },
             }
-            opts[#opts + 1] = { type = "section", name = L["AXIS_CLASS_THEME_MODULES_SECTION"], page = "look", card = "moduleClassColours" }
+            opts[#opts + 1] = { type = "section", name = L["AXIS_CLASS_THEME_MODULES_SECTION"], page = "look", card = "moduleClassColours", after = "colours" }
             opts[#opts + 1] = { type = "toggle", name = BM and BM("focus"), desc = L["FOCUS_CLASS_COLOURS_DESC"], dbKey = "classColorFocus", get = function() return getDB("classColorFocus", false) end, set = function(v) setDB("classColorFocus", v) end, refreshIds = { "_classColorAll" } }
             opts[#opts + 1] = { type = "toggle", name = BM and BM("presence"), desc = L["PRESENCE_CLASS_COLOURS_DESC"], dbKey = "classColorPresence", get = function() return getDB("classColorPresence", false) end, set = function(v) setDB("classColorPresence", v) end, refreshIds = { "_classColorAll" } }
             opts[#opts + 1] = { type = "toggle", name = BM and BM("vista"), desc = L["VISTA_CLASS_COLOURS_DESC"], dbKey = "classColorVista", get = function() return getDB("classColorVista", false) end, set = function(v) setDB("classColorVista", v) end, refreshIds = { "_classColorAll" } }

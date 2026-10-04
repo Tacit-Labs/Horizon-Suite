@@ -605,6 +605,25 @@ run(`
   check("content rule still hides a header with its own condition", own and own.visibleWhen() == false, "shown")
 `, 'subheading-scope');
 
+// --- Overflow cards: after = <card key> places a module card straight after that card ---------
+run(`
+  local A = HorizonSuite.OptionsAssemble
+  RESET()
+  local out = A.Run({ { key = "L", moduleKey = "focus", options = {
+    SEC("Plain", { page = "look", card = "plain" }), ROW("p1"),
+    SEC("Bg", { page = "look", card = "background" }), ROW("b1"),
+    SEC("Sizes", { page = "look", card = "sizes", after = "text" }), ROW("s1"),
+    SEC("Fonts", { page = "look", card = "text" }), ROW("f1"),
+    SEC("Style", { page = "look", card = "style", after = "text" }), ROW("st1"),
+    SEC("Theme", { page = "look", card = "theme", after = "colours" }), ROW("t1"),
+    SEC("Col", { page = "look", card = "colours" }), ROW("c1"),
+    SEC("Lost", { page = "look", card = "lost", after = "animation" }), ROW("l1"),
+  } } })
+  local look = SHAPE(OPTS(FIND(out, "focus:look")))
+  check("after places overflow straight after its card, ties by declaration; a missing target falls back to declaration order",
+    look == "S:CARD_TEXT|f1|S:Sizes|s1|S:Style|st1|S:CARD_COLOURS|c1|S:Theme|t1|S:CARD_BACKGROUND|b1|S:Plain|p1|S:Lost|l1", look)
+`, 'overflow-after');
+
 // --- Cards with nothing to show -------------------------------------------------------
 run(`
   local A = HorizonSuite.OptionsAssemble

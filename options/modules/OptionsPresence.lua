@@ -198,7 +198,7 @@ local categories = {
                     refreshIds = { "presencePreview" }, tooltip = L["PRESENCE_FONT_OUTLINE_DISCOVERY"],
                 },
             }, { keywords = { L["PRESENCE_DISCOVERY_SIZE"], L["PRESENCE_DISCOVERY_OUTLINE"] } }),
-            Section(L["PRESENCE_LARGE_NOTIFICATIONS"], { page = "look", card = "textSizes" }),
+            Section(L["PRESENCE_LARGE_NOTIFICATIONS"], { page = "look", card = "textSizes", after = "text" }),
             { type = "slider", name = L["PRESENCE_LARGE_PRIMARY_SIZE"], desc = L["PRESENCE_FONT_SIZE_LARGE_NOTIFICATION_TITLES_ZONE"], dbKey = "presencePrimaryLargeSz", min = LIM.presencePrimaryLargeSz.min, max = LIM.presencePrimaryLargeSz.max, get = function() return math.max(LIM.presencePrimaryLargeSz.min, math.min(LIM.presencePrimaryLargeSz.max, tonumber(getDB("presencePrimaryLargeSz", D.presencePrimaryLargeSz)) or D.presencePrimaryLargeSz)) end, set = function(v) setDB("presencePrimaryLargeSz", clamp(v, "presencePrimaryLargeSz")) end, refreshIds = { "presencePreview" } },
             { type = "slider", name = L["PRESENCE_LARGE_SECONDARY_SIZE"], desc = L["PRESENCE_FONT_SIZE_LARGE_NOTIFICATION_SUBTITLES"], dbKey = "presenceSecondaryLargeSz", min = LIM.presenceSecondaryLargeSz.min, max = LIM.presenceSecondaryLargeSz.max, get = function() return math.max(LIM.presenceSecondaryLargeSz.min, math.min(LIM.presenceSecondaryLargeSz.max, tonumber(getDB("presenceSecondaryLargeSz", D.presenceSecondaryLargeSz)) or D.presenceSecondaryLargeSz)) end, set = function(v) setDB("presenceSecondaryLargeSz", clamp(v, "presenceSecondaryLargeSz")) end, refreshIds = { "presencePreview" } },
             Section(L["PRESENCE_MEDIUM_NOTIFICATIONS"], { page = "look", card = "textSizes" }),

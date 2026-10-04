@@ -544,12 +544,43 @@ function Assemble.BuildPage(moduleKey, pageKey, chunks)
     local rank, seen = {}, {}
     for i, k in ipairs(Pages.SHARED_CARDS[pageKey] or {}) do rank[k] = i end
     for i, k in ipairs(order) do seen[k] = i end
+    -- A card whose section sets `after = <card key>` follows that card straight away (ties in
+    -- declaration order); one whose target is not on the page keeps its declaration place.
+    local after, followers = {}, {}
+    for _, k in ipairs(order) do
+        for _, chunk in ipairs(cards[k].chunks) do
+            local target = chunk.section.after
+            if target and target ~= k and cards[target] then
+                after[k] = target
+                break
+            end
+        end
+    end
+    for _, k in ipairs(order) do
+        if after[k] then
+            followers[after[k]] = followers[after[k]] or {}
+            table.insert(followers[after[k]], k)
+        end
+    end
     table.sort(order, function(a, b)
         local ra, rb = rank[a], rank[b]
         if ra and rb then return ra < rb end
         if ra or rb then return ra ~= nil end
         return seen[a] < seen[b]
     end)
+    local placed, sorted = {}, {}
+    local function Place(k)
+        if placed[k] then return end
+        placed[k] = true
+        sorted[#sorted + 1] = k
+        for _, f in ipairs(followers[k] or {}) do Place(f) end
+    end
+    for _, k in ipairs(order) do
+        if not after[k] then Place(k) end
+    end
+    -- Anything left sits in a loop of `after` targets; keep it in sorted order.
+    for _, k in ipairs(order) do Place(k) end
+    order = sorted
 
     local out, cardOf, cardList = {}, {}, {}
     for _, key in ipairs(order) do
