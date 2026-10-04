@@ -198,6 +198,7 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             false,
             {
                 id          = "rs_sectionTitleRares",
+                advanced    = true,
                 disabled    = RSDisabled,
                 visibleWhen = RSSubVisible,
                 set         = function(v)
@@ -279,6 +280,7 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             true,
             {
                 id          = "rs_coordWaypoint",
+                advanced    = true,
                 disabled    = RSDisabled,
                 visibleWhen = function()
                     return RSSubVisible() and addon.GetDB("rs_showCoords", true)
@@ -298,6 +300,7 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             false,
             {
                 id          = "rs_useTomTom",
+                advanced    = true,
                 disabled    = RSTomTomDisabled,
                 visibleWhen = RSTomTomVisible,
                 tooltip     = TomTomNotInstalledTooltip,
@@ -312,6 +315,7 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             false,
             {
                 id          = "rs_autoWaypoint",
+                advanced    = true,
                 disabled    = RSDisabled,
                 visibleWhen = RSSubVisible,
                 set         = function(v) setDB("rs_autoWaypoint", v) end,
@@ -325,6 +329,7 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             true,
             {
                 id          = "rs_showSeenAgo",
+                advanced    = true,
                 disabled    = RSDisabled,
                 visibleWhen = RSSubVisible,
                 set         = function(v)
@@ -341,6 +346,7 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             true,
             {
                 id          = "rs_showPortrait",
+                advanced    = true,
                 disabled    = RSDisabled,
                 visibleWhen = RSSubVisible,
                 refreshIds  = { "rs_modelPosition", "rs_modelSize", "rs_modelOffsetX" },
@@ -356,6 +362,7 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             name        = L["FOCUS_INTEGRATION_RARE_MODEL_POSITION"],
             desc        = L["FOCUS_INTEGRATION_RARE_MODEL_POSITION_DESC"],
             dbKey       = "rs_modelPosition",
+            advanced    = true,
             disabled    = RSDisabled,
             visibleWhen = function() return RSSubVisible() and addon.GetDB("rs_showPortrait", true) end,
             options     = function()
@@ -374,6 +381,7 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             "rs_modelSize", 32, 128, 64,
             {
                 id          = "rs_modelSize",
+                advanced    = true,
                 disabled    = RSDisabled,
                 visibleWhen = function() return RSSubVisible() and addon.GetDB("rs_showPortrait", true) end,
                 set         = function(v) setDB("rs_modelSize", v); addon.ScheduleRefresh() end,
@@ -386,6 +394,7 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             "rs_modelOffsetX", -100, 100, 0,
             {
                 id          = "rs_modelOffsetX",
+                advanced    = true,
                 disabled    = RSDisabled,
                 visibleWhen = function() return RSSubVisible() and addon.GetDB("rs_showPortrait", true) end,
                 set         = function(v) setDB("rs_modelOffsetX", v); addon.ScheduleRefresh() end,
@@ -399,6 +408,7 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             true,
             {
                 id          = "rs_showVignetteIcon",
+                advanced    = true,
                 disabled    = RSDisabled,
                 visibleWhen = RSSubVisible,
                 set         = function(v)
@@ -430,6 +440,7 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             name        = L["FOCUS_INTEGRATION_RARESCANNER_MIN_LOOT_QUALITY"],
             desc        = L["FOCUS_INTEGRATION_RARESCANNER_MIN_LOOT_QUALITY_DESC"],
             dbKey       = "rs_minLootQuality",
+            advanced    = true,
             disabled    = RSDisabled,
             visibleWhen = RSLootSubVisible,
             options     = function()
@@ -456,6 +467,7 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             3, 8, 6,
             {
                 id          = "rs_lootPerRow",
+                advanced    = true,
                 disabled    = RSDisabled,
                 visibleWhen = RSLootSubVisible,
                 set         = function(v)
@@ -472,6 +484,7 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             { 0.20, 0.85, 0.75 },
             {
                 id          = "rsColor",
+                advanced    = true,
                 disabled    = RSDisabled,
                 visibleWhen = RSSubVisible,
                 get         = function()
@@ -493,6 +506,7 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             false,
             {
                 id          = "rs_clickToTarget",
+                advanced    = true,
                 disabled    = RSDisabled,
                 visibleWhen = RSSubVisible,
                 set         = function(v) setDB("rs_clickToTarget", v) end,
@@ -506,6 +520,7 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             8, 24, 14,
             {
                 id       = "rs_navArrowSize",
+                advanced    = true,
                 disabled = RSDisabled,
                 set      = function(v)
                     setDB("rareNavArrowSize", v)
@@ -521,6 +536,7 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             1, 30, 5,
             {
                 id       = "rs_killFadeDelay",
+                advanced    = true,
                 disabled = RSDisabled,
                 set      = function(v) setDB("rs_killFadeDelay", v) end,
             }
@@ -535,6 +551,7 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             end,
             {
                 disabled    = RSDisabled,
+                advanced    = true,
                 visibleWhen = RSEnabled,
             }
         ),
@@ -591,6 +608,7 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             false,
             {
                 id          = "sd_sectionTitleRares",
+                advanced    = true,
                 disabled    = SDDisabled,
                 visibleWhen = SDSubVisible,
                 set         = function(v)
@@ -624,6 +642,7 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             true,
             {
                 id          = "sd_coordWaypoint",
+                advanced    = true,
                 disabled    = SDDisabled,
                 visibleWhen = function()
                     return SDSubVisible() and addon.GetDB("sd_showCoords", true)
@@ -643,6 +662,7 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             false,
             {
                 id          = "sd_useTomTom",
+                advanced    = true,
                 disabled    = SDTomTomDisabled,
                 visibleWhen = SDTomTomVisible,
                 tooltip     = TomTomNotInstalledTooltip,
@@ -657,6 +677,7 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             false,
             {
                 id          = "sd_autoWaypoint",
+                advanced    = true,
                 disabled    = SDDisabled,
                 visibleWhen = SDSubVisible,
                 set         = function(v) setDB("sd_autoWaypoint", v) end,
@@ -670,6 +691,7 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             true,
             {
                 id          = "sd_showSeenAgo",
+                advanced    = true,
                 disabled    = SDDisabled,
                 visibleWhen = SDSubVisible,
                 set         = function(v)
@@ -686,6 +708,7 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             true,
             {
                 id          = "sd_showPortrait",
+                advanced    = true,
                 disabled    = SDDisabled,
                 visibleWhen = SDSubVisible,
                 refreshIds  = { "sd_modelPosition", "sd_modelSize", "sd_modelOffsetX" },
@@ -701,6 +724,7 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             name        = L["FOCUS_INTEGRATION_RARE_MODEL_POSITION"],
             desc        = L["FOCUS_INTEGRATION_RARE_MODEL_POSITION_DESC"],
             dbKey       = "sd_modelPosition",
+            advanced    = true,
             disabled    = SDDisabled,
             visibleWhen = function() return SDSubVisible() and addon.GetDB("sd_showPortrait", true) end,
             options     = function()
@@ -719,6 +743,7 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             "sd_modelSize", 32, 128, 64,
             {
                 id          = "sd_modelSize",
+                advanced    = true,
                 disabled    = SDDisabled,
                 visibleWhen = function() return SDSubVisible() and addon.GetDB("sd_showPortrait", true) end,
                 set         = function(v) setDB("sd_modelSize", v); addon.ScheduleRefresh() end,
@@ -731,6 +756,7 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             "sd_modelOffsetX", -100, 100, 0,
             {
                 id          = "sd_modelOffsetX",
+                advanced    = true,
                 disabled    = SDDisabled,
                 visibleWhen = function() return SDSubVisible() and addon.GetDB("sd_showPortrait", true) end,
                 set         = function(v) setDB("sd_modelOffsetX", v); addon.ScheduleRefresh() end,
@@ -744,6 +770,7 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             true,
             {
                 id          = "sd_showVignetteIcon",
+                advanced    = true,
                 disabled    = SDDisabled,
                 visibleWhen = SDSubVisible,
                 set         = function(v)
@@ -792,6 +819,7 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             { 0.78, 0.87, 1.00 },
             {
                 id          = "sdColor",
+                advanced    = true,
                 disabled    = SDDisabled,
                 visibleWhen = SDSubVisible,
                 get         = function()
@@ -813,6 +841,7 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             false,
             {
                 id          = "sd_clickToTarget",
+                advanced    = true,
                 disabled    = SDDisabled,
                 visibleWhen = SDSubVisible,
                 set         = function(v) setDB("sd_clickToTarget", v) end,
@@ -826,6 +855,7 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             8, 24, 14,
             {
                 id       = "sd_navArrowSize",
+                advanced    = true,
                 disabled = SDDisabled,
                 set      = function(v)
                     setDB("rareNavArrowSize", v)
@@ -841,6 +871,7 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             1, 30, 5,
             {
                 id       = "sd_killFadeDelay",
+                advanced    = true,
                 disabled = SDDisabled,
                 set      = function(v) setDB("sd_killFadeDelay", v) end,
             }
@@ -856,6 +887,7 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             end,
             {
                 disabled    = SDDisabled,
+                advanced    = true,
                 visibleWhen = SDEnabled,
             }
         ),
