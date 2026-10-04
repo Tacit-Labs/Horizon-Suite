@@ -560,6 +560,7 @@ L["AUGMENT_GROW_DIRECTION_DESC"]                              = "Direction the l
 -- L["AUGMENT_CARD_ITEM_INFO"]                                 = "%s · %s"
 -- L["AUGMENT_CARD_TOTAL"]                                     = "Total %s"
 L["AUGMENT_TOAST_TYPES"]                                      = "Benachrichtigungstypen"
+-- L["AUGMENT_CARD_OTHER_TOASTS"]                               = "Money, Currency & Reputation"
 L["AUGMENT_TOAST_TYPES_PAGE_DESC"]                            = "Festlegung, welche Beutetypen eine Benachrichtigung auslösen."
 L["AUGMENT_SHOW_ITEMS"]                                       = "Zeige erbeutete Gegenstände"
 L["AUGMENT_SHOW_ITEMS_DESC"]                                  = "Benachrichtigung anzeigen, wenn ein Gegenstand erbeutet wird."

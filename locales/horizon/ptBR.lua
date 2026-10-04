@@ -559,6 +559,7 @@ L["AUGMENT_GROW_DIRECTION_DESC"]                              = "Direction the l
 -- L["AUGMENT_CARD_ITEM_INFO"]                                 = "%s · %s"
 -- L["AUGMENT_CARD_TOTAL"]                                     = "Total %s"
 -- L["AUGMENT_TOAST_TYPES"]                                   = "Toast Types"
+-- L["AUGMENT_CARD_OTHER_TOASTS"]                               = "Money, Currency & Reputation"
 -- L["AUGMENT_TOAST_TYPES_PAGE_DESC"]                         = "Choose which loot types trigger a toast notification."
 -- L["AUGMENT_SHOW_ITEMS"]                                    = "Item Toasts"
 -- L["AUGMENT_SHOW_ITEMS_DESC"]                               = "Show a toast when you loot an item."
