@@ -40,7 +40,7 @@ const PREREQS = [
   'modules/Echo/EchoOptions.lua',  // Echo.TierKey / Echo.FeedKey name Echo's settings
 ];
 
-// The options files in HorizonSuite.toc order, from the helpers through the platform prune.
+// The options files in HorizonSuite.toc order, from the helpers through the search index.
 const FILES = [
   'options/OptionsHelpers.lua',
   'options/OptionsPages.lua',
@@ -74,6 +74,7 @@ const FILES = [
   'options/modules/OptionsFocusIntegrations.lua',
   'options/OptionsAssemble.lua',
   'options/OptionsPlatform.lua',  // prunes rows whose `requires` capability is absent
+  'options/OptionsSearch.lua',    // builds the search index over the assembled pages
 ];
 
 // Each module's page keys, in sidebar order, on a client with every capability.
@@ -144,6 +145,7 @@ function assemble(capsOff) {
       OptionsData_SetDB = function() end,
       OptionsData_NotifyMainAddon = function() end,
       Platform = { Has = function(k) return not CAPS_OFF[k] end },
+      GetModuleDisplayName = function(k) return k end,
       OptionCategories = {},
       SPACING_PRESETS = setmetatable({}, { __index = function() return {} end }),
       GROUP_ORDER_PRESETS = {},
@@ -154,6 +156,7 @@ function assemble(capsOff) {
     _G.HorizonSuite = setmetatable(real, { __index = function(_, k) MISSING[k] = true; return nil end })
     C_AddOns = { IsAddOnLoaded = function() return false end }
     IsAddOnLoaded = function() return false end
+    NUM_BAG_SLOTS = 4  -- read by a desc function the search index resolves
   `, 'stub');
   for (const f of PREREQS.concat(FILES)) run(read(f), f);
 
@@ -197,6 +200,16 @@ function assemble(capsOff) {
         cards[#cards + 1] = q(cat.key) .. ":[" .. table.concat(parts, ",") .. "]"
       end
     end
+    -- Search results with no name to show (the dashboard shows name, searchName or labelText).
+    local blank = {}
+    local okIdx, idx = pcall(OptionsData_BuildSearchIndex)
+    if not okIdx then blank[1] = "index failed: " .. tostring(idx) end
+    for _, e in ipairs(okIdx and idx or {}) do
+      local o = e.option
+      local n = o.name or o.searchName or o.labelText
+      if type(n) == "function" then n = n() end
+      if not n or n == "" then blank[#blank + 1] = tostring(e.categoryKey) .. " › " .. tostring(o.type) end
+    end
     local mods = {}
     for mk, keys in pairs(pages) do mods[#mods + 1] = q(mk) .. ":" .. list(keys) end
     local missing = {}
@@ -207,6 +220,7 @@ function assemble(capsOff) {
       '"untagged":' .. list(untagged),
       '"columns":' .. list(columns),
       '"survivors":' .. list(survivors),
+      '"blank":' .. list(blank),
       '"cards":{' .. table.concat(cards, ",") .. "}",
       '"pages":{' .. table.concat(mods, ",") .. "}",
       '"missing":' .. list(missing),
@@ -223,6 +237,7 @@ function common(label, r) {
   check(label + ': no page contains a columns row', r.columns.length === 0, r.columns.join(', '));
   check(label + ': no row survives whose capability is absent', r.survivors.length === 0,
     r.survivors.join(', '));
+  check(label + ': every search result has a name', r.blank.length === 0, r.blank.join(', '));
   // A card holding nothing but the zero-height preview proxy looks empty on screen.
   const empty = [];
   for (const [key, list] of Object.entries(r.cards)) {

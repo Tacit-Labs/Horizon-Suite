@@ -71,7 +71,7 @@ local categories = {
         moduleKey = "presence",
         options = {
             Section(L["PRESENCE_PREVIEW"], { page = "notifications", card = "preview" }),
-            { type = "presencePreview" },
+            { type = "presencePreview", searchName = L["PRESENCE_PREVIEW"] },
         },
     },
     {

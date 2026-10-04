@@ -112,7 +112,10 @@ function OptionsData_SearchResultDetailText(opt, maxLen)
 end
 
 -- Row types that are layout, not settings, and never appear as results.
-local NOT_SEARCHABLE = { section = true, header = true, moduleReloadPrompt = true, moreToggle = true }
+-- talkingHeadPreview is a zero-height refresh proxy; the preview itself is pinned above the page.
+local NOT_SEARCHABLE = {
+    section = true, header = true, moduleReloadPrompt = true, moreToggle = true, talkingHeadPreview = true,
+}
 
 local function ResolveText(v)
     if type(v) == "function" then return v() end
@@ -140,7 +143,7 @@ local function BuildSearchIndexUncached()
                 currentSection = ResolveText(opt.name) or ""
                 currentCardId = opt.cardId
             elseif not NOT_SEARCHABLE[opt.type] then
-                local rawName = ResolveText(opt.name) or ResolveText(opt.searchName)
+                local rawName = ResolveText(opt.name) or ResolveText(opt.searchName) or ResolveText(opt.labelText)
                 local name = (rawName or ""):lower()
                 local rawDesc, rawTooltip = ResolveText(opt.desc), ResolveText(opt.tooltip)
                 local desc = ((rawDesc or "") .. " " .. (rawTooltip or "")):lower()

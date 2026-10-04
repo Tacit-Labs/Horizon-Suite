@@ -510,7 +510,7 @@ function addon.DashboardDetailView_Init(env)
             
             local rawName
             if m.option then
-                local n = m.option.name or m.option.searchName
+                local n = m.option.name or m.option.searchName or m.option.labelText
                 rawName = type(n) == "function" and n() or n
             end
             local optionName = tostring(rawName or "")
