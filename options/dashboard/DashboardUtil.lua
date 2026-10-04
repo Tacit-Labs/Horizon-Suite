@@ -79,7 +79,7 @@ end
 -- @param catKey string
 -- @return boolean
 function addon.Dashboard_IsAxisCategoryKey(catKey)
-    if catKey == "Profiles" or catKey == "Modules" or catKey == "GlobalToggles" then return true end
+    if catKey == "Profiles" or catKey == "GlobalToggles" then return true end
     return type(catKey) == "string" and catKey:sub(1, 5) == "axis:"
 end
 

@@ -157,7 +157,6 @@ function addon.Dashboard_BuildMainFrame()
             local categoryIcons = {
                 ["Axis"] = "INV_Misc_Wrench_01",
                 ["Profiles"] = "INV_Misc_GroupNeedMore",
-                ["Modules"] = "inv_10_engineering_purchasedparts_color2",
                 ["GlobalToggles"] = "Trade_Engineering",
                 ["Focus"] = "achievement_quests_completed_05",
                 ["Presence"] = "vas_guildnamechange",
@@ -167,8 +166,6 @@ function addon.Dashboard_BuildMainFrame()
                 ["Essence"] = "achievement_character_human_male",
                 ["Echo"] = "Interface\\AddOns\\" .. (addon.ADDON_NAME or "HorizonSuite") .. "\\media\\echo\\echo_icon.tga",
                 ["Meridian"] = "ability_tracking",
-                ["Typography"] = "INV_Misc_Book_09",
-                ["Colors"] = "INV_Misc_Gem_Diamond_01",
                 ["General"] = "INV_Misc_Question_01",
                 ["Core"] = "INV_Misc_Wrench_01",
             }
