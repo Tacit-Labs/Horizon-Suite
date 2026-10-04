@@ -376,10 +376,10 @@ function Assemble.BuildPage(moduleKey, pageKey, chunks)
         if #advanced > 0 then
             out[#out + 1] = { type = "moreToggle", cardId = cardId, count = #advanced }
             for _, r in ipairs(advanced) do
-                local row, own = r, r.visibleWhen
+                local own = r.visibleWhen
                 r.visibleWhen = function()
                     if own and not own() then return false end
-                    return Assemble.IsMoreOpen(cardId) or Assemble.IsRevealed(row)
+                    return Assemble.IsMoreOpen(cardId) or Assemble.IsRevealed(r)
                 end
                 out[#out + 1] = r
             end
