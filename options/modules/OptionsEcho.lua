@@ -59,16 +59,16 @@ local HISTORY_DAYS_OPTIONS = {
     { L["ECHO_HISTORY_FOREVER"], 0  },
 }
 
-local function TierDropdown(kind, label)
+local function TierDropdown(kind, label, advanced)
     local key = addon.Echo.TierKey(kind)
-    return { type = "dropdown", name = label, desc = L["ECHO_TIER_DESC"], dbKey = key,
+    return { type = "dropdown", name = label, desc = L["ECHO_TIER_DESC"], dbKey = key, advanced = advanced,
         options = TIER_OPTIONS, preserveOrder = true,
         get = function() return getDB(key, D[key]) end,
         set = function(v) setDB(key, v) end }
 end
 
-local function IntSlider(key, name, desc, step)
-    return { type = "slider", name = name, desc = desc, dbKey = key,
+local function IntSlider(key, name, desc, step, advanced)
+    return { type = "slider", name = name, desc = desc, dbKey = key, advanced = advanced,
         min = LIM[key].min, max = LIM[key].max, step = step,
         get = function() return tonumber(getDB(key, D[key])) or D[key] end,
         set = function(v) setDB(key, clamp(math.floor(v + 0.5), key)) end }
@@ -98,7 +98,7 @@ local options = {
         setDB("echoX", nil)
         setDB("echoY", nil)
     end),
-    { type = "dropdown", name = L["ECHO_STRATA"], desc = L["ECHO_STRATA_DESC"], dbKey = "echoFrameStrata",
+    { type = "dropdown", name = L["ECHO_STRATA"], desc = L["ECHO_STRATA_DESC"], dbKey = "echoFrameStrata", advanced = true,
       options = {
           { L["FOCUS_STRATA_BACKGROUND"], "BACKGROUND" }, { L["FOCUS_STRATA_LOW"], "LOW" },
           { L["FOCUS_STRATA_MEDIUM"], "MEDIUM" }, { L["FOCUS_STRATA_HIGH"], "HIGH" },
@@ -136,8 +136,8 @@ local options = {
         local E = Echo()
         if E and E.Sound then E.Sound.Whisper(false, true) end
     end),
-    Toggle(L["ECHO_SOUND_IN_COMBAT"], L["ECHO_SOUND_IN_COMBAT_DESC"], "echoSoundInCombat", D.echoSoundInCombat),
-    Toggle(L["ECHO_SOUND_BNET"], L["ECHO_SOUND_BNET_DESC"], "echoSoundBnet", D.echoSoundBnet),
+    Toggle(L["ECHO_SOUND_IN_COMBAT"], L["ECHO_SOUND_IN_COMBAT_DESC"], "echoSoundInCombat", D.echoSoundInCombat, { advanced = true }),
+    Toggle(L["ECHO_SOUND_BNET"], L["ECHO_SOUND_BNET_DESC"], "echoSoundBnet", D.echoSoundBnet, { advanced = true }),
     { type = "editbox", name = L["ECHO_KEYWORDS"], labelText = L["ECHO_KEYWORDS"], tooltip = L["ECHO_KEYWORDS_DESC"],
       dbKey = "echoKeywords", height = 24,
       get = function() return getDB("echoKeywords", D.echoKeywords) or "" end,
@@ -151,8 +151,8 @@ local options = {
     TierDropdown("instance", L["ECHO_KIND_INSTANCE"]),
     TierDropdown("guild",    L["ECHO_KIND_GUILD"]),
     TierDropdown("officer",  L["ECHO_KIND_OFFICER"]),
-    TierDropdown("channel",  L["ECHO_KIND_CHANNEL"]),
-    TierDropdown("nearby",   L["ECHO_NEARBY"]),
+    TierDropdown("channel",  L["ECHO_KIND_CHANNEL"], true),
+    TierDropdown("nearby",   L["ECHO_NEARBY"], true),
 
     Section(L["ECHO_SECTION_FEEDS"], { page = "feeds" }),
     Toggle(L["ECHO_ALL_VIEW"], L["ECHO_ALL_VIEW_DESC"], "echoAllView", D.echoAllView),
@@ -235,6 +235,7 @@ for i = 1, 4 do
         type = "editbox", name = L["ECHO_GROUP_NAME"]:format(i), labelText = L["ECHO_GROUP_NAME"]:format(i),
         tooltip = L["ECHO_GROUP_NAME_DESC"], height = 24,
         dbKey = (i == 1) and "echoGroupNames" or nil,
+        advanced = (i > 2) or nil,
         get = function()
             local names = getDB("echoGroupNames", D.echoGroupNames)
             if type(names) ~= "table" or type(names[i]) ~= "string" then return "" end
@@ -264,7 +265,7 @@ for i = 1, 4 do
             end,
             allowDefault = true,
         })
-    end, (i == 1) and { dbKey = "echoGroupIcons" } or nil)
+    end, { dbKey = (i == 1) and "echoGroupIcons" or nil, advanced = (i > 2) or nil })
 end
 
 for i, member in ipairs(GROUP_MEMBERS) do
@@ -272,6 +273,7 @@ for i, member in ipairs(GROUP_MEMBERS) do
     options[#options + 1] = {
         type = "dropdown", name = member.label, desc = L["ECHO_GROUP_MEMBER_DESC"],
         dbKey = (i == 1) and "echoGroupOf" or nil,
+        advanced = true,
         preserveOrder = true,
         options = function()
             local names = getDB("echoGroupNames", D.echoGroupNames)
@@ -312,9 +314,9 @@ local tail = {
     Section(L["ECHO_SECTION_HISTORY"], { page = "general", card = "history" }),
     Toggle(L["ECHO_SAVE_HISTORY"], L["ECHO_SAVE_HISTORY_DESC"], "echoSaveHistory", D.echoSaveHistory),
     Toggle(L["ECHO_SAVE_GUILD"], L["ECHO_SAVE_GUILD_DESC"], "echoSaveGuild", D.echoSaveGuild,
-        { visibleWhen = function() return getDB("echoSaveHistory", D.echoSaveHistory) ~= false end }),
+        { visibleWhen = function() return getDB("echoSaveHistory", D.echoSaveHistory) ~= false end, advanced = true }),
     Toggle(L["ECHO_SAVE_OFFICER"], L["ECHO_SAVE_OFFICER_DESC"], "echoSaveOfficer", D.echoSaveOfficer,
-        { visibleWhen = function() return getDB("echoSaveHistory", D.echoSaveHistory) ~= false end }),
+        { visibleWhen = function() return getDB("echoSaveHistory", D.echoSaveHistory) ~= false end, advanced = true }),
     { type = "dropdown", name = L["ECHO_HISTORY_DAYS"], desc = L["ECHO_HISTORY_DAYS_DESC"], dbKey = "echoHistoryDays",
       options = HISTORY_DAYS_OPTIONS, preserveOrder = true,
       get = function() return getDB("echoHistoryDays", D.echoHistoryDays) end,
@@ -328,7 +330,7 @@ local tail = {
     Toggle(L["ECHO_HIDE_STORED"], L["ECHO_HIDE_STORED_DESC"], "echoHideStoredWhispers", D.echoHideStoredWhispers),
     Toggle(L["ECHO_DOCK_INPUT"], L["ECHO_DOCK_INPUT_DESC"], "echoDockInput", D.echoDockInput),
     Toggle(L["ECHO_INPUT_ALWAYS_VISIBLE"], L["ECHO_INPUT_ALWAYS_VISIBLE_DESC"], "echoInputAlwaysVisible", D.echoInputAlwaysVisible,
-        { visibleWhen = function() return getDB("echoDockInput", D.echoDockInput) ~= false end }),
+        { visibleWhen = function() return getDB("echoDockInput", D.echoDockInput) ~= false end, advanced = true }),
     Toggle(L["ECHO_HIDE_CHAT"], L["ECHO_HIDE_CHAT_DESC"], "echoHideBlizzardChat", D.echoHideBlizzardChat),
     { type = "dropdown", name = L["ECHO_COMBAT_LOG"], desc = L["ECHO_COMBAT_LOG_DESC"], dbKey = "echoCombatLog",
       options = COMBAT_LOG_OPTIONS, preserveOrder = true,
@@ -343,10 +345,10 @@ local tail = {
 
     Section(L["ECHO_SECTION_CARD"], { page = "look", card = "card" }),
     IntSlider("echoCardWidth",  L["ECHO_CARD_WIDTH"],  L["ECHO_CARD_SIZE_DESC"], 10),
-    IntSlider("echoCardHeight", L["ECHO_CARD_HEIGHT"], L["ECHO_CARD_SIZE_DESC"], 10),
+    IntSlider("echoCardHeight", L["ECHO_CARD_HEIGHT"], L["ECHO_CARD_SIZE_DESC"], 10, true),
     IntSlider("echoCardTextSize", L["ECHO_CARD_TEXT_SIZE"], L["ECHO_CARD_TEXT_SIZE_DESC"], 1),
     Toggle(L["ECHO_ANIMATE_CARD"], L["ECHO_ANIMATE_CARD_DESC"], "echoAnimateCard", D.echoAnimateCard),
-    IntSlider("echoCardIdleClose", L["ECHO_CARD_IDLE_CLOSE"], L["ECHO_CARD_IDLE_CLOSE_DESC"], 5),
+    IntSlider("echoCardIdleClose", L["ECHO_CARD_IDLE_CLOSE"], L["ECHO_CARD_IDLE_CLOSE_DESC"], 5, true),
     { type = "dropdown", name = L["ECHO_FONT"], desc = L["ECHO_FONT_DESC"], dbKey = "echoFontPath", searchable = true,
       options = function() return addon.GetPerElementFontDropdownOptions("echoFontPath") end,
       get = function() return getDB("echoFontPath", D.echoFontPath) end,
