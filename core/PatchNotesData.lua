@@ -19,6 +19,24 @@ local addon = _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["6.5.1"] = {
+        date = "2026-10-04",
+        {
+            section = "New Features",
+            bullets = {
+                "Focus: a new option hides the group finder eye beside group quests, and the quest text uses the space it leaves. It starts on, so nothing changes unless you turn it off.",
+            },
+        },
+        {
+            section = "Fixes",
+            bullets = {
+                "Augment: with auto-loot on, items you can't pick up, such as when your bags are full, show in the loot window straight away instead of after several clicks.",
+                "Augment: with Blizzard's controller interface on, taking loot no longer triggers a \"blocked action\" warning; the loot window keeps Blizzard's own look in that mode.",
+                "Core: with Blizzard's controller interface on, the Escape menu no longer triggers a \"blocked action\" warning. Horizon Suite's button is left off that menu in controller mode, and /horizon still opens the settings.",
+            },
+        },
+    },
+
     ["6.5.0"] = {
         date = "2026-10-03",
         {
