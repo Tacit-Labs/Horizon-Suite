@@ -8,6 +8,14 @@ if not addon or not addon.OptionCategories then return end
 
 local L = addon.L
 
+-- Axis pages: General keeps the Modules key and Look & Feel keeps GlobalToggles, so
+-- Welcome links and Dashboard_IsAxisCategoryKey keep working.
+addon.RegisterModulePages("axis", {
+    { key = "general", legacyKey = "Modules" },
+    { key = "look", legacyKey = "GlobalToggles", desc = L["AXIS_SUITE_WIDE_CLASS_COLOUR_TINTING_UI"] },
+    { key = "profiles", name = L["PROFILES"], legacyKey = "Profiles", desc = L["MANAGE_SWITCH_BETWEEN_YOUR_ADDON_CONFIGURATIONS"] },
+})
+
 local categories = {
     {
         key = "Modules",
@@ -23,7 +31,7 @@ local categories = {
                 addon:SetModuleEnabled(moduleKey, v, defer and { deferReload = true } or nil)
             end
             return {
-                { type = "section", name = L["MODULE_TOGGLES"] },
+                { type = "section", name = L["MODULE_TOGGLES"], page = "general", card = "modules" },
                 { type = "toggle", name = BM and BM("focus"),                                    desc = L["DASH_OBJECTIVE_TRACKER_QUESTS_WORLD_QUESTS"], dbKey = "_module_focus",   get = function() return addon:IsModuleEnabled("focus")    end, set = function(v) setModuleFromOptions("focus",    v) end },
                 { type = "toggle", name = BM and BM("presence"),                                 desc = L["DASH_ZONE_TEXT_AND_NOTIFICATIONS"],           dbKey = "_module_presence", get = function() return addon:IsModuleEnabled("presence") end, set = function(v) setModuleFromOptions("presence", v) end },
                 { type = "toggle", name = BM and BM("vista"),                                    desc = L["DASH_MINIMAP_ZONE_TEXT_COORDS_BUTTON"],       dbKey = "_module_vista",    get = function() return addon:IsModuleEnabled("vista")    end, set = function(v) setModuleFromOptions("vista",    v) end },
@@ -38,7 +46,6 @@ local categories = {
     {
         key = "Profiles",
         name = L["PROFILES"],
-        desc = L["MANAGE_SWITCH_BETWEEN_YOUR_ADDON_CONFIGURATIONS"],
         moduleKey = nil,
         options = function()
             local opts = {}
@@ -55,7 +62,7 @@ local categories = {
             end
 
             -- Section A: Global switch + current profile
-            opts[#opts + 1] = { type = "section", name = L["PROFILES"] }
+            opts[#opts + 1] = { type = "section", name = L["PROFILES"], page = "profiles" }
 
             opts[#opts + 1] = {
                 type = "toggle",
@@ -213,7 +220,7 @@ local categories = {
             }
 
             -- Section B: Per-spec switch + spec dropdowns
-            opts[#opts + 1] = { type = "section", name = L["AXIS_SPEC_PROFILES"] }
+            opts[#opts + 1] = { type = "section", name = L["AXIS_SPEC_PROFILES"], page = "profiles" }
 
             opts[#opts + 1] = {
                 type = "toggle",
@@ -324,7 +331,7 @@ local categories = {
             }
 
             -- Section C: Sharing (export / import)
-            opts[#opts + 1] = { type = "section", name = L["AXIS_SHARING"] }
+            opts[#opts + 1] = { type = "section", name = L["AXIS_SHARING"], page = "profiles" }
 
             opts[#opts + 1] = {
                 type = "dropdown",

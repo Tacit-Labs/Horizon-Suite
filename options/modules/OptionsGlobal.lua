@@ -17,7 +17,6 @@ local categories = {
     {
         key = "GlobalToggles",
         name = L["AXIS_GLOBAL_TOGGLES"],
-        desc = L["AXIS_SUITE_WIDE_CLASS_COLOUR_TINTING_UI"],
         moduleKey = nil,
         options = function()
             local BM = addon.BrandModule
@@ -36,7 +35,7 @@ local categories = {
                 return out
             end
             local opts = {}
-            opts[#opts + 1] = { type = "section", name = L["AXIS_DASHBOARD_SECTION"] }
+            opts[#opts + 1] = { type = "section", name = L["AXIS_DASHBOARD_SECTION"], page = "look", card = "dashboard" }
             opts[#opts + 1] = {
                 type = "dropdown",
                 name = L["AXIS_MODULE_NAME_DISPLAY"],
@@ -234,7 +233,7 @@ local categories = {
                 get = function() return getDB("autoShowPatchNotesOnLogin", true) end,
                 set = function(v) setDB("autoShowPatchNotesOnLogin", v) end,
             }
-            opts[#opts + 1] = { type = "section", name = L["AXIS_CLASS_THEME_SECTION"] }
+            opts[#opts + 1] = { type = "section", name = L["AXIS_CLASS_THEME_SECTION"], page = "look", card = "colours" }
             local classColorKeys = {
                 "classColorDashboard", "classColorVista", "classColorInsight", "classColorEssence",
                 "classColorFocus", "classColorPresence", "classColorAugment", "classColorEcho",
@@ -332,7 +331,7 @@ local categories = {
             opts[#opts + 1] = { type = "toggle", name = BM and BM("augment"), desc = L["AUGMENT_CLASS_COLOURS_DESC"], dbKey = "classColorAugment", get = function() return getDB("classColorAugment", false) end, set = function(v) setDB("classColorAugment", v) end, refreshIds = { "_classColorAll" } }
             opts[#opts + 1] = { type = "toggle", name = BM and BM("essence"), desc = L["ESSENCE_CLASS_COLOURS_DESC"], dbKey = "classColorEssence", get = function() return getDB("classColorEssence", false) end, set = function(v) setDB("classColorEssence", v) end, refreshIds = { "_classColorAll" } }
             opts[#opts + 1] = { type = "toggle", name = BM and BM("echo"), desc = L["ECHO_CLASS_COLOURS_DESC"], dbKey = "classColorEcho", get = function() return getDB("classColorEcho", false) end, set = function(v) setDB("classColorEcho", v) end, refreshIds = { "_classColorAll" } }
-            opts[#opts + 1] = { type = "section", name = L["AXIS_GLOBAL_FONT_SECTION"] }
+            opts[#opts + 1] = { type = "section", name = L["AXIS_GLOBAL_FONT_SECTION"], page = "look", card = "text" }
             local isGlobalFontOn = function() return getDB("useGlobalFont", D and D.useGlobalFont or false) end
             opts[#opts + 1] = {
                 type = "toggle",
@@ -368,7 +367,7 @@ local categories = {
                 displayFn = addon.GetFontNameForPath,
                 fontPreviewInList = true,
             }
-            opts[#opts + 1] = { type = "section", name = L["AXIS_GLOBAL_SCALE_SECTION"] }
+            opts[#opts + 1] = { type = "section", name = L["AXIS_GLOBAL_SCALE_SECTION"], page = "layout", card = "size" }
             local function refreshAllScaling()
                 if addon.ApplyTypography then addon.ApplyTypography() end
                 if addon.ApplyDimensions then addon.ApplyDimensions() end
@@ -458,7 +457,7 @@ local categories = {
                     and not (addon.IsModuleEnabled and addon:IsModuleEnabled("vista")
                              and getDB("vistaCollectHorizonMinimapButton", true))
             end
-            opts[#opts + 1] = { type = "section", name = L["AXIS_MINIMAP_ICON_SECTION"] }
+            opts[#opts + 1] = { type = "section", name = L["AXIS_MINIMAP_ICON_SECTION"], page = "general", card = "minimapIcon" }
             opts[#opts + 1] = { type = "toggle", name = L["PRESENCE_SHOW_MINIMAP_ICON"], desc = L["PRESENCE_A_CLICKABLE_ICON_MINIMAP_OPENS"], dbKey = "hideMinimapButton", get = function() return not getDB("hideMinimapButton", false) end, set = function(v)
                 -- Write DB synchronously so dependents' refreshIds see the new value immediately.
                 setDB("hideMinimapButton", not v)
@@ -492,7 +491,7 @@ local categories = {
                     if addon.MinimapButton_ApplyPosition then addon.MinimapButton_ApplyPosition() end
                 end }
             opts[#opts + 1] = { type = "button", dbKey = "__minimapButtonReset", name = L["PRESENCE_RESET_MINIMAP_BUTTON_POSITION"], desc = L["PRESENCE_RESET_MINIMAP_BUTTON_DEFAULT_POSITION"], visibleWhen = isMinimapStandalone, onClick = function() setDB("minimapButtonX", nil); setDB("minimapButtonY", nil); setDB("minimapButtonAngle", nil); if addon.MinimapButton_ApplyPosition then addon.MinimapButton_ApplyPosition() end end }
-            opts[#opts + 1] = { type = "section", name = L["AXIS_GAME_MENU_SECTION"] }
+            opts[#opts + 1] = { type = "section", name = L["AXIS_GAME_MENU_SECTION"], page = "general", card = "behaviour" }
             opts[#opts + 1] = {
                 type    = "toggle",
                 name    = L["AXIS_SHOW_GAME_MENU_BUTTON"],
