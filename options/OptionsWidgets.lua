@@ -1407,7 +1407,8 @@ function _G.OptionsWidgets_CreateSizeStepper(parent, get, set, minVal, maxVal, s
         edit:ClearFocus()
         reverting = false
     end)
-    -- A stepper hidden mid-edit (card collapsed, dashboard closed) drops focus and saves nothing new.
+    -- A stepper hidden mid-edit (card collapsed, dashboard closed) drops focus; focus loss commits
+    -- the typed value as usual, so a hidden EditBox never keeps the keyboard.
     edit:SetScript("OnHide", function()
         if edit:HasFocus() then edit:ClearFocus() end
     end)
