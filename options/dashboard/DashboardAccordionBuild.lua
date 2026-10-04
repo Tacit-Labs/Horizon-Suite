@@ -1328,9 +1328,16 @@ function addon.DashboardAccordionBuild_Init(f, p)
             local firstDone = false
             for _, card in ipairs(currentDetailCards) do
                 if card.cardId and not card.headerToggleEnabled then
-                    local isFirst = not firstDone
-                    firstDone = true
-                    card.SetExpandedInstant(Assemble.IsCardExpanded(card.cardId, isFirst))
+                    if card.visibleWhen and not card.visibleWhen() then
+                        -- Hidden by its own condition: SetExpandedInstant would undo the hide
+                        -- path's SetHeight(0). Record the state only; a hidden card never counts as
+                        -- the first card, so it defaults to closed.
+                        card.expanded = Assemble.IsCardExpanded(card.cardId, false) and true or false
+                    else
+                        local isFirst = not firstDone
+                        firstDone = true
+                        card.SetExpandedInstant(Assemble.IsCardExpanded(card.cardId, isFirst))
+                    end
                     local id = card.cardId
                     card.onExpandedChanged = function(expanded) Assemble.SetCardExpanded(id, expanded) end
                 end
