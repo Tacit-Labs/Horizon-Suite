@@ -94,3 +94,23 @@ Same steps as Task 2. Each Augment feature page's header switch stays everyday, 
 **Files:** Modify `options/modules/OptionsAxis.lua`, `options/modules/OptionsGlobal.lua`, `options/modules/OptionsEssence.lua`.
 
 Same steps as Task 2. Essence has five rows; mark nothing unless a row is clearly niche. Commit `refactor(axis): fold niche settings and nest dependent rows`.
+
+### Task 8: Cards with nothing to show hide themselves; indent only under a same-card parent
+
+Added during execution. Hiding sub-settings left some cards as a bare title. Two cases: Vista's buttons page when "Manage addon buttons" is off, and the Alerts sound card. Separately, a child whose parent sits in another card (Augment loot) is indented under a row the player cannot see beside it.
+
+**Files:**
+- Modify: `options/OptionsAssemble.lua` (`BuildPage`, `ExpandParents`)
+- Modify: `options/dashboard/DashboardAccordionBuild.lua` only if card visibility is not re-evaluated when a row's parent changes
+- Modify: `tools/test_options_logic.js`
+
+- [ ] **Step 1: Failing checks** in `tools/test_options_logic.js`:
+  1. A card whose rows all have a `parent` that does not match is hidden: its section row's `visibleWhen` returns false. It shows again once the parent matches.
+  2. A card with a header switch (`headerToggle`) is never auto-hidden.
+  3. A card whose everyday rows are all hidden but which has advanced rows whose own conditions pass stays visible, so the More row can be reached.
+  4. A section row with its own `visibleWhen` keeps it: the auto rule is ANDed with it.
+  5. A child in the same card as its parent gets `indent = true`. A child in a different card on the same page gets no indent, but its hiding and hint wiring is unchanged.
+- [ ] **Step 2: Run, see them fail.**
+- [ ] **Step 3: Implement.** A card has content when any of its rows other than headers, `moreToggle` and the preview proxy would show, judged by the row's own condition without the More gate. The parent itself must also be able to show. Give advanced rows their pre-More condition so this can be evaluated. Work out how the dashboard re-evaluates a card's `visibleWhen` when a row in it changes (look at how `refreshIds` and card visibility interact in `DashboardAccordionBuild.lua`). Make sure that when a parent toggle changes, any card holding its descendants is re-evaluated. If that needs the parent's `refreshIds` to carry the card id, add it.
+- [ ] **Step 4: All four test commands pass, with no assembler warnings.**
+- [ ] **Step 5: Commit** `feat(options): hide cards whose settings are all hidden`.
