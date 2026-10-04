@@ -77,6 +77,19 @@ function addon.DashboardAccordionBuild_Init(f, p)
         return row
     end
 
+    -- A header row a module writes itself is a note, often a full sentence: muted text that
+    -- wraps across the row, at least NOTE_MIN_HEIGHT tall. Only the assembler's subheadings
+    -- (opt._subheading) use CreateSubheading.
+    local NOTE_MIN_HEIGHT = 20
+    local function CreateNote(parent, text)
+        local WDef = addon.OptionsWidgetsDef or {}
+        local tc = WDef.TextColorSection or { 0.58, 0.64, 0.74 }
+        if type(text) == "function" then text = text() end
+        local note = MakeText(parent, tostring(text or ""), (WDef.SectionSize or 11), tc[1], tc[2], tc[3], "LEFT")
+        if note.SetWordWrap then note:SetWordWrap(true) end
+        return note
+    end
+
     f.BuildAccordionDetail = function(moduleSubName, options)
         local currentCard = nil
         local detailOptionFrames = {}
@@ -188,6 +201,7 @@ function addon.DashboardAccordionBuild_Init(f, p)
                     entry.frame:SetPoint("TOPLEFT", card.settingsContainer, "TOPLEFT", rowX, -(yOff + topGap))
                     entry.frame:SetPoint("RIGHT", card.settingsContainer, "RIGHT", -30, 0)
                     local h = entry.frame:GetHeight() or 40
+                    if entry.isNote and h < NOTE_MIN_HEIGHT then h = NOTE_MIN_HEIGHT end
                     yOff = yOff + h + topGap
                 end
             end
@@ -608,7 +622,11 @@ function addon.DashboardAccordionBuild_Init(f, p)
                     end
                     detailOptionFrames[optId] = widget
                 elseif opt.type == "header" then
-                    widget = CreateSubheading(currentCard.settingsContainer, opt.name)
+                    if opt._subheading then
+                        widget = CreateSubheading(currentCard.settingsContainer, opt.name)
+                    else
+                        widget = CreateNote(currentCard.settingsContainer, opt.name)
+                    end
                 elseif opt.type == "button" then
                     local onClick = opt.onClick
                     if opt.refreshIds and #opt.refreshIds > 0 then
@@ -1147,7 +1165,8 @@ function addon.DashboardAccordionBuild_Init(f, p)
                     widget:Show()
                     widget._parentCard = currentCard
 
-                    local isHeader = opt.type == "header"
+                    local isHeader = opt.type == "header" and opt._subheading
+                    local isNote = opt.type == "header" and not opt._subheading
 
                     -- Dependent rows sit indented under their parent with a thin accent line.
                     if opt.indent and widget.CreateTexture and not widget._indentBar then
@@ -1163,6 +1182,7 @@ function addon.DashboardAccordionBuild_Init(f, p)
                     tinsert(currentCard.widgetList, {
                         frame = widget,
                         isHeader = isHeader,
+                        isNote = isNote,
                         indent = opt.indent,
                         visibleWhen = (opt.type == "moduleReloadPrompt" and function() return addon._moduleReloadRecommended end) or opt.visibleWhen,
                     })

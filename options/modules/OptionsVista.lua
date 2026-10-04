@@ -605,7 +605,7 @@ local categories = {
                 parent = "vistaHandleAddonButtons",
             }
 
-            opts[#opts + 1] = Section(L["VISTA_PANEL_APPEARANCE"], { page = "buttons", card = "panelColours", subheading = false })
+            opts[#opts + 1] = Section(L["VISTA_PANEL_APPEARANCE"], { page = "buttons", card = "panelColours" })
             opts[#opts + 1] = Header(L["VISTA_COLOURS_DRAWER_RIGHT_CLICK_BUTTON_PANELS"])
             opts[#opts + 1] = {
                 type = "color", name = L["VISTA_PANEL_BG_COLOUR_LABEL"],
@@ -638,7 +638,7 @@ local categories = {
                 hasAlpha = true,
             }
 
-            opts[#opts + 1] = Section(L["VISTA_MOUSEOVER_BAR_APPEARANCE"], { page = "buttons", card = "panelColours", subheading = false })
+            opts[#opts + 1] = Section(L["VISTA_MOUSEOVER_BAR_APPEARANCE"], { page = "buttons", card = "panelColours" })
             opts[#opts + 1] = Header(L["VISTA_BACKGROUND_BORDER_MOUSEOVER_BUTTON_BAR"])
             opts[#opts + 1] = {
                 type = "color", name = L["VISTA_BAR_BACKGROUND_COLOUR"],
