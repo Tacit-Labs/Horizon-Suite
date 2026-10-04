@@ -414,7 +414,7 @@ local categories = {
               dbKey = "vistaDiffFontSize", min = LIM.vistaDiffFontSize.min, max = LIM.vistaDiffFontSize.max,
               get = function() return getSlider("vistaDiffFontSize") end,
               set = function(v) setDB("vistaDiffFontSize", clamp(v, "vistaDiffFontSize")) end },
-            Section(L["VISTA_PER_DIFFICULTY_COLOURS"], { defaultCollapsed = true }),
+            Section(L["VISTA_PER_DIFFICULTY_COLOURS"]),
             { type = "color", name = L["VISTA_MYTHIC_COLOUR"],
               desc = L["VISTA_COLOUR_MYTHIC_DIFFICULTY_TEXT"],
               dbKey = "vistaDiffColor_mythic",
@@ -521,7 +521,7 @@ local categories = {
                 Toggle(L["VISTA_ALWAYS_BAR"], L["KEEP_BAR_VISIBLE_REPOSITIONING"], "vistaMouseoverBarVisible", D.vistaMouseoverBarVisible, { tooltip = L["VISTA_DISABLE_DONE"], disabled = function() return not getDB("vistaHandleAddonButtons", D.vistaHandleAddonButtons) or getDB("vistaButtonMode", D.vistaButtonMode) ~= "mouseover" end }),
                 Toggle(L["LOCK_RIGHT_CLICK_PANEL"], L["VISTA_PREVENT_DRAGGING_RIGHT_CLICK_PANEL"], "vistaRightClickLocked", D.vistaRightClickLocked, { disabled = function() return not getDB("vistaHandleAddonButtons", D.vistaHandleAddonButtons) or getDB("vistaButtonMode", D.vistaButtonMode) ~= "rightclick" end }),
 
-                Section(L["VISTA_CLOSE_FADE_TIMING"], { defaultCollapsed = true }),
+                Section(L["VISTA_CLOSE_FADE_TIMING"]),
                 { type = "slider", name = L["MOUSEOVER_CLOSE_DELAY"],
                   desc = L["VISTA_LONG_SECONDS_BAR_STAYS_VISIBLE_AFTER"],
                   dbKey = "vistaMouseoverCloseDelay", min = LIM.vistaMouseoverCloseDelay.min, max = LIM.vistaMouseoverCloseDelay.max, step = 0.5,

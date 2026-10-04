@@ -257,7 +257,19 @@ function addon.Dashboard_CreateAccordionCard(parent, title, headerToggleCfg, p)
         card.expanded = not card.expanded
         updateExpandedVisuals()
         card.anim:Play()
+        if card.onExpandedChanged then card.onExpandedChanged(card.expanded) end
     end)
+
+    --- Open or close without animation (a page opening with a remembered state).
+    --- @param expanded boolean
+    function card.SetExpandedInstant(expanded)
+        expanded = expanded and true or false
+        card.expanded = expanded
+        card:SetHeight(expanded and (card.fullHeight or card.collapsedHeight) or card.collapsedHeight)
+        sc:SetAlpha(expanded and 1 or 0)
+        updateExpandedVisuals()
+        UpdateDetailLayout()
+    end
 
     return card
 end

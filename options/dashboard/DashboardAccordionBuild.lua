@@ -401,6 +401,7 @@ function addon.DashboardAccordionBuild_Init(f, p)
                 currentCard.optionIds = {}
                 currentCard.widgetList = {}
                 currentCard.visibleWhen = opt.visibleWhen
+                currentCard.cardId = opt.cardId
                 if opt.dbKey then
                     currentCard.Refresh = function()
                         RelayoutCard(currentCard, true)
@@ -1298,6 +1299,22 @@ function addon.DashboardAccordionBuild_Init(f, p)
 
         if currentCard then
             RelayoutCard(currentCard)
+        end
+
+        -- Open state on assembled pages: the first card opens by default and a remembered
+        -- state wins. Cards with a header switch follow their switch instead.
+        local Assemble = addon.OptionsAssemble
+        if Assemble then
+            local firstDone = false
+            for _, card in ipairs(currentDetailCards) do
+                if card.cardId and not card.headerToggleEnabled then
+                    local isFirst = not firstDone
+                    firstDone = true
+                    card.SetExpandedInstant(Assemble.IsCardExpanded(card.cardId, isFirst))
+                    local id = card.cardId
+                    card.onExpandedChanged = function(expanded) Assemble.SetCardExpanded(id, expanded) end
+                end
+            end
         end
 
         UpdateDetailLayout()
