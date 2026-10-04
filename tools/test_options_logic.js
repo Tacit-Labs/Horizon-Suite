@@ -405,6 +405,16 @@ run(`
   A.revealId = "rvKid"
   check("revealed child shows under a hidden parent", by.rvKid.visibleWhen() == true, "false")
   A.revealId = nil
+  DB_VALUES.a = false
+  A.revealId = "b"
+  check("revealed middle of an off chain still shows", by.b.visibleWhen() == true, "false")
+  check("revealed middle of an off chain is disabled", by.b.disabled() == true, "false")
+  check("grandchild under a revealed, unmatched middle is disabled", by.c.disabled() == true, "false")
+  check("grandchild under a revealed, unmatched middle hides", by.c.visibleWhen() == false, "true")
+  A.revealId = "c"
+  check("revealed grandchild of an off chain shows", by.c.visibleWhen() == true, "false")
+  A.revealId = nil
+  DB_VALUES.a = true
 `, 'chained-parents');
 
 // --- Get-less parent ---------------------------------------------------------------------
@@ -449,6 +459,56 @@ run(`
   check("search reveal shows an advanced row", adv1.visibleWhen() == true, "false")
   A.revealId = nil
 `, 'more-fold');
+
+// --- More row tracks what it can show ------------------------------------------------------
+run(`
+  local A = HorizonSuite.OptionsAssemble
+  RESET()
+  DB_VALUES = { vis = false, own = true }
+  HorizonSuite.Platform.caps.gone = false
+  local out = A.Run({ { key = "L", moduleKey = "focus", options = {
+    SEC("Size", { page = "layout", card = "size" }),
+    ROW("vis"),
+    ROW("visKid", { parent = "vis", advanced = true }),
+    SEC("Where", { page = "layout", card = "position" }),
+    ROW("lock"),
+    ROW("p1", { advanced = true }),
+    ROW("p2", { advanced = true, requires = "gone" }),
+    ROW("p3", { advanced = true, visibleWhen = function() return DB_VALUES.own end }),
+  } } })
+  local rows = OPTS(out[1])
+  HorizonSuite.Platform.caps.gone = nil
+  local mores, by, cur = {}, {}, nil
+  for _, r in ipairs(rows) do
+    if r.type == "section" then cur = r.card end
+    if r.type == "moreToggle" then mores[cur] = r end
+    if r.dbKey and r.type ~= "section" then by[r.dbKey] = r end
+  end
+  local function moreShows(card)
+    local m = mores[card]
+    return m ~= nil and (not m.visibleWhen or m.visibleWhen()) and true or false
+  end
+  local function moreCount(card)
+    local m = mores[card]
+    if not m then return nil end
+    if m.getCount then return m.getCount() end
+    return m.count
+  end
+  check("More row hides when its only advanced row waits on an off parent", moreShows("size") == false, "shown")
+  check("More count is 0 while that parent is off", moreCount("size") == 0, moreCount("size"))
+  DB_VALUES.vis = true
+  check("More row shows once the parent is on", moreShows("size") == true, "hidden")
+  check("More count follows the parent", moreCount("size") == 1, moreCount("size"))
+  DB_VALUES.vis = false
+  A.revealId = "visKid"
+  check("a revealed advanced row keeps the More row", moreShows("size") == true, "hidden")
+  A.revealId = nil
+  check("row with an absent capability is dropped", by.p2 == nil, "present")
+  check("More count skips an absent capability", moreCount("position") == 2, moreCount("position"))
+  check("static count skips an absent capability", mores.position ~= nil and mores.position.count == 2, mores.position and mores.position.count)
+  DB_VALUES.own = false
+  check("More count skips a row whose own condition fails", moreCount("position") == 1, moreCount("position"))
+`, 'more-count');
 
 // --- Cards with nothing to show -------------------------------------------------------
 run(`

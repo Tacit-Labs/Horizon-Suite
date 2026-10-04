@@ -233,6 +233,9 @@ local function ParentMatches(parentRow, row)
     -- parent's visibleWhen is read now, so it is the final wrapped function when the
     -- parent has a parent of its own.
     if parentRow.visibleWhen and not parentRow.visibleWhen() then return false end
+    -- A revealed parent passes its visibleWhen while its own parent is unmatched, so the
+    -- chain is checked too; otherwise a grandchild shows enabled under a greyed parent.
+    if parentRow._parentMatch and not parentRow._parentMatch() then return false end
     local v
     if parentRow.get then
         v = parentRow.get()
@@ -311,6 +314,7 @@ local function ExpandParents(rows, moduleKey, pageKey, cardOf)
                 local child, ownVisible, ownDisabled = r, r.visibleWhen, r.disabled
                 local ownContent = ContentCondition(r)
                 local function match() return ParentMatches(p, child) end
+                r._parentMatch = match
                 if cardOf and cardOf[r] == cardOf[p] then r.indent = true end
                 r.visibleWhen = function()
                     if ownVisible and not ownVisible() then return false end
@@ -474,12 +478,16 @@ function Assemble.BuildPage(moduleKey, pageKey, chunks)
         local normal, advanced = {}, {}
         for _, chunk in ipairs(card.chunks) do
             for _, row in ipairs(chunk.rows) do
-                local r = Copy(row)
-                -- A merged card has one header, so each section's own condition moves onto its rows.
-                if merged and chunk.section.visibleWhen then
-                    r.visibleWhen = Both(chunk.section.visibleWhen, r.visibleWhen)
+                -- Rows the client cannot use are dropped here, so More counts, card auto-hide
+                -- and parent wiring never see them.
+                if HasCapability(row.requires) then
+                    local r = Copy(row)
+                    -- A merged card has one header, so each section's own condition moves onto its rows.
+                    if merged and chunk.section.visibleWhen then
+                        r.visibleWhen = Both(chunk.section.visibleWhen, r.visibleWhen)
+                    end
+                    if r.advanced then advanced[#advanced + 1] = r else normal[#normal + 1] = r end
                 end
-                if r.advanced then advanced[#advanced + 1] = r else normal[#normal + 1] = r end
             end
         end
         for _, r in ipairs(normal) do
@@ -488,7 +496,20 @@ function Assemble.BuildPage(moduleKey, pageKey, chunks)
             cardOf[r] = cardId
         end
         if #advanced > 0 then
-            out[#out + 1] = { type = "moreToggle", cardId = cardId, count = #advanced }
+            -- count is the static total; getCount and visibleWhen follow the advanced rows
+            -- that could show now. contentWhen is read at call time because ExpandParents
+            -- rewrites it after this.
+            local function showable()
+                local n = 0
+                for _, r in ipairs(advanced) do
+                    if IsTrue(r.contentWhen) then n = n + 1 end
+                end
+                return n
+            end
+            out[#out + 1] = {
+                type = "moreToggle", cardId = cardId, count = #advanced, getCount = showable,
+                visibleWhen = function() return showable() > 0 end,
+            }
             for _, r in ipairs(advanced) do
                 local own = r.visibleWhen
                 r.contentWhen = own or true

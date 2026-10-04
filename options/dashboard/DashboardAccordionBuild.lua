@@ -132,6 +132,7 @@ function addon.DashboardAccordionBuild_Init(f, p)
                 if entry.visibleWhen then
                     visible = entry.visibleWhen()
                 end
+                if visible and entry.frame._repaint then entry.frame._repaint() end
                 entry.frame:SetShown(visible)
                 if visible then
                     entry.frame:SetAlpha(1)
@@ -508,7 +509,7 @@ function addon.DashboardAccordionBuild_Init(f, p)
                     end
                     detailOptionFrames[optId] = widget
                 elseif opt.type == "moreToggle" then
-                    local cardRef, cardId, count = currentCard, opt.cardId, opt.count
+                    local cardRef, cardId, count, getCount = currentCard, opt.cardId, opt.count, opt.getCount
                     local Assemble = addon.OptionsAssemble
                     local row = CreateFrame("Button", nil, currentCard.settingsContainer)
                     row:SetHeight(24)
@@ -516,10 +517,13 @@ function addon.DashboardAccordionBuild_Init(f, p)
                     label:SetPoint("LEFT", row, "LEFT", 0, 0)
                     local function Paint()
                         local open = Assemble and Assemble.IsMoreOpen(cardId)
-                        label:SetText(open and L["DASH_LESS"] or L["DASH_MORE"]:format(count))
+                        local n = getCount and getCount() or count or 0
+                        label:SetText(open and L["DASH_LESS"] or L["DASH_MORE"]:format(n))
                     end
                     Paint()
                     row.Refresh = Paint
+                    -- Relayout repaints the count, since the rows it counts change with their parents.
+                    row._repaint = Paint
                     row:SetScript("OnClick", function()
                         if not Assemble then return end
                         Assemble.SetMoreOpen(cardId, not Assemble.IsMoreOpen(cardId))
