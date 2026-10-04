@@ -128,18 +128,22 @@ end
 -- CATEGORY
 -- ============================================================================
 
+addon.RegisterModulePages("focus", {
+    { key = "integrations", name = L["FOCUS_INTEGRATION"], desc = L["FOCUS_INTEGRATION_DESC"],
+      -- Hide the page entirely when neither bridge addon is installed.
+      hidden = function() return not RareScannerIntegrationLoaded() and not SilverDragonIntegrationLoaded() end },
+})
+
 addon.OptionCategories[#addon.OptionCategories + 1] = {
     key       = "Integrations",
     name      = L["FOCUS_INTEGRATION"],
     desc      = L["FOCUS_INTEGRATION_DESC"],
     moduleKey = "focus",
-    -- Hide the sidebar entry entirely when neither bridge addon is installed.
-    hidden    = function() return not RareScannerIntegrationLoaded() and not SilverDragonIntegrationLoaded() end,
     options   = {
         -- ----------------------------------------------------------------
         -- RareScanner — card hidden when companion bridge is absent.
         -- ----------------------------------------------------------------
-        Section(L["FOCUS_INTEGRATION_RARESCANNER"], { visibleWhen = RareScannerIntegrationLoaded }),
+        Section(L["FOCUS_INTEGRATION_RARESCANNER"], { visibleWhen = RareScannerIntegrationLoaded, page = "integrations" }),
         { type = "header", name = L["FOCUS_INTEGRATION_RARESCANNER_COMPANION"] },
 
         Toggle(
@@ -538,7 +542,7 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
         -- ----------------------------------------------------------------
         -- SilverDragon — card hidden when companion bridge is absent.
         -- ----------------------------------------------------------------
-        Section(L["FOCUS_INTEGRATION_SILVERDRAGON"], { visibleWhen = SilverDragonIntegrationLoaded }),
+        Section(L["FOCUS_INTEGRATION_SILVERDRAGON"], { visibleWhen = SilverDragonIntegrationLoaded, page = "integrations" }),
         { type = "header", name = L["FOCUS_INTEGRATION_SILVERDRAGON_COMPANION"] },
 
         Toggle(

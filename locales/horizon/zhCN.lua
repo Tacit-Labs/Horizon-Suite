@@ -144,6 +144,7 @@ L["DASH_SEARCH_NO_RESULTS"]                                   = "未找到匹配
 -- L["DASH_MORE"]                                              = "More (%d)"
 -- L["DASH_LESS"]                                              = "Less"
 -- L["DASH_NEEDS_PARENT"]                                      = "Depends on %s."
+-- L["FOCUS_PAGE_TRACKED"]                                     = "What's tracked"
 L["DASH_SEARCH_FILTER_ALL"]                                   = "全部"
 L["DASH_SEARCH_FILTER_TOOLTIP"]                               = "仅在特定模块中搜索"
 L["DASH_SEARCH_NO_RESULTS_IN_MODULE"]                         = "未找到匹配项，请尝试在所有模块中搜索或换个关键词。"
