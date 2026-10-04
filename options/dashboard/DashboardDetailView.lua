@@ -366,27 +366,10 @@ function addon.DashboardDetailView_Init(env)
         end
     end
 
-    --- Open Axis → Modules detail with the Module Toggles accordion expanded (same as Welcome “Open module toggles” link).
+    --- Open the Axis home page, where the module cards with on/off pills live (same as clicking the AXIS sidebar header).
     --- @return nil
     local function NavigateToModuleToggles()
-        local togglesSection = L["MODULE_TOGGLES"]
-        local modulesName = L["MODULES"]
-        local entryFound
-        local idx = addon.OptionsData_BuildSearchIndex and addon.OptionsData_BuildSearchIndex() or {}
-        for _, e in ipairs(idx) do
-            if e.categoryKey == "Modules" and e.sectionName == togglesSection then
-                entryFound = e
-                break
-            end
-        end
-        if not entryFound then
-            entryFound = {
-                categoryKey = "Modules",
-                categoryName = modulesName,
-                optionId = "_module_focus",
-            }
-        end
-        NavigateToOption(entryFound)
+        f.ShowDashboard()
     end
 
     --- Open Axis → Global Settings with the Theme accordion expanded (Dashboard background control).
