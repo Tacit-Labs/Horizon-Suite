@@ -1302,6 +1302,7 @@ function _G.OptionsWidgets_CreateSizeStepper(parent, get, set, minVal, maxVal, s
     end
     local function formatValue(v)
         v = tonumber(v) or minVal
+        if addon.FontRowFormatSize then return addon.FontRowFormatSize(v, step) end
         if decimals > 0 then return string.format("%." .. decimals .. "f", v) end
         return tostring(math.floor(v + 0.5))
     end
@@ -1366,13 +1367,24 @@ function _G.OptionsWidgets_CreateSizeStepper(parent, get, set, minVal, maxVal, s
         if v ~= tonumber(get()) then set(v) end
         show(v)
     end
-    -- Typed text that is not a number puts the saved value back.
+    -- Save typed text only when the player changed it: text that is not a number, or that still
+    -- shows the saved value (focus in and out, Escape), puts the saved value back untouched, so
+    -- an off-grid or fractional saved value is never re-snapped.
+    local reverting = false
     local function applyTyped()
-        if isDisabled() or tonumber(edit:GetText()) == nil then
-            show(get())
+        local cur = get()
+        if reverting or isDisabled() then
+            show(cur)
             return
         end
-        commit(stepValue(edit:GetText(), 0, get()))
+        local text = edit:GetText()
+        local v
+        if addon.FontRowTypedSize then
+            v = addon.FontRowTypedSize(text, cur, minVal, maxVal, step)
+        elseif tonumber(text) ~= nil and text ~= formatValue(cur) then
+            v = stepValue(text, 0, cur)
+        end
+        if v ~= nil then commit(v) else show(cur) end
     end
 
     edit:SetScript("OnEditFocusGained", function()
@@ -1390,8 +1402,14 @@ function _G.OptionsWidgets_CreateSizeStepper(parent, get, set, minVal, maxVal, s
         edit:ClearFocus()
     end)
     edit:SetScript("OnEscapePressed", function()
+        reverting = true
         show(get())
         edit:ClearFocus()
+        reverting = false
+    end)
+    -- A stepper hidden mid-edit (card collapsed, dashboard closed) drops focus and saves nothing new.
+    edit:SetScript("OnHide", function()
+        if edit:HasFocus() then edit:ClearFocus() end
     end)
 
     local function onStep(delta)
@@ -1423,10 +1441,12 @@ function _G.OptionsWidgets_CreateSizeStepper(parent, get, set, minVal, maxVal, s
         applyDisabledVisuals()
     end
 
-    frame:Refresh()
+    -- Tooltips first: ApplyOptionTooltip enables the mouse, and Refresh must have the last word
+    -- so a stepper that starts disabled keeps its EditBox mouse-disabled.
     ApplyOptionTooltip(minus, tooltip)
     ApplyOptionTooltip(plus, tooltip)
     ApplyOptionTooltip(edit, tooltip)
+    frame:Refresh()
     return frame
 end
 
@@ -1642,7 +1662,7 @@ function _G.OptionsWidgets_CreateFontRow(parent, labelText, description, parts, 
         end
         SetTextColor(label, rowDisabled() and Def.TextColorSection or Def.TextColorLabel)
         -- The toggle sizes itself to its label in Refresh, so place the line again.
-        if outline and parts.outline.kind == "toggle" then Layout(row:GetWidth() or 0) end
+        if outline and parts.outline.kind == "toggle" then Layout(lastW > 0 and lastW or (row:GetWidth() or 0)) end
     end
 
     Layout(0)

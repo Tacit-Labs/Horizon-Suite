@@ -713,6 +713,22 @@ run(`
   DB_VALUES.kOut = "THICKOUTLINE"
   check("get-less part parent shows on match", by.thick.visibleWhen() == true, "false")
   check("font row refreshes children of its parts", table.concat(by.thFont.refreshIds or {}, ",") == "shadow", table.concat(by.thFont.refreshIds or {}, ","))
+  -- A child of the row's own (family) key reads the family part's getter and default.
+  RESET()
+  DB_VALUES = {}
+  local out3 = A.Run({ { key = "L", moduleKey = "focus", options = {
+    SEC("Text", { page = "look", card = "text" }),
+    FontRow("Fam", nil, { family = { dbKey = "pf", default = "FRIZ" }, size = { dbKey = "ps" } }),
+    ROW("famKid", { parent = "pf", parentIs = "FRIZ" }),
+  } } })
+  local by3 = {}
+  for _, r in ipairs(OPTS(out3[1])) do if r.dbKey then by3[r.dbKey] = r end end
+  check("child of the family key matches the family default", by3.famKid.visibleWhen() == true, "false")
+  DB_VALUES.pf = "ARIAL"
+  check("child of the family key follows the saved family", by3.famKid.visibleWhen() == false, "true")
+  check("child of the family key is indented", by3.famKid.indent == true, tostring(by3.famKid.indent))
+  check("font row refreshes children of its own key", table.concat(by3.pf.refreshIds or {}, ",") == "famKid", table.concat(by3.pf.refreshIds or {}, ","))
+
   -- A parent above a font row refreshes the rows hanging off that font row's parts.
   RESET()
   DB_VALUES = { per = true, cOut = "OUTLINE" }
@@ -767,6 +783,18 @@ run(`
   check("typed value snaps to the step", S(13.4, 0, 8, 32) == 13, S(13.4, 0, 8, 32))
   check("fractional step keeps clean decimals", S(0.8, 1, 0.5, 2, 0.1) == 0.9, S(0.8, 1, 0.5, 2, 0.1))
   check("text that is not a number falls back", S("abc", 0, 8, 32, 1, 14) == 14, S("abc", 0, 8, 32, 1, 14))
+  local T = H.FontRowTypedSize
+  check("typed helper exists", type(T) == "function", type(T))
+  if type(T) == "function" then
+    check("untouched text commits nothing", T("14", 14, 8, 32, 1) == nil, tostring(T("14", 14, 8, 32, 1)))
+    check("untouched text over an off-grid min commits nothing", T("7", 7, 7, 31, 2) == nil, tostring(T("7", 7, 7, 31, 2)))
+    check("untouched text over a fractional value commits nothing", T("14", 13.6, 8, 32, 1) == nil, tostring(T("14", 13.6, 8, 32, 1)))
+    check("text that is not a number commits nothing", T("abc", 14, 8, 32, 1) == nil, tostring(T("abc", 14, 8, 32, 1)))
+    check("typed value commits clamped", T("99", 14, 8, 32, 1) == 32, tostring(T("99", 14, 8, 32, 1)))
+    check("typed value equal to the saved one commits nothing", T("14.2", 14, 8, 32, 1) == nil, tostring(T("14.2", 14, 8, 32, 1)))
+    check("typed fractional value commits snapped", T("1.25", 1, 0.5, 2, 0.1) == 1.3 or T("1.25", 1, 0.5, 2, 0.1) == 1.2, tostring(T("1.25", 1, 0.5, 2, 0.1)))
+    check("format shows step decimals", H.FontRowFormatSize(1.3, 0.1) == "1.3" and H.FontRowFormatSize(13.6, 1) == "14", tostring(H.FontRowFormatSize(1.3, 0.1)))
+  end
   local L = H.FontRowLayout
   local wide = L(970, { family = true, size = true, outline = true })
   check("wide row is one line", wide.wrapped == false and wide.height == 34, tostring(wide.wrapped) .. " " .. wide.height)

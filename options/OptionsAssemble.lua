@@ -281,6 +281,16 @@ local function ExtraParts(r)
     return out
 end
 
+-- The part of a font row that holds the row's own dbKey (its family, else its size), or nil.
+local function PrimaryPart(r)
+    if r.type ~= "fontRow" or type(r.parts) ~= "table" then return nil end
+    for _, slot in ipairs(FONT_ROW_PARTS) do
+        local part = r.parts[slot]
+        if type(part) == "table" and part.dbKey == r.dbKey then return part end
+    end
+    return nil
+end
+
 -- Stands in for one part of a font row when another row names the part's key as its parent.
 -- It reads the part's value; everything else (name, visibleWhen, _parentMatch, refreshIds) reads
 -- and writes through to the row, so a child's refresh id lands on the row, whose every part
@@ -302,8 +312,12 @@ local function ExpandParents(rows, moduleKey, pageKey, cardOf)
     for _, r in ipairs(rows) do
         if r.dbKey and r.type ~= "section" then byKey[r.dbKey] = r end
     end
-    -- A font row's part keys resolve to that part, unless a real row already holds the key.
+    -- A font row's keys resolve to their part: its own key reads the primary part's getter and
+    -- default (a font row has neither), and each other part key reads that part, unless a real
+    -- row already holds the key.
     for _, r in ipairs(rows) do
+        local primary = PrimaryPart(r)
+        if primary and byKey[r.dbKey] == r then byKey[r.dbKey] = PartProxy(r, primary) end
         for _, part in ipairs(ExtraParts(r)) do
             if not byKey[part.dbKey] then byKey[part.dbKey] = PartProxy(r, part) end
         end
@@ -421,7 +435,8 @@ local function ExpandParents(rows, moduleKey, pageKey, cardOf)
                         end
                         -- Walk on through a font row child's part keys too.
                         local kr = byKey[k]
-                        if kr and not rawget(kr, "_row") then
+                        if kr then kr = rawget(kr, "_row") or kr end
+                        if kr then
                             for _, pk in ipairs(ownKeys(kr)) do
                                 if not seen[pk] then seen[pk] = true; stack[#stack + 1] = pk end
                             end

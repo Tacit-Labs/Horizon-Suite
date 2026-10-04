@@ -180,9 +180,43 @@ local function FontRowStepSize(value, delta, min, max, step, fallback)
     return v
 end
 
+--- Show a font size the way the stepper does: as many decimals as the step has.
+--- @param value number
+--- @param step number|nil  Default 1
+--- @return string
+local function FontRowFormatSize(value, step)
+    step = tonumber(step) or 1
+    local v = tonumber(value) or 0
+    if step > 0 and step < 1 then
+        local s = tostring(step)
+        local dot = s:find("%.")
+        local decimals = dot and (#s - dot) or 0
+        return string.format("%." .. decimals .. "f", v)
+    end
+    return tostring(math.floor(v + 0.5))
+end
+
+--- The size to save for text typed into the stepper, or nil to save nothing: when the text is
+--- not a number, still shows the saved value (focus in and out, Escape), or lands on the saved value.
+--- @param text string
+--- @param current number|nil  The saved size
+--- @param min number
+--- @param max number
+--- @param step number|nil
+--- @return number|nil
+local function FontRowTypedSize(text, current, min, max, step)
+    if tonumber(text) == nil then return nil end
+    if current ~= nil and text == FontRowFormatSize(current, step) then return nil end
+    local v = FontRowStepSize(text, 0, min, max, step, current)
+    if v == tonumber(current) then return nil end
+    return v
+end
+
 addon.FONT_ROW_METRICS                 = FONT_ROW_METRICS
 addon.FontRowLayout                    = FontRowLayout
 addon.FontRowStepSize                  = FontRowStepSize
+addon.FontRowFormatSize                = FontRowFormatSize
+addon.FontRowTypedSize                 = FontRowTypedSize
 addon.FONT_ROW_PARTS                   = FONT_ROW_PARTS
 addon.FontRow                          = FontRow
 addon.FONT_USE_GLOBAL                  = FONT_USE_GLOBAL

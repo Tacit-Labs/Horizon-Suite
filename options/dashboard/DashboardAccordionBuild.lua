@@ -523,7 +523,10 @@ function addon.DashboardAccordionBuild_Init(f, p)
                         widget.onHeightChanged = function() RelayoutCard(cardRef, false) end
                         if widget.Refresh then
                             if optId then detailOptionFrames[optId] = widget end
-                            for _, key in ipairs(partKeys) do detailOptionFrames[key] = widget end
+                            -- A real row that owns a part key keeps its own registration.
+                            for _, key in ipairs(partKeys) do
+                                if not detailOptionFrames[key] then detailOptionFrames[key] = widget end
+                            end
                         end
                     end
                 elseif opt.type == "color" then
