@@ -140,6 +140,132 @@ run(`
   P.modules = {}
 `, 'vocabulary');
 
+// --- Assembler: pages, cards, merging ---------------------------------------------
+run(`
+  local A = HorizonSuite.OptionsAssemble
+  RESET()
+  HorizonSuite.RegisterModulePages("focus", { { key = "tracked", name = "What's tracked" } })
+  local cats = {
+    { key = "Old1", name = "Old one", moduleKey = "focus", options = {
+        SEC("Fonts", { page = "look", card = "text" }), ROW("fontA"),
+        SEC("Spacing", { page = "layout", card = "size" }), ROW("gap"),
+        SEC("Where", { page = "layout", card = "position" }), ROW("lock"),
+    } },
+    { key = "Untagged", name = "Untagged", moduleKey = "vista", options = { SEC("V"), ROW("v1") } },
+    { key = "Old2", name = "Old two", moduleKey = "focus", options = function() return {
+        SEC("Sizes", { page = "look", card = "text" }), ROW("fontSize"),
+        SEC("Quests", { page = "tracked" }), ROW("q1"),
+        SEC("Width", { page = "layout", card = "size" }), ROW("width"),
+    } end },
+  }
+  local out = A.Run(cats)
+  check("pages: shared first, then own, empty dropped", PAGES(out, "focus") == "focus:layout,focus:look,focus:tracked", PAGES(out, "focus"))
+  check("untagged category passes through after the module block", out[4] and out[4].key == "Untagged", out[4] and out[4].key)
+  check("input list untouched", #cats == 3 and cats[1].key == "Old1", #cats)
+  local layout = FIND(out, "focus:layout")
+  check("cards: shared order, merged across categories", SHAPE(OPTS(layout)) == "S:CARD_POSITION|lock|S:CARD_SIZE|gap|width", SHAPE(OPTS(layout)))
+  check("text card merges two sections", SHAPE(OPTS(FIND(out, "focus:look"))) == "S:CARD_TEXT|fontA|fontSize", SHAPE(OPTS(FIND(out, "focus:look"))))
+  check("module page keeps section name", SHAPE(OPTS(FIND(out, "focus:tracked"))) == "S:Quests|q1", SHAPE(OPTS(FIND(out, "focus:tracked"))))
+  check("shared page name", layout.name == "PAGE_LAYOUT", layout.name)
+  check("module page name", FIND(out, "focus:tracked").name == "What's tracked", FIND(out, "focus:tracked").name)
+  check("page keeps moduleKey", layout.moduleKey == "focus", layout.moduleKey)
+  check("page options are lazy", type(layout.options) == "function", type(layout.options))
+  check("section carries card id", OPTS(layout)[1].cardId == "focus:layout:position", OPTS(layout)[1].cardId)
+  check("rows are copies", OPTS(layout)[2] ~= cats[1].options[6], "same table")
+
+  -- Legacy keys, page fields and card names.
+  RESET()
+  HorizonSuite.RegisterModulePages("axis", {
+    { key = "general", legacyKey = "Modules" },
+    { key = "profiles", name = "Profiles", legacyKey = "Profiles", desc = "d", cardNames = { share = "Sharing" } },
+  })
+  local out2 = A.Run({
+    { key = "Modules", name = "Modules", options = { SEC("Toggles", { page = "general", card = "modules" }), ROW("m1") } },
+    { key = "Profiles", name = "Profiles", options = { SEC("P", { page = "profiles" }), ROW("p1"), SEC("S", { page = "profiles", card = "share" }), ROW("s1") } },
+  })
+  check("legacy keys kept, nil moduleKey kept", PAGES(out2, nil) == "Modules,Profiles", PAGES(out2, nil))
+  check("page field copied", FIND(out2, "Profiles").desc == "d", FIND(out2, "Profiles").desc)
+  check("module card keeps its name", SHAPE(OPTS(FIND(out2, "Modules"))) == "S:Toggles|m1", SHAPE(OPTS(FIND(out2, "Modules"))))
+  check("cardNames renames a module card", SHAPE(OPTS(FIND(out2, "Profiles"))) == "S:P|p1|S:Sharing|s1", SHAPE(OPTS(FIND(out2, "Profiles"))))
+
+  -- allowEmpty keeps a page that has only its on/off switch.
+  RESET()
+  HorizonSuite.RegisterModulePages("augment", {
+    { key = "loot", name = "Loot" },
+    { key = "tracker", name = "Tracker", allowEmpty = true, enabledKey = "trackerOn" },
+  })
+  local out3 = A.Run({ { key = "AugmentImprovements", moduleKey = "augment", options = {
+    SEC("Toasts", { page = "loot" }),
+    { type = "columns",
+      left = { options = { ROW("a1"), { type = "section", name = "Stacking" }, ROW("a2") } },
+      right = { options = { ROW("b1") } } },
+    ROW("after"),
+  } } })
+  check("allowEmpty page emitted", PAGES(out3, "augment") == "augment:loot,augment:tracker", PAGES(out3, "augment"))
+  check("allowEmpty page has no rows", SHAPE(OPTS(FIND(out3, "augment:tracker"))) == "", SHAPE(OPTS(FIND(out3, "augment:tracker"))))
+  check("page field on empty page", FIND(out3, "augment:tracker").enabledKey == "trackerOn", FIND(out3, "augment:tracker").enabledKey)
+  check("columns unwrap into cards", SHAPE(OPTS(FIND(out3, "augment:loot"))) == "S:Toasts|a1|b1|after|S:Stacking|a2", SHAPE(OPTS(FIND(out3, "augment:loot"))))
+`, 'assembler-pages');
+
+// --- Assembler: load-time checks ----------------------------------------------------
+run(`
+  local A = HorizonSuite.OptionsAssemble
+  RESET()
+  local out = A.Run({ { key = "C", moduleKey = "vista", options = {
+    ROW("early"),
+    SEC("Typo", { page = "nope" }), ROW("x1"),
+    SEC("NoCard", { page = "layout" }), ROW("x2"),
+    SEC("Ok", { page = "layout", card = "size" }), ROW("ok"),
+    SEC("Toggle1", { page = "look", card = "text", headerToggle = { dbKey = "t1" } }), ROW("t1row"),
+    SEC("Toggle2", { page = "look", card = "text", headerToggle = { dbKey = "t2" } }), ROW("t2row"),
+    SEC("M+", { page = "general", card = "behaviour", requires = "mythicPlus" }), ROW("mplus"),
+  } } })
+  check("row before first section warns", WARNED("before the first section"), "no warning")
+  check("unknown page warns", WARNED("unknown page 'nope'"), "no warning")
+  check("shared page without card warns", WARNED("has no card tag"), "no warning")
+  check("bad sections skipped", SHAPE(OPTS(FIND(out, "vista:layout"))) == "S:CARD_SIZE|ok", SHAPE(OPTS(FIND(out, "vista:layout"))))
+  check("first header switch kept", SHAPE(OPTS(FIND(out, "vista:look"))) == "S:CARD_TEXT|t1row", SHAPE(OPTS(FIND(out, "vista:look"))))
+  -- Card merging happens when a page is built, so this warning follows the OPTS call above.
+  check("second header switch in a card warns", WARNED("Toggle2"), "no warning")
+  check("header switch survives on a single-section card", OPTS(FIND(out, "vista:look"))[1].headerToggle ~= nil, "nil")
+  check("warnings printed to chat", #PRINTED > 0, #PRINTED)
+  local before = #A.warnings
+  OPTS(FIND(out, "vista:layout"))
+  check("warnings are not repeated", #A.warnings == before, #A.warnings)
+
+  HorizonSuite.Platform.caps.mythicPlus = false
+  RESET()
+  local out2 = A.Run({ { key = "C", moduleKey = "vista", options = {
+    SEC("M+", { page = "general", card = "behaviour", requires = "mythicPlus" }), ROW("mplus"),
+    SEC("Ok", { page = "layout", card = "size" }), ROW("ok"),
+  } } })
+  check("section missing its capability is dropped with its page", PAGES(out2, "vista") == "vista:layout", PAGES(out2, "vista"))
+  HorizonSuite.Platform.caps.mythicPlus = nil
+
+  RESET()
+  local wasStrict = A.strict
+  A.strict = true
+  A.Run({ { key = "Loose", moduleKey = "echo", options = { SEC("A"), ROW("a") } } })
+  check("strict mode warns on untagged categories", WARNED("Loose"), "no warning")
+  A.strict = wasStrict
+`, 'assembler-checks');
+
+// --- Card state store -----------------------------------------------------------------
+run(`
+  local A = HorizonSuite.OptionsAssemble
+  RESET()
+  check("first card opens by default", A.IsCardExpanded("m:p:a", true) == true, "false")
+  check("other cards start closed", A.IsCardExpanded("m:p:b", false) == false, "true")
+  A.SetCardExpanded("m:p:a", false)
+  A.SetCardExpanded("m:p:b", true)
+  check("remembered closed wins over first", A.IsCardExpanded("m:p:a", true) == false, "true")
+  check("remembered open wins", A.IsCardExpanded("m:p:b", false) == true, "false")
+  check("state saved in the database", HorizonDB.optionsCardExpanded["m:p:b"] == true, "nil")
+  check("More starts closed", A.IsMoreOpen("m:p:a") == false, "true")
+  A.SetMoreOpen("m:p:a", true)
+  check("More remembered", A.IsMoreOpen("m:p:a") == true and HorizonDB.optionsCardMoreOpen["m:p:a"] == true, "false")
+`, 'card-store');
+
 // --- Summary -----------------------------------------------------------------------
 run(`
   REAL_PRINT(PASS .. " passed, " .. FAIL .. " failed")

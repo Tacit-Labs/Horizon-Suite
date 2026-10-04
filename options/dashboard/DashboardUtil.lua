@@ -74,11 +74,13 @@ function addon.Dashboard_BrandModule(moduleKey)
     return addon.GetModuleDisplayName(moduleKey)
 end
 
--- Categories shown under the Axis hub (dashboard + search); keep in sync with OptionCategories keys.
+-- Categories shown under the Axis hub (dashboard + search): the three legacy keys, plus any
+-- assembled Axis page ("axis:<page>").
 -- @param catKey string
 -- @return boolean
 function addon.Dashboard_IsAxisCategoryKey(catKey)
-    return catKey == "Profiles" or catKey == "Modules" or catKey == "GlobalToggles"
+    if catKey == "Profiles" or catKey == "Modules" or catKey == "GlobalToggles" then return true end
+    return type(catKey) == "string" and catKey:sub(1, 5) == "axis:"
 end
 
 local DASHBOARD_TYPO_MIN_PX = 8

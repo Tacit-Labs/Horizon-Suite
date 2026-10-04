@@ -220,6 +220,7 @@ options/modules/OptionsAugmentTalkingHead.lua
 options/modules/OptionsAugmentAlerts.lua
 options/modules/OptionsAugmentLootRoll.lua
 options/modules/OptionsFocusIntegrations.lua
+options/OptionsAssemble.lua
 options/OptionsPlatform.lua
 options/OptionsSearch.lua
 options/HorizonIconPicker.lua
