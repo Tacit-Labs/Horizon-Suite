@@ -199,7 +199,6 @@ local category = {
                     { type = "slider",
                       name = L["AUGMENT_TOAST_OPACITY"], desc = L["LOOT_ROLL_OPACITY_DESC"],
                       dbKey = "lootRollOpacity",
-                      advanced = true,
                       min = LIM.lootRollOpacity.min, max = LIM.lootRollOpacity.max, step = 5,
                       get = function() return clamp(tonumber(getDB("lootRollOpacity", D.lootRollOpacity)) or D.lootRollOpacity, "lootRollOpacity") end,
                       set = function(v) setDB("lootRollOpacity", clamp(v, "lootRollOpacity")); applyRoll() end,

@@ -75,7 +75,6 @@ local categories = {
                     title = L["AUGMENT_MAX_VISIBLE_SECTION"],
                     options = {
                         { type = "slider", name = L["AUGMENT_TOAST_OPACITY"], desc = L["AUGMENT_TOAST_OPACITY_DESC"], dbKey = "augmentToastOpacity",
-                            advanced = true,
                             min = LIM.augmentToastOpacity.min, max = LIM.augmentToastOpacity.max, step = 5,
                             get = function() return getSlider("augmentToastOpacity") end,
                             set = function(v) setDB("augmentToastOpacity", clamp(v, "augmentToastOpacity")) end,

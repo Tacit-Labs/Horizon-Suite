@@ -267,7 +267,6 @@ local category = {
                     { type = "slider",
                       name = L["AUGMENT_ALERTS_OPACITY"], desc = L["AUGMENT_ALERTS_OPACITY_DESC"],
                       dbKey = "alertsOpacity",
-                      advanced = true,
                       min = LIM.alertsOpacity.min, max = LIM.alertsOpacity.max,
                       get = function() return math.max(LIM.alertsOpacity.min, math.min(LIM.alertsOpacity.max, tonumber(getDB("alertsOpacity", D.alertsOpacity)) or D.alertsOpacity)) end,
                       set = function(v) setDB("alertsOpacity", clamp(v, "alertsOpacity")) end,
