@@ -95,7 +95,7 @@ animation goes on Look & Feel; everything else goes on General or one of the mod
 
 | Module | Pages | Built from today's pages |
 |---|---|---|
-| Axis | General · Layout · Look & Feel · Profiles | Modules and minimap icon → General; global scale → Layout; global font, class colour, dashboard look → Look & Feel |
+| Axis | General · Layout · Look & Feel · Profiles | Minimap icon and game menu → General; global scale → Layout; global font, class colour, dashboard look → Look & Feel. The old Modules page is removed: module switches live on the Axis home page |
 | Focus | General · Layout · Look & Feel · What's tracked · Instances | Click options and Interactions → General; Layout and Animations → Layout and Look & Feel; Appearance, Typography and Colors → Look & Feel; Content types, Sorting & filtering and Hidden quests → What's tracked |
 | Vista | General · Layout · Look & Feel · Buttons | Minimap and Appearance split across the shared pages; the three text sections become one Text card |
 | Insight | General · Layout · Look & Feel · Players · NPCs & items | NPC and Item merge into one page with an NPC card and an Item card |
@@ -165,9 +165,10 @@ the assembler skips the offending section instead of erroring:
 - a section on a shared page with no `card`;
 - two sections merged into one card that each carry a `headerToggle`.
 
-**Kept category keys.** `Modules`, `Profiles` and `GlobalToggles` keep their keys so
-`Dashboard_IsAxisCategoryKey` (`DashboardUtil.lua:80`) keeps working. Other emitted pages use
-`<moduleKey>:<pageKey>`.
+**Kept category keys.** `Profiles` and `GlobalToggles` keep their keys (via `legacyKey`) so
+the Welcome links and `Dashboard_IsAxisCategoryKey` keep working; that check also accepts any
+`axis:<page>` key. Other emitted pages use `<moduleKey>:<pageKey>`. The Axis `Modules` category
+was removed during implementation, because the Axis home page already shows every module switch.
 
 **Header buttons move onto the page.** The detail view currently shows preview, reset and anchor
 buttons by checking for the keys `AugmentImprovements` and `AugmentAlerts`
@@ -181,8 +182,9 @@ section is a load-time error.
 ## Card behaviour
 
 **Open and closed.** The first card on a page opens by default; the rest start closed. Each
-card's state is remembered in the same saved store the sidebar uses for its collapse state
-(`sidebarCollapseMode` and group state), keyed by `<moduleKey>:<page key>:<card key>`. A remembered state wins over the default. `defaultCollapsed` and its
+card's state is remembered account-wide in the root saved table, next to the sidebar's group
+collapse state (`optionsCardExpanded` and `optionsCardMoreOpen`), keyed by
+`<moduleKey>:<page key>:<card key>`. It is UI state, so it does not follow profile switches. A remembered state wins over the default. `defaultCollapsed` and its
 six uses are deleted.
 
 **Dependent rows.** A row may declare:
