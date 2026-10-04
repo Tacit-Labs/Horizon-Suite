@@ -74,8 +74,12 @@ local function IntSlider(key, name, desc, step)
         set = function(v) setDB(key, clamp(math.floor(v + 0.5), key)) end }
 end
 
+addon.RegisterModulePages("echo", {
+    { key = "feeds", name = L["ECHO_PAGE_FEEDS"] },
+})
+
 local options = {
-    Section(L["ECHO_SECTION_GENERAL"]),
+    Section(L["ECHO_SECTION_GENERAL"], { page = "layout", card = "position" }),
     { type = "dropdown", name = L["ECHO_COLUMN_EDGE"], desc = L["ECHO_COLUMN_EDGE_DESC"], dbKey = "echoColumnEdge",
       options = { { L["ECHO_EDGE_AUTO"], "auto" }, { L["ECHO_EDGE_RIGHT"], "right" }, { L["ECHO_EDGE_LEFT"], "left" } },
       preserveOrder = true,
@@ -94,10 +98,6 @@ local options = {
         setDB("echoX", nil)
         setDB("echoY", nil)
     end),
-    { type = "slider", name = L["ECHO_SCALE"], desc = L["ECHO_SCALE_DESC"], dbKey = "echoScale",
-      min = LIM.echoScale.min * 100, max = LIM.echoScale.max * 100, step = 5,
-      get = function() return math.floor((tonumber(getDB("echoScale", D.echoScale)) or 1) * 100 + 0.5) end,
-      set = function(v) setDB("echoScale", clamp(v / 100, "echoScale")) end },
     { type = "dropdown", name = L["ECHO_STRATA"], desc = L["ECHO_STRATA_DESC"], dbKey = "echoFrameStrata",
       options = {
           { L["FOCUS_STRATA_BACKGROUND"], "BACKGROUND" }, { L["FOCUS_STRATA_LOW"], "LOW" },
@@ -106,6 +106,12 @@ local options = {
       }, preserveOrder = true,
       get = function() return getDB("echoFrameStrata", D.echoFrameStrata) end,
       set = function(v) setDB("echoFrameStrata", v) end },
+    Section(L["ECHO_SECTION_GENERAL"], { page = "layout", card = "size" }),
+    { type = "slider", name = L["ECHO_SCALE"], desc = L["ECHO_SCALE_DESC"], dbKey = "echoScale",
+      min = LIM.echoScale.min * 100, max = LIM.echoScale.max * 100, step = 5,
+      get = function() return math.floor((tonumber(getDB("echoScale", D.echoScale)) or 1) * 100 + 0.5) end,
+      set = function(v) setDB("echoScale", clamp(v / 100, "echoScale")) end },
+    Section(L["ECHO_SECTION_GENERAL"], { page = "general", card = "behaviour" }),
     IntSlider("echoMaxTiles", L["ECHO_MAX_TILES"], L["ECHO_MAX_TILES_DESC"], 1),
     { type = "dropdown", name = L["ECHO_COLLAPSE"], desc = L["ECHO_COLLAPSE_DESC"], dbKey = "echoCollapse",
       options = {
@@ -115,7 +121,7 @@ local options = {
       get = function() return getDB("echoCollapse", D.echoCollapse) end,
       set = function(v) setDB("echoCollapse", v) end },
 
-    Section(L["ECHO_SECTION_NOTIFICATIONS"]),
+    Section(L["ECHO_SECTION_NOTIFICATIONS"], { page = "general", card = "notifications" }),
     { type = "dropdown", name = L["ECHO_TOAST_STYLE"], desc = L["ECHO_TOAST_STYLE_DESC"], dbKey = "echoToastStyle",
       options = toastStyleOptions(), preserveOrder = true,
       get = function() return getDB("echoToastStyle", D.echoToastStyle) end,
@@ -137,7 +143,7 @@ local options = {
       get = function() return getDB("echoKeywords", D.echoKeywords) or "" end,
       set = function(v) setDB("echoKeywords", type(v) == "string" and v:gsub("[\r\n]+", ",") or "") end },
 
-    Section(L["ECHO_SECTION_TIERS"]),
+    Section(L["ECHO_SECTION_TIERS"], { page = "feeds" }),
     TierDropdown("whisper",  L["ECHO_KIND_WHISPER"]),
     TierDropdown("bnet",     L["ECHO_KIND_BNET"]),
     TierDropdown("party",    L["ECHO_KIND_PARTY"]),
@@ -148,7 +154,7 @@ local options = {
     TierDropdown("channel",  L["ECHO_KIND_CHANNEL"]),
     TierDropdown("nearby",   L["ECHO_NEARBY"]),
 
-    Section(L["ECHO_SECTION_FEEDS"]),
+    Section(L["ECHO_SECTION_FEEDS"], { page = "feeds" }),
     Toggle(L["ECHO_ALL_VIEW"], L["ECHO_ALL_VIEW_DESC"], "echoAllView", D.echoAllView),
 }
 
@@ -221,7 +227,7 @@ local function GroupIconsCopy()
     return copy
 end
 
-options[#options + 1] = Section(L["ECHO_SECTION_GROUPS"])
+options[#options + 1] = Section(L["ECHO_SECTION_GROUPS"], { page = "feeds" })
 options[#options + 1] = Toggle(L["ECHO_GROUPS_ENABLE"], L["ECHO_GROUPS_ENABLE_DESC"], "echoGroupsEnabled", D.echoGroupsEnabled)
 
 for i = 1, 4 do
@@ -303,7 +309,7 @@ for i, member in ipairs(GROUP_MEMBERS) do
 end
 
 local tail = {
-    Section(L["ECHO_SECTION_HISTORY"]),
+    Section(L["ECHO_SECTION_HISTORY"], { page = "general", card = "history" }),
     Toggle(L["ECHO_SAVE_HISTORY"], L["ECHO_SAVE_HISTORY_DESC"], "echoSaveHistory", D.echoSaveHistory),
     Toggle(L["ECHO_SAVE_GUILD"], L["ECHO_SAVE_GUILD_DESC"], "echoSaveGuild", D.echoSaveGuild,
         { visibleWhen = function() return getDB("echoSaveHistory", D.echoSaveHistory) ~= false end }),
@@ -318,7 +324,7 @@ local tail = {
         if E and E.ConfirmClearHistory then E.ConfirmClearHistory() end
     end),
 
-    Section(L["ECHO_SECTION_BLIZZARD_CHAT"]),
+    Section(L["ECHO_SECTION_BLIZZARD_CHAT"], { page = "general", card = "blizzardChat" }),
     Toggle(L["ECHO_HIDE_STORED"], L["ECHO_HIDE_STORED_DESC"], "echoHideStoredWhispers", D.echoHideStoredWhispers),
     Toggle(L["ECHO_DOCK_INPUT"], L["ECHO_DOCK_INPUT_DESC"], "echoDockInput", D.echoDockInput),
     Toggle(L["ECHO_INPUT_ALWAYS_VISIBLE"], L["ECHO_INPUT_ALWAYS_VISIBLE_DESC"], "echoInputAlwaysVisible", D.echoInputAlwaysVisible,
@@ -335,7 +341,7 @@ local tail = {
       set = function(v) setDB("echoCombatLog", v) end },
     ReloadPrompt({ hintText = L["ECHO_HIDE_CHAT_RELOAD"] }),
 
-    Section(L["ECHO_SECTION_CARD"]),
+    Section(L["ECHO_SECTION_CARD"], { page = "look", card = "card" }),
     IntSlider("echoCardWidth",  L["ECHO_CARD_WIDTH"],  L["ECHO_CARD_SIZE_DESC"], 10),
     IntSlider("echoCardHeight", L["ECHO_CARD_HEIGHT"], L["ECHO_CARD_SIZE_DESC"], 10),
     IntSlider("echoCardTextSize", L["ECHO_CARD_TEXT_SIZE"], L["ECHO_CARD_TEXT_SIZE_DESC"], 1),

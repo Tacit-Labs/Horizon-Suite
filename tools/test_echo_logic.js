@@ -4309,6 +4309,7 @@ run(`
   A.OptionsData_SetDB = function(k, v) db[k] = v end
   local function merge(t, o) if o then for k, v in pairs(o) do t[k] = v end end return t end
   A.Section = function(n) return { type = "section", name = n } end
+  A.RegisterModulePages = function() end
   A.Button = function(n, d, f, o) return merge({ type = "button", name = n, desc = d, onClick = f }, o) end
   A.Toggle = function(n, d, key, def, o) return merge({ type = "toggle", name = n, desc = d, dbKey = key,
     get = function() return A.OptionsData_GetDB(key, def) end, set = function(v) A.OptionsData_SetDB(key, v) end }, o) end
@@ -6909,6 +6910,7 @@ run(`
   A.OptionsData_SetDB = function(k, v) db[k] = v end
   local function merge(t, o) if o then for k, v in pairs(o) do t[k] = v end end return t end
   A.Section = function(n) return { type = "section", name = n } end
+  A.RegisterModulePages = function() end
   A.Button = function(n, d, f, o) return merge({ type = "button", name = n, desc = d, onClick = f }, o) end
   A.Toggle = function(n, d, key, def, o) return merge({ type = "toggle", name = n, desc = d, dbKey = key,
     get = function() return A.OptionsData_GetDB(key, def) end, set = function(v) A.OptionsData_SetDB(key, v) end }, o) end

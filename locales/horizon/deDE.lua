@@ -146,6 +146,7 @@ L["DASH_SEARCH_NO_RESULTS"]                                   = "Keine Übereins
 -- L["DASH_NEEDS_PARENT"]                                      = "Depends on %s."
 -- L["FOCUS_PAGE_TRACKED"]                                     = "What's tracked"
 -- L["INSIGHT_PAGE_NPCS_ITEMS"]                                = "NPCs & items"
+-- L["ECHO_PAGE_FEEDS"]                                        = "Feeds & groups"
 L["DASH_SEARCH_FILTER_ALL"]                                   = "Alle"
 L["DASH_SEARCH_FILTER_TOOLTIP"]                               = "Suche auf ein Modul beschränken."
 L["DASH_SEARCH_NO_RESULTS_IN_MODULE"]                         = "Keine Übereinstimmungen in %s gefunden. Suche in allen Modulen oder nach anderen Begriffen."
