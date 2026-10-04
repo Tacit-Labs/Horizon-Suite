@@ -498,12 +498,21 @@ function Assemble.BuildPage(moduleKey, pageKey, chunks)
         if #advanced > 0 then
             -- count is the static total; getCount and visibleWhen follow the advanced rows
             -- that could show now. contentWhen is read at call time because ExpandParents
-            -- rewrites it after this.
-            local function showable()
+            -- rewrites it after this. The count treats this card's More as open, because an
+            -- advanced child reads its advanced parent's visibleWhen, which carries the More gate.
+            local function countOpen()
                 local n = 0
                 for _, r in ipairs(advanced) do
                     if IsTrue(r.contentWhen) then n = n + 1 end
                 end
+                return n
+            end
+            local function showable()
+                local prev = Assemble._countingCard
+                Assemble._countingCard = cardId
+                local ok, n = pcall(countOpen)
+                Assemble._countingCard = prev
+                if not ok then error(n, 0) end
                 return n
             end
             out[#out + 1] = {
@@ -517,7 +526,8 @@ function Assemble.BuildPage(moduleKey, pageKey, chunks)
                 cardOf[r] = cardId
                 r.visibleWhen = function()
                     if own and not own() then return false end
-                    return Assemble.IsMoreOpen(cardId) or Assemble.IsRevealed(r)
+                    return Assemble._countingCard == cardId or Assemble.IsMoreOpen(cardId)
+                        or Assemble.IsRevealed(r)
                 end
                 out[#out + 1] = r
             end

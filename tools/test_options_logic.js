@@ -510,6 +510,42 @@ run(`
   check("More count skips a row whose own condition fails", moreCount("position") == 1, moreCount("position"))
 `, 'more-count');
 
+// --- More count with an advanced parent ----------------------------------------------------
+run(`
+  local A = HorizonSuite.OptionsAssemble
+  RESET()
+  DB_VALUES = { ev = true, ap = true, ak = true }
+  local out = A.Run({ { key = "L", moduleKey = "focus", options = {
+    SEC("Size", { page = "layout", card = "size" }),
+    ROW("ev"),
+    ROW("ap", { advanced = true }),
+    ROW("ak", { parent = "ap", advanced = true }),
+  } } })
+  local more, ak
+  for _, r in ipairs(OPTS(out[1])) do
+    if r.type == "moreToggle" then more = r end
+    if r.dbKey == "ak" then ak = r end
+  end
+  check("advanced child of an advanced parent counts while More is closed", more.getCount() == 2, more.getCount())
+  check("More row shows with an advanced chain", more.visibleWhen() == true, "hidden")
+  check("counting leaves the More gate closed", A._countingCard == nil and ak.visibleWhen() == false, tostring(A._countingCard))
+  A.SetMoreOpen("focus:layout:size", true)
+  check("advanced chain count is the same with More open", more.getCount() == 2, more.getCount())
+  A.SetMoreOpen("focus:layout:size", false)
+  DB_VALUES.ap = false
+  check("advanced child of an off advanced parent drops out", more.getCount() == 1, more.getCount())
+  DB_VALUES = { ev = true, ap = false, ak = true }
+  local out2 = A.Run({ { key = "L", moduleKey = "focus", options = {
+    SEC("Size", { page = "layout", card = "size" }),
+    ROW("ev"),
+    ROW("ap", { parent = "ev", advanced = true }),
+    ROW("ak", { parent = "ap", advanced = true }),
+  } } })
+  local more2
+  for _, r in ipairs(OPTS(out2[1])) do if r.type == "moreToggle" then more2 = r end end
+  check("More row stays when only the advanced chain could show", more2.visibleWhen() == true and more2.getCount() == 1, more2.getCount())
+`, 'more-count-advanced-parent');
+
 // --- Cards with nothing to show -------------------------------------------------------
 run(`
   local A = HorizonSuite.OptionsAssemble
