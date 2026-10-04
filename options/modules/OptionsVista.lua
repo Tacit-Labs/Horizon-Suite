@@ -65,22 +65,22 @@ local categories = {
               } end,
               get = function() return getDB("vistaZoneDisplayMode", D.vistaZoneDisplayMode) end,
               set = function(v) setDB("vistaZoneDisplayMode", v) end,
-              disabled = function() return not getDB("vistaShowZoneText", D.vistaShowZoneText) end },
+              parent = "vistaShowZoneText" },
             Toggle(L["VISTA_COORDINATES"], L["VISTA_PLAYER_COORDINATES_BELOW_MINIMAP"], "vistaShowCoordText", D.vistaShowCoordText),
             Toggle(L["VISTA_TIME"], L["VISTA_CURRENT_GAME_BELOW_MINIMAP"], "vistaShowTimeText", D.vistaShowTimeText),
             Toggle(L["VISTA_FPS_LATENCY"], L["VISTA_FPS_LATENCY_MS_BELOW_MINIMAP"], "vistaShowPerfText", D.vistaShowPerfText),
-            Toggle(L["VISTA_LOCAL_TIME"], L["LOCAL_SYSTEM"], "vistaTimeUseLocal", D.vistaTimeUseLocal, { tooltip = L["VISTA_LOCAL_TIME_TIP"], disabled = function() return not getDB("vistaShowTimeText", D.vistaShowTimeText) end }),
-            Toggle(L["VISTA_HOUR_CLOCK"], L["VISTA_DISPLAY_HOUR_FORMAT_24"], "vistaTime24Hour", D.vistaTime24Hour, { disabled = function() return not getDB("vistaShowTimeText", D.vistaShowTimeText) end }),
+            Toggle(L["VISTA_LOCAL_TIME"], L["LOCAL_SYSTEM"], "vistaTimeUseLocal", D.vistaTimeUseLocal, { tooltip = L["VISTA_LOCAL_TIME_TIP"], parent = "vistaShowTimeText" }),
+            Toggle(L["VISTA_HOUR_CLOCK"], L["VISTA_DISPLAY_HOUR_FORMAT_24"], "vistaTime24Hour", D.vistaTime24Hour, { parent = "vistaShowTimeText" }),
             Section(L["VISTA_MINIMAP_BUTTONS"], { page = "buttons" }),
             Header(L["VISTA_QUEUE_STATUS_MAIL_INDICATOR_ALWAYS_SHOWN"]),
-            Toggle(L["VISTA_TRACKING_BUTTON"], L["VISTA_MINIMAP_TRACKING_BUTTON"], "vistaShowTracking", D.vistaShowTracking, { refreshIds = { "vistaMouseoverTracking" } }),
-            Toggle(L["VISTA_TRACKING_BUTTON_MOUSEOVER"], L["HOVER"], "vistaMouseoverTracking", D.vistaMouseoverTracking, { tooltip = L["VISTA_HIDE_TRACKING_BUTTON_UNTIL_YOU_HOVER"], disabled = function() return not getDB("vistaShowTracking", D.vistaShowTracking) end , advanced = true }),
-            Toggle(L["VISTA_CALENDAR_BUTTON"], L["VISTA_MINIMAP_CALENDAR_BUTTON"], "vistaShowCalendar", D.vistaShowCalendar, { refreshIds = { "vistaMouseoverCalendar" } }),
-            Toggle(L["VISTA_CALENDAR_BUTTON_MOUSEOVER"], L["VISTA_HIDE_CALENDAR_BUTTON_UNTIL_YOU_HOVER"], "vistaMouseoverCalendar", D.vistaMouseoverCalendar, { disabled = function() return not getDB("vistaShowCalendar", D.vistaShowCalendar) end , advanced = true }),
-            Toggle(L["VISTA_TELEPORT_BUTTON"], L["VISTA_TELEPORT_BUTTON_DESC"], "vistaShowTeleport", D.vistaShowTeleport, { refreshIds = { "vistaMouseoverTeleport" } }),
-            Toggle(L["VISTA_TELEPORT_BUTTON_MOUSEOVER"], L["VISTA_TELEPORT_BUTTON_MOUSEOVER_DESC"], "vistaMouseoverTeleport", D.vistaMouseoverTeleport, { disabled = function() return not getDB("vistaShowTeleport", D.vistaShowTeleport) end , advanced = true }),
-            Toggle(L["VISTA_LANDING_BUTTON"], L["VISTA_LANDING_BUTTON_DESC"], "vistaShowLanding", D.vistaShowLanding, { refreshIds = { "vistaMouseoverLanding" } }),
-            Toggle(L["VISTA_LANDING_BUTTON_MOUSEOVER"], L["VISTA_LANDING_BUTTON_MOUSEOVER_DESC"], "vistaMouseoverLanding", D.vistaMouseoverLanding, { disabled = function() return not getDB("vistaShowLanding", D.vistaShowLanding) end , advanced = true }),
+            Toggle(L["VISTA_TRACKING_BUTTON"], L["VISTA_MINIMAP_TRACKING_BUTTON"], "vistaShowTracking", D.vistaShowTracking),
+            Toggle(L["VISTA_TRACKING_BUTTON_MOUSEOVER"], L["HOVER"], "vistaMouseoverTracking", D.vistaMouseoverTracking, { tooltip = L["VISTA_HIDE_TRACKING_BUTTON_UNTIL_YOU_HOVER"], parent = "vistaShowTracking" , advanced = true }),
+            Toggle(L["VISTA_CALENDAR_BUTTON"], L["VISTA_MINIMAP_CALENDAR_BUTTON"], "vistaShowCalendar", D.vistaShowCalendar),
+            Toggle(L["VISTA_CALENDAR_BUTTON_MOUSEOVER"], L["VISTA_HIDE_CALENDAR_BUTTON_UNTIL_YOU_HOVER"], "vistaMouseoverCalendar", D.vistaMouseoverCalendar, { parent = "vistaShowCalendar" , advanced = true }),
+            Toggle(L["VISTA_TELEPORT_BUTTON"], L["VISTA_TELEPORT_BUTTON_DESC"], "vistaShowTeleport", D.vistaShowTeleport),
+            Toggle(L["VISTA_TELEPORT_BUTTON_MOUSEOVER"], L["VISTA_TELEPORT_BUTTON_MOUSEOVER_DESC"], "vistaMouseoverTeleport", D.vistaMouseoverTeleport, { parent = "vistaShowTeleport" , advanced = true }),
+            Toggle(L["VISTA_LANDING_BUTTON"], L["VISTA_LANDING_BUTTON_DESC"], "vistaShowLanding", D.vistaShowLanding),
+            Toggle(L["VISTA_LANDING_BUTTON_MOUSEOVER"], L["VISTA_LANDING_BUTTON_MOUSEOVER_DESC"], "vistaMouseoverLanding", D.vistaMouseoverLanding, { parent = "vistaShowLanding" , advanced = true }),
             Section(L["VISTA_TELEPORT_MENU"], { page = "general", card = "teleport" }),
             Header(L["VISTA_TELEPORT_GROUPS_HEADER"]),
             Toggle(L["VISTA_TELEPORT_GROUP_HEARTHSTONE"], L["VISTA_TELEPORT_GROUP_HEARTHSTONE_DESC"], "vistaTeleportGroup_hearthstone", D.vistaTeleportGroup_hearthstone),
@@ -479,13 +479,13 @@ local categories = {
                           setDB("vistaCollectHorizonMinimapButton", v)
                       end
                   end,
-                  disabled = function() return not getDB("vistaHandleAddonButtons", D.vistaHandleAddonButtons) end },
-                Toggle(L["VISTA_SORT_BUTTONS_ALPHA"], L["VISTA_SORT_BUTTONS_ALPHA_DESC"], "vistaButtonSortAlpha", D.vistaButtonSortAlpha, { disabled = function() return not getDB("vistaHandleAddonButtons", D.vistaHandleAddonButtons) end }),
+                  parent = "vistaHandleAddonButtons" },
+                Toggle(L["VISTA_SORT_BUTTONS_ALPHA"], L["VISTA_SORT_BUTTONS_ALPHA_DESC"], "vistaButtonSortAlpha", D.vistaButtonSortAlpha, { parent = "vistaHandleAddonButtons" }),
                 { type = "dropdown", name = L["VISTA_BUTTON_MODE"],
                   desc = L["VISTA_ADDON_BUTTONS_PRESENTED_HOVER_BAR_BELOW"],
                   dbKey = "vistaButtonMode",
                   options = BUTTON_MODE_OPTIONS,
-                  refreshIds = { "vistaDrawerIcon", "vistaDrawerButtonLocked", "vistaMouseoverLocked", "vistaMouseoverBarVisible", "vistaRightClickLocked" },
+                  refreshIds = { "vistaDrawerIcon" },
                   get = function() return getDB("vistaButtonMode", D.vistaButtonMode) end,
                   set = function(v)
                       if not getDB("vistaHandleAddonButtons", D.vistaHandleAddonButtons) then return end
@@ -496,7 +496,7 @@ local categories = {
                           addon.OptionsPanel_Refresh()
                       end
                   end,
-                  disabled = function() return not getDB("vistaHandleAddonButtons", D.vistaHandleAddonButtons) end },
+                  parent = "vistaHandleAddonButtons" },
                 { type = "button",
                   name = L["VISTA_CHOOSE_DRAWER_ICON"],
                   dbKey = "vistaDrawerIcon",
@@ -518,12 +518,10 @@ local categories = {
                       if getDB("vistaButtonMode", D.vistaButtonMode) ~= "drawer" then return end
                       setDB("vistaDrawerButtonLocked", v)
                   end,
-                  disabled = function()
-                      return not getDB("vistaHandleAddonButtons", D.vistaHandleAddonButtons) or getDB("vistaButtonMode", D.vistaButtonMode) ~= "drawer"
-                  end },
-                Toggle(L["LOCK_MOUSEOVER_BAR"], L["VISTA_PREVENT_DRAGGING_MOUSEOVER_BUTTON_BAR"], "vistaMouseoverLocked", D.vistaMouseoverLocked, { disabled = function() return not getDB("vistaHandleAddonButtons", D.vistaHandleAddonButtons) or getDB("vistaButtonMode", D.vistaButtonMode) ~= "mouseover" end , advanced = true }),
-                Toggle(L["VISTA_ALWAYS_BAR"], L["KEEP_BAR_VISIBLE_REPOSITIONING"], "vistaMouseoverBarVisible", D.vistaMouseoverBarVisible, { tooltip = L["VISTA_DISABLE_DONE"], disabled = function() return not getDB("vistaHandleAddonButtons", D.vistaHandleAddonButtons) or getDB("vistaButtonMode", D.vistaButtonMode) ~= "mouseover" end , advanced = true }),
-                Toggle(L["LOCK_RIGHT_CLICK_PANEL"], L["VISTA_PREVENT_DRAGGING_RIGHT_CLICK_PANEL"], "vistaRightClickLocked", D.vistaRightClickLocked, { disabled = function() return not getDB("vistaHandleAddonButtons", D.vistaHandleAddonButtons) or getDB("vistaButtonMode", D.vistaButtonMode) ~= "rightclick" end , advanced = true }),
+                  parent = "vistaButtonMode", parentIs = "drawer" },
+                Toggle(L["LOCK_MOUSEOVER_BAR"], L["VISTA_PREVENT_DRAGGING_MOUSEOVER_BUTTON_BAR"], "vistaMouseoverLocked", D.vistaMouseoverLocked, { parent = "vistaButtonMode", parentIs = "mouseover" , advanced = true }),
+                Toggle(L["VISTA_ALWAYS_BAR"], L["KEEP_BAR_VISIBLE_REPOSITIONING"], "vistaMouseoverBarVisible", D.vistaMouseoverBarVisible, { tooltip = L["VISTA_DISABLE_DONE"], parent = "vistaButtonMode", parentIs = "mouseover" , advanced = true }),
+                Toggle(L["LOCK_RIGHT_CLICK_PANEL"], L["VISTA_PREVENT_DRAGGING_RIGHT_CLICK_PANEL"], "vistaRightClickLocked", D.vistaRightClickLocked, { parent = "vistaButtonMode", parentIs = "rightclick" , advanced = true }),
 
                 Section(L["VISTA_CLOSE_FADE_TIMING"], { page = "buttons" }),
                 { type = "slider", name = L["MOUSEOVER_CLOSE_DELAY"],
@@ -531,14 +529,14 @@ local categories = {
                   dbKey = "vistaMouseoverCloseDelay", min = LIM.vistaMouseoverCloseDelay.min, max = LIM.vistaMouseoverCloseDelay.max, step = 0.5,
                   get = function() return getSlider("vistaMouseoverCloseDelay") end,
                   set = function(v) setDB("vistaMouseoverCloseDelay", clamp(v, "vistaMouseoverCloseDelay")) end,
-                  disabled = function() return not getDB("vistaHandleAddonButtons", D.vistaHandleAddonButtons) end,
+                  parent = "vistaHandleAddonButtons",
                 },
                 { type = "slider", name = L["RIGHT_CLICK_CLOSE_DELAY"], advanced = true,
                   desc = L["VISTA_LONG_SECONDS_PANEL_STAYS_OPEN_AFTER"],
                   dbKey = "vistaRightClickCloseDelay", min = LIM.vistaRightClickCloseDelay.min, max = LIM.vistaRightClickCloseDelay.max, step = 0.5,
                   get = function() return getSlider("vistaRightClickCloseDelay") end,
                   set = function(v) setDB("vistaRightClickCloseDelay", clamp(v, "vistaRightClickCloseDelay")) end,
-                  disabled = function() return not getDB("vistaHandleAddonButtons", D.vistaHandleAddonButtons) end,
+                  parent = "vistaHandleAddonButtons",
                 },
                 { type = "slider", name = L["VISTA_DRAWER_CLOSE_DELAY"], advanced = true,
                   desc = L["AUTO_CLOSE_DELAY_DISABLE"],
@@ -546,7 +544,7 @@ local categories = {
                   dbKey = "vistaDrawerCloseDelay", min = LIM.vistaDrawerCloseDelay.min, max = LIM.vistaDrawerCloseDelay.max, step = 0.5,
                   get = function() return getSlider("vistaDrawerCloseDelay") end,
                   set = function(v) setDB("vistaDrawerCloseDelay", clamp(v, "vistaDrawerCloseDelay")) end,
-                  disabled = function() return not getDB("vistaHandleAddonButtons", D.vistaHandleAddonButtons) end,
+                  parent = "vistaHandleAddonButtons",
                 },
 
                 Section(L["DASH_LAYOUT"], { page = "buttons" }),
@@ -574,7 +572,7 @@ local categories = {
                         end)
                     end
                 end,
-                disabled = function() return not getDB("vistaHandleAddonButtons", D.vistaHandleAddonButtons) end,
+                parent = "vistaHandleAddonButtons",
             }
             opts[#opts + 1] = {
                 type = "dropdown", name = L["VISTA_EXPAND_DIRECTION"],
@@ -583,7 +581,7 @@ local categories = {
                 dbKey = "vistaBtnLayoutDir", options = DIR_OPTIONS,
                 get = function() return getDB("vistaBtnLayoutDir", D.vistaBtnLayoutDir) end,
                 set = function(v) setDB("vistaBtnLayoutDir", v) end,
-                disabled = function() return not getDB("vistaHandleAddonButtons", D.vistaHandleAddonButtons) end,
+                parent = "vistaHandleAddonButtons",
             }
 
             opts[#opts + 1] = Section(L["VISTA_PANEL_APPEARANCE"], { page = "buttons" })
@@ -635,9 +633,9 @@ local categories = {
                     if a ~= nil then setDB("vistaBarBgA", a) end
                 end,
                 hasAlpha = true,
-                disabled = function() return not getDB("vistaHandleAddonButtons", D.vistaHandleAddonButtons) end,
+                parent = "vistaHandleAddonButtons",
             }
-            opts[#opts + 1] = Toggle(L["VISTA_BAR_BORDER"], L["VISTA_A_BORDER_AROUND_MOUSEOVER_BUTTON_BAR"], "vistaBarBorderShow", D.vistaBarBorderShow, { disabled = function() return not getDB("vistaHandleAddonButtons", D.vistaHandleAddonButtons) end })
+            opts[#opts + 1] = Toggle(L["VISTA_BAR_BORDER"], L["VISTA_A_BORDER_AROUND_MOUSEOVER_BUTTON_BAR"], "vistaBarBorderShow", D.vistaBarBorderShow, { parent = "vistaHandleAddonButtons" })
             opts[#opts + 1] = {
                 type = "color", name = L["VISTA_BAR_BORDER_COLOUR"], advanced = true,
                 desc = L["VISTA_BORDER_COLOUR_OF_MOUSEOVER_BUTTON_BAR"],
@@ -652,7 +650,7 @@ local categories = {
                     if a ~= nil then setDB("vistaBarBorderA", a) end
                 end,
                 hasAlpha = true,
-                disabled = function() return not getDB("vistaHandleAddonButtons", D.vistaHandleAddonButtons) or not getDB("vistaBarBorderShow", D.vistaBarBorderShow) end,
+                parent = "vistaBarBorderShow",
             }
 
             opts[#opts + 1] = Section(L["VISTA_MANAGED_BUTTONS"], { page = "buttons" })
@@ -676,7 +674,7 @@ local categories = {
                     name = (displayName ~= "" and displayName ~= localName) and displayName or localName,
                     desc = L["VISTA_BUTTON_COMPLETELY_IGNORED"],
                     dbKey = "vistaButtonManaged_" .. localName,
-                    disabled = function() return not getDB("vistaHandleAddonButtons", D.vistaHandleAddonButtons) end,
+                    parent = "vistaHandleAddonButtons",
                     get = function() return getDB("vistaButtonManaged_" .. localName, true) end,
                     set = function(v)
                         setDB("vistaButtonManaged_" .. localName, v)
@@ -707,10 +705,7 @@ local categories = {
                     type = "toggle",
                     name = label,
                     dbKey = "vistaBtn_" .. localName,
-                    disabled = function()
-                        if not getDB("vistaHandleAddonButtons", D.vistaHandleAddonButtons) then return true end
-                        return not getDB("vistaButtonManaged_" .. localName, true)
-                    end,
+                    parent = "vistaButtonManaged_" .. localName,
                     get = function()
                         local wl = getDB("vistaButtonWhitelist", nil)
                         if not wl or type(wl) ~= "table" then return true end
