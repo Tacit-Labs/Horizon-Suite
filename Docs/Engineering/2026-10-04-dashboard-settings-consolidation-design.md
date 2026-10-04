@@ -26,7 +26,7 @@ sit behind a per-card **More** fold.
 | Navigation | Module → page → card, with 2 to 5 pages per module |
 | Page names | One shared vocabulary in every module: General, Layout, Look & Feel, then the module's own pages |
 | Card density | Row style A (today's 32px rows, dependent rows indented) for the shell; merged controls (style C) during module prunes |
-| Augment | General, then one page per feature (Loot, Alerts, Loot Roll, Talking Head), each with its own layout and look cards |
+| Augment | One page per feature (Loot, Alerts, Loot Roll, Talking Head, Vendor, Self highlight, Achievement tracker); no shared pages (see Augment below) |
 | Third-party addon settings | RareScanner, SilverDragon and TRP3 move into the Integrations view (phase 3) |
 | Build approach | Tag and assemble: sections declare `page` and `card`; one assembler builds the pages |
 | Saved settings | Phase 1 changes no DB keys and needs no migration |
@@ -98,14 +98,21 @@ animation goes on Look & Feel; everything else goes on General or one of the mod
 | Axis | General · Layout · Look & Feel · Profiles | Modules and minimap icon → General; global scale → Layout; global font, class colour, dashboard look → Look & Feel |
 | Focus | General · Layout · Look & Feel · What's tracked · Instances | Click options and Interactions → General; Layout and Animations → Layout and Look & Feel; Appearance, Typography and Colors → Look & Feel; Content types, Sorting & filtering and Hidden quests → What's tracked |
 | Vista | General · Layout · Look & Feel · Buttons | Minimap and Appearance split across the shared pages; the three text sections become one Text card |
-| Insight | General · Layout · Look & Feel · Players · NPCs & items | NPC and Item merge |
-| Presence | General · Layout · Look & Feel · Notifications | Preview moves to the existing preview pull-out |
+| Insight | General · Layout · Look & Feel · Players · NPCs & items | NPC and Item merge into one page with an NPC card and an Item card |
+| Presence | General · Layout · Look & Feel · Notifications | Preview becomes the first card on Notifications; moving it into the preview pull-out waits for the Presence prune |
 | Echo | General · Layout · Look & Feel · Feeds & groups | History, Blizzard chat and sounds → General; tiers, feeds and groups → Feeds & groups |
-| Augment | General · Loot · Alerts · Loot Roll · Talking Head | Vendor, Self highlight and the Achievement tracker toggle → General; the empty Achievement Tracker page goes |
+| Augment | Loot · Alerts · Loot Roll · Talking Head · Vendor · Self highlight · Achievement tracker | Same pages as today in a new order; columns layouts become ordinary cards |
 | Essence | General · Layout | |
 
 Until phase 3, RareScanner and SilverDragon stay on a Focus "Integrations" module page and TRP3
-on an Insight "Integrations" module card.
+on a card of its own on the Insight Players page.
+
+**Augment keeps its feature pages.** Vendor, Self highlight and Achievement tracker are separate
+features, each with an on/off switch whose setter runs code (`setEnabled` starts or stops the
+feature). A card header switch only saves a value, so folding them into a General page would
+break those switches. Every Augment feature therefore keeps its own page, icon and switch; the
+Achievement tracker page has no settings besides its switch and is kept with `allowEmpty`.
+Giving each feature page its own Layout and Look & Feel cards is part of the Augment prune.
 
 ## Architecture
 
@@ -131,10 +138,12 @@ shared cards for each, and their locale keys. Loaded before any module options f
 - `card`: a shared card key, or a module card key. Sections that share a `card` on the same page
   merge into one card, rows in registration order.
 
-A module declares its own pages and their order once, for example
-`addon.RegisterModulePages("focus", { "tracked", "instances" })`, each with a name and optional
-page fields (`icon`, `enabledKey`/`getEnabled`/`setEnabled`, `hidden`, `dashboardPreviewMode`,
-`headerButtons`).
+A module declares its own pages and their order with
+`addon.RegisterModulePages(moduleKey, { { key = "tracked", name = ... }, ... })`. A def may also
+name a shared page to attach fields to it. Page fields copied onto the emitted page: `desc`,
+`icon`, `accentColor`, `enabledKey`/`getEnabled`/`setEnabled`, `hidden`, `dashboardPreviewMode`
+and `headerButtons`. Assembler-only fields: `legacyKey` (keep an old category key),
+`cardNames` (display names for module cards) and `allowEmpty` (emit the page with no cards).
 
 **`options/OptionsAssemble.lua` (new).** Runs once after every module options file and before
 `OptionsPlatform.lua` and `OptionsSearch.lua`: it goes in `HorizonSuite.toc` directly after
@@ -199,9 +208,11 @@ The three states stay distinct:
 like open and closed. A card with no advanced rows shows no More row. Phase 1 builds the fold
 only; marking rows advanced happens in phase 3.
 
-**Columns removed.** Augment's `type = "columns"` blocks become ordinary cards on its feature
-pages. This removes the second row-building path in `DashboardAccordionBuild.lua` (about lines
-1043 to 1160) and the search blind spot that came with it.
+**Columns removed.** The assembler unwraps `type = "columns"` blocks: rows before a column's
+first nested section stay in the enclosing card, and each nested section becomes its own card on
+the same page. Once every module is tagged, nothing reaches the card builder as columns, and the
+last phase 1 PR deletes the second row-building path in `DashboardAccordionBuild.lua` (about lines
+1043 to 1160). Search then sees those rows too.
 
 ## Search
 
@@ -234,8 +245,9 @@ Phase 1 ships as a series of PRs, each releasable on its own:
 1. Vocabulary, assembler, load-time checks and transition fallback. No visible change.
 2. Card behaviour: open state, `parent`/`parentIs`, More fold, `defaultCollapsed` removal.
 3. Search: assembled index, location in results, `keywords`, `searchName`, index lifetime.
-4. Retag per module, one PR each: Axis, Focus, Vista, Insight, Presence, Echo, Augment (also
-   removes columns and moves header buttons), Essence. The last one removes the fallback.
+4. Retag per module, one PR each: Axis, Focus, Vista, Insight, Presence, Echo, Essence, and
+   Augment (which also moves the header buttons onto its pages).
+5. Turn the transition fallback into a load-time error and delete the columns code path.
 
 Every player-visible PR gets a before and after image through `/update-card` and a CHANGELOG
 entry at release.
