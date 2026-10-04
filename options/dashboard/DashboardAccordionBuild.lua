@@ -420,7 +420,7 @@ function addon.DashboardAccordionBuild_Init(f, p)
 
                 -- Store the option identifier to track its parent card (for search-jump).
                 -- moduleReloadPrompt is excluded from search results, so skip it here.
-                local optId = opt.type ~= "moduleReloadPrompt" and (
+                local optId = opt.type ~= "moduleReloadPrompt" and opt.type ~= "moreToggle" and (
                     opt.dbKey
                     or (opt.type == "presencePreview" and "presencePreview")
                     or (opt.type == "talkingHeadPreview" and "talkingHeadPreview")
@@ -507,6 +507,26 @@ function addon.DashboardAccordionBuild_Init(f, p)
                         end
                     end
                     detailOptionFrames[optId] = widget
+                elseif opt.type == "moreToggle" then
+                    local cardRef, cardId, count = currentCard, opt.cardId, opt.count
+                    local Assemble = addon.OptionsAssemble
+                    local row = CreateFrame("Button", nil, currentCard.settingsContainer)
+                    row:SetHeight(24)
+                    local label = MakeText(row, "", 12, 0.44, 0.63, 0.94, "LEFT")
+                    label:SetPoint("LEFT", row, "LEFT", 0, 0)
+                    local function Paint()
+                        local open = Assemble and Assemble.IsMoreOpen(cardId)
+                        label:SetText(open and L["DASH_LESS"] or L["DASH_MORE"]:format(count))
+                    end
+                    Paint()
+                    row.Refresh = Paint
+                    row:SetScript("OnClick", function()
+                        if not Assemble then return end
+                        Assemble.SetMoreOpen(cardId, not Assemble.IsMoreOpen(cardId))
+                        Paint()
+                        RelayoutCard(cardRef, true)
+                    end)
+                    widget = row
                 elseif opt.type == "header" then
                     widget = _G.OptionsWidgets_CreateSectionHeader(currentCard.settingsContainer, opt.name)
                 elseif opt.type == "button" then

@@ -357,8 +357,17 @@ function Assemble.BuildPage(moduleKey, pageKey, chunks)
             end
         end
         for _, r in ipairs(normal) do out[#out + 1] = r end
-        -- Task 5 inserts the More row here; until then advanced rows follow the others.
-        for _, r in ipairs(advanced) do out[#out + 1] = r end
+        if #advanced > 0 then
+            out[#out + 1] = { type = "moreToggle", cardId = cardId, count = #advanced }
+            for _, r in ipairs(advanced) do
+                local row, own = r, r.visibleWhen
+                r.visibleWhen = function()
+                    if own and not own() then return false end
+                    return Assemble.IsMoreOpen(cardId) or Assemble.IsRevealed(row)
+                end
+                out[#out + 1] = r
+            end
+        end
     end
 
     ExpandParents(out, moduleKey, pageKey)

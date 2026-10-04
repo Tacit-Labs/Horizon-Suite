@@ -347,6 +347,32 @@ run(`
   check("source rows untouched", src.options[3].visibleWhen == nil and src.options[2].refreshIds == nil, "mutated")
 `, 'dependent-rows');
 
+// --- More fold ------------------------------------------------------------------------
+run(`
+  local A = HorizonSuite.OptionsAssemble
+  RESET()
+  local out = A.Run({ { key = "L", moduleKey = "focus", options = {
+    SEC("Size", { page = "layout", card = "size" }),
+    ROW("a"), ROW("adv1", { advanced = true }), ROW("b"), ROW("adv2", { advanced = true }),
+    SEC("Where", { page = "layout", card = "position" }), ROW("lock"),
+  } } })
+  local rows = OPTS(out[1])
+  check("advanced rows follow a More row", SHAPE(rows) == "S:CARD_POSITION|lock|S:CARD_SIZE|a|b|M:2|adv1|adv2", SHAPE(rows))
+  local more, adv1
+  for _, r in ipairs(rows) do
+    if r.type == "moreToggle" then more = r end
+    if r.dbKey == "adv1" then adv1 = r end
+  end
+  check("More row knows its card", more.cardId == "focus:layout:size", more.cardId)
+  check("advanced row hidden while More is closed", adv1.visibleWhen() == false, "true")
+  A.SetMoreOpen("focus:layout:size", true)
+  check("advanced row shows when More opens", adv1.visibleWhen() == true, "false")
+  A.SetMoreOpen("focus:layout:size", false)
+  A.revealId = "adv1"
+  check("search reveal shows an advanced row", adv1.visibleWhen() == true, "false")
+  A.revealId = nil
+`, 'more-fold');
+
 // --- Summary -----------------------------------------------------------------------
 run(`
   REAL_PRINT(PASS .. " passed, " .. FAIL .. " failed")
