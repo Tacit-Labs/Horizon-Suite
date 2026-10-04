@@ -345,7 +345,7 @@ local categories = {
                 dbKey = "useGlobalFont",
                 get = isGlobalFontOn,
                 set = function(v) setDB("useGlobalFont", v) end,
-                            }
+            }
             opts[#opts + 1] = {
                 type = "dropdown",
                 name = L["AXIS_GLOBAL_FONT_PICKER"],
@@ -395,6 +395,11 @@ local categories = {
                 end)
             end
             local function isPerModule() return getDB("perModuleScaling", false) end
+            opts[#opts + 1] = { type = "toggle", name = L["AXIS_PER_MODULE_SCALING"], desc = L["SEPARATE_SCALE_SLIDER_PER_MODULE"], dbKey = "perModuleScaling", tooltip = L["AXIS_OVERRIDES_GLOBAL_SCALE_INDIVIDUAL_SLIDERS_F"], get = function() return isPerModule() end, set = function(v)
+                setDB("perModuleScaling", v)
+                debouncedRefresh("perModule", refreshAllScaling)
+            end,
+            }
             opts[#opts + 1] = { type = "slider", name = L["AXIS_GLOBAL_UI_SCALE"], desc = L["SCALE_UI_ELEMENTS"], dbKey = "globalUIScale_pct", min = 50, max = 200, tooltip = L["AXIS_DOESN_T_CHANGE_YOUR_CONFIGURED_VALUES"],
                 parent = "perModuleScaling", parentIs = false,
                 get = function()
@@ -404,11 +409,6 @@ local categories = {
                     setDB("globalUIScale", scale)
                     debouncedRefresh("global", refreshAllScaling)
                 end }
-            opts[#opts + 1] = { type = "toggle", name = L["AXIS_PER_MODULE_SCALING"], desc = L["SEPARATE_SCALE_SLIDER_PER_MODULE"], dbKey = "perModuleScaling", tooltip = L["AXIS_OVERRIDES_GLOBAL_SCALE_INDIVIDUAL_SLIDERS_F"], get = function() return isPerModule() end, set = function(v)
-                setDB("perModuleScaling", v)
-                debouncedRefresh("perModule", refreshAllScaling)
-            end,
-            }
             opts[#opts + 1] = { type = "slider", name = L["FOCUS_SCALE"], desc = L["AXIS_SCALE_FOCUS_OBJECTIVE_TRACKER"], dbKey = "focusUIScale_pct", min = 50, max = 200,
                 parent = "perModuleScaling",
                 get = function()
