@@ -359,7 +359,7 @@ function addon.DashboardDetailView_Init(env)
                     local hit = (entry.cardId and card.cardId == entry.cardId)
                         or (card.optionIds and card.optionIds[entry.optionId])
                     if hit then
-                        if not card.expanded then
+                        if not card.expanded and not (card.headerToggleEnabled and not card.headerToggleEnabled()) then
                             card.expanded = true
                             card.anim:Play()
                         end
@@ -508,7 +508,11 @@ function addon.DashboardDetailView_Init(env)
                 breadcrumb = (m.categoryName or "") .. " > " .. (m.sectionName or "")
             end
             
-            local rawName = m.option and (type(m.option.name) == "function" and m.option.name() or m.option.name) or nil
+            local rawName
+            if m.option then
+                local n = m.option.name or m.option.searchName
+                rawName = type(n) == "function" and n() or n
+            end
             local optionName = tostring(rawName or "")
             
             row.btn.subLabel:SetText(breadcrumb or "")
@@ -1252,6 +1256,9 @@ function addon.DashboardDetailView_Init(env)
             SetSidebarState({ view = "module", activeModuleKey = mk, activeCategoryIndex = CLEAR })
         elseif not skipDetailBuild then
             -- Only 1 category (or none), go straight to details
+            -- This path never carries a search jump (NavigateToOption passes skipDetailBuild), so drop any stale reveal.
+            local Assemble = addon.OptionsAssemble
+            if Assemble then Assemble.revealId = nil; Assemble.revealPending = false end
             ClearDetailCards()
             CrossfadeTo(detailView)
             ShowDetailHeader()
