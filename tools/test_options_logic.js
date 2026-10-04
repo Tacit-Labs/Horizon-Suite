@@ -94,6 +94,7 @@ run(`
     for _, r in ipairs(list or {}) do
       if r.type == "section" then parts[#parts + 1] = "S:" .. tostring(r.name)
       elseif r.type == "moreToggle" then parts[#parts + 1] = "M:" .. tostring(r.count)
+      elseif r.type == "header" then parts[#parts + 1] = "H:" .. tostring(r.name)
       else parts[#parts + 1] = tostring(r.dbKey or r.name) end
     end
     return table.concat(parts, "|")
@@ -246,6 +247,25 @@ run(`
   check("allowEmpty page has no rows", SHAPE(OPTS(FIND(out3, "augment:tracker"))) == "", SHAPE(OPTS(FIND(out3, "augment:tracker"))))
   check("page field on empty page", FIND(out3, "augment:tracker").enabledKey == "trackerOn", FIND(out3, "augment:tracker").enabledKey)
   check("columns unwrap into cards", SHAPE(OPTS(FIND(out3, "augment:loot"))) == "S:Toasts|a1|b1|after|S:Stacking|a2", SHAPE(OPTS(FIND(out3, "augment:loot"))))
+
+  -- A column's title becomes a sub-heading at the top of that column's rows.
+  RESET()
+  HorizonSuite.RegisterModulePages("augment", { { key = "loot", name = "Loot" } })
+  local out4 = A.Run({ { key = "AugmentImprovements", moduleKey = "augment", options = {
+    SEC("Toasts", { page = "loot" }),
+    { type = "columns",
+      left = { title = "Max visible", options = { ROW("a1"), { type = "section", name = "Stacking" }, ROW("a2") } },
+      right = { title = "Toast types", options = { ROW("b1") } } },
+    SEC("Style", { page = "loot" }),
+    { type = "columns",
+      left = { options = { { type = "section", name = "Hold" }, ROW("c1") } },
+      right = { title = "Hold durations", options = { ROW("d1") } } },
+  } } })
+  local loot4 = SHAPE(OPTS(FIND(out4, "augment:loot")))
+  check("column titles become headers", loot4 == "S:Toasts|H:Max visible|a1|H:Toast types|b1|S:Stacking|a2|S:Style|H:Hold durations|d1|S:Hold|c1", loot4)
+  local hdr
+  for _, r in ipairs(OPTS(FIND(out4, "augment:loot"))) do if r.type == "header" then hdr = r break end end
+  check("column header row has a name and no dbKey", hdr and hdr.name == "Max visible" and hdr.dbKey == nil, hdr and tostring(hdr.dbKey))
 `, 'assembler-pages');
 
 // --- Assembler: load-time checks ----------------------------------------------------

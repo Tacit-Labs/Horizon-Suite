@@ -151,7 +151,8 @@ end
 
 -- A columns block is unwrapped: rows before a column's first nested section stay in the
 -- enclosing chunk; each nested section opens its own chunk and inherits the enclosing
--- section's page (and its card, on a shared page).
+-- section's page (and its card, on a shared page). A column's title becomes a header row
+-- placed before that column's first row, in whichever chunk that row lands.
 local function Chunks(list, moduleKey, catKey)
     local out, cur = {}, nil
     for _, row in ipairs(list) do
@@ -165,7 +166,12 @@ local function Chunks(list, moduleKey, catKey)
             for _, side in ipairs({ "left", "right" }) do
                 local sideCur = outer
                 local opts = (row[side] and row[side].options) or {}
+                local title = row[side] and row[side].title
                 for _, inner in ipairs(opts) do
+                    if inner.type ~= "section" and title then
+                        sideCur.rows[#sideCur.rows + 1] = { type = "header", name = title }
+                        title = nil
+                    end
                     if inner.type == "section" then
                         local s = Copy(inner)
                         if not s.page then s.page = outer.section.page end
