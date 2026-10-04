@@ -340,7 +340,7 @@ function addon.DashboardDetailView_Init(env)
                     if entry.option and entry.option.advanced then Assemble.SetMoreOpen(entry.cardId, true) end
                 end
             end
-            -- Get the effective moduleKey (Profiles/Modules map to "axis")
+            -- Axis pages (legacy keys GlobalToggles and Profiles) open under the axis module.
             local effectiveMk = targetCat.moduleKey
             if OptionCategoryKeyIsAxis(targetCat.key) then
                 effectiveMk = "axis"
@@ -381,7 +381,7 @@ function addon.DashboardDetailView_Init(env)
         f.ShowDashboard()
     end
 
-    --- Open Axis → Global Settings with the Theme accordion expanded (Dashboard background control).
+    --- Open Axis → Look & Feel with the Dashboard card expanded, landing on the background control.
     --- @return nil
     local function NavigateToDashboardBackground()
         local idx = addon.OptionsData_BuildSearchIndex and addon.OptionsData_BuildSearchIndex() or {}
@@ -409,7 +409,7 @@ function addon.DashboardDetailView_Init(env)
         NavigateToOption(entryFound)
     end
 
-    --- Open Axis module category tiles (Profiles, Modules, Global Settings, …).
+    --- Open the Axis module view with its page tiles (General, Layout, Look & Feel, Profiles).
     --- @return nil
     local function NavigateToAxisHome()
         local axisName = moduleLabels["axis"] or "Axis"
@@ -419,7 +419,7 @@ function addon.DashboardDetailView_Init(env)
         f.OpenModule(axisName, "axis", true)
     end
 
-    --- Open Axis → Global Settings with the Class Colours accordion expanded (suite-wide tint toggles).
+    --- Open Axis → Look & Feel with the Class colours card expanded (suite-wide tint toggles).
     --- @return nil
     local function NavigateToClassColourTinting()
         local idx = addon.OptionsData_BuildSearchIndex and addon.OptionsData_BuildSearchIndex() or {}
