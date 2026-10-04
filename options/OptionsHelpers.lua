@@ -93,6 +93,98 @@ local function Color(name, desc, dbKey, default, opts)
     return merge({ type = "color", name = name, desc = desc, dbKey = dbKey, default = default }, opts)
 end
 
+local FONT_ROW_PARTS = { "family", "size", "outline" }
+
+-- One row that sets a text element's font, size and outline. Each part keeps its own saved
+-- key, getter and setter; a part without a getter or setter reads and writes its key. The
+-- row's dbKey is its primary key (family, else size), which the assembler, search and More
+-- key on. The assembler also resolves a `parent` that names any part key.
+-- @param name string|function
+-- @param desc string|function|nil
+-- @param parts table  { family?, size?, outline? }; each { dbKey, default?, get?, set?, refreshIds?, ... }.
+--   family: options, displayFn. size: min, max, step. outline: kind ("dropdown" or "toggle"), options.
+-- @param opts table|nil  Merged into the row (advanced, parent, parentIs, keywords, visibleWhen, ...)
+-- @return table
+local function FontRow(name, desc, parts, opts)
+    local own = {}
+    for _, slot in ipairs(FONT_ROW_PARTS) do
+        local src = parts and parts[slot]
+        if src then
+            local p = {}
+            for k, v in pairs(src) do p[k] = v end
+            local key, default = p.dbKey, p.default
+            if not p.get and key then p.get = function() return getDB(key, default) end end
+            if not p.set and key then p.set = function(v) setDB(key, v) end end
+            if slot == "outline" and p.kind == nil then p.kind = "dropdown" end
+            own[slot] = p
+        end
+    end
+    local primary = (own.family and own.family.dbKey) or (own.size and own.size.dbKey)
+        or (own.outline and own.outline.dbKey)
+    return merge({ type = "fontRow", name = name, desc = desc, dbKey = primary, parts = own }, opts)
+end
+
+-- Font row geometry, shared by FontRowLayout and the widget that draws the row.
+local FONT_ROW_METRICS = {
+    wrapBelow   = 640,  -- a row narrower than this wraps to two lines
+    lineH       = 34,   -- first line: label and font (and, unwrapped, every control)
+    line2H      = 30,   -- second line when wrapped: size and outline
+    controlH    = 26,
+    gap         = 8,    -- between controls
+    labelGap    = 12,   -- between the label and the first control
+    familyMin   = 140,
+    familyMax   = 220,
+    stepperW    = 84,
+    outlineW    = 130,
+}
+
+--- Lay out a font row at a given width. A width of 0 or less (not yet anchored) lays out as one line.
+--- @param width number
+--- @param has table  { family = bool, size = bool, outline = bool }
+--- @return table  { wrapped = bool, familyW = number, height = number }
+local function FontRowLayout(width, has)
+    local M = FONT_ROW_METRICS
+    has = has or {}
+    local known = type(width) == "number" and width > 0
+    local wrapped = known and width < M.wrapBelow
+    local share = wrapped and 0.4 or 0.24
+    local familyW = known and math.floor(width * share) or M.familyMax
+    familyW = math.max(M.familyMin, math.min(M.familyMax, familyW))
+    local height = M.lineH
+    if wrapped and (has.size or has.outline) then height = M.lineH + M.line2H end
+    return { wrapped = wrapped and true or false, familyW = familyW, height = height }
+end
+
+--- Step or clamp a font size the way the old slider did: snap to the step, then clamp.
+--- @param value number|string  Current or typed value
+--- @param delta number  -1, 0 or 1 (0 for a typed value)
+--- @param min number
+--- @param max number
+--- @param step number|nil  Default 1
+--- @param fallback number|nil  Used when value is not a number (default min)
+--- @return number
+local function FontRowStepSize(value, delta, min, max, step, fallback)
+    step = tonumber(step) or 1
+    if step <= 0 then step = 1 end
+    local v = tonumber(value)
+    if v == nil then return tonumber(fallback) or min end
+    v = v + (delta or 0) * step
+    v = math.floor(v / step + 0.5) * step
+    v = math.max(min, math.min(max, v))
+    if step < 1 then
+        local s = tostring(step)
+        local dot = s:find("%.")
+        local decimals = dot and (#s - dot) or 0
+        v = tonumber(string.format("%." .. decimals .. "f", v))
+    end
+    return v
+end
+
+addon.FONT_ROW_METRICS                 = FONT_ROW_METRICS
+addon.FontRowLayout                    = FontRowLayout
+addon.FontRowStepSize                  = FontRowStepSize
+addon.FONT_ROW_PARTS                   = FONT_ROW_PARTS
+addon.FontRow                          = FontRow
 addon.FONT_USE_GLOBAL                  = FONT_USE_GLOBAL
 addon.GetPerElementFontDropdownOptions = GetPerElementFontDropdownOptions
 addon.DisplayPerElementFont            = DisplayPerElementFont

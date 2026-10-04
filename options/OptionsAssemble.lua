@@ -267,12 +267,46 @@ local function ContentCondition(r)
     return r.visibleWhen
 end
 
+-- A font row's part slots, in display order.
+local FONT_ROW_PARTS = { "family", "size", "outline" }
+
+-- The parts of a font row whose key is not the row's own dbKey. Empty for any other row.
+local function ExtraParts(r)
+    local out = {}
+    if r.type ~= "fontRow" or type(r.parts) ~= "table" then return out end
+    for _, slot in ipairs(FONT_ROW_PARTS) do
+        local part = r.parts[slot]
+        if type(part) == "table" and part.dbKey and part.dbKey ~= r.dbKey then out[#out + 1] = part end
+    end
+    return out
+end
+
+-- Stands in for one part of a font row when another row names the part's key as its parent.
+-- It reads the part's value; everything else (name, visibleWhen, _parentMatch, refreshIds) reads
+-- and writes through to the row, so a child's refresh id lands on the row, whose every part
+-- setter refreshes it. The part table itself may be shared with the module, so it is never written.
+local function PartProxy(row, part)
+    local key, default = part.dbKey, part.default
+    local get = part.get or function()
+        if _G.OptionsData_GetDB then return _G.OptionsData_GetDB(key, default) end
+        if addon.GetDB then return addon.GetDB(key, default) end
+        return nil
+    end
+    return setmetatable({ dbKey = key, get = get, _row = row }, { __index = row, __newindex = row })
+end
+
 -- Rows are copies made by BuildPage, so wiring them here never touches a module's tables.
 -- cardOf maps each row to its card id; a child is indented only under a parent in its card.
 local function ExpandParents(rows, moduleKey, pageKey, cardOf)
     local byKey = {}
     for _, r in ipairs(rows) do
         if r.dbKey and r.type ~= "section" then byKey[r.dbKey] = r end
+    end
+    -- A font row's part keys resolve to that part, unless a real row already holds the key.
+    for _, r in ipairs(rows) do
+        for _, part in ipairs(ExtraParts(r)) do
+            if not byKey[part.dbKey] then byKey[part.dbKey] = PartProxy(r, part) end
+        end
     end
     -- A chain that revisits a key is a cycle: warn once per cycle and leave its rows unwired.
     local cyclic, warnedCycle = {}, {}
@@ -315,7 +349,7 @@ local function ExpandParents(rows, moduleKey, pageKey, cardOf)
                 local ownContent = ContentCondition(r)
                 local function match() return ParentMatches(p, child) end
                 r._parentMatch = match
-                if cardOf and cardOf[r] == cardOf[p] then r.indent = true end
+                if cardOf and cardOf[r] == cardOf[rawget(p, "_row") or p] then r.indent = true end
                 r.visibleWhen = function()
                     if ownVisible and not ownVisible() then return false end
                     return match() or Assemble.IsRevealed(child)
@@ -354,13 +388,28 @@ local function ExpandParents(rows, moduleKey, pageKey, cardOf)
             kids[r.parent] = list
         end
     end
+    -- A font row's children hang off its part keys as well as its own key.
+    local function ownKeys(r)
+        local keys = { r.dbKey }
+        for _, part in ipairs(ExtraParts(r)) do keys[#keys + 1] = part.dbKey end
+        return keys
+    end
     for _, r in ipairs(rows) do
-        if r.dbKey and kids[r.dbKey] then
+        local hasKids = false
+        if r.dbKey then
+            for _, k in ipairs(ownKeys(r)) do
+                if kids[k] then hasKids = true end
+            end
+        end
+        if hasKids then
             local ids, have = {}, {}
             for _, id in ipairs(r.refreshIds or {}) do
                 if not have[id] then have[id] = true; ids[#ids + 1] = id end
             end
-            local stack, seen, i = { r.dbKey }, { [r.dbKey] = true }, 1
+            local stack, seen, i = {}, {}, 1
+            for _, k in ipairs(ownKeys(r)) do
+                if not seen[k] then seen[k] = true; stack[#stack + 1] = k end
+            end
             while i <= #stack do
                 for _, k in ipairs(kids[stack[i]] or {}) do
                     if not seen[k] then
@@ -369,6 +418,13 @@ local function ExpandParents(rows, moduleKey, pageKey, cardOf)
                         if not have[k] then
                             have[k] = true
                             ids[#ids + 1] = k
+                        end
+                        -- Walk on through a font row child's part keys too.
+                        local kr = byKey[k]
+                        if kr and not rawget(kr, "_row") then
+                            for _, pk in ipairs(ownKeys(kr)) do
+                                if not seen[pk] then seen[pk] = true; stack[#stack + 1] = pk end
+                            end
                         end
                     end
                 end

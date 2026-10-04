@@ -239,6 +239,18 @@ function assemble(capsOff) {
             if r.advanced then adv = adv + 1 else ev = ev + 1 end
             lines[#lines + 1] = "  " .. (r.advanced and "[adv] " or "") .. (r.parent and "↳ " or "") .. rowName(r)
               .. (r.parent and ("  (parent: " .. tostring(r.parent) .. ")") or "")
+            -- A font row lists its parts: "[font: family=<key>, size=<key>, outline=<key> (toggle)]".
+            if r.type == "fontRow" and type(r.parts) == "table" then
+              local ps = {}
+              for _, slot in ipairs({ "family", "size", "outline" }) do
+                local p = r.parts[slot]
+                if p then
+                  ps[#ps + 1] = slot .. "=" .. tostring(p.dbKey)
+                    .. ((slot == "outline" and p.kind == "toggle") and " (toggle)" or "")
+                end
+              end
+              lines[#lines] = lines[#lines] .. "  [font: " .. table.concat(ps, ", ") .. "]"
+            end
           end
         end
         flush()

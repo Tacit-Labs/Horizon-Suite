@@ -123,7 +123,7 @@ run(`
 
 // Load order matches HorizonSuite.toc. Files that are missing yet are skipped so the
 // harness can grow task by task.
-for (const f of ['options/OptionsPages.lua', 'options/OptionsAssemble.lua', 'options/OptionsSearch.lua']) {
+for (const f of ['options/OptionsHelpers.lua', 'options/OptionsPages.lua', 'options/OptionsAssemble.lua', 'options/OptionsSearch.lua']) {
   if (fs.existsSync(REPO + f)) run(read(f), f);
 }
 
@@ -666,6 +666,118 @@ run(`
   check("assembled pages never contain columns", not found, "columns row present")
   check("strict is on by default", A.strict == true, A.strict)
 `, 'strict');
+
+// --- Font rows ------------------------------------------------------------------------
+run(`
+  local A = HorizonSuite.OptionsAssemble
+  local FontRow = HorizonSuite.FontRow
+  check("FontRow helper exists", type(FontRow) == "function", type(FontRow))
+  if type(FontRow) ~= "function" then return end
+  RESET()
+  local full = FontRow("Title text", "d", {
+    family = { dbKey = "tFont" }, size = { dbKey = "tSize", min = 8, max = 32 }, outline = { dbKey = "tOutline" },
+  }, { keywords = { "Title size" } })
+  check("font row type", full.type == "fontRow", full.type)
+  check("font row dbKey is the family key", full.dbKey == "tFont", full.dbKey)
+  check("font row keeps its parts", full.parts and full.parts.size and full.parts.size.dbKey == "tSize", "no parts")
+  check("opts merged", full.keywords and full.keywords[1] == "Title size", "no keywords")
+  local sizeOnly = FontRow("Zone", nil, { size = { dbKey = "zSize" }, outline = { dbKey = "zOut" } })
+  check("font row without a family keys on its size", sizeOnly.dbKey == "zSize", sizeOnly.dbKey)
+  DB_VALUES.tSize = 17
+  check("part without a getter reads its key", full.parts.size.get() == 17, tostring(full.parts.size.get()))
+  check("outline kind defaults to dropdown", full.parts.outline.kind == "dropdown", tostring(full.parts.outline.kind))
+
+  -- A row whose parent names a part key resolves against that part.
+  RESET()
+  DB_VALUES = { thOutline = false, kOut = "OUTLINE" }
+  local src = { key = "L", moduleKey = "focus", options = {
+    SEC("Text", { page = "look", card = "text" }),
+    FontRow("Name", nil, {
+      family = { dbKey = "thFont" }, size = { dbKey = "thSize" },
+      outline = { dbKey = "thOutline", kind = "toggle", get = function() return DB_VALUES.thOutline end },
+    }),
+    FontRow("Kid font", nil, { family = { dbKey = "kFont" }, outline = { dbKey = "kOut" } }),
+    ROW("shadow", { parent = "thOutline" }),
+    ROW("thick", { parent = "kOut", parentIs = "THICKOUTLINE" }),
+  } }
+  local out = A.Run({ src })
+  local by = {}
+  for _, r in ipairs(OPTS(out[1])) do if r.dbKey then by[r.dbKey] = r end end
+  check("part-key parent wires without a warning", not WARNED("not on this page"), "warned")
+  check("child of an off outline part hides", by.shadow.visibleWhen() == false, "true")
+  DB_VALUES.thOutline = true
+  check("child of an on outline part shows", by.shadow.visibleWhen() == true, "false")
+  check("child of a part is indented", by.shadow.indent == true, tostring(by.shadow.indent))
+  check("hint names the font row", (function() DB_VALUES.thOutline = false; return by.shadow.tooltip() end)() == "Depends on Name.", tostring(by.shadow.tooltip()))
+  check("get-less part parent hides on mismatch", by.thick.visibleWhen() == false, "true")
+  DB_VALUES.kOut = "THICKOUTLINE"
+  check("get-less part parent shows on match", by.thick.visibleWhen() == true, "false")
+  check("font row refreshes children of its parts", table.concat(by.thFont.refreshIds or {}, ",") == "shadow", table.concat(by.thFont.refreshIds or {}, ","))
+  -- A parent above a font row refreshes the rows hanging off that font row's parts.
+  RESET()
+  DB_VALUES = { per = true, cOut = "OUTLINE" }
+  local out2 = A.Run({ { key = "L", moduleKey = "focus", options = {
+    SEC("Text", { page = "look", card = "text" }),
+    ROW("per"),
+    FontRow("Child font", nil, { family = { dbKey = "cFont" }, outline = { dbKey = "cOut" } }, { parent = "per" }),
+    ROW("gk", { parent = "cOut", parentIs = "OUTLINE" }),
+  } } })
+  local by2 = {}
+  for _, r in ipairs(OPTS(out2[1])) do if r.dbKey then by2[r.dbKey] = r end end
+  check("parent refreshes through a font row's parts", table.concat(by2.per.refreshIds or {}, ",") == "cFont,gk", table.concat(by2.per.refreshIds or {}, ","))
+  DB_VALUES.per = false
+  check("part child hides when the font row's parent is off", by2.gk.visibleWhen() == false, "true")
+  check("source parts untouched", src.options[2].parts.outline.refreshIds == nil and src.options[2].refreshIds == nil, "mutated")
+
+  -- More and search treat a font row as one row.
+  RESET()
+  HorizonSuite.OptionCategories = A.Run({ { key = "F", moduleKey = "focus", options = {
+    SEC("Text", { page = "look", card = "text" }),
+    ROW("plain"),
+    FontRow("Title text", nil, { family = { dbKey = "tFont" }, size = { dbKey = "tSize" }, outline = { dbKey = "tOut" } },
+      { advanced = true, keywords = { "Title size", "Outline" } }),
+  } } })
+  local rows = OPTS(HorizonSuite.OptionCategories[1])
+  check("advanced font row goes behind More", SHAPE(rows) == "S:CARD_TEXT|plain|M:1|tFont", SHAPE(rows))
+  local fr
+  for _, r in ipairs(rows) do if r.type == "fontRow" then fr = r end end
+  check("advanced font row hidden while More is closed", fr and fr.visibleWhen() == false, "shown")
+  HorizonSuite.OptionsSearch_Invalidate()
+  local idx = OptionsData_BuildSearchIndex()
+  local n, hit = 0, nil
+  for _, e in ipairs(idx) do if e.option.type == "fontRow" then n = n + 1; hit = e end end
+  check("font row is one search result", n == 1, n)
+  check("font row result keys on its primary key", hit and hit.optionId == "tFont", hit and hit.optionId)
+  check("old row name finds the font row", hit and OptionsData_SearchEntryScore(hit, "title size") ~= nil, "nil")
+  HorizonSuite.OptionCategories = nil
+`, 'font-rows');
+
+// --- Font row widget logic (the parts that need no frames) -------------------------------
+run(`
+  local H = HorizonSuite
+  check("step helper exists", type(H.FontRowStepSize) == "function", type(H.FontRowStepSize))
+  check("layout helper exists", type(H.FontRowLayout) == "function", type(H.FontRowLayout))
+  if type(H.FontRowStepSize) ~= "function" or type(H.FontRowLayout) ~= "function" then return end
+  local S = H.FontRowStepSize
+  check("plus steps by one with no step", S(14, 1, 8, 32) == 15, S(14, 1, 8, 32))
+  check("minus steps by the step", S(14, -1, 8, 32, 2) == 12, S(14, -1, 8, 32, 2))
+  check("plus clamps at max", S(32, 1, 8, 32) == 32, S(32, 1, 8, 32))
+  check("minus clamps at min", S(8, -1, 8, 32) == 8, S(8, -1, 8, 32))
+  check("typed value is clamped", S(99, 0, 8, 32) == 32, S(99, 0, 8, 32))
+  check("typed value snaps to the step", S(13.4, 0, 8, 32) == 13, S(13.4, 0, 8, 32))
+  check("fractional step keeps clean decimals", S(0.8, 1, 0.5, 2, 0.1) == 0.9, S(0.8, 1, 0.5, 2, 0.1))
+  check("text that is not a number falls back", S("abc", 0, 8, 32, 1, 14) == 14, S("abc", 0, 8, 32, 1, 14))
+  local L = H.FontRowLayout
+  local wide = L(970, { family = true, size = true, outline = true })
+  check("wide row is one line", wide.wrapped == false and wide.height == 34, tostring(wide.wrapped) .. " " .. wide.height)
+  check("one line at exactly 640", L(640, { family = true, size = true }).wrapped == false, "wrapped")
+  local narrow = L(600, { family = true, size = true, outline = true })
+  check("narrow row wraps to two lines", narrow.wrapped == true and narrow.height == 64, tostring(narrow.wrapped) .. " " .. narrow.height)
+  check("font is never narrower than 140", L(640, { family = true }).familyW >= 140 and L(300, { family = true }).familyW >= 140, L(300, { family = true }).familyW)
+  check("font flexes wider on a wide row", wide.familyW > L(640, { family = true, size = true, outline = true }).familyW, wide.familyW)
+  check("narrow row with only a font stays one line tall", L(600, { family = true }).height == 34, L(600, { family = true }).height)
+  check("unknown width lays out as one line", L(0, { family = true, size = true }).wrapped == false, "wrapped")
+`, 'font-row-widget-logic');
 
 // --- Summary -----------------------------------------------------------------------
 run(`
