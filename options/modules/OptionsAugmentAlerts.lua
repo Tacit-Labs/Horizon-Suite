@@ -14,6 +14,7 @@ local function clamp(v, key) local lim = LIM[key]; return math.max(lim.min, math
 local function getDB(k, d) return addon.OptionsData_GetDB(k, d) end
 local function setDB(k, v) addon.OptionsData_SetDB(k, v) end
 local Section = addon.Section
+local FontRow = addon.FontRow
 
 local FONT_USE_GLOBAL                  = addon.FONT_USE_GLOBAL
 local GetPerElementFontDropdownOptions = addon.GetPerElementFontDropdownOptions
@@ -346,31 +347,29 @@ local category = {
                       set = function(v) setDB("alertsToastStyle", v); applyAlerts() end,
                       preserveOrder = true,
                     },
-                    { type = "dropdown",
-                      name = L["AUGMENT_ALERTS_FONT"], desc = L["AUGMENT_ALERTS_FONT_DESC"],
-                      dbKey = "alertsFontPath",
-                      searchable = true,
-                      options = function() return GetPerElementFontDropdownOptions("alertsFontPath") end,
-                      get = function() return getDB("alertsFontPath", FONT_USE_GLOBAL) end,
-                      set = function(v) setDB("alertsFontPath", v); applyAlerts() end,
-                      displayFn = DisplayPerElementFont,
-                      fontPreviewInList = true,
-                    },
-                    { type = "slider",
-                      name = L["AUGMENT_ALERTS_FONT_SIZE"], desc = L["AUGMENT_ALERTS_FONT_SIZE_DESC"],
-                      dbKey = "alertsFontSize",
-                      min = LIM.alertsFontSize.min, max = LIM.alertsFontSize.max, step = 1,
-                      get = function() return math.max(LIM.alertsFontSize.min, math.min(LIM.alertsFontSize.max, tonumber(getDB("alertsFontSize", D.alertsFontSize)) or D.alertsFontSize)) end,
-                      set = function(v) setDB("alertsFontSize", clamp(v, "alertsFontSize")); applyAlerts() end,
-                    },
-                    { type = "dropdown",
-                      name = L["AUGMENT_ALERTS_OUTLINE_TYPE"], desc = L["AUGMENT_ALERTS_OUTLINE_TYPE_DESC"],
-                      dbKey = "alertsTextOutlineType",
-                      advanced = true,
-                      options = addon.OUTLINE_OPTIONS,
-                      get = function() return getDB("alertsTextOutlineType", D.alertsTextOutlineType) end,
-                      set = function(v) setDB("alertsTextOutlineType", v); applyAlerts() end,
-                    },
+                    FontRow(L["AUGMENT_ALERTS_FONT"], L["AUGMENT_ALERTS_FONT_DESC"], {
+                        family = {
+                            dbKey = "alertsFontPath",
+                            searchable = true,
+                            options = function() return GetPerElementFontDropdownOptions("alertsFontPath") end,
+                            get = function() return getDB("alertsFontPath", FONT_USE_GLOBAL) end,
+                            set = function(v) setDB("alertsFontPath", v); applyAlerts() end,
+                            displayFn = DisplayPerElementFont,
+                            fontPreviewInList = true,
+                        },
+                        size = {
+                            dbKey = "alertsFontSize",
+                            min = LIM.alertsFontSize.min, max = LIM.alertsFontSize.max, step = 1,
+                            get = function() return math.max(LIM.alertsFontSize.min, math.min(LIM.alertsFontSize.max, tonumber(getDB("alertsFontSize", D.alertsFontSize)) or D.alertsFontSize)) end,
+                            set = function(v) setDB("alertsFontSize", clamp(v, "alertsFontSize")); applyAlerts() end,
+                        },
+                        outline = {
+                            dbKey = "alertsTextOutlineType",
+                            options = addon.OUTLINE_OPTIONS,
+                            get = function() return getDB("alertsTextOutlineType", D.alertsTextOutlineType) end,
+                            set = function(v) setDB("alertsTextOutlineType", v); applyAlerts() end,
+                        },
+                    }, { keywords = { L["AUGMENT_ALERTS_FONT_SIZE"], L["AUGMENT_ALERTS_OUTLINE_TYPE"] } }),
                 },
             },
             right = {

@@ -142,59 +142,51 @@ local categories = {
                 "dashboardTextShadow",
                 "dashboardHeadingColor",
             }
-            opts[#opts + 1] = {
-                type = "dropdown",
-                name = L["DASHBOARD_TYPO_FONT"],
-                desc = L["DASHBOARD_TYPO_FONT_DESC"],
-                dbKey = "dashboardFontPath",
-                searchable = true,
-                options = GetDashboardFontDropdownOptions,
-                get = function() return getDB("dashboardFontPath", defaultDashboardFontPath) end,
-                set = function(v) setDB("dashboardFontPath", v) end,
-                displayFn = addon.GetFontNameForPath,
-                fontPreviewInList = true,
-                refreshIds = dashboardTypoRefreshIds,
-            }
-            opts[#opts + 1] = {
-                type = "slider",
-                name = L["DASHBOARD_TYPO_SIZE"],
-                desc = L["DASHBOARD_TYPO_SIZE_DESC"],
-                dbKey = "dashboardFontSize",
-                min = 10,
-                max = 18,
-                step = 1,
-                get = function()
-                    if addon.Dashboard_GetBodySize then return addon.Dashboard_GetBodySize() end
-                    return getDB("dashboardFontSize", 13)
-                end,
-                set = function(v)
-                    setDB("dashboardFontSize", math.max(10, math.min(18, math.floor((tonumber(v) or 13) + 0.5))))
-                end,
-                refreshIds = dashboardTypoRefreshIds,
-            }
-            opts[#opts + 1] = {
-                type = "dropdown",
-                name = L["DASHBOARD_TYPO_OUTLINE"],
-                desc = L["DASHBOARD_TYPO_OUTLINE_DESC"],
-                dbKey = "dashboardTextOutline",
-                advanced = true,
-                options = OUTLINE_OPTIONS,
-                preserveOrder = true,
-                get = function()
-                    local v = getDB("dashboardTextOutline", 1)
-                    if VALID_OUTLINE_VALUES[v] then return v end
-                    if v == true then return "OUTLINE" end
-                    if v == false then return "" end
-                    local n = tonumber(v)
-                    if not n then return "OUTLINE" end
-                    n = math.max(0, math.min(2, math.floor(n + 0.5)))
-                    if n == 0 then return "" end
-                    if n == 2 then return "THICKOUTLINE" end
-                    return "OUTLINE"
-                end,
-                set = function(v) setDB("dashboardTextOutline", v) end,
-                refreshIds = dashboardTypoRefreshIds,
-            }
+            opts[#opts + 1] = addon.FontRow(L["DASHBOARD_TYPO_FONT"], L["DASHBOARD_TYPO_FONT_DESC"], {
+                family = {
+                    dbKey = "dashboardFontPath",
+                    searchable = true,
+                    options = GetDashboardFontDropdownOptions,
+                    get = function() return getDB("dashboardFontPath", defaultDashboardFontPath) end,
+                    set = function(v) setDB("dashboardFontPath", v) end,
+                    displayFn = addon.GetFontNameForPath,
+                    fontPreviewInList = true,
+                    refreshIds = dashboardTypoRefreshIds,
+                },
+                size = {
+                    dbKey = "dashboardFontSize",
+                    min = 10,
+                    max = 18,
+                    step = 1,
+                    get = function()
+                        if addon.Dashboard_GetBodySize then return addon.Dashboard_GetBodySize() end
+                        return getDB("dashboardFontSize", 13)
+                    end,
+                    set = function(v)
+                        setDB("dashboardFontSize", math.max(10, math.min(18, math.floor((tonumber(v) or 13) + 0.5))))
+                    end,
+                    refreshIds = dashboardTypoRefreshIds,
+                },
+                outline = {
+                    dbKey = "dashboardTextOutline",
+                    options = OUTLINE_OPTIONS,
+                    preserveOrder = true,
+                    get = function()
+                        local v = getDB("dashboardTextOutline", 1)
+                        if VALID_OUTLINE_VALUES[v] then return v end
+                        if v == true then return "OUTLINE" end
+                        if v == false then return "" end
+                        local n = tonumber(v)
+                        if not n then return "OUTLINE" end
+                        n = math.max(0, math.min(2, math.floor(n + 0.5)))
+                        if n == 0 then return "" end
+                        if n == 2 then return "THICKOUTLINE" end
+                        return "OUTLINE"
+                    end,
+                    set = function(v) setDB("dashboardTextOutline", v) end,
+                    refreshIds = dashboardTypoRefreshIds,
+                },
+            }, { keywords = { L["DASHBOARD_TYPO_SIZE"], L["DASHBOARD_TYPO_OUTLINE"] } })
             opts[#opts + 1] = {
                 type = "toggle",
                 name = L["DASHBOARD_TYPO_SHADOW"],
