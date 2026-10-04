@@ -8,6 +8,14 @@ if not addon then return end
 
 local L = addon.L
 
+-- Under Blizzard's gamepad UI, creating our button inside the shown menu taints
+-- its gamepad navigation, and hiding the menu from our OnClick runs Blizzard's
+-- protected gamepad code from addon code. Either one blocks the next action
+-- and can freeze the client (#468), so the button stays out; /hopt still works.
+local function GamepadUI()
+    return addon.Platform and addon.Platform.IsGamepadUI() or false
+end
+
 local function OpenHorizon()
     HideUIPanel(GameMenuFrame)
     if addon.ShowDashboard then
@@ -79,7 +87,7 @@ local function IsEnabled()
 end
 
 local function CreateButton()
-    if rawget(_G, "HorizonSuiteGameMenuButton") then return end
+    if rawget(_G, "HorizonSuiteGameMenuButton") or GamepadUI() then return end
 
     local button = CreateFrame("Button", "HorizonSuiteGameMenuButton", GameMenuFrame, "MainMenuFrameButtonTemplate")
     button:SetText(L["AXIS_GAMEMENU_BUTTON"])
@@ -101,7 +109,7 @@ end
 
 function addon.GameMenuButton_UpdateVisibility()
     local btn = rawget(_G, "HorizonSuiteGameMenuButton")
-    if not btn then return end
+    if not btn or GamepadUI() then return end
     if IsEnabled() then btn:Show() else btn:Hide() end
     -- If the menu is open while toggling, recompact it so hiding doesn't leave a
     -- blank slot and showing re-anchors the button. Closed-menu toggles are
@@ -123,7 +131,7 @@ frame:SetScript("OnEvent", function(self)
     C_Timer.After(0, function()
         hooksecurefunc(GameMenuFrame, "Layout", function()
             local btn = rawget(_G, "HorizonSuiteGameMenuButton")
-            if not btn or not btn:IsShown() then return end
+            if not btn or not btn:IsShown() or GamepadUI() then return end
             -- Our button causes Layout to shift pool buttons further down than
             -- third-party skinners account for when they resize the frame with
             -- a fixed extraH. Check all visible children for clipping, not just
@@ -149,6 +157,13 @@ frame:SetScript("OnEvent", function(self)
         -- Defer one frame so all other addons' OnShow/Layout hooks complete
         -- before we create or reposition our button.
         C_Timer.After(0, function()
+            if GamepadUI() then
+                -- Made before the gamepad UI was switched on: keep it hidden,
+                -- and leave the menu's layout to Blizzard.
+                local btn = rawget(_G, "HorizonSuiteGameMenuButton")
+                if btn then btn:Hide() end
+                return
+            end
             CreateButton()
             PositionButton()
         end)
