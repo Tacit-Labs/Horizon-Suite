@@ -30,6 +30,32 @@ function addon.DashboardAccordionBuild_Init(f, p)
         return addon.Dashboard_CreateAccordionCard(parent, title, headerToggleCfg, accordionCardParams)
     end
 
+    -- A subheading inside a card: a small muted label with a faint 1px rule running from the
+    -- label to the row's right edge. It sits SUBHEADING_TOP_GAP below the row above, for about
+    -- 22px in all, and takes the same left inset as the rows (DoInstantRelayout anchors it).
+    local SUBHEADING_HEIGHT = 14
+    local SUBHEADING_TOP_GAP = 8
+    local function CreateSubheading(parent, name)
+        local WDef = addon.OptionsWidgetsDef or {}
+        local tc = WDef.TextColorSection or { 0.58, 0.64, 0.74 }
+        local rc = WDef.DividerColor or { 0.35, 0.4, 0.5, 0.25 }
+        if type(name) == "function" then name = name() end
+        local row = CreateFrame("Frame", nil, parent)
+        row:SetHeight(SUBHEADING_HEIGHT)
+        local label = MakeText(row, tostring(name or ""), (WDef.SectionSize or 11), tc[1], tc[2], tc[3], "LEFT")
+        label:SetPoint("LEFT", row, "LEFT", 0, 0)
+        if row.CreateTexture then
+            local rule = row:CreateTexture(nil, "ARTWORK")
+            rule:SetHeight(1)
+            rule:SetPoint("LEFT", label, "RIGHT", 8, 0)
+            rule:SetPoint("RIGHT", row, "RIGHT", 0, 0)
+            rule:SetColorTexture(rc[1], rc[2], rc[3], rc[4] or 0.25)
+            row._rule = rule
+        end
+        row.label = label
+        return row
+    end
+
     f.BuildAccordionDetail = function(moduleSubName, options)
         local currentCard = nil
         local detailOptionFrames = {}
@@ -132,17 +158,15 @@ function addon.DashboardAccordionBuild_Init(f, p)
                 if entry.visibleWhen then
                     visible = entry.visibleWhen()
                 end
-                if visible and entry.frame._repaint then entry.frame._repaint() end
                 entry.frame:SetShown(visible)
                 if visible then
                     entry.frame:SetAlpha(1)
-                    local topGap = entry.isHeader and 18 or 6
+                    local topGap = entry.isHeader and SUBHEADING_TOP_GAP or 6
                     entry.frame:ClearAllPoints()
                     local rowX = entry.indent and 50 or 30
                     entry.frame:SetPoint("TOPLEFT", card.settingsContainer, "TOPLEFT", rowX, -(yOff + topGap))
                     entry.frame:SetPoint("RIGHT", card.settingsContainer, "RIGHT", -30, 0)
                     local h = entry.frame:GetHeight() or 40
-                    if entry.isHeader and h < 20 then h = 20 end
                     yOff = yOff + h + topGap
                 end
             end
@@ -421,7 +445,7 @@ function addon.DashboardAccordionBuild_Init(f, p)
 
                 -- Store the option identifier to track its parent card (for search-jump).
                 -- moduleReloadPrompt is excluded from search results, so skip it here.
-                local optId = opt.type ~= "moduleReloadPrompt" and opt.type ~= "moreToggle" and (
+                local optId = opt.type ~= "moduleReloadPrompt" and (
                     opt.dbKey
                     or (opt.type == "presencePreview" and "presencePreview")
                     or (opt.type == "talkingHeadPreview" and "talkingHeadPreview")
@@ -562,31 +586,8 @@ function addon.DashboardAccordionBuild_Init(f, p)
                         end
                     end
                     detailOptionFrames[optId] = widget
-                elseif opt.type == "moreToggle" then
-                    local cardRef, cardId, count, getCount = currentCard, opt.cardId, opt.count, opt.getCount
-                    local Assemble = addon.OptionsAssemble
-                    local row = CreateFrame("Button", nil, currentCard.settingsContainer)
-                    row:SetHeight(24)
-                    local label = MakeText(row, "", 12, 0.44, 0.63, 0.94, "LEFT")
-                    label:SetPoint("LEFT", row, "LEFT", 0, 0)
-                    local function Paint()
-                        local open = Assemble and Assemble.IsMoreOpen(cardId)
-                        local n = getCount and getCount() or count or 0
-                        label:SetText(open and L["DASH_LESS"] or L["DASH_MORE"]:format(n))
-                    end
-                    Paint()
-                    row.Refresh = Paint
-                    -- Relayout repaints the count, since the rows it counts change with their parents.
-                    row._repaint = Paint
-                    row:SetScript("OnClick", function()
-                        if not Assemble then return end
-                        Assemble.SetMoreOpen(cardId, not Assemble.IsMoreOpen(cardId))
-                        Paint()
-                        RelayoutCard(cardRef, true)
-                    end)
-                    widget = row
                 elseif opt.type == "header" then
-                    widget = _G.OptionsWidgets_CreateSectionHeader(currentCard.settingsContainer, opt.name)
+                    widget = CreateSubheading(currentCard.settingsContainer, opt.name)
                 elseif opt.type == "button" then
                     local onClick = opt.onClick
                     if opt.refreshIds and #opt.refreshIds > 0 then
@@ -1126,12 +1127,6 @@ function addon.DashboardAccordionBuild_Init(f, p)
                     widget._parentCard = currentCard
 
                     local isHeader = opt.type == "header"
-                    if isHeader then
-                        if widget.SetJustifyH then widget:SetJustifyH("LEFT") end
-                        if widget.SetTextColor then
-                            widget:SetTextColor(0.58, 0.64, 0.74, 1)
-                        end
-                    end
 
                     -- Dependent rows sit indented under their parent with a thin accent line.
                     if opt.indent and widget.CreateTexture and not widget._indentBar then

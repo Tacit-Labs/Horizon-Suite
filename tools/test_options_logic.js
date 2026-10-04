@@ -3,7 +3,7 @@
  * Executable checks for the options page assembler and the search index.
  *
  * Why this exists. The assembler decides which page and card every setting lands on,
- * when a dependent setting shows, and what sits behind a card's More fold. A mistake
+ * when a dependent setting shows, and which subheadings a card shows. A mistake
  * there hides settings from players without any error, so the rules run here in a
  * plain Lua VM with the WoW globals stubbed. No frames are built.
  *
@@ -88,7 +88,8 @@ run(`
     for k, v in pairs(extra or {}) do s[k] = v end
     return s
   end
-  -- Compact picture of an option list: "S:<section>|<row>|M:<count>|...".
+  -- Compact picture of an option list: "S:<section>|H:<subheading>|<row>|...". A More row,
+  -- which no longer exists, would show as "M:<count>".
   function SHAPE(list)
     local parts = {}
     for _, r in ipairs(list or {}) do
@@ -205,8 +206,8 @@ run(`
   check("untagged category passes through after the module block", out[4] and out[4].key == "Untagged", out[4] and out[4].key)
   check("input list untouched", #cats == 3 and cats[1].key == "Old1", #cats)
   local layout = FIND(out, "focus:layout")
-  check("cards: shared order, merged across categories", SHAPE(OPTS(layout)) == "S:CARD_POSITION|lock|S:CARD_SIZE|gap|width", SHAPE(OPTS(layout)))
-  check("text card merges two sections", SHAPE(OPTS(FIND(out, "focus:look"))) == "S:CARD_TEXT|fontA|fontSize", SHAPE(OPTS(FIND(out, "focus:look"))))
+  check("cards: shared order, merged across categories", SHAPE(OPTS(layout)) == "S:CARD_POSITION|lock|S:CARD_SIZE|H:Spacing|gap|H:Width|width", SHAPE(OPTS(layout)))
+  check("text card merges two sections under subheadings", SHAPE(OPTS(FIND(out, "focus:look"))) == "S:CARD_TEXT|H:Fonts|fontA|H:Sizes|fontSize", SHAPE(OPTS(FIND(out, "focus:look"))))
   check("module page keeps section name", SHAPE(OPTS(FIND(out, "focus:tracked"))) == "S:Quests|q1", SHAPE(OPTS(FIND(out, "focus:tracked"))))
   check("shared page name", layout.name == "PAGE_LAYOUT", layout.name)
   check("module page name", FIND(out, "focus:tracked").name == "What's tracked", FIND(out, "focus:tracked").name)
@@ -322,9 +323,8 @@ run(`
   check("remembered closed wins over first", A.IsCardExpanded("m:p:a", true) == false, "true")
   check("remembered open wins", A.IsCardExpanded("m:p:b", false) == true, "false")
   check("state saved in the database", HorizonDB.optionsCardExpanded["m:p:b"] == true, "nil")
-  check("More starts closed", A.IsMoreOpen("m:p:a") == false, "true")
-  A.SetMoreOpen("m:p:a", true)
-  check("More remembered", A.IsMoreOpen("m:p:a") == true and HorizonDB.optionsCardMoreOpen["m:p:a"] == true, "false")
+  check("the More store is gone", A.IsMoreOpen == nil and A.SetMoreOpen == nil, "still defined")
+  check("no More state is written", HorizonDB.optionsCardMoreOpen == nil, "written")
 `, 'card-store');
 
 // --- Dependent rows -------------------------------------------------------------------
@@ -434,7 +434,7 @@ run(`
   check("get-less parent hides the child", by.kid.visibleWhen() == false, "true")
 `, 'getless-parent');
 
-// --- More fold ------------------------------------------------------------------------
+// --- No More fold: `advanced` is ignored -------------------------------------------------
 run(`
   local A = HorizonSuite.OptionsAssemble
   RESET()
@@ -444,23 +444,17 @@ run(`
     SEC("Where", { page = "layout", card = "position" }), ROW("lock"),
   } } })
   local rows = OPTS(out[1])
-  check("advanced rows follow a More row", SHAPE(rows) == "S:CARD_POSITION|lock|S:CARD_SIZE|a|b|M:2|adv1|adv2", SHAPE(rows))
-  local more, adv1
+  check("advanced row stays in place", SHAPE(rows) == "S:CARD_POSITION|lock|S:CARD_SIZE|a|adv1|b|adv2", SHAPE(rows))
+  local more, adv1 = false, nil
   for _, r in ipairs(rows) do
-    if r.type == "moreToggle" then more = r end
+    if r.type == "moreToggle" then more = true end
     if r.dbKey == "adv1" then adv1 = r end
   end
-  check("More row knows its card", more.cardId == "focus:layout:size", more.cardId)
-  check("advanced row hidden while More is closed", adv1.visibleWhen() == false, "true")
-  A.SetMoreOpen("focus:layout:size", true)
-  check("advanced row shows when More opens", adv1.visibleWhen() == true, "false")
-  A.SetMoreOpen("focus:layout:size", false)
-  A.revealId = "adv1"
-  check("search reveal shows an advanced row", adv1.visibleWhen() == true, "false")
-  A.revealId = nil
-`, 'more-fold');
+  check("no moreToggle rows", more == false, "moreToggle present")
+  check("advanced row has no condition of its own", adv1 and adv1.visibleWhen == nil, "wired")
+`, 'no-more-fold');
 
-// --- More row tracks what it can show ------------------------------------------------------
+// --- Advanced rows behave like any other row ------------------------------------------------
 run(`
   local A = HorizonSuite.OptionsAssemble
   RESET()
@@ -478,39 +472,26 @@ run(`
   } } })
   local rows = OPTS(out[1])
   HorizonSuite.Platform.caps.gone = nil
-  local mores, by, cur = {}, {}, nil
+  local by = {}
   for _, r in ipairs(rows) do
-    if r.type == "section" then cur = r.card end
-    if r.type == "moreToggle" then mores[cur] = r end
     if r.dbKey and r.type ~= "section" then by[r.dbKey] = r end
   end
-  local function moreShows(card)
-    local m = mores[card]
-    return m ~= nil and (not m.visibleWhen or m.visibleWhen()) and true or false
-  end
-  local function moreCount(card)
-    local m = mores[card]
-    if not m then return nil end
-    if m.getCount then return m.getCount() end
-    return m.count
-  end
-  check("More row hides when its only advanced row waits on an off parent", moreShows("size") == false, "shown")
-  check("More count is 0 while that parent is off", moreCount("size") == 0, moreCount("size"))
+  check("advanced child hides while its parent is off", by.visKid.visibleWhen() == false, "shown")
   DB_VALUES.vis = true
-  check("More row shows once the parent is on", moreShows("size") == true, "hidden")
-  check("More count follows the parent", moreCount("size") == 1, moreCount("size"))
+  check("advanced child shows once its parent is on", by.visKid.visibleWhen() == true, "hidden")
+  check("advanced child is indented under its parent", by.visKid.indent == true, tostring(by.visKid.indent))
   DB_VALUES.vis = false
   A.revealId = "visKid"
-  check("a revealed advanced row keeps the More row", moreShows("size") == true, "hidden")
+  check("search reveal shows an advanced child of an off parent", by.visKid.visibleWhen() == true, "hidden")
   A.revealId = nil
   check("row with an absent capability is dropped", by.p2 == nil, "present")
-  check("More count skips an absent capability", moreCount("position") == 2, moreCount("position"))
-  check("static count skips an absent capability", mores.position ~= nil and mores.position.count == 2, mores.position and mores.position.count)
+  check("advanced row with its own condition follows it", by.p3.visibleWhen() == true, "hidden")
   DB_VALUES.own = false
-  check("More count skips a row whose own condition fails", moreCount("position") == 1, moreCount("position"))
-`, 'more-count');
+  check("advanced row with a failing condition hides", by.p3.visibleWhen() == false, "shown")
+  check("no store gate on any row", HorizonDB.optionsCardMoreOpen == nil, "written")
+`, 'advanced-ignored');
 
-// --- More count with an advanced parent ----------------------------------------------------
+// --- An advanced chain behaves like any chain ------------------------------------------------
 run(`
   local A = HorizonSuite.OptionsAssemble
   RESET()
@@ -518,33 +499,89 @@ run(`
   local out = A.Run({ { key = "L", moduleKey = "focus", options = {
     SEC("Size", { page = "layout", card = "size" }),
     ROW("ev"),
-    ROW("ap", { advanced = true }),
-    ROW("ak", { parent = "ap", advanced = true }),
-  } } })
-  local more, ak
-  for _, r in ipairs(OPTS(out[1])) do
-    if r.type == "moreToggle" then more = r end
-    if r.dbKey == "ak" then ak = r end
-  end
-  check("advanced child of an advanced parent counts while More is closed", more.getCount() == 2, more.getCount())
-  check("More row shows with an advanced chain", more.visibleWhen() == true, "hidden")
-  check("counting leaves the More gate closed", A._countingCard == nil and ak.visibleWhen() == false, tostring(A._countingCard))
-  A.SetMoreOpen("focus:layout:size", true)
-  check("advanced chain count is the same with More open", more.getCount() == 2, more.getCount())
-  A.SetMoreOpen("focus:layout:size", false)
-  DB_VALUES.ap = false
-  check("advanced child of an off advanced parent drops out", more.getCount() == 1, more.getCount())
-  DB_VALUES = { ev = true, ap = false, ak = true }
-  local out2 = A.Run({ { key = "L", moduleKey = "focus", options = {
-    SEC("Size", { page = "layout", card = "size" }),
-    ROW("ev"),
     ROW("ap", { parent = "ev", advanced = true }),
     ROW("ak", { parent = "ap", advanced = true }),
   } } })
-  local more2
-  for _, r in ipairs(OPTS(out2[1])) do if r.type == "moreToggle" then more2 = r end end
-  check("More row stays when only the advanced chain could show", more2.visibleWhen() == true and more2.getCount() == 1, more2.getCount())
-`, 'more-count-advanced-parent');
+  local by = {}
+  for _, r in ipairs(OPTS(out[1])) do if r.dbKey and r.type ~= "section" then by[r.dbKey] = r end end
+  check("advanced chain shows when every link matches", by.ak.visibleWhen() == true, "hidden")
+  DB_VALUES.ap = false
+  check("advanced grandchild hides with its advanced parent", by.ak.visibleWhen() == false, "shown")
+  DB_VALUES.ap, DB_VALUES.ev = true, false
+  check("advanced grandchild hides with the top of the chain", by.ak.visibleWhen() == false, "shown")
+  check("the counting hook is gone", A._countingCard == nil, tostring(A._countingCard))
+`, 'advanced-chain');
+
+// --- Subheadings in merged cards ---------------------------------------------------------
+run(`
+  local A = HorizonSuite.OptionsAssemble
+  RESET()
+  HorizonSuite.RegisterModulePages("focus", { { key = "tracked", name = "T" } })
+  DB_VALUES = { master = false }
+  local out = A.Run({ { key = "L", moduleKey = "focus", options = {
+    -- A module card: its displayed name is its first section's name.
+    SEC("Quests", { page = "tracked", card = "q" }), ROW("q1"),
+    SEC("Quest extras", { page = "tracked", card = "q" }), ROW("q2"),
+    -- A single-section card.
+    SEC("Alone", { page = "tracked", card = "solo" }), ROW("s1"),
+    -- A shared card: no section is named like the card.
+    SEC("Fonts", { page = "look", card = "text" }), ROW("master"),
+    SEC("Per-element", { page = "look", card = "text" }), ROW("k1", { parent = "master" }), ROW("k2", { parent = "master" }),
+    SEC("Renamed", { page = "look", card = "text", subheading = "Case" }), ROW("c1"),
+    SEC("Quiet", { page = "look", card = "text", subheading = false }), ROW("z1"),
+    SEC("Empty", { page = "look", card = "text" }),
+    -- subheading on the first section of a module card overrides the name-match rule.
+    SEC("Spacing", { page = "layout", card = "size" }), ROW("g1"),
+    SEC("Width", { page = "layout", card = "size", subheading = false }), ROW("w1"),
+  } } })
+  local tracked = SHAPE(OPTS(FIND(out, "focus:tracked")))
+  check("second section of a merged card gets a subheading; the one named like the card does not",
+    tracked == "S:Quests|q1|H:Quest extras|q2|S:Alone|s1", tracked)
+  check("a single-section card has no subheading", not tracked:find("H:Alone", 1, true), tracked)
+  local lookRows = OPTS(FIND(out, "focus:look"))
+  local look = SHAPE(lookRows)
+  check("every section of a shared card gets a subheading; override renames, false suppresses, empty skipped",
+    look == "S:CARD_TEXT|H:Fonts|master|H:Per-element|k1|k2|H:Case|c1|z1", look)
+  local layout = SHAPE(OPTS(FIND(out, "focus:layout")))
+  check("subheading = false leaves the other sections' subheadings", layout == "S:CARD_SIZE|H:Spacing|g1|w1", layout)
+
+  local hdr = {}
+  for _, r in ipairs(lookRows) do if r.type == "header" then hdr[r.name] = r end end
+  local function shows(h) return h ~= nil and (not h.visibleWhen or h.visibleWhen()) and true or false end
+  check("subheading row has no dbKey", hdr["Per-element"] and hdr["Per-element"].dbKey == nil, "dbKey set")
+  check("subheading over rows that always show has no condition", hdr.Fonts and hdr.Fonts.visibleWhen == nil, "conditional")
+  check("subheading hides while all its rows wait on an off parent", shows(hdr["Per-element"]) == false, "shown")
+  DB_VALUES.master = true
+  check("subheading shows again once the parent turns on", shows(hdr["Per-element"]) == true, "hidden")
+  DB_VALUES.master = false
+  A.revealId = "k2"
+  check("a revealed row keeps its subheading", shows(hdr["Per-element"]) == true, "hidden")
+  A.revealId = nil
+  check("a subheading's rows stop at the next subheading", shows(hdr.Case) == true, "hidden")
+`, 'subheadings');
+
+// --- A subheading's scope ends at the next subheading, not at a column title -------------------
+run(`
+  local A = HorizonSuite.OptionsAssemble
+  RESET()
+  DB_VALUES = { gate = false }
+  local out = A.Run({ { key = "L", moduleKey = "focus", options = {
+    SEC("Main", { page = "look", card = "text" }), ROW("gate"),
+    SEC("Cols", { page = "look", card = "text" }),
+    { type = "columns",
+      left = { title = "Left", options = { ROW("l1", { parent = "gate" }) } },
+      right = { title = "Right", options = { ROW("r1") } } },
+  } } })
+  local rows = OPTS(out[1])
+  check("column titles follow the section subheading", SHAPE(rows) == "S:CARD_TEXT|H:Main|gate|H:Cols|H:Left|l1|H:Right|r1", SHAPE(rows))
+  local hdr = {}
+  for _, r in ipairs(rows) do if r.type == "header" then hdr[r.name] = r end end
+  local function shows(h) return h ~= nil and (not h.visibleWhen or h.visibleWhen()) and true or false end
+  check("section subheading counts rows past a column title", shows(hdr.Cols) == true, "hidden")
+  check("column title hides when its own rows all hide", shows(hdr.Left) == false, "shown")
+  DB_VALUES.gate = true
+  check("column title shows with its rows", shows(hdr.Left) == true, "hidden")
+`, 'subheading-scope');
 
 // --- Cards with nothing to show -------------------------------------------------------
 run(`
@@ -594,7 +631,7 @@ run(`
   DB_VALUES.master = false
   check("card holding the parent stays", shows("size") == true, "hidden")
   check("header-switch card is never auto-hidden", shows("text") == true, "hidden")
-  check("advanced rows keep a card with hidden everyday rows", shows("colours") == true, "hidden")
+  check("an advanced row is ordinary content that keeps its card", shows("colours") == true, "hidden")
   check("own section condition kept while content shows", shows("background") == true, "hidden")
   OWN = false
   check("own section condition still hides the card", shows("background") == false, "shown")
@@ -635,7 +672,7 @@ run(`
   local idx = OptionsData_BuildSearchIndex()
   local by = {}
   for _, e in ipairs(idx) do by[e.optionId] = e end
-  check("More row is not a result", by["F_"] == nil and #idx == 6, #idx)
+  check("one result per setting row", by["F_"] == nil and #idx == 6, #idx)
   check("advanced row is indexed", by.advRow ~= nil, "nil")
   check("former columns row is indexed", by.toastOpacity ~= nil, "nil")
   check("searchName makes a special widget findable", by.colorMatrix and OptionsData_SearchEntryScore(by.colorMatrix, "colour") ~= nil, "nil")
@@ -652,6 +689,26 @@ run(`
   check("invalidate rebuilds", OptionsData_BuildSearchIndex() ~= idx, "same table")
   HorizonSuite.OptionCategories = nil
 `, 'search');
+
+// --- Subheadings are not search results ---------------------------------------------------
+run(`
+  local A = HorizonSuite.OptionsAssemble
+  RESET()
+  HorizonSuite.OptionCategories = A.Run({ { key = "F", moduleKey = "focus", options = {
+    SEC("Fonts", { page = "look", card = "text" }), ROW("fa", { name = "Font face" }),
+    SEC("Sizes", { page = "look", card = "text" }), ROW("fs", { name = "Font size" }),
+  } } })
+  HorizonSuite.OptionsSearch_Invalidate()
+  local idx = OptionsData_BuildSearchIndex()
+  local headers, by = 0, {}
+  for _, e in ipairs(idx) do
+    if e.option.type == "header" then headers = headers + 1 end
+    by[e.optionId] = e
+  end
+  check("subheading rows are not search results", headers == 0 and #idx == 2, #idx)
+  check("a result under a subheading names its card", by.fs and by.fs.sectionName == "CARD_TEXT", by.fs and by.fs.sectionName)
+  HorizonSuite.OptionCategories = nil
+`, 'search-subheadings');
 
 run(`
   local A = HorizonSuite.OptionsAssemble
@@ -745,7 +802,7 @@ run(`
   check("part child hides when the font row's parent is off", by2.gk.visibleWhen() == false, "true")
   check("source parts untouched", src.options[2].parts.outline.refreshIds == nil and src.options[2].refreshIds == nil, "mutated")
 
-  -- More and search treat a font row as one row.
+  -- Assembly and search treat a font row as one row.
   RESET()
   HorizonSuite.OptionCategories = A.Run({ { key = "F", moduleKey = "focus", options = {
     SEC("Text", { page = "look", card = "text" }),
@@ -754,10 +811,10 @@ run(`
       { advanced = true, keywords = { "Title size", "Outline" } }),
   } } })
   local rows = OPTS(HorizonSuite.OptionCategories[1])
-  check("advanced font row goes behind More", SHAPE(rows) == "S:CARD_TEXT|plain|M:1|tFont", SHAPE(rows))
+  check("advanced font row stays in place", SHAPE(rows) == "S:CARD_TEXT|plain|tFont", SHAPE(rows))
   local fr
   for _, r in ipairs(rows) do if r.type == "fontRow" then fr = r end end
-  check("advanced font row hidden while More is closed", fr and fr.visibleWhen() == false, "shown")
+  check("advanced font row always shows", fr and fr.visibleWhen == nil, "conditional")
   HorizonSuite.OptionsSearch_Invalidate()
   local idx = OptionsData_BuildSearchIndex()
   local n, hit = 0, nil

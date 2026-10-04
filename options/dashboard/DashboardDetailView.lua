@@ -337,7 +337,6 @@ function addon.DashboardDetailView_Init(env)
                 Assemble.revealPending = true
                 if entry.cardId then
                     Assemble.SetCardExpanded(entry.cardId, true)
-                    if entry.option and entry.option.advanced then Assemble.SetMoreOpen(entry.cardId, true) end
                 end
             end
             -- Axis pages (legacy keys GlobalToggles and Profiles) open under the axis module.

@@ -179,7 +179,7 @@ function assemble(capsOff) {
         columns[#columns + 1] = tostring(cat.key) .. " (builder failed: " .. tostring(opts) .. ")"
       else
         -- Each card as "<name>#<settings>", where settings counts rows that are not the
-        -- card header, a More row, or the zero-height talkingHeadPreview proxy (marked "+proxy").
+        -- card header, a subheading, or the zero-height talkingHeadPreview proxy (marked "+proxy").
         local shape, cur = {}, nil
         for _, r in ipairs(opts or {}) do
           if type(r) == "table" and r.type == "columns" then columns[#columns + 1] = tostring(cat.key) end
@@ -191,7 +191,7 @@ function assemble(capsOff) {
             shape[#shape + 1] = cur
           elseif type(r) == "table" and cur and r.type == "talkingHeadPreview" then
             cur.proxy = true
-          elseif type(r) == "table" and cur and r.type ~= "moreToggle" then
+          elseif type(r) == "table" and cur and r.type ~= "header" then
             cur.n = cur.n + 1
           end
         end
@@ -212,8 +212,11 @@ function assemble(capsOff) {
       -- The alert sounds card is hidden until the feature ships, so none of its rows may be results.
       if type(o.dbKey) == "string" and o.dbKey:find("^alertsSound") then hiddenHits[#hiddenHits + 1] = o.dbKey end
     end
-    -- Layout dump for --dump: one block per card with everyday/advanced counts.
-    local dump = {}
+    -- Layout dump for --dump: one block per card, counted as visibleAtDefaults/total. A row is
+    -- visible at defaults when its condition (its own and its parent chain's) passes with the
+    -- harness's default settings. Subheadings print as "── name ──" and are not counted.
+    -- Rows still carrying the retired advanced field are listed in the advanced list.
+    local dump, advanced = {}, {}
     local function rowName(r)
       local n = r.name or r.searchName or r.labelText or r.type
       if type(n) == "function" then local ok, v = pcall(n); n = ok and v or r.type end
@@ -226,18 +229,24 @@ function assemble(capsOff) {
       end)
       if ok and opts then
         local mk, pk = cat.moduleKey or "axis", cat.pageKey or cat.key
-        local head, lines, ev, adv
+        local head, lines, shown, total
         local function flush()
-          if head then dump[#dump + 1] = mk .. " › " .. pk .. " › " .. head .. "  (" .. ev .. "/" .. adv .. ")"
+          if head then dump[#dump + 1] = mk .. " › " .. pk .. " › " .. head .. "  (" .. shown .. "/" .. total .. ")"
             for _, l in ipairs(lines) do dump[#dump + 1] = l end end
         end
         for _, r in ipairs(opts) do
           if type(r) == "table" and r.type == "section" then
             flush()
-            head, lines, ev, adv = tostring(r.card or rowName(r)), {}, 0, 0
-          elseif type(r) == "table" and head and r.type ~= "moreToggle" then
-            if r.advanced then adv = adv + 1 else ev = ev + 1 end
-            lines[#lines + 1] = "  " .. (r.advanced and "[adv] " or "") .. (r.parent and "↳ " or "") .. rowName(r)
+            head, lines, shown, total = tostring(r.card or rowName(r)), {}, 0, 0
+          elseif type(r) == "table" and head and r.type == "header" then
+            lines[#lines + 1] = "  ── " .. rowName(r) .. " ──"
+          elseif type(r) == "table" and head then
+            total = total + 1
+            local okV, vis = true, true
+            if type(r.visibleWhen) == "function" then okV, vis = pcall(r.visibleWhen) end
+            if okV and vis then shown = shown + 1 end
+            if r.advanced then advanced[#advanced + 1] = mk .. " › " .. pk .. " › " .. head .. " › " .. rowName(r) end
+            lines[#lines + 1] = "  " .. (r.parent and "↳ " or "") .. rowName(r)
               .. (r.parent and ("  (parent: " .. tostring(r.parent) .. ")") or "")
             -- A font row lists its parts: "[font: family=<key>, size=<key>, outline=<key> (toggle)]".
             if r.type == "fontRow" and type(r.parts) == "table" then
@@ -272,6 +281,7 @@ function assemble(capsOff) {
       '"pages":{' .. table.concat(mods, ",") .. "}",
       '"missing":' .. list(missing),
       '"dump":' .. list(dump),
+      '"advanced":' .. list(advanced),
     }, ",") .. "}"
   `, 'collect');
   return JSON.parse(json);
@@ -307,6 +317,10 @@ function common(label, r) {
   const r = assemble([]);
   common('Retail', r);
   if (process.argv.includes('--dump')) console.log(r.dump.join('\n'));
+  // Not a failing check yet: each module's task removes its `advanced` fields, and the last
+  // task turns this into a check.
+  console.log('  (rows still carrying advanced: ' + r.advanced.length + ')');
+  if (process.argv.includes('--dump')) for (const a of r.advanced) console.log('    advanced: ' + a);
   for (const [mk, want] of Object.entries(EXPECTED)) {
     const got = r.pages[mk] || [];
     check('Retail: ' + mk + ' pages', JSON.stringify(got) === JSON.stringify(want), got.join(', '));
