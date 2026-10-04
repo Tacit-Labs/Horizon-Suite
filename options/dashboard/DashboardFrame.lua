@@ -1715,9 +1715,6 @@ function addon.Dashboard_BuildMainFrame()
 
             local function ShouldShowDashboardSubcategory(mk, cat)
                 if not cat then return false end
-                if mk == "axis" and cat.key == "Modules" then
-                    return false
-                end
                 if cat.hidden and cat.hidden() then return false end
                 return true
             end

@@ -995,9 +995,6 @@ function addon.DashboardDetailView_Init(env)
 
     local function ShouldShowDashboardSubcategory(moduleKey, cat)
         if not cat then return false end
-        if moduleKey == "axis" and cat.key == "Modules" then
-            return false
-        end
         if cat.hidden and cat.hidden() then return false end
         return true
     end
