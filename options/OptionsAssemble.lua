@@ -7,6 +7,8 @@
     The result is written back into addon.OptionCategories, so the sidebar, detail view,
     search and platform prune read assembled pages without knowing about tags.
     Categories with no tagged section pass through unchanged until `strict` is on.
+    Builders must return the same sections whatever the saved settings hold, because the page
+    list is fixed at load.
     Must load after every module options file and before OptionsPlatform.lua.
 ]]
 local addon = _G.HorizonSuite
@@ -48,6 +50,15 @@ end
 local function Resolve(v)
     if type(v) == "function" then return v() end
     return v
+end
+
+-- Resolve a category's options without letting a failing builder escape. Returns the list,
+-- or nil after warning that the builder failed.
+local function SafeResolve(cat, moduleKey)
+    local ok, list = pcall(Resolve, cat.options)
+    if ok then return list end
+    Warn(("%s › %s: options builder failed (%s); left as is"):format(moduleKey, tostring(cat.key), tostring(list)))
+    return nil
 end
 
 local function Label(t)
@@ -196,7 +207,7 @@ end
 local function ModuleChunks(moduleKey, sources)
     local all = {}
     for _, cat in ipairs(sources) do
-        local list = Resolve(cat.options)
+        local list = SafeResolve(cat, moduleKey)
         if type(list) == "table" then
             for _, chunk in ipairs(Chunks(list, moduleKey, cat.key)) do
                 if Valid(moduleKey, chunk) then all[#all + 1] = chunk end
@@ -338,7 +349,7 @@ end
 function Assemble.Run(categories)
     local tagged, sources, firstAt = {}, {}, {}
     for i, cat in ipairs(categories) do
-        tagged[i] = IsTagged(Resolve(cat.options))
+        tagged[i] = IsTagged(SafeResolve(cat, ModuleOf(cat)))
         if tagged[i] then
             local mk = ModuleOf(cat)
             if not sources[mk] then

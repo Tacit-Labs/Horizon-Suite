@@ -59,6 +59,15 @@ run(`
         or (type(k) == "string" and k:sub(1, 5) == "axis:")
     end,
   }
+  -- Categories as the modules registered them; the in-place rewrite must leave these alone.
+  SEED_LIST = {
+    { key = "SeedStatic", name = "Static", options = { { type = "section", name = "S" } } },
+    { key = "SeedFn", name = "Fn", options = function() return { { type = "section", name = "F" } } end },
+    { key = "SeedBoom", name = "Boom", moduleKey = "boomer", options = function() error("boom") end },
+  }
+  SEED_ITEMS = { SEED_LIST[1], SEED_LIST[2], SEED_LIST[3] }
+  _G.HorizonSuite.OptionCategories = SEED_LIST
+
   local L = HorizonSuite.L
   L["DASH_NEEDS_PARENT"] = "Turn on %s to use this."
 
@@ -116,6 +125,38 @@ run(`
 for (const f of ['options/OptionsPages.lua', 'options/OptionsAssemble.lua', 'options/OptionsSearch.lua']) {
   if (fs.existsSync(REPO + f)) run(read(f), f);
 }
+
+// --- Assembler: no-op on untagged categories, guarded builders --------------------------
+run(`
+  local A = HorizonSuite.OptionsAssemble
+  check("load keeps the same list object", rawequal(HorizonSuite.OptionCategories, SEED_LIST), "different table")
+  check("load keeps the count", #SEED_LIST == 3, #SEED_LIST)
+  for i = 1, 3 do
+    check("load keeps entry " .. i, rawequal(SEED_LIST[i], SEED_ITEMS[i]), tostring(SEED_LIST[i] and SEED_LIST[i].key))
+  end
+  check("erroring builder warns at load", WARNED("options builder failed"), "no warning")
+  check("warning names the category", WARNED("boomer > SeedBoom") or WARNED("SeedBoom"), "no name")
+  HorizonSuite.OptionCategories = nil
+
+  -- A source that builds once, then errors, must not stop the page building from the others.
+  RESET()
+  HorizonSuite.RegisterModulePages("fragile", { { key = "x", name = "X" } })
+  local calls = 0
+  local out = A.Run({
+    { key = "Flaky", moduleKey = "fragile", options = function()
+        calls = calls + 1
+        if calls > 1 then error("late boom") end
+        return { SEC("Fonts", { page = "look", card = "text" }), ROW("a1") }
+      end },
+    { key = "Steady", moduleKey = "fragile", options = { SEC("More fonts", { page = "look", card = "text" }), ROW("b1") } },
+  })
+  local look = FIND(out, "fragile:look")
+  check("page survives a failing source", look ~= nil, "no page")
+  local ok, shape = pcall(function() return SHAPE(OPTS(look)) end)
+  check("page build does not error", ok, shape)
+  check("other source rows still show", ok and shape == "S:CARD_TEXT|b1", shape)
+  check("failing source warns", WARNED("options builder failed"), "no warning")
+`, 'guarded-builders');
 
 // --- Vocabulary ------------------------------------------------------------------
 run(`
