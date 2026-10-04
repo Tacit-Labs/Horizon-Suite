@@ -307,6 +307,46 @@ run(`
   check("More remembered", A.IsMoreOpen("m:p:a") == true and HorizonDB.optionsCardMoreOpen["m:p:a"] == true, "false")
 `, 'card-store');
 
+// --- Dependent rows -------------------------------------------------------------------
+run(`
+  local A = HorizonSuite.OptionsAssemble
+  RESET()
+  DB_VALUES = { dyn = true, preset = "custom" }
+  local src = { key = "L", moduleKey = "focus", options = {
+    SEC("Size", { page = "layout", card = "size" }),
+    ROW("dyn"),
+    ROW("maxW", { parent = "dyn" }),
+    ROW("fixedW", { parent = "dyn", parentIs = false }),
+    ROW("both", { parent = "dyn", visibleWhen = function() return false end }),
+    ROW("preset"),
+    ROW("gapA", { parent = "preset", parentIs = "custom" }),
+    ROW("gapB", { parent = "preset", parentIs = function(v) return v == "custom" or v == "spaced" end }),
+    ROW("orphan", { parent = "missing" }),
+  } }
+  local out = A.Run({ src })
+  local by = {}
+  for _, r in ipairs(OPTS(out[1])) do if r.dbKey then by[r.dbKey] = r end end
+  check("child of an on toggle shows", by.maxW.visibleWhen() == true, "false")
+  check("child is indented", by.maxW.indent == true, by.maxW.indent)
+  check("parentIs false hides while the parent is on", by.fixedW.visibleWhen() == false, "true")
+  check("own visibleWhen still applies", by.both.visibleWhen() == false, "true")
+  check("parent refreshes its children", table.concat(by.dyn.refreshIds or {}, ",") == "maxW,fixedW,both", table.concat(by.dyn.refreshIds or {}, ","))
+  check("tooltip names the parent", by.maxW.tooltip == "Turn on dyn to use this.", by.maxW.tooltip)
+  DB_VALUES.dyn = false
+  check("child hides when the parent is off", by.maxW.visibleWhen() == false, "true")
+  check("child disabled when the parent is off", by.maxW.disabled() == true, "false")
+  check("parentIs false shows when the parent is off", by.fixedW.visibleWhen() == true, "false")
+  check("value match shows", by.gapA.visibleWhen() == true, "false")
+  DB_VALUES.preset = "spaced"
+  check("value mismatch hides", by.gapA.visibleWhen() == false, "true")
+  check("function predicate", by.gapB.visibleWhen() == true, "false")
+  check("missing parent warns", WARNED("orphan"), "no warning")
+  A.revealId = "maxW"
+  check("search reveal shows a hidden child", by.maxW.visibleWhen() == true, "false")
+  A.revealId = nil
+  check("source rows untouched", src.options[3].visibleWhen == nil and src.options[2].refreshIds == nil, "mutated")
+`, 'dependent-rows');
+
 // --- Summary -----------------------------------------------------------------------
 run(`
   REAL_PRINT(PASS .. " passed, " .. FAIL .. " failed")

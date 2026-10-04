@@ -221,7 +221,62 @@ end
 -- Dependent rows: `parent = "<dbKey>"`, optional `parentIs`. Filled in by Task 3.
 -- ---------------------------------------------------------------------------
 
+local function ParentMatches(parentRow, row)
+    local v
+    if parentRow.get then v = parentRow.get() end
+    local want = row.parentIs
+    if type(want) == "function" then return want(v) and true or false end
+    if want == nil then return v and true or false end
+    if type(want) == "boolean" then return (v and true or false) == want end
+    return v == want
+end
+
+local function IsTrue(fnOrBool)
+    if type(fnOrBool) == "function" then return fnOrBool() and true or false end
+    return fnOrBool == true
+end
+
+-- Rows are copies made by BuildPage, so wiring them here never touches a module's tables.
 local function ExpandParents(rows, moduleKey, pageKey)
+    local byKey = {}
+    for _, r in ipairs(rows) do
+        if r.dbKey then byKey[r.dbKey] = r end
+    end
+    for _, r in ipairs(rows) do
+        if r.parent then
+            local p = byKey[r.parent]
+            if not p then
+                Warn(("%s › %s: '%s' depends on '%s', which is not on this page"):format(moduleKey, pageKey, Label(r), tostring(r.parent)))
+            elseif not r.dbKey then
+                Warn(("%s › %s: '%s' has a parent but no dbKey"):format(moduleKey, pageKey, Label(r)))
+            else
+                local child, ownVisible, ownDisabled = r, r.visibleWhen, r.disabled
+                local function match() return ParentMatches(p, child) end
+                r.indent = true
+                r.visibleWhen = function()
+                    if ownVisible and not ownVisible() then return false end
+                    return match() or Assemble.IsRevealed(child)
+                end
+                r.disabled = function()
+                    if IsTrue(ownDisabled) then return true end
+                    return not match()
+                end
+                local hint = addon.L["DASH_NEEDS_PARENT"]:format(Label(p))
+                local tip = r.tooltip
+                if type(tip) == "function" then
+                    r.tooltip = function() return tip() .. "\n\n" .. hint end
+                elseif tip and tip ~= "" then
+                    r.tooltip = tip .. "\n\n" .. hint
+                else
+                    r.tooltip = hint
+                end
+                local ids = {}
+                for _, id in ipairs(p.refreshIds or {}) do ids[#ids + 1] = id end
+                ids[#ids + 1] = r.dbKey
+                p.refreshIds = ids
+            end
+        end
+    end
 end
 
 -- ---------------------------------------------------------------------------

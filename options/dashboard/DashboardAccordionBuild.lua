@@ -137,7 +137,8 @@ function addon.DashboardAccordionBuild_Init(f, p)
                     entry.frame:SetAlpha(1)
                     local topGap = entry.isHeader and 18 or 6
                     entry.frame:ClearAllPoints()
-                    entry.frame:SetPoint("TOPLEFT", card.settingsContainer, "TOPLEFT", 30, -(yOff + topGap))
+                    local rowX = entry.indent and 50 or 30
+                    entry.frame:SetPoint("TOPLEFT", card.settingsContainer, "TOPLEFT", rowX, -(yOff + topGap))
                     entry.frame:SetPoint("RIGHT", card.settingsContainer, "RIGHT", -30, 0)
                     local h = entry.frame:GetHeight() or 40
                     if entry.isHeader and h < 20 then h = 20 end
@@ -1265,9 +1266,21 @@ function addon.DashboardAccordionBuild_Init(f, p)
                         end
                     end
 
+                    -- Dependent rows sit indented under their parent with a thin accent line.
+                    if opt.indent and not widget._indentBar then
+                        local bar = widget:CreateTexture(nil, "ARTWORK")
+                        bar:SetWidth(2)
+                        bar:SetPoint("TOPLEFT", widget, "TOPLEFT", -12, -2)
+                        bar:SetPoint("BOTTOMLEFT", widget, "BOTTOMLEFT", -12, 2)
+                        local ar, ag, ab = accordionCardParams.GetAccentColor()
+                        bar:SetColorTexture(ar, ag, ab, 0.55)
+                        widget._indentBar = bar
+                    end
+
                     tinsert(currentCard.widgetList, {
                         frame = widget,
                         isHeader = isHeader,
+                        indent = opt.indent,
                         visibleWhen = (opt.type == "moduleReloadPrompt" and function() return addon._moduleReloadRecommended end) or opt.visibleWhen,
                     })
 
