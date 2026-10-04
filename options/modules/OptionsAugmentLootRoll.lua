@@ -230,12 +230,14 @@ local category = {
                         },
                         size = {
                             dbKey = "lootRollFontSize",
+                            tooltip = L["LOOT_ROLL_FONT_SIZE_DESC"],
                             min = LIM.lootRollFontSize.min, max = LIM.lootRollFontSize.max,
                             get = function() return clamp(tonumber(getDB("lootRollFontSize", D.lootRollFontSize)) or D.lootRollFontSize, "lootRollFontSize") end,
                             set = function(v) setDB("lootRollFontSize", clamp(v, "lootRollFontSize")); applyRoll() end,
                         },
                         outline = {
                             dbKey = "lootRollTextOutlineType",
+                            tooltip = L["LOOT_ROLL_OUTLINE_DESC"],
                             options = addon.OUTLINE_OPTIONS, preserveOrder = true,
                             get = function() return getDB("lootRollTextOutlineType", D.lootRollTextOutlineType) end,
                             set = function(v) setDB("lootRollTextOutlineType", v); applyRoll() end,

@@ -359,12 +359,14 @@ local category = {
                         },
                         size = {
                             dbKey = "alertsFontSize",
+                            tooltip = L["AUGMENT_ALERTS_FONT_SIZE_DESC"],
                             min = LIM.alertsFontSize.min, max = LIM.alertsFontSize.max, step = 1,
                             get = function() return math.max(LIM.alertsFontSize.min, math.min(LIM.alertsFontSize.max, tonumber(getDB("alertsFontSize", D.alertsFontSize)) or D.alertsFontSize)) end,
                             set = function(v) setDB("alertsFontSize", clamp(v, "alertsFontSize")); applyAlerts() end,
                         },
                         outline = {
                             dbKey = "alertsTextOutlineType",
+                            tooltip = L["AUGMENT_ALERTS_OUTLINE_TYPE_DESC"],
                             options = addon.OUTLINE_OPTIONS,
                             get = function() return getDB("alertsTextOutlineType", D.alertsTextOutlineType) end,
                             set = function(v) setDB("alertsTextOutlineType", v); applyAlerts() end,

@@ -88,6 +88,7 @@ local category = {
           },
           size = {
             dbKey = "talkingHeadNameSize",
+            tooltip = L["TALKING_HEAD_NAME_SIZE_DESC"],
             min = LIM.talkingHeadNameSize.min, max = LIM.talkingHeadNameSize.max,
             get = function() return math.max(LIM.talkingHeadNameSize.min, math.min(LIM.talkingHeadNameSize.max, tonumber(getDB("talkingHeadNameSize", D.talkingHeadNameSize)) or D.talkingHeadNameSize)) end,
             set = function(v) setDB("talkingHeadNameSize", clamp(v, "talkingHeadNameSize")); updateTalkingHead() end,
@@ -95,6 +96,7 @@ local category = {
           },
           outline = {
             dbKey = "talkingHeadNameOutline", kind = "toggle",
+            tooltip = L["TALKING_HEAD_NAME_OUTLINE_DESC"],
             get = function() return getDB("talkingHeadNameOutline", D.talkingHeadNameOutline) end,
             set = function(v) setDB("talkingHeadNameOutline", v); updateTalkingHead() end,
             refreshIds = { "talkingHeadPreview" },
@@ -112,6 +114,7 @@ local category = {
           },
           size = {
             dbKey = "talkingHeadTextSize",
+            tooltip = L["TALKING_HEAD_DIALOGUE_SIZE_DESC"],
             min = LIM.talkingHeadTextSize.min, max = LIM.talkingHeadTextSize.max,
             get = function() return math.max(LIM.talkingHeadTextSize.min, math.min(LIM.talkingHeadTextSize.max, tonumber(getDB("talkingHeadTextSize", D.talkingHeadTextSize)) or D.talkingHeadTextSize)) end,
             set = function(v) setDB("talkingHeadTextSize", clamp(v, "talkingHeadTextSize")); updateTalkingHead() end,
@@ -119,6 +122,7 @@ local category = {
           },
           outline = {
             dbKey = "talkingHeadTextOutline", kind = "toggle",
+            tooltip = L["TALKING_HEAD_DIALOGUE_OUTLINE_DESC"],
             get = function() return getDB("talkingHeadTextOutline", D.talkingHeadTextOutline) end,
             set = function(v) setDB("talkingHeadTextOutline", v); updateTalkingHead() end,
             refreshIds = { "talkingHeadPreview" },

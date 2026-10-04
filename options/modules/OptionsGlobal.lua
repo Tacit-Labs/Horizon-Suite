@@ -155,6 +155,7 @@ local categories = {
                 },
                 size = {
                     dbKey = "dashboardFontSize",
+                    tooltip = L["DASHBOARD_TYPO_SIZE_DESC"],
                     min = 10,
                     max = 18,
                     step = 1,
@@ -169,6 +170,7 @@ local categories = {
                 },
                 outline = {
                     dbKey = "dashboardTextOutline",
+                    tooltip = L["DASHBOARD_TYPO_OUTLINE_DESC"],
                     options = OUTLINE_OPTIONS,
                     preserveOrder = true,
                     get = function()

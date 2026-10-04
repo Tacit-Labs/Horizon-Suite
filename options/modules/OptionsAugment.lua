@@ -198,12 +198,14 @@ local categories = {
                             },
                             size = {
                                 dbKey = "augmentFontSize",
+                                tooltip = L["AUGMENT_FONT_SIZE_DESC"],
                                 min = LIM.augmentFontSize.min, max = LIM.augmentFontSize.max, step = 1,
                                 get = function() return getSlider("augmentFontSize") end,
                                 set = function(v) setDB("augmentFontSize", clamp(v, "augmentFontSize")) end,
                             },
                             outline = {
                                 dbKey = "augmentTextOutlineType",
+                                tooltip = L["AUGMENT_TEXT_OUTLINE_TYPE_DESC"],
                                 options = addon.OUTLINE_OPTIONS,
                                 get = function() return getDB("augmentTextOutlineType", D.augmentTextOutlineType) end,
                                 set = function(v) setDB("augmentTextOutlineType", v) end,
