@@ -229,18 +229,20 @@ function assemble(capsOff) {
       end)
       if ok and opts then
         local mk, pk = cat.moduleKey or "axis", cat.pageKey or cat.key
-        local head, lines, shown, total
+        local head, title, lines, shown, total
         local function flush()
           if head and total > 12 then oversized[#oversized + 1] = mk .. " › " .. pk .. " › " .. head .. " (" .. total .. ")" end
-          if head then dump[#dump + 1] = mk .. " › " .. pk .. " › " .. head .. "  (" .. shown .. "/" .. total .. ")"
+          -- The card's display name goes between «» so the JS side can resolve it through enUS.
+          if head then dump[#dump + 1] = mk .. " › " .. pk .. " › " .. head .. "  «" .. title .. "»  (" .. shown .. "/" .. total .. ")"
             for _, l in ipairs(lines) do dump[#dump + 1] = l end end
         end
         for _, r in ipairs(opts) do
           if type(r) == "table" and r.type == "section" then
             flush()
-            head, lines, shown, total = tostring(r.card or rowName(r)), {}, 0, 0
+            head, title, lines, shown, total = tostring(r.card or rowName(r)), rowName(r), {}, 0, 0
           elseif type(r) == "table" and head and r.type == "header" then
-            lines[#lines + 1] = "  ── " .. rowName(r) .. " ──"
+            -- Assembler subheadings print as rules; a header a module wrote itself is a note.
+            lines[#lines + 1] = r._subheading and ("  ── " .. rowName(r) .. " ──") or ("  (note) " .. rowName(r))
           elseif type(r) == "table" and head then
             total = total + 1
             local okV, vis = true, true
@@ -322,7 +324,13 @@ function common(label, r) {
 {
   const r = assemble([]);
   common('Retail', r);
-  if (process.argv.includes('--dump')) console.log(r.dump.join('\n'));
+  if (process.argv.includes('--dump')) {
+    // Card display names resolve through enUS; a name with no enUS string prints as it is.
+    const enUS = {};
+    const src = fs.readFileSync(path.join(REPO, 'locales/horizon/enUS.lua'), 'utf8');
+    for (const m of src.matchAll(/^L\["([^"]+)"\]\s*=\s*"((?:[^"\\]|\\.)*)"/gm)) enUS[m[1]] = m[2];
+    console.log(r.dump.map(l => l.replace(/«([^»]*)»/, (_, k) => '"' + (enUS[k] !== undefined ? enUS[k] : k) + '"')).join('\n'));
+  }
   for (const [mk, want] of Object.entries(EXPECTED)) {
     const got = r.pages[mk] || [];
     check('Retail: ' + mk + ' pages', JSON.stringify(got) === JSON.stringify(want), got.join(', '));
