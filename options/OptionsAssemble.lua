@@ -229,6 +229,10 @@ end
 -- ---------------------------------------------------------------------------
 
 local function ParentMatches(parentRow, row)
+    -- A hidden parent counts as unmatched, so a chain collapses from the top down. The
+    -- parent's visibleWhen is read now, so it is the final wrapped function when the
+    -- parent has a parent of its own.
+    if parentRow.visibleWhen and not parentRow.visibleWhen() then return false end
     local v
     if parentRow.get then
         v = parentRow.get()
@@ -258,8 +262,37 @@ local function ExpandParents(rows, moduleKey, pageKey)
     for _, r in ipairs(rows) do
         if r.dbKey and r.type ~= "section" then byKey[r.dbKey] = r end
     end
+    -- A chain that revisits a key is a cycle: warn once per cycle and leave its rows unwired.
+    local cyclic, warnedCycle = {}, {}
     for _, r in ipairs(rows) do
-        if r.parent then
+        if r.parent and r.dbKey and r.type ~= "section" then
+            local path, order, cur = {}, {}, r
+            while cur and cur.parent do
+                if path[cur.dbKey] then
+                    local members, minKey = {}, cur.dbKey
+                    local on = false
+                    for _, k in ipairs(order) do
+                        if k == cur.dbKey then on = true end
+                        if on then
+                            members[#members + 1] = k
+                            if k < minKey then minKey = k end
+                        end
+                    end
+                    for _, k in ipairs(members) do cyclic[k] = true end
+                    if not warnedCycle[minKey] then
+                        warnedCycle[minKey] = true
+                        Warn(("%s › %s: parent cycle between %s"):format(moduleKey, pageKey, table.concat(members, ", ")))
+                    end
+                    break
+                end
+                path[cur.dbKey] = true
+                order[#order + 1] = cur.dbKey
+                cur = byKey[cur.parent]
+            end
+        end
+    end
+    for _, r in ipairs(rows) do
+        if r.parent and not (r.dbKey and cyclic[r.dbKey]) then
             local p = byKey[r.parent]
             if not p then
                 Warn(("%s › %s: '%s' depends on '%s', which is not on this page"):format(moduleKey, pageKey, Label(r), tostring(r.parent)))
@@ -291,6 +324,39 @@ local function ExpandParents(rows, moduleKey, pageKey)
                 ids[#ids + 1] = r.dbKey
                 p.refreshIds = ids
             end
+        end
+    end
+    -- A parent refreshes every descendant, not just its direct children, so a change
+    -- re-evaluates the whole chain beneath it.
+    local kids = {}
+    for _, r in ipairs(rows) do
+        if r.parent and r.dbKey and not cyclic[r.dbKey] and byKey[r.parent] then
+            local list = kids[r.parent] or {}
+            list[#list + 1] = r.dbKey
+            kids[r.parent] = list
+        end
+    end
+    for _, r in ipairs(rows) do
+        if r.dbKey and kids[r.dbKey] then
+            local ids, have = {}, {}
+            for _, id in ipairs(r.refreshIds or {}) do
+                if not have[id] then have[id] = true; ids[#ids + 1] = id end
+            end
+            local stack, seen, i = { r.dbKey }, { [r.dbKey] = true }, 1
+            while i <= #stack do
+                for _, k in ipairs(kids[stack[i]] or {}) do
+                    if not seen[k] then
+                        seen[k] = true
+                        stack[#stack + 1] = k
+                        if not have[k] then
+                            have[k] = true
+                            ids[#ids + 1] = k
+                        end
+                    end
+                end
+                i = i + 1
+            end
+            r.refreshIds = ids
         end
     end
 end

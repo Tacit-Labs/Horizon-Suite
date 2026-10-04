@@ -368,6 +368,45 @@ run(`
   check("source rows untouched", src.options[3].visibleWhen == nil and src.options[2].refreshIds == nil, "mutated")
 `, 'dependent-rows');
 
+// --- Chained parents ------------------------------------------------------------------
+run(`
+  local A = HorizonSuite.OptionsAssemble
+  RESET()
+  DB_VALUES = { a = true, b = true, hid = true, kid = true, rv = true }
+  local src = { key = "L", moduleKey = "focus", options = {
+    SEC("Size", { page = "layout", card = "size" }),
+    ROW("a"),
+    ROW("b", { parent = "a" }),
+    ROW("c", { parent = "b" }),
+    ROW("hid", { visibleWhen = function() return false end }),
+    ROW("kid", { parent = "hid" }),
+    ROW("rv", { visibleWhen = function() return false end }),
+    ROW("rvKid", { parent = "rv" }),
+    ROW("x", { parent = "y" }),
+    ROW("y", { parent = "x" }),
+  } }
+  local out = A.Run({ src })
+  local by = {}
+  for _, r in ipairs(OPTS(out[1])) do if r.dbKey then by[r.dbKey] = r end end
+  check("chain shows when every link matches", by.c.visibleWhen() == true, "false")
+  DB_VALUES.a = false
+  check("grandchild hides when the grandparent is off", by.c.visibleWhen() == false, "true")
+  check("grandchild disabled when the grandparent is off", by.c.disabled() == true, "false")
+  DB_VALUES.a = true
+  check("grandchild shows again", by.c.visibleWhen() == true, "false")
+  check("root refreshes every descendant", table.concat(by.a.refreshIds or {}, ",") == "b,c", table.concat(by.a.refreshIds or {}, ","))
+  check("middle refreshes its child", table.concat(by.b.refreshIds or {}, ",") == "c", table.concat(by.b.refreshIds or {}, ","))
+  check("cycle warns", WARNED("cycle"), "no warning")
+  local n = 0
+  for _, w in ipairs(A.warnings) do if w:find("cycle") then n = n + 1 end end
+  check("cycle warns once", n == 1, n)
+  check("cycle rows stay unwired", by.x.visibleWhen == nil and by.y.visibleWhen == nil, "wired")
+  check("hidden parent hides its child despite a match", by.kid.visibleWhen() == false, "true")
+  A.revealId = "rvKid"
+  check("revealed child shows under a hidden parent", by.rvKid.visibleWhen() == true, "false")
+  A.revealId = nil
+`, 'chained-parents');
+
 // --- Get-less parent ---------------------------------------------------------------------
 run(`
   local A = HorizonSuite.OptionsAssemble
