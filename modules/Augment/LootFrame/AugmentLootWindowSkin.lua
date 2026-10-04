@@ -576,6 +576,14 @@ end
 --- Enable personal loot window skin and install show/update hooks.
 --- @return nil
 function Y.EnableLootWindowSkin()
+    -- Under Blizzard's gamepad UI the skin's chrome frame, created while the
+    -- window is shown, taints its gamepad navigation, and closing the window
+    -- then trips a protected call and can freeze the client (#468). The
+    -- window keeps Blizzard's look and placement there.
+    if addon.Platform and addon.Platform.IsGamepadUI() then
+        Y.DisableLootWindowSkin()
+        return
+    end
     skinActive = true
     if _G.LootFrame then
         InstallHooks()

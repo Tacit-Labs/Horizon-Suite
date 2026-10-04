@@ -153,6 +153,24 @@ function Platform.Has(key)
     return Platform.has[key] == true
 end
 
+-- Whether Blizzard's gamepad UI (Forever's console-style interface) is on.
+-- A player setting rather than a client capability, so it is asked each time
+-- instead of cached in Platform.has.
+--
+-- In this mode Blizzard_GamepadSmartNavigation post-hooks CreateFrame: a frame
+-- created under a shown panel rebuilds that panel's navigation data inside the
+-- caller's execution. From addon code that data is tainted, and the panel's
+-- next close reaches the protected SetPreferredGamepadInteractTarget() through
+-- it (ADDON_ACTION_FORBIDDEN, then a client freeze; issue #468). Anything that
+-- adds frames to, or shows and hides, a Blizzard panel must stand down here.
+-- @return boolean
+function Platform.IsGamepadUI()
+    local util = _G.InputUtil
+    if not (util and type(util.IsGamepadUIEnabled) == "function") then return false end
+    local ok, on = pcall(util.IsGamepadUIEnabled)
+    return ok and on == true
+end
+
 -- Print the client and capability table to chat (/h platform).
 function Platform.Print()
     local out = addon.HSPrint or print

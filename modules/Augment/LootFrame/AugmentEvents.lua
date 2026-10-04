@@ -224,15 +224,22 @@ local function LootLeftOver()
     return false
 end
 
+-- Under Blizzard's gamepad UI the window runs its own auto-loot flow (it slides
+-- rows out and refocuses when bags are full), and opening it from addon code
+-- taints its gamepad navigation (#468). Leave the window to Blizzard there.
+local function GamepadUI()
+    return addon.Platform and addon.Platform.IsGamepadUI() or false
+end
+
 handlers.LOOT_READY = function(autoLoot)
     -- The second LOOT_READY of a loot arrives after LOOT_OPENED; ignore it.
-    if lootOpen then return end
+    if lootOpen or GamepadUI() then return end
     SetLootWindowOpens(not autoLoot)
 end
 
 handlers.LOOT_OPENED = function(autoLoot, acquiredFromItem)
     lootOpen = true
-    if not autoLoot then return end
+    if not autoLoot or GamepadUI() then return end
     autoLootToken = autoLootToken + 1
     local token = autoLootToken
     C_Timer.After(AUTOLOOT_REVEAL_DELAY, function()
