@@ -191,6 +191,7 @@ options/HorizonColorPicker.lua
 options/OptionsDefaults.lua
 options/OptionsData.lua
 options/OptionsHelpers.lua
+options/OptionsPages.lua
 options/modules/defaults/augment/OptionsDefaultsAugmentLootFrame.lua
 options/modules/defaults/augment/OptionsDefaultsAugmentSelfHighlight.lua
 options/modules/defaults/augment/OptionsDefaultsAugmentAutoVendor.lua
