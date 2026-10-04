@@ -114,4 +114,8 @@ Run `governance/drift-check.sh` to confirm the live state matches the spec.
   the migration, then were removed on 2026-07-27 in the July Actions-minutes
   work (~80 billed min/month of per-event and daily posting). The release
   Discord post in `release.yml` is unaffected.
-- **`claude-code-review.yml`** — stays (matches the org self-review pattern).
+- **`claude-code-review.yml`** — stayed through the migration (it matched the org
+  self-review pattern), then was removed on 2026-10-04. From 2026-09-30 every PR
+  was opened by the `tacit-agent-chris` bot, and `claude-code-action` refuses
+  runs started by a bot unless it is on the `allowed_bots` list, so the check
+  failed on every PR without ever reviewing one.
