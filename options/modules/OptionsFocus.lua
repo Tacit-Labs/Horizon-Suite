@@ -243,7 +243,7 @@ local categories = {
                     setDB("compactMode", v)
                     if addon.FullLayout then addon.FullLayout() end
                 end,
-                refreshIds = { "compactMode", "titleSpacing", "objSpacing", "titleToContentSpacing", "sectionSpacing", "sectionToEntryGap", "headerToContentGap" }
+                refreshIds = { "compactMode" }
             },
             { type = "slider", name = L["ENTRY_SPACING"], desc = L["FOCUS_VERTICAL_GAP_BETWEEN_QUEST_ENTRIES"], dbKey = "titleSpacing", advanced = true, min = LIM.customTitleSpacing.min, max = LIM.customTitleSpacing.max,
                 get = function()
@@ -258,7 +258,7 @@ local categories = {
                     setDB("customTitleSpacing", clamp(v, "customTitleSpacing"))
                     if addon.FullLayout then addon.FullLayout() end
                 end,
-                disabled = function() return addon.GetSpacingMode() ~= "custom" end,
+                parent = "compactMode", parentIs = "custom",
                 refreshIds = { "compactMode", "titleSpacing", "objSpacing", "titleToContentSpacing", "sectionSpacing", "sectionToEntryGap", "headerToContentGap" }
             },
             { type = "slider", name = L["FOCUS_TITLE_CONTENT"], desc = L["FOCUS_VERTICAL_GAP_BETWEEN_QUEST_TITLE_OBJECTIVES"], dbKey = "titleToContentSpacing", advanced = true, min = LIM.customTitleToContentSpacing.min, max = LIM.customTitleToContentSpacing.max,
@@ -271,7 +271,7 @@ local categories = {
                     return p and p.titleToContentSpacing or D.customTitleToContentSpacing
                 end,
                 set = function(v) setDB("customTitleToContentSpacing", clamp(v, "customTitleToContentSpacing")); if addon.FullLayout then addon.FullLayout() end end,
-                disabled = function() return addon.GetSpacingMode() ~= "custom" end,
+                parent = "compactMode", parentIs = "custom",
                 refreshIds = { "compactMode", "titleSpacing", "objSpacing", "titleToContentSpacing", "sectionSpacing", "sectionToEntryGap", "headerToContentGap" }
             },
             { type = "slider", name = L["FOCUS_BEFORE_SECTION_HEADER"], desc = L["FOCUS_GAP_BETWEEN_LAST_ENTRY_OF_A"], dbKey = "sectionSpacing", advanced = true, min = LIM.customSectionSpacing.min, max = LIM.customSectionSpacing.max,
@@ -284,7 +284,7 @@ local categories = {
                     return p and p.sectionSpacing or D.customSectionSpacing
                 end,
                 set = function(v) setDB("customSectionSpacing", clamp(v, "customSectionSpacing")); if addon.FullLayout then addon.FullLayout() end end,
-                disabled = function() return addon.GetSpacingMode() ~= "custom" end,
+                parent = "compactMode", parentIs = "custom",
                 refreshIds = { "compactMode", "titleSpacing", "objSpacing", "titleToContentSpacing", "sectionSpacing", "sectionToEntryGap", "headerToContentGap" }
             },
             { type = "slider", name = L["FOCUS_AFTER_SECTION_HEADER"], desc = L["FOCUS_GAP_BETWEEN_CATEGORY_LABEL_FIRST_QUEST"], dbKey = "sectionToEntryGap", advanced = true, min = LIM.customSectionToEntryGap.min, max = LIM.customSectionToEntryGap.max,
@@ -297,7 +297,7 @@ local categories = {
                     return p and p.sectionToEntryGap or D.customSectionToEntryGap
                 end,
                 set = function(v) setDB("customSectionToEntryGap", clamp(v, "customSectionToEntryGap")); if addon.FullLayout then addon.FullLayout() end end,
-                disabled = function() return addon.GetSpacingMode() ~= "custom" end,
+                parent = "compactMode", parentIs = "custom",
                 refreshIds = { "compactMode", "titleSpacing", "objSpacing", "titleToContentSpacing", "sectionSpacing", "sectionToEntryGap", "headerToContentGap" }
             },
             { type = "slider", name = L["OBJECTIVE_SPACING"], desc = L["FOCUS_VERTICAL_GAP_BETWEEN_OBJECTIVE_LINES_WITHIN"], dbKey = "objSpacing", advanced = true, min = LIM.customObjSpacing.min, max = LIM.customObjSpacing.max,
@@ -310,7 +310,7 @@ local categories = {
                     return p and p.objSpacing or D.customObjSpacing
                 end,
                 set = function(v) setDB("customObjSpacing", clamp(v, "customObjSpacing")); if addon.FullLayout then addon.FullLayout() end end,
-                disabled = function() return addon.GetSpacingMode() ~= "custom" end,
+                parent = "compactMode", parentIs = "custom",
                 refreshIds = { "compactMode", "titleSpacing", "objSpacing", "titleToContentSpacing", "sectionSpacing", "sectionToEntryGap", "headerToContentGap" }
             },
             { type = "slider", name = L["FOCUS_BELOW_HEADER"], desc = L["FOCUS_VERTICAL_GAP_BETWEEN_OBJECTIVES_BAR_QUES"], dbKey = "headerToContentGap", advanced = true, min = LIM.customHeaderToContentGap.min, max = LIM.customHeaderToContentGap.max,
@@ -323,7 +323,7 @@ local categories = {
                     return p and p.headerToContentGap or D.customHeaderToContentGap
                 end,
                 set = function(v) setDB("customHeaderToContentGap", clamp(v, "customHeaderToContentGap")); if addon.FullLayout then addon.FullLayout() end end,
-                disabled = function() return addon.GetSpacingMode() ~= "custom" end,
+                parent = "compactMode", parentIs = "custom",
                 refreshIds = { "compactMode", "titleSpacing", "objSpacing", "titleToContentSpacing", "sectionSpacing", "sectionToEntryGap", "headerToContentGap" }
             },
         },
