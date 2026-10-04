@@ -162,6 +162,7 @@ L["DASH_SEARCH_NO_RESULTS"]                                   = "未找到匹配
 -- L["VISTA_CARD_PERF_DIFFICULTY_TEXT"]                        = "Performance & difficulty text"
 -- L["VISTA_CARD_TIMING_LAYOUT"]                               = "Close timing & layout"
 -- L["VISTA_CARD_PANEL_BAR_COLOURS"]                           = "Panel & bar colours"
+-- L["INSIGHT_TRP3_CARD_DETAILS"]                              = "Total RP 3 details"
 -- L["INSIGHT_PAGE_NPCS_ITEMS"]                                = "NPCs & items"
 -- L["ECHO_PAGE_FEEDS"]                                        = "Feeds & groups"
 L["DASH_SEARCH_FILTER_ALL"]                                   = "全部"
