@@ -339,6 +339,7 @@ local tail = {
     IntSlider("echoCardWidth",  L["ECHO_CARD_WIDTH"],  L["ECHO_CARD_SIZE_DESC"], 10),
     IntSlider("echoCardHeight", L["ECHO_CARD_HEIGHT"], L["ECHO_CARD_SIZE_DESC"], 10),
     IntSlider("echoCardTextSize", L["ECHO_CARD_TEXT_SIZE"], L["ECHO_CARD_TEXT_SIZE_DESC"], 1),
+    Toggle(L["ECHO_SHOW_TIMESTAMPS"], L["ECHO_SHOW_TIMESTAMPS_DESC"], "echoShowTimestamps", D.echoShowTimestamps),
     Toggle(L["ECHO_ANIMATE_CARD"], L["ECHO_ANIMATE_CARD_DESC"], "echoAnimateCard", D.echoAnimateCard),
     IntSlider("echoCardIdleClose", L["ECHO_CARD_IDLE_CLOSE"], L["ECHO_CARD_IDLE_CLOSE_DESC"], 5),
     { type = "dropdown", name = L["ECHO_FONT"], desc = L["ECHO_FONT_DESC"], dbKey = "echoFontPath", searchable = true,

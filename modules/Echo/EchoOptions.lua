@@ -127,7 +127,12 @@ function Echo.ApplyOptions()
     if stack and stack:IsShown() and Echo.Stack.Reanchor then Echo.Stack.Reanchor() end
     local card = _G.HorizonSuiteEchoCard
     if card and card:IsShown() and Echo.Card.Reanchor then Echo.Card.Reanchor() end
-    if Echo.Redraw then Echo.Redraw.Mark("tiles") end
+    if Echo.Redraw then
+        Echo.Redraw.Mark("tiles")
+        -- Settings that change what a line shows (echoShowTimestamps) repaint open views.
+        Echo.Redraw.Mark("stack")
+        Echo.Redraw.Mark("card")
+    end
     -- Inert while Blizzard's chat is hidden: ChatFrame1 keeps its whisper events so that
     -- Blizzard's own code sets R's target, which a hidden line would skip.
     local hiding = Echo.HideChat and Echo.HideChat.IsApplied()

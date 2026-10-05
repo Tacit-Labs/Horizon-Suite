@@ -387,16 +387,18 @@ function Stack.Render()
     card.meta:SetText(View.Upper(View.MetaLine(conv, Echo.Store.Now())))
 
     -- A feed line reads as its time, then its text: shift the text column right by the time.
-    -- Lines below the first hang off the one above, so only the first is re-anchored.
+    -- A conversation does the same when echoShowTimestamps is on. Lines below the first
+    -- hang off the one above, so only the first is re-anchored.
     local feed = View.IsFeed(conv.kind)
-    local shift = feed and Stack.FEED_TIME_WIDTH or 0
+    local stamped = feed or View.ShowTimes()
+    local shift = stamped and Stack.FEED_TIME_WIDTH or 0
     card.lines[1]:ClearAllPoints()
     card.lines[1]:SetPoint("TOPLEFT", card, "TOPLEFT", 12 + shift, -52)
     local recent = View.Recent(conv, Stack.LINES)
     for i = 1, Stack.LINES do
         local fs, msg, stamp = card.lines[i], recent[i], card.times[i]
         fs:SetWidth(Stack.WIDTH - 24 - shift)
-        if msg and feed then
+        if msg and stamped then
             stamp:SetText(View.FeedTime(msg.time))
             stamp:Show()
         else

@@ -53,6 +53,7 @@ Card.SECRET_LINES = 3
 Card.LINE_HEIGHT = 14
 Card.TEXT_SIZE = 11  -- message text; echoCardTextSize
 Card.FEED_TIME_WIDTH = 40
+Card.STAMP_GAP = 4  -- between a conversation bubble and its time beside it (echoShowTimestamps)
 Card.FEED_GAP = 2
 Card.PREFIX_SHARE = 0.4  -- an All line's prefix takes at most this share of the line
 Card.PREFIX_GAP = 4      -- between an All line's prefix and its text
@@ -634,6 +635,10 @@ local function SizeFeedLine(b, msg, secret, pinned, text)
     local width = Card.WIDTH - Card.PAD * 2
     local left = Card.FEED_TIME_WIDTH + (pinned and (Card.PIN_MARK + 3) or 0)
     left = left + PlacePrefix(b, msg, left, width - left - 4)
+    -- A conversation bubble may have placed the time outside itself; a feed line keeps it
+    -- in its own left column.
+    b.time:ClearAllPoints()
+    b.time:SetPoint("TOPLEFT", b, "TOPLEFT", 2, -3)
     b.time:SetText(Echo.View.FeedTime(msg.time))
     b.time:Show()
     b.pin:ClearAllPoints()
@@ -676,6 +681,23 @@ local function Mark(b, pinned, outgoing)
         b.pin:SetPoint("TOPRIGHT", b, "TOPRIGHT", -Card.PIN_INSET, -Card.PIN_INSET)
     end
     b.pin:Show()
+end
+
+-- Show a conversation bubble's time just outside it, on the side away from its sender's
+-- edge (left of yours, right of theirs), when echoShowTimestamps is on. SizeBubble has
+-- already hidden it, so off needs nothing.
+local function Stamp(b, msg)
+    if not Echo.View.ShowTimes() then return end
+    local stamp = Echo.View.FeedTime(msg.time)
+    if stamp == "" then return end
+    b.time:ClearAllPoints()
+    if msg.outgoing then
+        b.time:SetPoint("BOTTOMRIGHT", b, "BOTTOMLEFT", -Card.STAMP_GAP, 1)
+    else
+        b.time:SetPoint("BOTTOMLEFT", b, "BOTTOMRIGHT", Card.STAMP_GAP, 1)
+    end
+    b.time:SetText(stamp)
+    b.time:Show()
 end
 
 -- Whether message i is the last (most recent) of its consecutive-same-sender run: either
@@ -762,6 +784,7 @@ local function RenderMessages(conv)
             local markSide = pinned and (msg.outgoing and "left" or "right") or nil
             local height = SizeBubble(bubble, msg.text, secret, markSide)
             Mark(bubble, pinned, msg.outgoing)
+            Stamp(bubble, msg)
             bubble:ClearAllPoints()
             local Round = Echo.Round
             local ends = EndsGroup(messages, i)
