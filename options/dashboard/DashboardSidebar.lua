@@ -260,36 +260,59 @@ function addon.DashboardSidebar_CreateChrome(p)
         end
     end
 
+    -- Selection and hover fill for a sidebar row: a rounded rect with a margin at each side (the
+    -- OptionsWidgets rounded paint, flat when Echo.Round is missing). It stands in for the old
+    -- full-width btnBg texture and takes the same SetColorTexture(r, g, b, a) calls, so the
+    -- callers that tint btnBg need no change. The host sits one level under the button so the
+    -- button's icon and label draw over it.
+    local SIDEBAR_HOVER_FILL = { 1, 1, 1, 0.05 }
+    local function MakeSelectionFill(btn, radius)
+        local host = CreateFrame("Frame", nil, btn)
+        host:SetPoint("TOPLEFT", btn, "TOPLEFT", 6, -1)
+        host:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", -6, 1)
+        host:SetFrameLevel(math.max(0, btn:GetFrameLevel() - 1))
+        local paintRounded = addon.OptionsWidgets_PaintRounded
+        local paint
+        if paintRounded then
+            paint = paintRounded(host, radius or 8, "BACKGROUND")
+        else
+            local tex = host:CreateTexture(nil, "BACKGROUND")
+            tex:SetAllPoints(host)
+            tex:SetColorTexture(1, 1, 1, 1)
+            paint = function(r, g, b, a) tex:SetVertexColor(r, g, b, a) end
+        end
+        paint(0, 0, 0, 0)
+        local fill = { host = host }
+        function fill:SetColorTexture(r, g, b, a) paint(r, g, b, a or 1) end
+        return fill
+    end
+
+    -- Unselected sidebar text and icons: the muted token, no box.
+    local MUTED_R, MUTED_G, MUTED_B = 0.65, 0.65, 0.7
+    do
+        local c = addon.OptionsWidgetsDef and addon.OptionsWidgetsDef.TextColorMuted
+        if c then MUTED_R, MUTED_G, MUTED_B = c[1], c[2], c[3] end
+    end
+
     local function CreateSidebarButton(parent, label, iconName, onClick, indentPx, noHover)
         indentPx = indentPx or 0
         parent = parent or sidebarScrollContent
         local btn = CreateFrame("Button", nil, parent)
         btn:SetSize(SIDEBAR_WIDTH - 1, TAB_ROW_HEIGHT)
 
-        local btnBg = btn:CreateTexture(nil, "BACKGROUND")
-        btnBg:SetAllPoints()
-        btnBg:SetColorTexture(0, 0, 0, 0)
+        local btnBg = MakeSelectionFill(btn, indentPx > 0 and 6 or 8)
         btn.btnBg = btnBg
-
-        local accentBar = btn:CreateTexture(nil, "ARTWORK")
-        accentBar:SetSize(3, 22)
-        accentBar:SetPoint("LEFT", 4 + indentPx, 0)
-        local sar, sag, sab = GetAccentColor()
-        accentBar:SetColorTexture(sar, sag, sab, 1)
-        accentBar:Hide()
-        btn.accentBar = accentBar
-        tinsert(dashAccentRefs.sidebarBars, accentBar)
 
         if iconName then
             local ic = btn:CreateTexture(nil, "ARTWORK")
             ic:SetSize(16, 16)
             ic:SetPoint("LEFT", indentPx + 14, 0)
             ApplySidebarButtonIconTexture(ic, iconName)
-            ic:SetVertexColor(0.6, 0.6, 0.65, 1)
+            ic:SetVertexColor(MUTED_R, MUTED_G, MUTED_B, 1)
             btn.icon = ic
         end
 
-        local lbl = MakeText(btn, label, 11, 0.65, 0.65, 0.7, "LEFT")
+        local lbl = MakeText(btn, label, 11, MUTED_R, MUTED_G, MUTED_B, "LEFT")
         lbl:SetPoint("LEFT", indentPx + (iconName and 36 or 14), 0)
         lbl:SetPoint("RIGHT", -8, 0)
         lbl:SetWordWrap(false)
@@ -298,7 +321,7 @@ function addon.DashboardSidebar_CreateChrome(p)
         if not noHover then
             btn:SetScript("OnEnter", function()
                 if btn ~= dashSession.activeSidebarBtn then
-                    btnBg:SetColorTexture(0.1, 0.1, 0.12, DASHBOARD_CHILD_PANEL_ALPHA)
+                    btnBg:SetColorTexture(SIDEBAR_HOVER_FILL[1], SIDEBAR_HOVER_FILL[2], SIDEBAR_HOVER_FILL[3], SIDEBAR_HOVER_FILL[4])
                     if btn._patchNotesSidebarRowStyle and addon.PatchNotes_ApplyWhatsNewSidebarRowStyle then
                         addon.PatchNotes_ApplyWhatsNewSidebarRowStyle(btn, lbl, btn.icon, true)
                     else
@@ -313,8 +336,8 @@ function addon.DashboardSidebar_CreateChrome(p)
                     if btn._patchNotesSidebarRowStyle and addon.PatchNotes_ApplyWhatsNewSidebarRowStyle then
                         addon.PatchNotes_ApplyWhatsNewSidebarRowStyle(btn, lbl, btn.icon, false)
                     else
-                        lbl:SetTextColor(0.65, 0.65, 0.7)
-                        if btn.icon then btn.icon:SetVertexColor(0.6, 0.6, 0.65, 1) end
+                        lbl:SetTextColor(MUTED_R, MUTED_G, MUTED_B)
+                        if btn.icon then btn.icon:SetVertexColor(MUTED_R, MUTED_G, MUTED_B, 1) end
                     end
                 end
             end)
@@ -334,30 +357,19 @@ function addon.DashboardSidebar_CreateChrome(p)
         btn:SetPoint("BOTTOMLEFT", sidebar, "BOTTOMLEFT", 0, yFromBottom)
         btn:SetPoint("BOTTOMRIGHT", sidebar, "BOTTOMRIGHT", -1, yFromBottom)
 
-        local btnBg = btn:CreateTexture(nil, "BACKGROUND")
-        btnBg:SetAllPoints()
-        btnBg:SetColorTexture(0, 0, 0, 0)
+        local btnBg = MakeSelectionFill(btn, 8)
         btn.btnBg = btnBg
-
-        local accentBar = btn:CreateTexture(nil, "ARTWORK")
-        accentBar:SetSize(3, 22)
-        accentBar:SetPoint("LEFT", 4, 0)
-        local sar, sag, sab = GetAccentColor()
-        accentBar:SetColorTexture(sar, sag, sab, 1)
-        accentBar:Hide()
-        btn.accentBar = accentBar
-        tinsert(dashAccentRefs.sidebarBars, accentBar)
 
         if iconName then
             local ic = btn:CreateTexture(nil, "ARTWORK")
             ic:SetSize(16, 16)
             ic:SetPoint("LEFT", 14, 0)
             ApplySidebarButtonIconTexture(ic, iconName)
-            ic:SetVertexColor(0.6, 0.6, 0.65, 1)
+            ic:SetVertexColor(MUTED_R, MUTED_G, MUTED_B, 1)
             btn.icon = ic
         end
 
-        local lbl = MakeText(btn, label, 11, 0.65, 0.65, 0.7, "LEFT")
+        local lbl = MakeText(btn, label, 11, MUTED_R, MUTED_G, MUTED_B, "LEFT")
         lbl:SetPoint("LEFT", iconName and 36 or 14, 0)
         lbl:SetPoint("RIGHT", -8, 0)
         lbl:SetWordWrap(false)
@@ -365,7 +377,7 @@ function addon.DashboardSidebar_CreateChrome(p)
 
         btn:SetScript("OnEnter", function()
             if btn ~= dashSession.activeSidebarBtn then
-                btnBg:SetColorTexture(0.1, 0.1, 0.12, DASHBOARD_CHILD_PANEL_ALPHA)
+                btnBg:SetColorTexture(SIDEBAR_HOVER_FILL[1], SIDEBAR_HOVER_FILL[2], SIDEBAR_HOVER_FILL[3], SIDEBAR_HOVER_FILL[4])
                 if btn._patchNotesSidebarRowStyle and addon.PatchNotes_ApplyWhatsNewSidebarRowStyle then
                     addon.PatchNotes_ApplyWhatsNewSidebarRowStyle(btn, lbl, btn.icon, true)
                 else
@@ -380,8 +392,8 @@ function addon.DashboardSidebar_CreateChrome(p)
                 if btn._patchNotesSidebarRowStyle and addon.PatchNotes_ApplyWhatsNewSidebarRowStyle then
                     addon.PatchNotes_ApplyWhatsNewSidebarRowStyle(btn, lbl, btn.icon, false)
                 else
-                    lbl:SetTextColor(0.65, 0.65, 0.7)
-                    if btn.icon then btn.icon:SetVertexColor(0.6, 0.6, 0.65, 1) end
+                    lbl:SetTextColor(MUTED_R, MUTED_G, MUTED_B)
+                    if btn.icon then btn.icon:SetVertexColor(MUTED_R, MUTED_G, MUTED_B, 1) end
                 end
             end
         end)
@@ -399,18 +411,24 @@ function addon.DashboardSidebar_CreateChrome(p)
             if prev._patchNotesSidebarRowStyle and addon.PatchNotes_ApplyWhatsNewSidebarRowStyle then
                 addon.PatchNotes_ApplyWhatsNewSidebarRowStyle(prev, prev.label, prev.icon, false)
             elseif prev.chevron then
-                prev.label:SetTextColor(0.55, 0.55, 0.65, 1)
-                prev.chevron:SetTextColor(0.55, 0.55, 0.65, 1)
+                prev.label:SetTextColor(MUTED_R, MUTED_G, MUTED_B, 1)
+                prev.chevron:SetTextColor(MUTED_R, MUTED_G, MUTED_B, 1)
             else
-                prev.label:SetTextColor(0.65, 0.65, 0.7)
-                if prev.icon then prev.icon:SetVertexColor(0.6, 0.6, 0.65, 1) end
+                prev.label:SetTextColor(MUTED_R, MUTED_G, MUTED_B)
+                if prev.icon then prev.icon:SetVertexColor(MUTED_R, MUTED_G, MUTED_B, 1) end
             end
-            prev.accentBar:Hide()
         end
         dashSession.activeSidebarBtn = btn
         if btn then
-            local bar, bag, bab = GetAccentColor()
-            btn.btnBg:SetColorTexture(bar * 0.15, bag * 0.15, bab * 0.15, DASHBOARD_CHILD_PANEL_ALPHA)
+            -- A rounded accent fill (SidebarSelectedBg: the accent at about 16%, class colour
+            -- when the class theme is on) with normal text. The old accent bar stays hidden.
+            local sel = (addon.OptionsWidgetsDef and addon.OptionsWidgetsDef.SidebarSelectedBg)
+            if sel then
+                btn.btnBg:SetColorTexture(sel[1], sel[2], sel[3], sel[4])
+            else
+                local bar, bag, bab = GetAccentColor()
+                btn.btnBg:SetColorTexture(bar, bag, bab, 0.16)
+            end
             if btn._patchNotesSidebarRowStyle and addon.PatchNotes_ApplyWhatsNewSidebarRowStyle then
                 addon.PatchNotes_ApplyWhatsNewSidebarRowStyle(btn, btn.label, btn.icon, false)
             else
@@ -420,7 +438,6 @@ function addon.DashboardSidebar_CreateChrome(p)
                     btn.chevron:SetTextColor(1, 1, 1, 1)
                 end
             end
-            btn.accentBar:Show()
         end
     end
 
@@ -445,6 +462,8 @@ function addon.DashboardSidebar_CreateChrome(p)
         TAB_ROW_HEIGHT = TAB_ROW_HEIGHT,
         SIDEBAR_WHATSNEW_RESERVE = SIDEBAR_WHATSNEW_RESERVE,
         CreateSidebarButton = CreateSidebarButton,
+        MakeSelectionFill = MakeSelectionFill,
+        sidebarMuted = { MUTED_R, MUTED_G, MUTED_B },
         CreateBottomPinnedButton = CreateBottomPinnedButton,
         SetActiveSidebarButton = SetActiveSidebarButton,
         layoutUnderHeader = layoutUnderHeader,

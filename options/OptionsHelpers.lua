@@ -136,12 +136,14 @@ local FONT_ROW_METRICS = {
     familyMax   = 220,
     stepperW    = 84,
     outlineW    = 130,
+    outlineSegMax = 200, -- the widest the outline part may grow as segmented buttons
 }
 
 --- Lay out a font row at a given width. A width of 0 or less (not yet anchored) lays out as one line.
 --- @param width number
 --- @param has table  { family = bool, size = bool, outline = bool }
---- @return table  { wrapped = bool, familyW = number, height = number }
+--- @return table  { wrapped = bool, familyW = number, lines = 1 or 2 }  The widget sets the
+---   lines' heights (SettingsRowHeight), so the layout reports only how many there are.
 local function FontRowLayout(width, has)
     local M = FONT_ROW_METRICS
     has = has or {}
@@ -150,9 +152,8 @@ local function FontRowLayout(width, has)
     local share = wrapped and 0.4 or 0.24
     local familyW = known and math.floor(width * share) or M.familyMax
     familyW = math.max(M.familyMin, math.min(M.familyMax, familyW))
-    local height = M.lineH
-    if wrapped and (has.size or has.outline) then height = M.lineH + M.line2H end
-    return { wrapped = wrapped and true or false, familyW = familyW, height = height }
+    local lines = (wrapped and (has.size or has.outline)) and 2 or 1
+    return { wrapped = wrapped and true or false, familyW = familyW, lines = lines }
 end
 
 --- Step or clamp a font size the way the old slider did: snap to the step, then clamp.
@@ -212,6 +213,107 @@ local function FontRowTypedSize(text, current, min, max, step)
     return v
 end
 
+--- The vertical rhythm of a card's visible entries, and where its hairlines go. Settings rows
+--- pad themselves; other entries get gaps. A row or custom widget gets a hairline above it
+--- unless it is the first entry in the card or follows a subheading or a note (the start of a
+--- group). Subheadings and notes never get one, and a spacer (a zero-height entry) is skipped.
+--- @param kinds table  Each visible entry in order: "row", "block", "subheading", "note" or "spacer"
+--- @param m table  { subheadingTop, subheadingBottom, noteTop, blockPad }
+--- @return table  One { top = number, bottom = number, divider = boolean } per entry
+local function CardRowSpacing(kinds, m)
+    local out = {}
+    local prev
+    for i, kind in ipairs(kinds or {}) do
+        local e = { top = 0, bottom = 0, divider = false }
+        if kind == "subheading" then
+            e.top, e.bottom = m.subheadingTop or 0, m.subheadingBottom or 0
+        elseif kind == "note" then
+            e.top = m.noteTop or 0
+        elseif kind == "block" then
+            e.top, e.bottom = m.blockPad or 0, m.blockPad or 0
+        end
+        if (kind == "row" or kind == "block") and (prev == "row" or prev == "block") then
+            e.divider = true
+        end
+        if kind ~= "spacer" then prev = kind end
+        out[i] = e
+    end
+    return out
+end
+
+--- The height of a settings row from its measured text. The label and description stack
+--- with descGap between them, centred with padY above and below; the row is never shorter than
+--- minH. Heights over labelMaxH or descMaxH (the line caps: two lines each) are clamped, in
+--- case a client reports the unclamped height of truncated text.
+--- @param labelH number  Measured label height
+--- @param descH number|nil  Measured description height; 0 or nil for no description
+--- @param m table  { minH, padY, descGap, labelMaxH?, descMaxH? }
+--- @return number height, number blockH  The row height and the text block's height
+local function SettingsRowHeight(labelH, descH, m)
+    labelH = math.max(0, tonumber(labelH) or 0)
+    descH = math.max(0, tonumber(descH) or 0)
+    if m.labelMaxH then labelH = math.min(labelH, m.labelMaxH) end
+    if m.descMaxH then descH = math.min(descH, m.descMaxH) end
+    local blockH = labelH
+    if descH > 0 then blockH = blockH + (m.descGap or 0) + descH end
+    return math.max(m.minH or 0, math.ceil(blockH + 2 * (m.padY or 0))), blockH
+end
+
+local SEGMENTED_MIN, SEGMENTED_MAX = 2, 4  -- segments a dropdown may become
+
+--- Whether a dropdown row (or a font row's outline part) may show as segmented buttons: a
+--- static option table of two to four entries, not searchable, with no font preview, no greyed
+--- out entry, and no `segmented = false`. Whether the segments fit is decided at layout time
+--- (SegmentedFits), so an eligible row can still render as a dropdown.
+--- @param opt table  The row definition or the font-row part
+--- @return boolean
+local function SegmentedEligible(opt)
+    if type(opt) ~= "table" then return false end
+    if opt.type ~= nil and opt.type ~= "dropdown" then return false end
+    if opt.kind == "toggle" or opt.segmented == false then return false end
+    if opt.searchable or opt.fontPreviewInList then return false end
+    if type(opt.options) ~= "table" then return false end
+    -- Count entries the way the dropdown normalises them: array rows and name -> value pairs.
+    local n = 0
+    for k, v in pairs(opt.options) do
+        if type(k) == "number" and type(v) == "table" then
+            if v[3] == true then return false end
+            n = n + 1
+        elseif type(k) == "string" then
+            n = n + 1
+        end
+    end
+    return n >= SEGMENTED_MIN and n <= SEGMENTED_MAX
+end
+
+--- Whether segments fit a space. Each segment is its label (rounded up) plus segPadX on each
+--- side; segments are gap apart inside a track padded by trackPad.
+--- @param labelWidths table  Measured label widths, in order
+--- @param available number|nil  The space for the control
+--- @param padding table|number|nil  { segPadX, trackPad, gap }, or a number for segPadX alone
+--- @return boolean fits, number width  The control's natural width
+local function SegmentedFits(labelWidths, available, padding)
+    local segPadX, trackPad, gap = 0, 0, 0
+    if type(padding) == "number" then
+        segPadX = padding
+    elseif type(padding) == "table" then
+        segPadX = tonumber(padding.segPadX) or 0
+        trackPad = tonumber(padding.trackPad) or 0
+        gap = tonumber(padding.gap) or 0
+    end
+    local n = type(labelWidths) == "table" and #labelWidths or 0
+    local width = 2 * trackPad + math.max(0, n - 1) * gap
+    for i = 1, n do
+        width = width + math.ceil(tonumber(labelWidths[i]) or 0) + 2 * segPadX
+    end
+    local space = tonumber(available)
+    return (n > 0 and space ~= nil and space > 0 and width <= space) and true or false, width
+end
+
+addon.CardRowSpacing                   = CardRowSpacing
+addon.SettingsRowHeight                = SettingsRowHeight
+addon.SegmentedEligible                = SegmentedEligible
+addon.SegmentedFits                    = SegmentedFits
 addon.FONT_ROW_METRICS                 = FONT_ROW_METRICS
 addon.FontRowLayout                    = FontRowLayout
 addon.FontRowStepSize                  = FontRowStepSize

@@ -555,7 +555,7 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
         -- ----------------------------------------------------------------
         -- SilverDragon — card hidden when companion bridge is absent.
         -- ----------------------------------------------------------------
-        Section(L["FOCUS_INTEGRATION_SILVERDRAGON"], { visibleWhen = SilverDragonIntegrationLoaded, page = "integrations", card = "silverDragon" }),
+        Section(L["FOCUS_INTEGRATION_SILVERDRAGON"], { visibleWhen = SilverDragonIntegrationLoaded, page = "integrations", card = "silverDragon", desc = L["FOCUS_INTEGRATION_SILVERDRAGON_DESC"] }),
         { type = "header", name = L["FOCUS_INTEGRATION_SILVERDRAGON_COMPANION"] },
 
         Toggle(

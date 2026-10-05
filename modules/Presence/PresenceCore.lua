@@ -1824,6 +1824,19 @@ local function CreatePreviewWidget(parent, opts)
     )
     dd:SetPoint("TOPLEFT", container, "TOPLEFT", 0, 0)
     dd:SetPoint("RIGHT", container, "RIGHT", 0, 0)
+    -- The container was sized for a 34px dropdown row; settings rows are now taller (52px or
+    -- more with their description), so it grows by the difference, and again whenever the row
+    -- changes height. onHeightChanged on the container lets the options card restack.
+    local PREVIEW_DROPDOWN_BASE_H = 34
+    local function fitContainer()
+        local h = 260 + math.max(0, (dd:GetHeight() or PREVIEW_DROPDOWN_BASE_H) - PREVIEW_DROPDOWN_BASE_H)
+        if math.abs((container:GetHeight() or 0) - h) > 0.5 then
+            container:SetHeight(h)
+            if container.onHeightChanged then container.onHeightChanged() end
+        end
+    end
+    dd.onHeightChanged = fitContainer
+    fitContainer()
 
     local actionAnchor
     local animateBtn
@@ -1980,6 +1993,19 @@ local function ensurePreviewPopout()
     if widgetData and widgetData.frame then
         widgetData.frame:SetPoint("TOPLEFT", content, "TOPLEFT", 0, 0)
         widgetData.frame:SetPoint("TOPRIGHT", content, "TOPRIGHT", 0, 0)
+        -- The preview container grows by max(0, dropdownHeight - 34) over its 260px base; grow
+        -- the popout by the same amount so the preview stays inside its margin.
+        local container = widgetData.frame
+        local prevHook = container.onHeightChanged
+        local function fitPopout()
+            local extra = math.max(0, (container:GetHeight() or 260) - 260)
+            frame:SetHeight(PREVIEW_POPOUT_HEIGHT + extra)
+        end
+        container.onHeightChanged = function()
+            if prevHook then prevHook() end
+            fitPopout()
+        end
+        fitPopout()
     end
 
     function frame:Refresh()

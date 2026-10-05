@@ -284,7 +284,7 @@ local categories = {
             Toggle(L["AUGMENT_STACK_COUNT_BEFORE_NAME"], L["AUGMENT_STACK_COUNT_BEFORE_NAME_DESC"], "augmentStackCountBeforeName", D.augmentStackCountBeforeName),
 
             -- Sounds
-            Section(L["AUGMENT_SOUNDS"], { page = "loot" }),
+            Section(L["AUGMENT_SOUNDS"], { page = "loot", desc = L["AUGMENT_SOUNDS_PAGE_DESC"] }),
             Toggle(L["AUGMENT_SOUND_ENABLED"], L["AUGMENT_SOUND_ENABLED_DESC"], "augmentSoundEnabled", D.augmentSoundEnabled),
             { type = "dropdown", name = L["AUGMENT_SOUND_CHANNEL"], desc = L["AUGMENT_SOUND_CHANNEL_DESC"], dbKey = "augmentSoundChannel",
                 options = {

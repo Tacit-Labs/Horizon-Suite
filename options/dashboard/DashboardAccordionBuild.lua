@@ -26,25 +26,24 @@ function addon.DashboardAccordionBuild_Init(f, p)
     local detailScroll       = p.detailScroll
     local detailView         = p.detailView
 
-    local function CreateAccordionCard(parent, title, headerToggleCfg)
-        return addon.Dashboard_CreateAccordionCard(parent, title, headerToggleCfg, accordionCardParams)
+    local function CreateAccordionCard(parent, title, headerToggleCfg, desc)
+        return addon.Dashboard_CreateAccordionCard(parent, title, headerToggleCfg, accordionCardParams, desc)
     end
 
     -- A subheading inside a card: a small muted label with a faint 1px rule running from the
-    -- label to the row's right edge. It sits SUBHEADING_TOP_GAP below the row above, for about
-    -- 22px in all, and takes the same left inset as the rows (DoInstantRelayout anchors it).
+    -- label to the row's right edge. It sits Def.SubheadingTopGap below the row above and takes
+    -- the same left inset as the rows (DoInstantRelayout anchors it).
     local SUBHEADING_HEIGHT = 14
-    local SUBHEADING_TOP_GAP = 8
     local SUBHEADING_RULE_GAP = 8
     local SUBHEADING_RULE_MIN = 16
     local function CreateSubheading(parent, name)
-        local WDef = addon.OptionsWidgetsDef or {}
-        local tc = WDef.TextColorSection or { 0.58, 0.64, 0.74 }
-        local rc = WDef.DividerColor or { 0.35, 0.4, 0.5, 0.25 }
+        local WDef = addon.OptionsWidgetsDef
+        local tc = WDef.TextColorSection
+        local rc = WDef.DividerColor
         if type(name) == "function" then name = name() end
         local row = CreateFrame("Frame", nil, parent)
         row:SetHeight(SUBHEADING_HEIGHT)
-        local label = MakeText(row, tostring(name or ""), (WDef.SectionSize or 11), tc[1], tc[2], tc[3], "LEFT")
+        local label = MakeText(row, tostring(name or ""), WDef.SectionSize, tc[1], tc[2], tc[3], "LEFT")
         label:SetPoint("LEFT", row, "LEFT", 0, 0)
         if label.SetWordWrap then label:SetWordWrap(false) end
         if label.SetNonSpaceWrap then label:SetNonSpaceWrap(false) end
@@ -55,7 +54,7 @@ function addon.DashboardAccordionBuild_Init(f, p)
             rule:SetHeight(1)
             rule:SetPoint("LEFT", label, "RIGHT", SUBHEADING_RULE_GAP, 0)
             rule:SetPoint("RIGHT", row, "RIGHT", 0, 0)
-            rule:SetColorTexture(rc[1], rc[2], rc[3], rc[4] or 0.25)
+            rule:SetColorTexture(rc[1], rc[2], rc[3], rc[4])
             row._rule = rule
         end
         -- Keep the label inside the row (truncated when it is too long), and show the rule only
@@ -82,10 +81,10 @@ function addon.DashboardAccordionBuild_Init(f, p)
     -- (opt._subheading) use CreateSubheading.
     local NOTE_MIN_HEIGHT = 20
     local function CreateNote(parent, text)
-        local WDef = addon.OptionsWidgetsDef or {}
-        local tc = WDef.TextColorSection or { 0.58, 0.64, 0.74 }
+        local WDef = addon.OptionsWidgetsDef
+        local tc = WDef.TextColorSection
         if type(text) == "function" then text = text() end
-        local note = MakeText(parent, tostring(text or ""), (WDef.SectionSize or 11), tc[1], tc[2], tc[3], "LEFT")
+        local note = MakeText(parent, tostring(text or ""), WDef.SectionSize, tc[1], tc[2], tc[3], "LEFT")
         if note.SetWordWrap then note:SetWordWrap(true) end
         return note
     end
@@ -138,7 +137,8 @@ function addon.DashboardAccordionBuild_Init(f, p)
             local startAlpha = card:GetAlpha() or (fadingIn and 0 or 1)
             local startHeight = card:GetHeight() or 0
             local endAlpha = fadingIn and 1 or 0
-            local endHeight = fadingIn and targetHeight or 0
+            -- Read each tick: a row that changes height mid-fade moves the target (OnRowHeightChanged).
+            card._fadeTargetHeight = fadingIn and targetHeight or 0
 
             local animFrame = card.relayoutAnimFrame
             if not animFrame then
@@ -157,6 +157,7 @@ function addon.DashboardAccordionBuild_Init(f, p)
                 local t = math.min(1, elapsed / CARD_VISIBILITY_FADE_DUR)
                 local ep = easeOutDep(t)
                 card:SetAlpha(startAlpha + (endAlpha - startAlpha) * ep)
+                local endHeight = card._fadeTargetHeight or 0
                 card:SetHeight(math.max(0.01, startHeight + (endHeight - startHeight) * ep))
                 UpdateDetailLayout()
                 if t >= 1 then
@@ -183,10 +184,41 @@ function addon.DashboardAccordionBuild_Init(f, p)
             AnimateCardVisibility(card, "out")
         end
 
-        local function DoInstantRelayout(card, skipHeightApply, animateVisibility)
-            if not card or not card.widgetList then return end
+        -- A hairline above a row (Def.RowDivider), spanning the card's content width whatever
+        -- the row's indent. A child of the row, so it fades and hides with it.
+        local function SetRowDivider(frame, show, indentX, gapAbove)
+            local div = frame._rowDivider
+            if not show then
+                if div then div:Hide() end
+                return
+            end
+            if not div then
+                if not frame.CreateTexture then return end
+                local c = addon.OptionsWidgetsDef.RowDivider
+                div = frame:CreateTexture(nil, "ARTWORK")
+                div:SetColorTexture(c[1], c[2], c[3], c[4])
+                div:SetHeight(1)
+                frame._rowDivider = div
+            end
+            div:ClearAllPoints()
+            div:SetPoint("BOTTOMLEFT", frame, "TOPLEFT", -indentX, gapAbove)
+            div:SetPoint("BOTTOMRIGHT", frame, "TOPRIGHT", 0, gapAbove)
+            div:Show()
+        end
+
+        -- Restack the card's visible entries. Spacing and hairlines come from
+        -- addon.CardRowSpacing, decided from the visible order each time, so a row that hides
+        -- or shows moves the hairlines with it. restackOnly positions the entries and works out
+        -- card.fullHeight but leaves the card's height and visibility to a running animation.
+        local function DoInstantRelayoutBody(card, skipHeightApply, animateVisibility, restackOnly)
             animateVisibility = animateVisibility == true
-            local yOff = 0
+            card._inRelayout = true
+            local WDef = addon.OptionsWidgetsDef
+            local cardPadX = WDef.CardPadding
+            local rowIndent = WDef.RowIndent
+            local sc = card.settingsContainer
+
+            local shown, kinds = {}, {}
             for _, entry in ipairs(card.widgetList) do
                 local visible = true
                 if entry.visibleWhen then
@@ -195,18 +227,55 @@ function addon.DashboardAccordionBuild_Init(f, p)
                 entry.frame:SetShown(visible)
                 if visible then
                     entry.frame:SetAlpha(1)
-                    local topGap = entry.isHeader and SUBHEADING_TOP_GAP or 6
-                    entry.frame:ClearAllPoints()
-                    local rowX = entry.indent and 50 or 30
-                    entry.frame:SetPoint("TOPLEFT", card.settingsContainer, "TOPLEFT", rowX, -(yOff + topGap))
-                    entry.frame:SetPoint("RIGHT", card.settingsContainer, "RIGHT", -30, 0)
-                    local h = entry.frame:GetHeight() or 40
+                    local h = entry.frame:GetHeight() or 0
                     if entry.isNote and h < NOTE_MIN_HEIGHT then h = NOTE_MIN_HEIGHT end
-                    yOff = yOff + h + topGap
+                    local kind = (entry.isHeader and "subheading") or (entry.isNote and "note")
+                        or (h < 1 and "spacer") or (entry.frame._rowPadded and "row") or "block"
+                    shown[#shown + 1] = { entry = entry, h = h }
+                    kinds[#kinds + 1] = kind
                 end
             end
+
+            local spacing = addon.CardRowSpacing(kinds, {
+                subheadingTop = WDef.SubheadingTopGap,
+                subheadingBottom = WDef.SubheadingBottomGap,
+                noteTop = WDef.NoteTopGap,
+                blockPad = WDef.BlockPadY,
+            })
+
+            local yOff = 0
+            for i, item in ipairs(shown) do
+                local entry, sp = item.entry, spacing[i]
+                local frame = entry.frame
+                local indentX = entry.indent and rowIndent or 0
+                local rowX = cardPadX + indentX
+                yOff = yOff + sp.top
+                frame:ClearAllPoints()
+                frame:SetPoint("TOPLEFT", sc, "TOPLEFT", rowX, -yOff)
+                frame:SetPoint("RIGHT", sc, "RIGHT", -cardPadX, 0)
+                SetRowDivider(frame, sp.divider, indentX, sp.top)
+                -- The row hover runs across the whole card, past the row's own inset.
+                local hover = frame._rowHover
+                if hover then
+                    hover:ClearAllPoints()
+                    hover:SetPoint("TOPLEFT", frame, "TOPLEFT", -rowX, 0)
+                    hover:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", cardPadX, 0)
+                end
+                yOff = yOff + item.h + sp.bottom
+            end
             card.contentHeight = yOff
-            card.fullHeight = yOff + 80
+            card.fullHeight = yOff + card.chromeHeight
+            card._inRelayout = nil
+            -- A row that changed height while this pass read the heights: stack once more.
+            if card._relayoutPending then
+                card._relayoutPending = nil
+                DoInstantRelayoutBody(card, skipHeightApply, animateVisibility, restackOnly)
+                return
+            end
+            if restackOnly then
+                UpdateDetailLayout()
+                return
+            end
             if card.headerToggleInit then
                 card.headerToggleInit()
                 card.headerToggleInit = nil  -- run once
@@ -242,6 +311,18 @@ function addon.DashboardAccordionBuild_Init(f, p)
                 end
             end
             UpdateDetailLayout()
+        end
+
+        -- Runs the body under pcall so an error cannot leave card._inRelayout set (which would
+        -- swallow every later restack), then raises the error again.
+        local function DoInstantRelayout(card, skipHeightApply, animateVisibility, restackOnly)
+            if not card or not card.widgetList then return end
+            local ok, err = pcall(DoInstantRelayoutBody, card, skipHeightApply, animateVisibility, restackOnly)
+            if not ok then
+                card._inRelayout = nil
+                card._relayoutPending = nil
+                error(err, 0)
+            end
         end
 
         local function RelayoutCard(card, animateVisibility)
@@ -405,6 +486,31 @@ function addon.DashboardAccordionBuild_Init(f, p)
             end
         end
 
+        -- An entry reports a new height (a wrapped label, a font row wrapping, the colour
+        -- matrix restacking): restack its card. Mid-restack, that pass runs once more. While an
+        -- animation owns the card's height (a visibility fade or a dependent-row fade), only the
+        -- entries move and the animation's target height follows card.fullHeight, so the
+        -- animation is neither dropped nor restarted.
+        local function OnRowHeightChanged(card)
+            if not card then return end
+            if card._inRelayout then
+                card._relayoutPending = true
+                return
+            end
+            if card._visibilityFadingOut then return end
+            local anim = card.relayoutAnim
+            if card._visibilityFadingIn or anim then
+                DoInstantRelayout(card, true, false, true)
+                if card._visibilityFadingIn then
+                    card._fadeTargetHeight = card.expanded and card.fullHeight or card.collapsedHeight
+                end
+                -- The fade-out phase reads card.fullHeight itself when it ends.
+                if anim and anim.phase ~= "fadeOut" then anim.targetFullH = card.fullHeight end
+                return
+            end
+            RelayoutCard(card, false)
+        end
+
         for _, opt in ipairs(options) do
             -- Resolve get/set fallbacks if missing
             local g = opt.get
@@ -456,7 +562,7 @@ function addon.DashboardAccordionBuild_Init(f, p)
                     RelayoutCard(currentCard, false)
                 end
 
-                currentCard = CreateAccordionCard(detailContent, opt.name, opt.headerToggle)
+                currentCard = CreateAccordionCard(detailContent, opt.name, opt.headerToggle, opt.desc)
                 currentCard.contentHeight = 0
                 currentCard.optionIds = {}
                 currentCard.widgetList = {}
@@ -532,7 +638,13 @@ function addon.DashboardAccordionBuild_Init(f, p)
                             tooltip = resetBtn.tooltip,
                         }
                     end
-                    widget = _G.OptionsWidgets_CreateCustomDropdown(currentCard.settingsContainer, displayName, opt.desc or "", opt.options, g, s, opt.displayFn, opt.searchable, opt.disabled, opt.tooltip, resetBtn, opt.fontPreviewInList, opt.preserveOrder)
+                    -- A short static choice shows as segmented buttons when they fit the row, else
+                    -- as this dropdown (the row switches itself as its width changes).
+                    if addon.SegmentedEligible and addon.SegmentedEligible(opt) and _G.OptionsWidgets_CreateSegmented then
+                        widget = _G.OptionsWidgets_CreateSegmented(currentCard.settingsContainer, displayName, opt.desc or "", opt.options, g, s, opt.displayFn, opt.disabled, opt.tooltip, resetBtn, opt.preserveOrder)
+                    else
+                        widget = _G.OptionsWidgets_CreateCustomDropdown(currentCard.settingsContainer, displayName, opt.desc or "", opt.options, g, s, opt.displayFn, opt.searchable, opt.disabled, opt.tooltip, resetBtn, opt.fontPreviewInList, opt.preserveOrder)
+                    end
                     if widget and widget.Refresh then detailOptionFrames[optId] = widget end
                 elseif opt.type == "fontRow" and _G.OptionsWidgets_CreateFontRow then
                     -- One row for a text element's font, size and outline (addon.FontRow). Each part
@@ -579,7 +691,7 @@ function addon.DashboardAccordionBuild_Init(f, p)
                     if widget then
                         -- Wrapping below 640px changes the row's height; the card must restack.
                         local cardRef = currentCard
-                        widget.onHeightChanged = function() RelayoutCard(cardRef, false) end
+                        widget.onHeightChanged = function() OnRowHeightChanged(cardRef) end
                         if widget.Refresh then
                             if optId then detailOptionFrames[optId] = widget end
                             -- A real row that owns a part key keeps its own registration.
@@ -754,6 +866,8 @@ function addon.DashboardAccordionBuild_Init(f, p)
                 elseif opt.type == "colorMatrixFull" then
                     -- Compact color cards in 3-column grid
                     local cmfContainer = CreateFrame("Frame", nil, currentCard.settingsContainer)
+                    -- currentCard moves on as later sections build; LayoutAll runs later.
+                    local cmfCard = currentCard
                     local notifyFn = function() if addon.OptionsData_NotifyMainAddon then addon.OptionsData_NotifyMainAddon() end end
 
                     local function getMatrix()
@@ -931,7 +1045,20 @@ function addon.DashboardAccordionBuild_Init(f, p)
                     local perCatHdr, resetAllBtn, goHdr, otherHdr
                     local ovCompleted, ovCurrentZone, ovCurrentQuest, ovCompletedObj
 
+                    -- A toggle's hover runs to the card's edges, as on the card's own rows: past
+                    -- CARD_PAD inside the grid and the card padding outside it.
+                    local function StretchHover(row)
+                        local hover = row and row._rowHover
+                        if not hover then return end
+                        local edge = addon.OptionsWidgetsDef.CardPadding + CARD_PAD
+                        hover:ClearAllPoints()
+                        hover:SetPoint("TOPLEFT", row, "TOPLEFT", -edge, 0)
+                        hover:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", edge, 0)
+                    end
+
                     local function LayoutAll()
+                        -- A row can report a height change before the whole grid exists.
+                        if not (perCatHdr and goHdr and otherHdr and overrideGrid and ovCompletedObj) then return end
                         local yOff = 0
 
                         perCatHdr:ClearAllPoints()
@@ -958,17 +1085,20 @@ function addon.DashboardAccordionBuild_Init(f, p)
                         ovCompleted:ClearAllPoints()
                         ovCompleted:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", CARD_PAD, yOff)
                         ovCompleted:SetPoint("RIGHT", cmfContainer, "RIGHT", -CARD_PAD, 0)
-                        yOff = yOff - 40
+                        StretchHover(ovCompleted)
+                        yOff = yOff - ovCompleted:GetHeight()
 
                         ovCurrentZone:ClearAllPoints()
                         ovCurrentZone:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", CARD_PAD, yOff)
                         ovCurrentZone:SetPoint("RIGHT", cmfContainer, "RIGHT", -CARD_PAD, 0)
-                        yOff = yOff - 40
+                        StretchHover(ovCurrentZone)
+                        yOff = yOff - ovCurrentZone:GetHeight()
 
                         ovCurrentQuest:ClearAllPoints()
                         ovCurrentQuest:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", CARD_PAD, yOff)
                         ovCurrentQuest:SetPoint("RIGHT", cmfContainer, "RIGHT", -CARD_PAD, 0)
-                        yOff = yOff - 40
+                        StretchHover(ovCurrentQuest)
+                        yOff = yOff - ovCurrentQuest:GetHeight()
 
                         -- Override grid: show only visible cards in a single row
                         local visibleOv = {}
@@ -995,7 +1125,8 @@ function addon.DashboardAccordionBuild_Init(f, p)
                         ovCompletedObj:ClearAllPoints()
                         ovCompletedObj:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", CARD_PAD, yOff)
                         ovCompletedObj:SetPoint("RIGHT", cmfContainer, "RIGHT", -CARD_PAD, 0)
-                        yOff = yOff - 40
+                        StretchHover(ovCompletedObj)
+                        yOff = yOff - ovCompletedObj:GetHeight()
 
                         for _, row in ipairs(otherColorRows) do
                             if row:IsShown() then
@@ -1008,9 +1139,8 @@ function addon.DashboardAccordionBuild_Init(f, p)
 
                         local newHeight = math.max(1, -yOff)
                         cmfContainer:SetHeight(newHeight)
-                        currentCard.contentHeight = newHeight
-                        currentCard.fullHeight = newHeight + 80
-                        UpdateDetailLayout()
+                        -- Restack the card around the new height (its padding included).
+                        OnRowHeightChanged(cmfCard)
                     end
 
                     -- Build the layout
@@ -1063,7 +1193,9 @@ function addon.DashboardAccordionBuild_Init(f, p)
                     end)
                     ovCompleted:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", CARD_PAD, yOff)
                     ovCompleted:SetPoint("RIGHT", cmfContainer, "RIGHT", -CARD_PAD, 0)
-                    yOff = yOff - 40
+                    -- Rows size themselves (taller with a description); restack when one changes.
+                    ovCompleted.onHeightChanged = function() LayoutAll() end
+                    yOff = yOff - ovCompleted:GetHeight()
 
                     ovCurrentZone = _G.OptionsWidgets_CreateToggleSwitch(cmfContainer, L["FOCUS_CURRENT_ZONE_OVERRIDES_BASE_COLOURS"], L["FOCUS_CURRENT_ZONE_SECTION_COLOURS"], function() return getOverride("useCurrentZoneOverride") end, function(v)
                         setOverride("useCurrentZoneOverride", v)
@@ -1072,7 +1204,9 @@ function addon.DashboardAccordionBuild_Init(f, p)
                     end)
                     ovCurrentZone:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", CARD_PAD, yOff)
                     ovCurrentZone:SetPoint("RIGHT", cmfContainer, "RIGHT", -CARD_PAD, 0)
-                    yOff = yOff - 40
+                    -- Rows size themselves (taller with a description); restack when one changes.
+                    ovCurrentZone.onHeightChanged = function() LayoutAll() end
+                    yOff = yOff - ovCurrentZone:GetHeight()
 
                     ovCurrentQuest = _G.OptionsWidgets_CreateToggleSwitch(cmfContainer, L["FOCUS_CURRENT_QUEST_OVERRIDES_BASE_COLOURS"], L["FOCUS_CURRENT_QUEST_SECTION_COLOURS"], function() return getOverride("useCurrentQuestOverride") end, function(v)
                         setOverride("useCurrentQuestOverride", v)
@@ -1081,7 +1215,9 @@ function addon.DashboardAccordionBuild_Init(f, p)
                     end)
                     ovCurrentQuest:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", CARD_PAD, yOff)
                     ovCurrentQuest:SetPoint("RIGHT", cmfContainer, "RIGHT", -CARD_PAD, 0)
-                    yOff = yOff - 40
+                    -- Rows size themselves (taller with a description); restack when one changes.
+                    ovCurrentQuest.onHeightChanged = function() LayoutAll() end
+                    yOff = yOff - ovCurrentQuest:GetHeight()
 
                     -- Override color cards in a single-row grid
                     overrideGrid = CreateFrame("Frame", nil, cmfContainer)
@@ -1122,7 +1258,9 @@ function addon.DashboardAccordionBuild_Init(f, p)
                     end)
                     ovCompletedObj:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", CARD_PAD, yOff)
                     ovCompletedObj:SetPoint("RIGHT", cmfContainer, "RIGHT", -CARD_PAD, 0)
-                    yOff = yOff - 40
+                    -- Rows size themselves (taller with a description); restack when one changes.
+                    ovCompletedObj.onHeightChanged = function() LayoutAll() end
+                    yOff = yOff - ovCompletedObj:GetHeight()
 
                     local otherDefs = {
                         { dbKey = "highlightColor", label = L["FOCUS_HIGHLIGHT"], def = (addon.HIGHLIGHT_COLOR_DEFAULT or { 0.4, 0.7, 1 }) },
@@ -1168,14 +1306,28 @@ function addon.DashboardAccordionBuild_Init(f, p)
                     local isHeader = opt.type == "header" and opt._subheading
                     local isNote = opt.type == "header" and not opt._subheading
 
-                    -- Dependent rows sit indented under their parent with a thin accent line.
+                    -- An entry that changes height (a wrapped label, the Presence preview) restacks its card.
+                    if widget.SetHeight and not widget.onHeightChanged then
+                        local cardRef = currentCard
+                        widget.onHeightChanged = function() OnRowHeightChanged(cardRef) end
+                    end
+
+                    -- Dependent rows sit indented under their parent with a thin accent line at
+                    -- low alpha, just inside the parent row's left edge, beside the row's text.
                     if opt.indent and widget.CreateTexture and not widget._indentBar then
+                        local WDef = addon.OptionsWidgetsDef
+                        local barX = -(WDef.RowIndent - WDef.RowIndentBarX)
+                        local barInsetY = widget._rowPadded and (WDef.RowPadY - WDef.RowDescGap) or 0
                         local bar = widget:CreateTexture(nil, "ARTWORK")
-                        bar:SetWidth(2)
-                        bar:SetPoint("TOPLEFT", widget, "TOPLEFT", -12, -2)
-                        bar:SetPoint("BOTTOMLEFT", widget, "BOTTOMLEFT", -12, 2)
-                        local ar, ag, ab = accordionCardParams.GetAccentColor()
-                        bar:SetColorTexture(ar, ag, ab, 0.55)
+                        bar:SetWidth(WDef.RowIndentBarW)
+                        bar:SetPoint("TOPLEFT", widget, "TOPLEFT", barX, -barInsetY)
+                        bar:SetPoint("BOTTOMLEFT", widget, "BOTTOMLEFT", barX, barInsetY)
+                        -- The accent follows the class theme (Def.AccentColor); ApplyDashboardClassColor
+                        -- recolours the lines already built through dashAccentRefs.indentBars.
+                        local ac = WDef.AccentColor
+                        bar:SetColorTexture(ac[1], ac[2], ac[3], WDef.RowIndentBarAlpha)
+                        local refs = accordionCardParams.dashAccentRefs
+                        if refs and refs.indentBars then tinsert(refs.indentBars, bar) end
                         widget._indentBar = bar
                     end
 
@@ -1251,6 +1403,10 @@ function addon.DashboardAccordionBuild_Init(f, p)
         f._refreshDashboardDetailOptionFonts = function()
             for _, w in pairs(detailOptionFrames) do
                 if w and w.Refresh then w:Refresh() end
+            end
+            -- Card titles and descriptions change width with the dashboard font; refit them.
+            for _, card in ipairs(currentDetailCards) do
+                if card.FitHeader then card.FitHeader() end
             end
         end
     end

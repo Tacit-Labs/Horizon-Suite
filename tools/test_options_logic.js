@@ -917,15 +917,145 @@ run(`
   end
   local L = H.FontRowLayout
   local wide = L(970, { family = true, size = true, outline = true })
-  check("wide row is one line", wide.wrapped == false and wide.height == 34, tostring(wide.wrapped) .. " " .. wide.height)
+  check("wide row is one line", wide.wrapped == false and wide.lines == 1, tostring(wide.wrapped) .. " " .. tostring(wide.lines))
   check("one line at exactly 640", L(640, { family = true, size = true }).wrapped == false, "wrapped")
   local narrow = L(600, { family = true, size = true, outline = true })
-  check("narrow row wraps to two lines", narrow.wrapped == true and narrow.height == 64, tostring(narrow.wrapped) .. " " .. narrow.height)
+  check("narrow row wraps to two lines", narrow.wrapped == true and narrow.lines == 2, tostring(narrow.wrapped) .. " " .. tostring(narrow.lines))
   check("font is never narrower than 140", L(640, { family = true }).familyW >= 140 and L(300, { family = true }).familyW >= 140, L(300, { family = true }).familyW)
   check("font flexes wider on a wide row", wide.familyW > L(640, { family = true, size = true, outline = true }).familyW, wide.familyW)
-  check("narrow row with only a font stays one line tall", L(600, { family = true }).height == 34, L(600, { family = true }).height)
+  check("narrow row with only a font stays one line", L(600, { family = true }).lines == 1, tostring(L(600, { family = true }).lines))
   check("unknown width lays out as one line", L(0, { family = true, size = true }).wrapped == false, "wrapped")
 `, 'font-row-widget-logic');
+
+// --- Card row spacing: gaps and hairlines from the visible order ----------------------
+run(`
+  local H = HorizonSuite
+  check("row spacing helper exists", type(H.CardRowSpacing) == "function", type(H.CardRowSpacing))
+  if type(H.CardRowSpacing) ~= "function" then return end
+  local M = { subheadingTop = 12, subheadingBottom = 2, noteTop = 6, blockPad = 8 }
+  local function picture(kinds)
+    local out = {}
+    for i, e in ipairs(H.CardRowSpacing(kinds, M)) do
+      out[i] = (e.divider and "D" or "-") .. e.top .. "/" .. e.bottom
+    end
+    return table.concat(out, " ")
+  end
+  local p = picture({ "row", "row", "row" })
+  check("no hairline above a card's first row, one above each row after", p == "-0/0 D0/0 D0/0", p)
+  p = picture({ "row", "subheading", "row", "row" })
+  check("no hairline above the first row of a subheading group", p == "-0/0 -12/2 -0/0 D0/0", p)
+  p = picture({ "subheading", "row" })
+  check("a subheading opening the card has no hairline and neither does its row", p == "-12/2 -0/0", p)
+  p = picture({ "row", "block", "row" })
+  check("custom widgets are padded and separated like rows", p == "-0/0 D8/8 D0/0", p)
+  p = picture({ "row", "spacer", "row" })
+  check("a zero-height entry is skipped for hairlines", p == "-0/0 -0/0 D0/0", p)
+  p = picture({ "note", "row", "row" })
+  check("a note starts a group like a subheading", p == "-6/0 -0/0 D0/0", p)
+  p = picture({ "spacer", "row" })
+  check("a spacer before the first row leaves it without a hairline", p == "-0/0 -0/0", p)
+  check("an empty card has no entries", #H.CardRowSpacing({}, M) == 0, #H.CardRowSpacing({}, M))
+`, 'card-row-spacing');
+
+// --- Settings row height from measured text ---------------------------------------------
+run(`
+  local RH = HorizonSuite.SettingsRowHeight
+  check("row height helper exists", type(RH) == "function", type(RH))
+  if type(RH) ~= "function" then return end
+  -- Default sizes: label 13 (about 15px a line), help 11 (about 13px a line).
+  local M = { minH = 40, padY = 11, descGap = 2, labelMaxH = 2 * 13 * 1.5, descMaxH = 2 * 11 * 1.5 }
+  local h, block = RH(15, 0, M)
+  check("one label line and no description is 40", h == 40 and block == 15, h .. "/" .. block)
+  h = RH(15, 13, M)
+  check("a one-line description makes about 52", h == 52, h)
+  h = RH(15, 26, M)
+  check("a two-line description makes about 66", h == 65 or h == 66, h)
+  h = RH(30, 0, M)
+  check("a wrapped label grows the row", h == 52, h)
+  h = RH(15, 60, M)
+  check("a description over two lines is capped", h == math.ceil(15 + 2 + 33 + 22), h)
+  h = RH(60, 0, M)
+  check("a label over two lines is capped", h == math.ceil(39 + 22), h)
+  h, block = RH(nil, nil, M)
+  check("no text still gives the shortest row", h == 40 and block == 0, h .. "/" .. block)
+  local _, b2 = RH(15, 13, M)
+  check("the block includes the gap", b2 == 30, b2)
+`, 'settings-row-height');
+
+// --- Segmented buttons: which dropdowns qualify, and whether the segments fit --------------
+run(`
+  local H = HorizonSuite
+  local E, F = H.SegmentedEligible, H.SegmentedFits
+  check("SegmentedEligible exists", type(E) == "function", type(E))
+  check("SegmentedFits exists", type(F) == "function", type(F))
+  if type(E) ~= "function" or type(F) ~= "function" then return end
+  local function opts(n)
+    local t = {}
+    for i = 1, n do t[i] = { "Choice " .. i, i } end
+    return t
+  end
+  check("two static entries qualify", E({ type = "dropdown", options = opts(2) }) == true)
+  check("three static entries qualify", E({ type = "dropdown", options = opts(3) }) == true)
+  check("four static entries qualify", E({ type = "dropdown", options = opts(4) }) == true)
+  check("one entry does not", E({ type = "dropdown", options = opts(1) }) == false)
+  check("five entries do not", E({ type = "dropdown", options = opts(5) }) == false)
+  check("no options do not", E({ type = "dropdown" }) == false)
+  check("options as a function do not", E({ type = "dropdown", options = function() return opts(3) end }) == false)
+  check("a searchable dropdown does not", E({ type = "dropdown", options = opts(3), searchable = true }) == false)
+  check("a font preview does not", E({ type = "dropdown", options = opts(3), fontPreviewInList = true }) == false)
+  check("segmented = false opts out", E({ type = "dropdown", options = opts(3), segmented = false }) == false)
+  check("segmented = true is still eligible", E({ type = "dropdown", options = opts(3), segmented = true }) == true)
+  check("a map of three names qualifies", E({ type = "dropdown", options = { A = 1, B = 2, C = 3 } }) == true)
+  check("a greyed-out entry does not", E({ type = "dropdown", options = { { "A", 1 }, { "B", 2, true } } }) == false)
+  check("another row type does not", E({ type = "slider", options = opts(3) }) == false)
+  check("a font-row part (no type) qualifies", E({ options = opts(3) }) == true)
+  check("a toggle outline part does not", E({ kind = "toggle", options = opts(3) }) == false)
+  check("a non-table does not", E(nil) == false and E("x") == false)
+  check("the shared outline list (six entries) stays a dropdown", E({ options = H.OUTLINE_OPTIONS }) == false)
+
+  local P = { segPadX = 11, trackPad = 2, gap = 2 }
+  -- 2*2 track + (30+22) + (40+22) + (20+22) + 2 gaps of 2 = 4 + 52 + 62 + 42 + 4 = 164
+  local fits, w = F({ 30, 40, 20 }, 164, P)
+  check("segments that exactly fit fit", fits == true and w == 164, tostring(fits) .. "/" .. tostring(w))
+  fits, w = F({ 30, 40, 20 }, 163.5, P)
+  check("half a pixel short does not fit", fits == false and w == 164, tostring(fits) .. "/" .. tostring(w))
+  fits, w = F({ 30.2, 39.6 }, 200, P)
+  check("label widths round up", w == 4 + 31 + 22 + 40 + 22 + 2, w)
+  fits = F({}, 200, P)
+  check("no labels never fit", fits == false)
+  fits = F({ 30, 40 }, 0, P)
+  check("no space never fits", fits == false)
+  fits = F({ 30, 40 }, nil, P)
+  check("unknown space never fits", fits == false)
+  fits, w = F({ 10, 10 }, 100, 5)
+  check("a number is the per-segment padding", w == 10 + 10 + 20 + 0 + 0, w)
+  fits, w = F({ 10, 10 }, 100, nil)
+  check("no padding table pads nothing", w == 20, w)
+`, 'segmented');
+
+// --- Widget type scale: titles and help follow the label size -------------------------
+run(read('options/OptionsWidgets.lua'), 'options/OptionsWidgets.lua');
+run(`
+  local H = HorizonSuite
+  local TS = H.OptionsWidgets_TypeScaleFor
+  check("type scale helper exists", type(TS) == "function", type(TS))
+  if type(TS) ~= "function" then return end
+  local t, h = TS(13)
+  check("label 13 gives title 15 and help 11", t == 15 and h == 11, tostring(t) .. "/" .. tostring(h))
+  t, h = TS(9)
+  check("help never drops below 8", t == 11 and h == 8, tostring(t) .. "/" .. tostring(h))
+  t, h = TS(nil)
+  check("no label size falls back to 13", t == 15 and h == 11, tostring(t) .. "/" .. tostring(h))
+  local D = H.OptionsWidgetsDef
+  check("Def starts on the derived scale", D.TitleSize == 15 and D.HelpSize == 11, tostring(D.TitleSize) .. "/" .. tostring(D.HelpSize))
+  OptionsWidgets_SetDef({ LabelSize = 16 })
+  check("a new label size re-derives both", D.TitleSize == 18 and D.HelpSize == 14, tostring(D.TitleSize) .. "/" .. tostring(D.HelpSize))
+  OptionsWidgets_SetDef({ LabelSize = 12, HelpSize = 20 })
+  check("a size set in the same call wins", D.TitleSize == 14 and D.HelpSize == 20, tostring(D.TitleSize) .. "/" .. tostring(D.HelpSize))
+  OptionsWidgets_SetDef({ FontPath = "x" })
+  check("a call without a label size leaves the scale alone", D.TitleSize == 14 and D.HelpSize == 20, tostring(D.TitleSize) .. "/" .. tostring(D.HelpSize))
+  OptionsWidgets_SetDef({ LabelSize = 13 })
+`, 'widget-type-scale');
 
 // --- Summary -----------------------------------------------------------------------
 run(`

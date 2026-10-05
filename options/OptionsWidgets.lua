@@ -23,7 +23,7 @@ local Def = {
     FontPath = (addon.GetDefaultFontPath and addon.GetDefaultFontPath()) or "Fonts\\FRIZQT__.TTF",
     HeaderSize = addon.HEADER_SIZE or 16,
     TextColorNormal = { 1, 1, 1 },
-    TextColorHighlight = { 0.72, 0.8, 0.95, 1 },
+    TextColorHighlight = { 0.92, 0.93, 0.96, 1 },   -- neutral hover text; the accent is kept for on/selected states
     TextColorLabel = { 0.84, 0.84, 0.88 },
     TextColorSection = { 0.58, 0.64, 0.74 },
     TextColorTitleBar = { 0.9, 0.92, 0.96, 1 },
@@ -39,17 +39,127 @@ local Def = {
     ThumbColor = { 1, 1, 1, 0.98 },
     WidgetFontFlags = "OUTLINE",
     WidgetTextShadow = false,
+
+    -- Modern dashboard style (Docs/Engineering/2026-10-05-dashboard-modern-style-design.md).
+    -- Colours follow the approved mockup's CSS variables.
+    TextColorMuted = { 0.54, 0.565, 0.627 },        -- descriptions and help (#8a90a0)
+    TextColorFaint = { 0.365, 0.384, 0.447 },       -- the card chevron (#5d6272)
+    CardBg = { 0.09, 0.09, 0.114, 0.96 },           -- card panel (#17171d)
+    CardBgHover = { 0.11, 0.11, 0.137, 0.96 },      -- closed card header under the cursor (#1c1c23)
+    CardRadius = 12,
+    CardGap = 14,                                   -- space between cards
+    CardHeaderPadY = 14,                            -- space above and below the card title
+    CardContentBottom = 6,                          -- space below a card's last row (rows pad themselves)
+    CardDescGap = 12,                               -- title to description
+    RowIndent = 20,                                 -- extra left inset of a dependent row
+    RowDivider = { 0.59, 0.63, 0.75, 0.10 },        -- hairline between rows
+    RowHover = { 1, 1, 1, 0.025 },
+    SegTrackBg = { 0.063, 0.063, 0.082, 0.96 },     -- segmented track (#101015, as InputBg)
+    SegSelectedBg = { 0.11, 0.11, 0.137, 1 },       -- raised selected segment (#1c1c23)
+    SegSelectedRing = { 0.59, 0.63, 0.75, 0.18 },
+    SegTextSelected = { 0.914, 0.918, 0.937 },      -- the selected segment's label (#e9eaef)
+    SegTrackPad = 2,                                -- track edge to the segments
+    SegGap = 2,                                     -- between segments
+    SegPadX = 11,                                   -- label to segment edge, each side
+    SegRadius = 6,                                  -- a segment's corners (the track uses ControlRadius)
+    SegFitShare = 0.5,                              -- segments must fit in this share of the row's width
+    SegDisabledAlpha = 0.45,
+    SegSlideDuration = 0.15,                        -- seconds for the selection to slide on a click
+    FocusRing = { 0.59, 0.63, 0.75, 0.35 },         -- neutral ring on a focused input (was the accent)
+    SidebarSelectedBg = { 0.48, 0.58, 0.82, 0.16 }, -- accent at 16%; the class theme swaps the rgb
+    SwitchWidth = 36,
+    SwitchHeight = 20,
+    SwitchInset = 2,                                -- track edge to thumb
+
+    -- Card header geometry (DashboardAccordionCard.lua).
+    TitleLineFactor = 1.35,                         -- title line height as a multiple of TitleSize
+    CardHeaderSwitchGap = 10,                       -- header switch to chevron
+    CardChevronSize = 16,
+    CardChevronBarLen = 7,
+    CardChevronBarW = 2,
+    CardDescMinWidth = 40,                          -- narrower than this, the card description hides
+
+    -- Settings rows: grouped, no boxes, a hairline between rows (mockup .row).
+    RowHeight = 40,                                 -- the shortest row (one label line, no description)
+    RowPadY = 11,                                   -- space above and below a row's text
+    RowDescGap = 2,                                 -- label to description
+    RowControlGap = 16,                             -- label column to the controls
+    RowLabelMaxLines = 2,
+    RowDescMaxLines = 2,                            -- then an ellipsis
+    LineHeightFactor = 1.2,                         -- line height estimate (x font size) before text is measured
+    RowLineCapFactor = 1.5,                         -- per-line cap (x font size) on a measured height
+    RowIndentBarX = 2,                              -- dependent-row line, from the parent row's left
+    RowIndentBarW = 2,
+    RowIndentBarAlpha = 0.3,
+    SubheadingTopGap = 16,                          -- mockup .sub-h padding
+    SubheadingBottomGap = 6,
+    NoteTopGap = 6,
+    BlockPadY = 8,                                  -- above and below a custom widget (lists, grids)
+
+    -- Flat controls: InputBg with a radius and no border; a ring only on keyboard focus.
+    ControlRadius = 8,
+    ControlHeight = 26,
+    InputBgHover = { 0.1, 0.1, 0.13, 0.96 },
+    SliderTrackH = 4,
+    SliderTrackMin = 120,
+    SliderTrackMax = 180,
+    SliderThumbSize = 14,
+    SliderThumbSizeActive = 16,
+    SliderValueW = 44,
+    SliderValueH = 20,
+    SliderValueGap = 10,
+    SwatchSize = 22,
+    SwatchRadius = 6,
+    SwatchRing = { 0.59, 0.63, 0.75, 0.18 },        -- mockup --line-strong
 }
 Def.BorderColor = Def.SectionCardBorder
 if addon.StandardFont then
     Def.FontPath = addon.StandardFont
 end
 
+-- The type scale: titles sit two sizes above labels and help two below, so the dashboard
+-- text-size setting (which sets LabelSize) scales all three. A size the caller sets itself wins.
+local TYPE_SCALE_STEP = 2
+local TYPE_SCALE_MIN = 8
+
+--- The title and help sizes for a label size. Pure; exposed for the logic tests.
+--- @param labelSize number|nil  Default 13
+--- @return number titleSize, number helpSize
+local function TypeScaleFor(labelSize)
+    local label = tonumber(labelSize) or 13
+    return label + TYPE_SCALE_STEP, math.max(TYPE_SCALE_MIN, label - TYPE_SCALE_STEP)
+end
+addon.OptionsWidgets_TypeScaleFor = TypeScaleFor
+
+local function DeriveTypeScale(overrides)
+    local title, help = TypeScaleFor(Def.LabelSize)
+    if not (overrides and overrides.TitleSize ~= nil) then Def.TitleSize = title end
+    if not (overrides and overrides.HelpSize ~= nil) then Def.HelpSize = help end
+end
+DeriveTypeScale()
+
 function _G.OptionsWidgets_SetDef(overrides)
     if not overrides then return end
     for k, v in pairs(overrides) do Def[k] = v end
+    if overrides.LabelSize ~= nil then DeriveTypeScale(overrides) end
 end
 addon.OptionsWidgetsDef = Def
+
+-- Default accent when the Axis class theme is off (the original AccentColor/TrackOn rgb).
+-- Single source: GetAccentColor in DashboardFrame reads it through addon.OptionsAccentDefault.
+local ACCENT_DEFAULT = { 0.48, 0.58, 0.82 }
+addon.OptionsAccentDefault = ACCENT_DEFAULT
+
+-- Point the accent tokens (AccentColor, TrackOn, SidebarSelectedBg) at the class colour when the
+-- Axis class theme is on, else at the default. Widgets pick the new colour up the next time they
+-- paint (a switch or slider on its next Refresh, the sidebar on its next selection).
+function addon.ApplyOptionsClassColor()
+    local cc = addon.GetOptionsClassColor and addon.GetOptionsClassColor()
+    local c = cc or ACCENT_DEFAULT
+    Def.AccentColor = { c[1], c[2], c[3], 0.9 }
+    Def.TrackOn = { c[1], c[2], c[3], 0.85 }
+    Def.SidebarSelectedBg = { c[1], c[2], c[3], 0.16 }
+end
 
 -- Class color lookup: returns {r, g, b} for player class, nil if unavailable.
 local function GetClassColorRaw()
@@ -183,22 +293,76 @@ local function JoinTooltip(desc, tip)
     return (desc or "") .. (desc and tip and "\n\n" or "") .. (tip or "")
 end
 
--- Row hover-highlight geometry/timing.
-local ROW_HOVER_INSET_X = 18
-local ROW_HOVER_INSET_Y = 5
-local ROW_HOVER_ALPHA   = 0.025
-local ROW_HOVER_FADE    = 0.15
--- Vertical spacing between a row's label and its (hidden) description, and the bottom pad.
-local ROW_LABEL_DESC_GAP  = 2
-local ROW_DESC_BOTTOM_PAD = 4
+local ROW_HOVER_FADE = 0.15
 
+-- Paint a frame as a rounded fill when Echo.Round is available (a manual 9-slice over bundled
+-- textures that runs on Retail and Forever), else as a flat square fill. With withRing, the
+-- frame also gets a hairline ring, hidden until paintRing gives it an alpha above 0.
+-- @param frame Frame  One fill per frame (Echo.Round caches its pieces on the frame)
+-- @param radius number
+-- @param layer string|nil  Default "BACKGROUND"
+-- @param withRing boolean|nil
+-- @return function paint(r, g, b, a), function paintRing(r, g, b, a)
+local function PaintRounded(frame, radius, layer, withRing)
+    layer = layer or "BACKGROUND"
+    local Round = addon.Echo and addon.Echo.Round
+    if Round and Round.Apply and Round.SetColor then
+        Round.Apply(frame, { radius = radius, layer = layer, border = withRing and true or nil })
+        local function paint(r, g, b, a) Round.SetColor(frame, r, g, b, a) end
+        local function paintRing(r, g, b, a)
+            if withRing and Round.SetBorderColor then Round.SetBorderColor(frame, r, g, b, a) end
+        end
+        paintRing(0, 0, 0, 0)
+        return paint, paintRing
+    end
+    local tex = frame:CreateTexture(nil, layer)
+    tex:SetAllPoints(frame)
+    tex:SetColorTexture(1, 1, 1, 1)
+    local edges = {}
+    if withRing and addon.CreateBorder then
+        edges = { addon.CreateBorder(frame, { 0, 0, 0, 0 }) }
+    end
+    local function paint(r, g, b, a) tex:SetVertexColor(r, g, b, a) end
+    local function paintRing(r, g, b, a)
+        for _, e in ipairs(edges) do
+            if e and e.SetColorTexture then e:SetColorTexture(r, g, b, a or 1) end
+        end
+    end
+    return paint, paintRing
+end
+addon.OptionsWidgets_PaintRounded = PaintRounded
+
+-- A round dot (Echo.Round.Dot) or, without it, a square colour texture. Tint with SetVertexColor.
+local function MakeDot(parent, size, layer)
+    local Round = addon.Echo and addon.Echo.Round
+    local tex
+    if Round and Round.Dot then
+        tex = Round.Dot(parent, size, layer)
+    else
+        tex = parent:CreateTexture(nil, layer or "OVERLAY")
+        tex:SetColorTexture(1, 1, 1, 1)
+        tex:SetSize(size, size)
+    end
+    return tex
+end
+addon.OptionsWidgets_MakeDot = MakeDot
+
+-- Paint a token colour through a paint function, with an optional alpha multiplier.
+local function PaintToken(paint, c, alphaMult)
+    paint(c[1], c[2], c[3], (c[4] or 1) * (alphaMult or 1))
+end
+
+-- A faint highlight across the row while the cursor is over it. The texture is kept on
+-- row._rowHover; DashboardAccordionBuild stretches it to the card's edges.
 local function ApplyRowHoverHighlight(row)
     if not row then return end
     local hiBg = row:CreateTexture(nil, "BACKGROUND", nil, -7) -- Behind track/thumb backgrounds
-    hiBg:SetPoint("TOPLEFT", row, "TOPLEFT", -ROW_HOVER_INSET_X, ROW_HOVER_INSET_Y)
-    hiBg:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", ROW_HOVER_INSET_X, -ROW_HOVER_INSET_Y)
-    hiBg:SetColorTexture(1, 1, 1, ROW_HOVER_ALPHA)
+    hiBg:SetPoint("TOPLEFT", row, "TOPLEFT", -Def.CardPadding, 0)
+    hiBg:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", Def.CardPadding, 0)
+    local c = Def.RowHover
+    hiBg:SetColorTexture(c[1], c[2], c[3], c[4] or 1)
     hiBg:Hide()
+    row._rowHover = hiBg
 
     row:EnableMouse(true)
     row:HookScript("OnEnter", function()
@@ -210,68 +374,158 @@ local function ApplyRowHoverHighlight(row)
     end)
 end
 
--- Rounded pill toggle: 48x22 track with inset for softer look, 18px thumb. On = accent fill, Off = dark.
-local TOGGLE_TRACK_W, TOGGLE_TRACK_H = 48, 22
-local TOGGLE_INSET = 2
-local TOGGLE_THUMB_SIZE = 18
+-- Metrics for addon.SettingsRowHeight from the live Def sizes.
+local function RowHeightMetrics()
+    return {
+        minH = Def.RowHeight,
+        padY = Def.RowPadY,
+        descGap = Def.RowDescGap,
+        labelMaxH = Def.RowLabelMaxLines * Def.LabelSize * Def.RowLineCapFactor,
+        descMaxH = Def.RowDescMaxLines * Def.HelpSize * Def.RowLineCapFactor,
+    }
+end
 
-function _G.OptionsWidgets_CreateToggleSwitch(parent, labelText, description, get, set, disabledFn, tooltip, shiftClickFn)
-    local row = CreateFrame("Frame", nil, parent)
-    row:SetHeight(32)
-    local searchText = (labelText or "") .. " " .. (description or "")
-    row.searchText = searchText:lower()
+-- A row's height before its text is measured: one label line, and one description line when
+-- there is a description.
+local function EstimatedRowHeight(hasDesc)
+    local labelH = Def.LabelSize * Def.LineHeightFactor
+    local descH = hasDesc and (Def.HelpSize * Def.LineHeightFactor) or 0
+    if addon.SettingsRowHeight then return (addon.SettingsRowHeight(labelH, descH, RowHeightMetrics())) end
+    return Def.RowHeight
+end
 
-    local trackW, trackH = TOGGLE_TRACK_W, TOGGLE_TRACK_H
-    local thumbSize = TOGGLE_THUMB_SIZE
-    local track = CreateFrame("Frame", nil, row)
-    track:SetSize(trackW, trackH)
-    track:SetPoint("RIGHT", row, "RIGHT", 0, 0)
-    local trackBg = track:CreateTexture(nil, "BACKGROUND")
-    trackBg:SetPoint("TOPLEFT", track, "TOPLEFT", TOGGLE_INSET, -TOGGLE_INSET)
-    trackBg:SetPoint("BOTTOMRIGHT", track, "BOTTOMRIGHT", -TOGGLE_INSET, TOGGLE_INSET)
-    trackBg:SetColorTexture(Def.TrackOff[1], Def.TrackOff[2], Def.TrackOff[3], Def.TrackOff[4])
-    local trackFill = track:CreateTexture(nil, "ARTWORK")
-    trackFill:SetPoint("TOPLEFT", track, "TOPLEFT", TOGGLE_INSET, -TOGGLE_INSET)
-    trackFill:SetPoint("BOTTOMLEFT", track, "BOTTOMLEFT", TOGGLE_INSET, TOGGLE_INSET)
-    trackFill:SetWidth(0)
-    trackFill:SetColorTexture(Def.TrackOn[1], Def.TrackOn[2], Def.TrackOn[3], Def.TrackOn[4])
-    local thumb = track:CreateTexture(nil, "OVERLAY")
-    thumb:SetSize(thumbSize, thumbSize)
-    thumb:SetColorTexture(Def.ThumbColor[1], Def.ThumbColor[2], Def.ThumbColor[3], Def.ThumbColor[4])
-    thumb:SetPoint("CENTER", track, "LEFT", TOGGLE_INSET + thumbSize/2, 0)
+-- A description FontString under a row's label: HelpSize, muted, at most Def.RowDescMaxLines
+-- lines ending in an ellipsis.
+local function CreateRowDesc(row, description)
+    local desc = row:CreateFontString(nil, "OVERLAY")
+    SetSafeFont(desc, Def.FontPath, Def.HelpSize, nil)
+    desc:SetJustifyH("LEFT")
+    desc:SetJustifyV("TOP")
+    SetTextColor(desc, Def.TextColorMuted)
+    desc:SetWordWrap(true)
+    if desc.SetNonSpaceWrap then desc:SetNonSpaceWrap(false) end
+    if desc.SetMaxLines then desc:SetMaxLines(Def.RowDescMaxLines) end
+    local hasDesc = type(description) == "string" and description ~= ""
+    desc:SetText(hasDesc and description or "")
+    desc:SetShown(hasDesc)
+    return desc, hasDesc
+end
 
+-- The label and description on the left of a settings row. The label wraps to at most
+-- Def.RowLabelMaxLines lines and the description (the row's desc) to Def.RowDescMaxLines, then
+-- ends in an ellipsis. The row's height comes from addon.SettingsRowHeight: Def.RowHeight
+-- without a description, about 52px with a one-line one and 66px with two; the text block is
+-- centred vertically.
+-- Marks the row as padding itself (row._rowPadded), so the card adds no gap around it.
+-- Re-fits when the row's width changes; call text.Fit(true) after a font or label change.
+-- When the height changes, row.onHeightChanged() runs so the card can restack.
+-- @param row Frame
+-- @param labelText string|nil
+-- @param description string|nil
+-- @param rightInsetFn function(width) -> number  Space the controls take at the row's right,
+--   gap to the label included
+-- @return table  { label, desc, hasDesc, Fit }
+local function CreateRowText(row, labelText, description, rightInsetFn)
     local label = row:CreateFontString(nil, "OVERLAY")
     SetSafeFont(label, Def.FontPath, Def.LabelSize, nil)
     label:SetJustifyH("LEFT")
-    label:SetJustifyV("MIDDLE")
+    label:SetJustifyV("TOP")
     SetTextColor(label, Def.TextColorLabel)
     label:SetText(labelText or "")
-    label:SetPoint("TOPLEFT", row, "TOPLEFT", 0, 0)
-    label:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", -(trackW + 12), 0)
     label:SetWordWrap(true)
+    if label.SetMaxLines then label:SetMaxLines(Def.RowLabelMaxLines) end
 
-    local desc = row:CreateFontString(nil, "OVERLAY")
-    SetSafeFont(desc, Def.FontPath, Def.SectionSize, nil)
-    desc:SetJustifyH("LEFT")
-    SetTextColor(desc, Def.TextColorSection)
-    desc:SetText("")
-    desc:Hide()
-    desc:SetPoint("TOPLEFT", label, "BOTTOMLEFT", 0, -ROW_LABEL_DESC_GAP)
-    desc:SetPoint("RIGHT", track, "LEFT", -12, 0)
-    desc:SetWordWrap(true)
+    local desc, hasDesc = CreateRowDesc(row, description)
+    desc:SetPoint("TOPLEFT", label, "BOTTOMLEFT", 0, -Def.RowDescGap)
 
-    -- Measure actual description height and adjust row to prevent overlap (desc hidden; in tooltip)
-    row._desc = desc
-    row._baseHeight = 32
-    local function updateRowHeight()
-        local descH = desc:GetStringHeight() or 0
-        local labelH = label:GetStringHeight() or 0
-        local neededH = labelH + ROW_LABEL_DESC_GAP + descH + ROW_DESC_BOTTOM_PAD
-        local h = math.max(row._baseHeight, neededH)
-        row:SetHeight(h)
+    -- Until the row has a width: one line, centred (or the pair centred around the middle).
+    if hasDesc then
+        label:SetPoint("BOTTOMLEFT", row, "LEFT", 0, Def.RowDescGap / 2)
+    else
+        label:SetPoint("LEFT", row, "LEFT", 0, 0)
     end
-    -- Defer measurement to after layout
-    C_Timer.After(0, updateRowHeight)
+
+    row:SetHeight(EstimatedRowHeight(hasDesc))
+    row._rowPadded = true
+    row._desc = desc
+
+    local lastW = -1
+    local function Fit(force)
+        local w = row:GetWidth() or 0
+        if w <= 0 then return end
+        if not force and math.abs(w - lastW) < 0.5 then return end
+        lastW = w
+        -- An explicit width (rather than a right anchor) makes the wrapped height readable now.
+        local textW = math.max(1, w - (rightInsetFn and rightInsetFn(w) or 0))
+        label:SetWidth(textW)
+        desc:SetWidth(textW)
+        local h, blockH = addon.SettingsRowHeight(label:GetStringHeight(),
+            hasDesc and desc:GetStringHeight() or 0, RowHeightMetrics())
+        label:ClearAllPoints()
+        label:SetPoint("TOPLEFT", row, "LEFT", 0, blockH / 2)
+        -- SetHeight fires OnSizeChanged again with the same width; lastW stops that here.
+        if math.abs((row:GetHeight() or 0) - h) > 0.5 then
+            row:SetHeight(h)
+            if row.onHeightChanged then row.onHeightChanged() end
+        end
+    end
+    row:HookScript("OnSizeChanged", function() Fit(false) end)
+
+    return { label = label, desc = desc, hasDesc = hasDesc, Fit = Fit }
+end
+
+-- A switch pill: a rounded TrackOff track, a rounded TrackOn fill that grows from the left as
+-- it turns on, and a round white thumb. pill:SetPosition(t) paints it at t (0 off, 1 on) and
+-- picks up the live Def colours each time.
+-- @param parent Frame
+-- @return Frame pill  Sized Def.SwitchWidth x Def.SwitchHeight; the caller anchors it
+local function CreatePill(parent)
+    local w, h, inset = Def.SwitchWidth, Def.SwitchHeight, Def.SwitchInset
+    local thumbSize = h - 2 * inset
+    local travel = w - 2 * inset - thumbSize
+
+    local pill = CreateFrame("Frame", nil, parent)
+    pill:SetSize(w, h)
+    local paintTrack = PaintRounded(pill, h / 2, "BACKGROUND")
+
+    local fill = CreateFrame("Frame", nil, pill)
+    fill:SetPoint("TOPLEFT", pill, "TOPLEFT", 0, 0)
+    fill:SetPoint("BOTTOMLEFT", pill, "BOTTOMLEFT", 0, 0)
+    fill:SetWidth(h)
+    fill:SetFrameLevel(pill:GetFrameLevel() + 1)
+    local paintFill = PaintRounded(fill, h / 2, "BACKGROUND")
+
+    local thumbHost = CreateFrame("Frame", nil, pill)
+    thumbHost:SetAllPoints(pill)
+    thumbHost:SetFrameLevel(pill:GetFrameLevel() + 2)
+    local thumb = MakeDot(thumbHost, thumbSize, "OVERLAY")
+
+    function pill:SetPosition(t)
+        PaintToken(paintTrack, Def.TrackOff)
+        PaintToken(paintFill, Def.TrackOn)
+        local tc = Def.ThumbColor
+        thumb:SetVertexColor(tc[1], tc[2], tc[3], tc[4] or 1)
+        fill:SetWidth(h + t * (w - h))
+        fill:SetAlpha(t)
+        thumb:ClearAllPoints()
+        thumb:SetPoint("CENTER", pill, "LEFT", inset + thumbSize / 2 + t * travel, 0)
+    end
+    pill:SetPosition(0)
+    return pill
+end
+
+function _G.OptionsWidgets_CreateToggleSwitch(parent, labelText, description, get, set, disabledFn, tooltip, shiftClickFn)
+    local row = CreateFrame("Frame", nil, parent)
+    local searchText = (labelText or "") .. " " .. (description or "")
+    row.searchText = searchText:lower()
+
+    local track = CreatePill(row)
+    track:SetPoint("RIGHT", row, "RIGHT", 0, 0)
+
+    local text = CreateRowText(row, labelText, description, function()
+        return Def.SwitchWidth + Def.RowControlGap
+    end)
+    local label, desc = text.label, text.desc
 
     local btn = CreateFrame("Button", nil, row)
     btn:SetAllPoints(track)
@@ -281,29 +535,18 @@ function _G.OptionsWidgets_CreateToggleSwitch(parent, labelText, description, ge
     row.animFrom = nil
     row.animTo = nil
 
-    local fillW = trackW - 2 * TOGGLE_INSET
-    local thumbTravel = fillW - thumbSize
     local function updateVisuals(t)
-        -- Keep fill colour in sync with Def.TrackOn every paint. ApplyOptionsClassColor() may run
-        -- inside set() (e.g. batch class colours) before the slide animation; skipping Refresh() on
-        -- the clicked row avoids snapping the thumb but must still pick up the new "on" tint here.
-        trackFill:SetColorTexture(Def.TrackOn[1], Def.TrackOn[2], Def.TrackOn[3], Def.TrackOn[4] or 0.85)
-        thumb:ClearAllPoints()
-        thumb:SetPoint("CENTER", track, "LEFT", TOGGLE_INSET + thumbSize/2 + t * thumbTravel, 0)
-        trackFill:SetWidth(t * fillW)
+        -- SetPosition repaints from Def.TrackOn every time, so a colour change made inside
+        -- set() before the slide animation still shows (Refresh is skipped on the clicked row).
+        track:SetPosition(t)
     end
 
     local function applyDisabledVisuals()
         local dis = disabledFn and disabledFn() == true
-        if dis then
-            label:SetAlpha(0.45)
-            desc:SetAlpha(0.45)
-            track:SetAlpha(0.45)
-        else
-            label:SetAlpha(1)
-            desc:SetAlpha(1)
-            track:SetAlpha(1)
-        end
+        local alpha = dis and 0.45 or 1
+        label:SetAlpha(alpha)
+        desc:SetAlpha(alpha)
+        track:SetAlpha(alpha)
     end
 
     local function toggleOnUpdate()
@@ -340,9 +583,9 @@ function _G.OptionsWidgets_CreateToggleSwitch(parent, labelText, description, ge
         row.thumbPos = on and 1 or 0
         row.animStart = nil
         track:SetScript("OnUpdate", nil)
-        trackFill:SetColorTexture(Def.TrackOn[1], Def.TrackOn[2], Def.TrackOn[3], Def.TrackOn[4])
         updateVisuals(row.thumbPos)
         applyDisabledVisuals()
+        text.Fit(true)
     end
 
     row:Refresh()
@@ -362,7 +605,7 @@ function _G.OptionsWidgets_CreateToggleSwitch(parent, labelText, description, ge
     return row
 end
 
--- Create a flat-styled action button with background, border, and hover state.
+-- Create a flat action button: a rounded InputBg fill with no border, lighter under the cursor.
 -- @param parent table Parent frame
 -- @param labelText string Button label
 -- @param onClick function Callback on click
@@ -376,16 +619,8 @@ function _G.OptionsWidgets_CreateButton(parent, labelText, onClick, opts)
     local btn = CreateFrame("Button", nil, parent)
     btn:SetSize(width, height)
 
-    local btnBg = btn:CreateTexture(nil, "BACKGROUND")
-    btnBg:SetPoint("TOPLEFT", btn, "TOPLEFT", 1, -1)
-    btnBg:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", -1, 1)
-    btnBg:SetColorTexture(Def.InputBg[1], Def.InputBg[2], Def.InputBg[3], Def.InputBg[4])
-
-    addon.CreateBorder(btn, Def.InputBorder)
-
-    local hi = btn:CreateTexture(nil, "HIGHLIGHT")
-    hi:SetAllPoints(btn)
-    hi:SetColorTexture(1, 1, 1, 0.06)
+    local paintBg = PaintRounded(btn, Def.ControlRadius, "BACKGROUND")
+    PaintToken(paintBg, Def.InputBg)
 
     local lbl = btn:CreateFontString(nil, "OVERLAY")
     SetSafeFont(lbl, Def.FontPath, Def.LabelSize, nil)
@@ -401,9 +636,11 @@ function _G.OptionsWidgets_CreateButton(parent, labelText, onClick, opts)
         if onClick then onClick() end
     end)
     btn:SetScript("OnEnter", function()
+        PaintToken(paintBg, Def.InputBgHover)
         SetTextColor(lbl, Def.TextColorHighlight)
     end)
     btn:SetScript("OnLeave", function()
+        PaintToken(paintBg, Def.InputBg)
         SetTextColor(lbl, Def.TextColorLabel)
     end)
 
@@ -411,37 +648,17 @@ function _G.OptionsWidgets_CreateButton(parent, labelText, onClick, opts)
     return btn
 end
 
--- Slider: chunky gradient bar + square handle (same height as the bar) + numeric readout
-local SLIDER_TRACK_HEIGHT     = 14   -- chunky bar
-local SLIDER_TRACK_INSET      = 0    -- fill spans the full bar height/width
--- Square handle, same height as the bar; grows slightly in the active (hover/drag) state.
-local SLIDER_THUMB_W          = 14
-local SLIDER_THUMB_H          = 14
-local SLIDER_THUMB_W_ACTIVE   = 16
-local SLIDER_THUMB_H_ACTIVE   = 16
--- Soft additive glow behind the handle.
-local SLIDER_GLOW_SIZE        = 28
-local SLIDER_GLOW_ALPHA_REST  = 0.30
-local SLIDER_GLOW_ALPHA_ON    = 0.80
+-- Slider: a thin rounded track with the accent fill up to a white round thumb, and the value
+-- (an editable box) at the right. The track width follows the row: 36% of it, clamped.
+local SLIDER_TRACK_SHARE = 0.36
 -- Hover/drag "active" ease duration (seconds).
-local SLIDER_ACTIVE_DUR       = 0.12
--- Built-in glow texture (no custom assets).
-local SLIDER_GLOW_TEXTURE     = "Interface\\Cooldown\\star4"
--- Apply the slim fill gradient (dark → accent) derived from the live Def.TrackOn, so a
--- class-colour change retints it through the normal Refresh path. Falls back to a flat
--- fill on clients without SetGradient/CreateColor.
-local function ApplyFillGradient(tex)
-    local c = Def.TrackOn
-    local a = c[4] or 0.85
-    if tex.SetGradient and CreateColor then
-        tex:SetColorTexture(1, 1, 1, 1)
-        tex:SetGradient("HORIZONTAL",
-            CreateColor(c[1] * 0.30, c[2] * 0.30, c[3] * 0.42, a),
-            CreateColor(math.min(1, c[1] * 1.12), math.min(1, c[2] * 1.12), math.min(1, c[3] * 1.12), a))
-    else
-        tex:SetColorTexture(c[1], c[2], c[3], a)
-    end
+local SLIDER_ACTIVE_DUR = 0.12
+
+local function SliderTrackWidth(rowWidth)
+    local w = math.floor((rowWidth or 0) * SLIDER_TRACK_SHARE)
+    return math.max(Def.SliderTrackMin, math.min(Def.SliderTrackMax, w))
 end
+
 function _G.OptionsWidgets_CreateSlider(parent, labelText, description, get, set, minVal, maxVal, disabledFn, step, tooltip)
     -- step: snapping increment (default 1 = integer). Use e.g. 0.1 for one decimal place.
     step = step or 1
@@ -463,70 +680,47 @@ function _G.OptionsWidgets_CreateSlider(parent, labelText, description, get, set
         return tostring((v >= 0) and math.floor(v + 0.5) or -math.floor(-v + 0.5))
     end
     local row = CreateFrame("Frame", nil, parent)
-    row:SetHeight(34)
     local searchText = (labelText or "") .. " " .. (description or "")
     row.searchText = searchText:lower()
 
-    local label = row:CreateFontString(nil, "OVERLAY")
-    SetSafeFont(label, Def.FontPath, Def.LabelSize, nil)
-    label:SetJustifyH("LEFT")
-    label:SetJustifyV("MIDDLE")
-    SetTextColor(label, Def.TextColorLabel)
-    label:SetText(labelText or "")
-    label:SetPoint("TOPLEFT", row, "TOPLEFT", 0, 0)
-    label:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", -60, 0)
-    local desc = row:CreateFontString(nil, "OVERLAY")
-    SetSafeFont(desc, Def.FontPath, Def.SectionSize, nil)
-    desc:SetJustifyH("LEFT")
-    SetTextColor(desc, Def.TextColorSection)
-    desc:SetText("")
-    desc:Hide()
-    desc:SetPoint("TOPLEFT", label, "BOTTOMLEFT", 0, -2)
-    desc:SetPoint("RIGHT", row, "RIGHT", -60, 0)
-    desc:SetWordWrap(true)
+    local thumbW = Def.SliderThumbSize
+    local thumbActiveW = Def.SliderThumbSizeActive
+    local trackH = Def.SliderTrackH
 
-    local trackWidth = 180
+    -- Value box at the right edge, the track just left of it.
+    local editWrap = CreateFrame("Frame", nil, row)
+    editWrap:SetSize(Def.SliderValueW, Def.SliderValueH)
+    editWrap:SetPoint("RIGHT", row, "RIGHT", 0, 0)
+    local paintEditBg, paintEditRing = PaintRounded(editWrap, Def.ControlRadius, "BACKGROUND", true)
+    PaintToken(paintEditBg, Def.InputBg)
+
+    local trackWidth = Def.SliderTrackMax
     local track = CreateFrame("Frame", nil, row)
-    track:SetSize(trackWidth, SLIDER_TRACK_HEIGHT)
-    track:SetPoint("RIGHT", row, "RIGHT", -52, 0)
-    local trackBg = track:CreateTexture(nil, "BACKGROUND")
-    trackBg:SetPoint("TOPLEFT", track, "TOPLEFT", SLIDER_TRACK_INSET, -SLIDER_TRACK_INSET)
-    trackBg:SetPoint("BOTTOMRIGHT", track, "BOTTOMRIGHT", -SLIDER_TRACK_INSET, SLIDER_TRACK_INSET)
-    trackBg:SetColorTexture(Def.TrackOff[1], Def.TrackOff[2], Def.TrackOff[3], Def.TrackOff[4])
-    local trackFill = track:CreateTexture(nil, "ARTWORK")
-    trackFill:SetPoint("TOPLEFT", track, "TOPLEFT", SLIDER_TRACK_INSET, -SLIDER_TRACK_INSET)
-    trackFill:SetPoint("BOTTOMLEFT", track, "BOTTOMLEFT", SLIDER_TRACK_INSET, SLIDER_TRACK_INSET)
-    ApplyFillGradient(trackFill)
+    track:SetSize(trackWidth, trackH)
+    track:SetPoint("RIGHT", editWrap, "LEFT", -Def.SliderValueGap, 0)
+    local paintTrack = PaintRounded(track, trackH / 2, "BACKGROUND")
+    PaintToken(paintTrack, Def.TrackOff)
+    local fillHost = CreateFrame("Frame", nil, track)
+    fillHost:SetPoint("TOPLEFT", track, "TOPLEFT", 0, 0)
+    fillHost:SetPoint("BOTTOMLEFT", track, "BOTTOMLEFT", 0, 0)
+    fillHost:SetWidth(thumbW / 2)
+    local paintFill = PaintRounded(fillHost, trackH / 2, "ARTWORK")
+    PaintToken(paintFill, Def.TrackOn)
 
     local thumb = CreateFrame("Button", nil, track)
-    thumb:SetSize(SLIDER_THUMB_W, SLIDER_THUMB_H)
+    thumb:SetSize(thumbW, thumbW)
     thumb:SetPoint("CENTER", track, "LEFT", 0, 0)
-    -- Square handle, same height as the bar (no mask needed).
-    local thumbTex = thumb:CreateTexture(nil, "ARTWORK")
+    thumb:SetFrameLevel(fillHost:GetFrameLevel() + 2)
+    local thumbTex = MakeDot(thumb, thumbW, "ARTWORK")
+    thumbTex:ClearAllPoints()
     thumbTex:SetAllPoints(thumb)
-    thumbTex:SetColorTexture(Def.ThumbColor[1], Def.ThumbColor[2], Def.ThumbColor[3], Def.ThumbColor[4])
+    local tc0 = Def.ThumbColor
+    thumbTex:SetVertexColor(tc0[1], tc0[2], tc0[3], tc0[4] or 1)
 
-    -- Soft additive halo behind the handle; alpha rises in the active (hover/drag) state.
-    local glow = thumb:CreateTexture(nil, "BACKGROUND")
-    glow:SetTexture(SLIDER_GLOW_TEXTURE)
-    glow:SetBlendMode("ADD")
-    glow:SetSize(SLIDER_GLOW_SIZE, SLIDER_GLOW_SIZE)
-    glow:SetPoint("CENTER", thumb, "CENTER", 0, 0)
-    glow:SetVertexColor(Def.TrackOn[1], Def.TrackOn[2], Def.TrackOn[3])
-    glow:SetAlpha(SLIDER_GLOW_ALPHA_REST)
-
-    local editWrap = CreateFrame("Frame", nil, row)
-    editWrap:SetSize(44, 20)
-    editWrap:SetPoint("LEFT", track, "RIGHT", 8, 0)
-    local editBg = editWrap:CreateTexture(nil, "BACKGROUND")
-    editBg:SetAllPoints(editWrap)
-    editBg:SetColorTexture(Def.InputBg[1], Def.InputBg[2], Def.InputBg[3], Def.InputBg[4])
-    local bt, bb, bl, br = addon.CreateBorder(editWrap, Def.InputBorder)
-    local function setEditBorderColor(c)
-        for _, tex in ipairs({ bt, bb, bl, br }) do
-            if tex then tex:SetColorTexture(c[1], c[2], c[3], c[4] or 1) end
-        end
-    end
+    local text = CreateRowText(row, labelText, description, function(w)
+        return SliderTrackWidth(w) + Def.SliderValueGap + Def.SliderValueW + Def.RowControlGap
+    end)
+    local label, desc = text.label, text.desc
 
     -- Pre-declare so edit scripts and drag handler can reference it before the body is assigned.
     local updateFromValue
@@ -538,6 +732,7 @@ function _G.OptionsWidgets_CreateSlider(parent, labelText, description, get, set
     -- Do NOT use SetNumeric(true) — it blocks negative numbers.
     -- We validate manually in OnEnterPressed / OnEditFocusLost.
     edit:SetAutoFocus(false)
+    if edit.SetJustifyH then edit:SetJustifyH("RIGHT") end
     SetSafeFont(edit, Def.FontPath, Def.LabelSize, nil)
     local tc = Def.TextColorLabel
     edit:SetTextColor(tc[1], tc[2], tc[3], tc[4] or 1)
@@ -547,10 +742,10 @@ function _G.OptionsWidgets_CreateSlider(parent, labelText, description, get, set
     end)
     edit:SetScript("OnEditFocusGained", function()
         if disabledFn and disabledFn() == true then edit:ClearFocus(); return end
-        setEditBorderColor(Def.AccentColor)
+        PaintToken(paintEditRing, Def.FocusRing)
     end)
     edit:SetScript("OnEditFocusLost", function()
-        setEditBorderColor(Def.InputBorder)
+        paintEditRing(0, 0, 0, 0)
         if disabledFn and disabledFn() == true then return end
         local v = tonumber(edit:GetText())
         if v ~= nil then
@@ -584,18 +779,17 @@ function _G.OptionsWidgets_CreateSlider(parent, labelText, description, get, set
         return minVal + n * (maxVal - minVal)
     end
 
-    local fillWidth = trackWidth - 2 * SLIDER_TRACK_INSET
-    local thumbTravel = fillWidth - SLIDER_THUMB_W
+    local fillWidth = trackWidth
+    local thumbTravel = fillWidth - thumbW
     local function recalcSliderMetrics()
-        trackWidth = math.max(track:GetWidth() or 180, 1)
-        fillWidth = math.max(trackWidth - 2 * SLIDER_TRACK_INSET, 1)
-        thumbTravel = math.max(fillWidth - SLIDER_THUMB_W, 0)
+        trackWidth = math.max(track:GetWidth() or Def.SliderTrackMax, 1)
+        fillWidth = trackWidth
+        thumbTravel = math.max(fillWidth - thumbW, 0)
     end
     local function updateResponsiveTrackWidth()
         local rowWidth = row:GetWidth() or 0
         if rowWidth <= 0 then return end
-        local responsiveW = math.floor(rowWidth * 0.36)
-        responsiveW = math.max(120, math.min(180, responsiveW))
+        local responsiveW = SliderTrackWidth(rowWidth)
         if math.abs((track:GetWidth() or 0) - responsiveW) >= 1 then
             track:SetWidth(responsiveW)
             recalcSliderMetrics()
@@ -606,20 +800,18 @@ function _G.OptionsWidgets_CreateSlider(parent, labelText, description, get, set
     updateFromValue = function(v)
         v = math.max(minVal, math.min(maxVal, v))
         local n = valueToNorm(v)
-        local center = SLIDER_TRACK_INSET + SLIDER_THUMB_W/2 + n * thumbTravel
+        local center = thumbW / 2 + n * thumbTravel
         thumb:ClearAllPoints()
         thumb:SetPoint("CENTER", track, "LEFT", center, 0)
-        trackFill:SetWidth(center)   -- fill the bar up to the handle centre
+        fillHost:SetWidth(center)   -- fill the track up to the thumb centre
         edit:SetText(formatValue(v))
     end
 
-    -- Active (hover/drag) feedback: ease the handle larger + glow brighter over SLIDER_ACTIVE_DUR.
+    -- Active (hover/drag) feedback: ease the thumb slightly larger over SLIDER_ACTIVE_DUR.
     local activeCur, activeTarget = 0, 0
     local function applyThumbState(t)
-        local w = SLIDER_THUMB_W + (SLIDER_THUMB_W_ACTIVE - SLIDER_THUMB_W) * t
-        local h = SLIDER_THUMB_H + (SLIDER_THUMB_H_ACTIVE - SLIDER_THUMB_H) * t
-        thumb:SetSize(w, h)
-        glow:SetAlpha(SLIDER_GLOW_ALPHA_REST + (SLIDER_GLOW_ALPHA_ON - SLIDER_GLOW_ALPHA_REST) * t)
+        local w = thumbW + (thumbActiveW - thumbW) * t
+        thumb:SetSize(w, w)
     end
     local function tickThumbAnim(_, elapsed)
         local stepAmt = (SLIDER_ACTIVE_DUR > 0) and (elapsed / SLIDER_ACTIVE_DUR) or 1
@@ -700,14 +892,15 @@ function _G.OptionsWidgets_CreateSlider(parent, labelText, description, get, set
 
     function row:Refresh()
         updateResponsiveTrackWidth()
-        ApplyFillGradient(trackFill)
-        glow:SetVertexColor(Def.TrackOn[1], Def.TrackOn[2], Def.TrackOn[3])
+        PaintToken(paintFill, Def.TrackOn)
         -- Don't reposition the handle from the DB mid-drag; the drag handler owns it.
         if not dragging then updateFromValue(get()) end
         applyDisabledVisuals()
+        text.Fit(true)
     end
 
-    row:SetScript("OnSizeChanged", function()
+    -- HookScript, not SetScript: CreateRowText and the rounded fills hook this script too.
+    row:HookScript("OnSizeChanged", function()
         updateResponsiveTrackWidth()
         if not dragging then updateFromValue(get()) end
     end)
@@ -787,6 +980,194 @@ local function NormalizeDropdownOptions(opts, preserveOrder)
     return out
 end
 
+-- Segmented buttons for a short static choice: an inset SegTrackBg track (radius ControlRadius,
+-- SegTrackPad padding) holding one segment per option, each sized to its label. The selected
+-- segment is a raised SegSelectedBg fill with a SegSelectedRing hairline; the others are muted
+-- text. Each segment's tooltip names its full label. Disabled dims the whole control to
+-- SegDisabledAlpha and ignores clicks and hover.
+-- @param parent Frame
+-- @param opts table  Normalised options ({ name, value } in display order)
+-- @param onPick function(value, name)  Called on a click while enabled
+-- @param isDisabled function() -> boolean
+-- @return Frame  The track, with :SetValue(v), :Paint(), :Fits(available) -> fits, width
+local function CreateSegmentedControl(parent, opts, onPick, isDisabled)
+    local track = CreateFrame("Frame", nil, parent)
+    track:SetHeight(Def.ControlHeight)
+    local paintTrack = PaintRounded(track, Def.ControlRadius, "BACKGROUND")
+    local segs = {}
+    local value
+
+    -- One raised pill marks the selection. It sits under the segments' labels and slides to the
+    -- picked segment on a click; any other value change (Refresh, profile switch) snaps it.
+    local pill = CreateFrame("Frame", nil, track)
+    pill:SetFrameLevel(track:GetFrameLevel() + 1)   -- above the track's fill, below the labels
+    local paintPill, paintPillRing = PaintRounded(pill, Def.SegRadius, "BACKGROUND", true)
+    local slide          -- { fromX, fromW, fromSeg, toSeg, t, e, curX, curW } while sliding
+    local animateNext    -- set by a click, consumed by the next SetValue
+
+    local function SelectedSeg()
+        for _, sg in ipairs(segs) do
+            if sg.value == value then return sg end
+        end
+    end
+
+    local function SegX(sg)
+        return sg._x or 0
+    end
+
+    local function PlacePill(x, w)
+        pill:ClearAllPoints()
+        pill:SetPoint("LEFT", track, "LEFT", x, 0)
+        pill:SetSize(math.max(1, w), Def.ControlHeight - 2 * Def.SegTrackPad)
+    end
+
+    local function Lerp(a, b, t) return a + (b - a) * t end
+    local function LerpColor(c1, c2, t)
+        return { Lerp(c1[1], c2[1], t), Lerp(c1[2], c2[2], t), Lerp(c1[3], c2[3], t) }
+    end
+
+    local function TextColorFor(sg, dis)
+        if sg.value == value then return Def.SegTextSelected end
+        if sg.hovered and not dis then return Def.TextColorLabel end
+        return Def.TextColorMuted
+    end
+
+    function track:Paint()
+        local dis = isDisabled()
+        PaintToken(paintTrack, Def.SegTrackBg)
+        local sel = SelectedSeg()
+        if sel then
+            PaintToken(paintPill, Def.SegSelectedBg)
+            PaintToken(paintPillRing, Def.SegSelectedRing)
+            pill:Show()
+            if not slide then PlacePill(SegX(sel), sel:GetWidth()) end
+        else
+            pill:Hide()
+        end
+        for _, sg in ipairs(segs) do
+            local c = TextColorFor(sg, dis)
+            if slide and (sg == slide.fromSeg or sg == slide.toSeg) then
+                -- Mid-slide, the old label fades down while the new one fades up.
+                local e = slide.e or 0
+                if sg == slide.toSeg then c = LerpColor(Def.TextColorMuted, Def.SegTextSelected, e)
+                else c = LerpColor(Def.SegTextSelected, Def.TextColorMuted, e) end
+            end
+            SetTextColor(sg.text, c)
+        end
+        track:SetAlpha(dis and Def.SegDisabledAlpha or 1)
+    end
+
+    local easeOut = addon.easeOut or function(t) return 1 - (1 - t) * (1 - t) end
+
+    local function StopSlide()
+        slide = nil
+        pill:SetScript("OnUpdate", nil)
+    end
+
+    pill:SetScript("OnHide", StopSlide)
+
+    function track:SetValue(v)
+        local fromSeg = SelectedSeg()
+        local animate = animateNext
+        animateNext = nil
+        value = v
+        local toSeg = SelectedSeg()
+        local dur = Def.SegSlideDuration or 0
+        if fromSeg == toSeg and slide then
+            -- Same value again (a refresh during the slide): let the slide finish.
+            self:Paint()
+            return
+        end
+        if animate and fromSeg and toSeg and fromSeg ~= toSeg and dur > 0
+            and pill:IsVisible() and toSeg:GetWidth() > 0 then
+            -- Start from where the pill is now, so a click mid-slide carries on smoothly.
+            local fromX = slide and slide.curX or SegX(fromSeg)
+            local fromW = slide and slide.curW or fromSeg:GetWidth()
+            slide = { fromX = fromX, fromW = fromW, fromSeg = fromSeg, toSeg = toSeg, t = 0, e = 0 }
+            pill:SetScript("OnUpdate", function(_, elapsed)
+                local s = slide
+                if not s then return end
+                s.t = s.t + (elapsed or 0)
+                local p = math.min(1, s.t / dur)
+                s.e = easeOut(p)
+                s.curX = Lerp(s.fromX, SegX(s.toSeg), s.e)
+                s.curW = Lerp(s.fromW, s.toSeg:GetWidth(), s.e)
+                PlacePill(s.curX, s.curW)
+                track:Paint()
+                if p >= 1 then
+                    StopSlide()
+                    track:Paint()
+                end
+            end)
+        else
+            StopSlide()
+        end
+        self:Paint()
+    end
+
+    for i, opt in ipairs(opts) do
+        local sg = CreateFrame("Button", nil, track)
+        sg.value, sg.label = opt[2], tostring(opt[1] or "")
+        sg:SetFrameLevel(track:GetFrameLevel() + 2)
+        local text = sg:CreateFontString(nil, "OVERLAY")
+        SetSafeFont(text, Def.FontPath, Def.LabelSize, nil)
+        if text.SetWordWrap then text:SetWordWrap(false) end
+        text:SetPoint("CENTER", sg, "CENTER", 0, 0)
+        text:SetText(sg.label)
+        sg.text = text
+        sg:SetScript("OnClick", function()
+            if isDisabled() then return end
+            animateNext = true
+            onPick(sg.value, sg.label)
+            animateNext = nil   -- the pick's SetValue has run; nothing else may animate
+        end)
+        sg:SetScript("OnEnter", function()
+            sg.hovered = true
+            track:Paint()
+            GameTooltip:SetOwner(sg, "ANCHOR_TOP")
+            GameTooltip:SetText(sg.label, 1, 1, 1, 1, true)
+            GameTooltip:Show()
+        end)
+        sg:SetScript("OnLeave", function()
+            sg.hovered = false
+            track:Paint()
+            GameTooltip:Hide()
+        end)
+        segs[i] = sg
+    end
+
+    -- Measure the labels, place the segments, and size the track to them. The labels' widths
+    -- follow the dashboard font, so this runs on every layout pass rather than once.
+    function track:Fits(available)
+        local widths = {}
+        local unmeasured = false
+        for i, sg in ipairs(segs) do
+            widths[i] = sg.text:GetStringWidth() or 0
+            if widths[i] <= 0 then unmeasured = true end
+        end
+        local fits, natural = addon.SegmentedFits(widths, available,
+            { segPadX = Def.SegPadX, trackPad = Def.SegTrackPad, gap = Def.SegGap })
+        -- A label that measures 0 has no real width yet (font not loaded): stay a dropdown.
+        if unmeasured then fits = false end
+        local x = Def.SegTrackPad
+        for i, sg in ipairs(segs) do
+            local w = math.ceil(widths[i]) + 2 * Def.SegPadX
+            sg:SetSize(w, Def.ControlHeight - 2 * Def.SegTrackPad)
+            sg:ClearAllPoints()
+            sg:SetPoint("LEFT", track, "LEFT", x, 0)
+            sg._x = x
+            x = x + w + Def.SegGap
+        end
+        track:SetWidth(natural)
+        local sel = SelectedSeg()
+        if sel and not slide then PlacePill(sel._x, sel:GetWidth()) end
+        return fits, natural
+    end
+
+    track:Paint()
+    return track
+end
+
 -- Custom dropdown: button + popup list (no UIDropDownMenuTemplate)
 -- When searchable is true, adds an EditBox above the list to filter options by name (e.g. font dropdown).
 -- resetButton: optional table { onClick, tooltip } — adds a small reset-arrow icon button to the left of the dropdown.
@@ -794,21 +1175,24 @@ end
 -- layout: optional table. { embedded = true } makes the dropdown a control inside a composite row
 -- (the font row): no label, no description, no row hover; the button fills the returned frame,
 -- which the caller sizes and anchors; description and tooltip become the button's own tooltip;
--- resetButton is ignored. Without layout, nothing changes.
+-- resetButton is ignored. { segmented = true } also builds segmented buttons for a static options
+-- table and shows them in place of the button whenever they fit (see OptionsWidgets_CreateSegmented);
+-- both can be set. Without layout, nothing changes.
 function _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, options, get, set, displayFn, searchable, disabledFn, tooltip, resetButton, fontPreviewInList, preserveOrder, layout)
     local embedded = type(layout) == "table" and layout.embedded == true
+    local wantSeg = type(layout) == "table" and layout.segmented == true and type(options) == "table"
     if embedded then resetButton = nil end
     local labelFn = type(labelText) == "function" and labelText or nil
     local resolvedLabel = labelFn and labelFn() or labelText
     local row = CreateFrame("Frame", nil, parent)
-    row:SetHeight(embedded and 26 or 34)
+    if embedded then row:SetHeight(Def.ControlHeight) end
     local searchText = (resolvedLabel or "") .. " " .. (description or "")
     row.searchText = searchText:lower()
 
     local DROPDOWN_BTN_WIDTH = 180
     local RESET_BTN_SIZE = 24
     local RESET_GAP = 6
-    local rightInset = DROPDOWN_BTN_WIDTH + 12
+    local rightInset = DROPDOWN_BTN_WIDTH + Def.RowControlGap
     if resetButton and resetButton.onClick then
         rightInset = rightInset + RESET_BTN_SIZE + RESET_GAP
     end
@@ -817,16 +1201,14 @@ function _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, 
     if embedded then
         btn:SetAllPoints(row)
     else
-        btn:SetHeight(26)
-        btn:SetWidth(DROPDOWN_BTN_WIDTH)
+        btn:SetSize(DROPDOWN_BTN_WIDTH, Def.ControlHeight)
         btn:SetPoint("RIGHT", row, "RIGHT", 0, 0)
-        btn:SetPoint("TOP", row, "CENTER", 0, 13)
-        btn:SetPoint("BOTTOM", row, "CENTER", 0, -13)
     end
     row.button = btn
 
+    local resetBtn
     if resetButton and resetButton.onClick then
-        local resetBtn = CreateFrame("Button", nil, row)
+        resetBtn = CreateFrame("Button", nil, row)
         resetBtn:SetSize(RESET_BTN_SIZE, RESET_BTN_SIZE)
         resetBtn:SetPoint("RIGHT", btn, "LEFT", -RESET_GAP, 0)
         resetBtn:SetFrameLevel(row:GetFrameLevel() + 10)
@@ -838,71 +1220,65 @@ function _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, 
         resetIcon:SetAllPoints(resetBtn)
         resetIcon:SetTexture("Interface\\Buttons\\UI-SpellbookIcon-PrevPage-Up")
         resetIcon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
-        local resetBg = resetBtn:CreateTexture(nil, "BACKGROUND")
-        resetBg:SetAllPoints(resetBtn)
-        resetBg:SetColorTexture(Def.InputBg[1], Def.InputBg[2], Def.InputBg[3], Def.InputBg[4])
-        if addon.CreateBorder then addon.CreateBorder(resetBtn, Def.InputBorder) end
-        local resetHi = resetBtn:CreateTexture(nil, "HIGHLIGHT")
-        resetHi:SetAllPoints(resetBtn)
-        resetHi:SetColorTexture(1, 1, 1, 0.15)
+        local paintResetBg = PaintRounded(resetBtn, Def.ControlRadius, "BACKGROUND")
+        PaintToken(paintResetBg, Def.InputBg)
         local resetTt = (resetButton.tooltip or (L and L["FOCUS_RESET_SPACING"])) or "Reset spacing"
         resetBtn:SetScript("OnEnter", function()
+            PaintToken(paintResetBg, Def.InputBgHover)
             GameTooltip:SetOwner(resetBtn, "ANCHOR_RIGHT")
             GameTooltip:SetText(resetTt, 1, 1, 1, 1, true)
             GameTooltip:Show()
         end)
-        resetBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
+        resetBtn:SetScript("OnLeave", function()
+            PaintToken(paintResetBg, Def.InputBg)
+            GameTooltip:Hide()
+        end)
     end
 
     -- An embedded dropdown has no label or description; label stays nil and is guarded below.
-    local label
-    if not embedded then
-        label = row:CreateFontString(nil, "OVERLAY")
-        SetSafeFont(label, Def.FontPath, Def.LabelSize, nil)
-        label:SetJustifyH("LEFT")
-        label:SetJustifyV("MIDDLE")
-        SetTextColor(label, Def.TextColorLabel)
-        label:SetText(resolvedLabel or "")
-        label:SetPoint("TOPLEFT", row, "TOPLEFT", 0, 0)
-        label:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", -rightInset, 0)
-        label:SetWordWrap(true)
-
-        local desc = row:CreateFontString(nil, "OVERLAY")
-        SetSafeFont(desc, Def.FontPath, Def.SectionSize, nil)
-        desc:SetJustifyH("LEFT")
-        SetTextColor(desc, Def.TextColorSection)
-        desc:SetText("")
-        desc:Hide()
-        desc:SetPoint("TOPLEFT", label, "BOTTOMLEFT", 0, -2)
-        desc:SetPoint("RIGHT", row, "RIGHT", 0, 0)
-        desc:SetWordWrap(true)
-
-        row._desc = desc
+    -- Segmented buttons (layout.segmented), built further down; ChooseControl shows them or the
+    -- button. Declared here so the row text's inset function can see them.
+    local seg, segShown = nil, false
+    local ChooseControl
+    local function controlInset(w)
+        if seg then ChooseControl(w) end
+        if not segShown then return rightInset end
+        local inset = seg:GetWidth() + Def.RowControlGap
+        if resetBtn then inset = inset + RESET_BTN_SIZE + RESET_GAP end
+        return inset
     end
 
-    local btnBg = btn:CreateTexture(nil, "BACKGROUND")
-    btnBg:SetPoint("TOPLEFT", btn, "TOPLEFT", 1, -1)
-    btnBg:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", -1, 1)
-    btnBg:SetColorTexture(Def.InputBg[1], Def.InputBg[2], Def.InputBg[3], Def.InputBg[4])
+    local label, descFs, rowText
+    if not embedded then
+        rowText = CreateRowText(row, resolvedLabel, description, controlInset)
+        label, descFs = rowText.label, rowText.desc
+    end
 
-    addon.CreateBorder(btn, Def.InputBorder)
-
-    local btnHi = btn:CreateTexture(nil, "HIGHLIGHT")
-    btnHi:SetAllPoints(btn)
-    btnHi:SetColorTexture(1, 1, 1, 0.06)
+    -- Flat control: a rounded InputBg fill with no border, lighter under the cursor.
+    local paintBtnBg = PaintRounded(btn, Def.ControlRadius, "BACKGROUND")
+    local btnBgAlpha = 1
+    local btnHovered = false
+    local function paintButton()
+        PaintToken(paintBtnBg, btnHovered and Def.InputBgHover or Def.InputBg, btnBgAlpha)
+    end
+    paintButton()
+    -- A disabled dropdown (btn:Disable() in applyDisabledVisuals) keeps its dimmed fill.
+    btn:HookScript("OnEnter", function() btnHovered = btn:IsEnabled() and true or false; paintButton() end)
+    btn:HookScript("OnLeave", function() btnHovered = false; paintButton() end)
 
     local btnText = btn:CreateFontString(nil, "OVERLAY")
     SetSafeFont(btnText, Def.FontPath, Def.LabelSize, nil)
     SetTextColor(btnText, Def.TextColorLabel)
-    btnText:SetPoint("LEFT", btn, "LEFT", 8, 0)
+    btnText:SetPoint("LEFT", btn, "LEFT", 10, 0)
     btnText:SetPoint("RIGHT", btn, "RIGHT", -24, 0)
     btnText:SetJustifyH("LEFT")
+    if btnText.SetWordWrap then btnText:SetWordWrap(false) end
 
     local chevron = btn:CreateFontString(nil, "OVERLAY")
     SetSafeFont(chevron, Def.FontPath, Def.LabelSize, nil)
-    SetTextColor(chevron, Def.TextColorSection)
+    SetTextColor(chevron, Def.TextColorFaint)
     chevron:SetText("v")
-    chevron:SetPoint("RIGHT", btn, "RIGHT", -6, 0)
+    chevron:SetPoint("RIGHT", btn, "RIGHT", -8, 0)
 
     local list = CreateFrame("Frame", nil, UIParent, "BackdropTemplate")
     list:SetFrameStrata("TOOLTIP")
@@ -1020,16 +1396,20 @@ function _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, 
         if dis then
             btn:Disable()
             if label then SetTextColor(label, Def.TextColorSection) end
+            if descFs then descFs:SetAlpha(0.45) end
             SetTextColor(btnText, Def.TextColorSection)
             chevron:SetAlpha(0.5)
-            btnBg:SetAlpha(0.6)
+            btnBgAlpha = 0.6
         else
             btn:Enable()
             if label then SetTextColor(label, Def.TextColorLabel) end
+            if descFs then descFs:SetAlpha(1) end
             SetTextColor(btnText, Def.TextColorLabel)
             chevron:SetAlpha(1)
-            btnBg:SetAlpha(1)
+            btnBgAlpha = 1
         end
+        paintButton()
+        if seg then seg:Paint() end
     end
 
     local function applyBtnTextFontForValue(value)
@@ -1046,8 +1426,37 @@ function _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, 
         set(value)
         btnText:SetText(display or tostring(value))
         applyBtnTextFontForValue(value)
+        if seg then seg:SetValue(value) end
         applyDisabledVisuals()
         closeList()
+    end
+
+    if wantSeg then
+        seg = CreateSegmentedControl(row, NormalizeDropdownOptions(options, preserveOrder), setValue, isDisabled)
+        seg:SetPoint("RIGHT", row, "RIGHT", 0, 0)
+        seg:Hide()
+        -- Show the segments when they fit in Def.SegFitShare of the row's width (a row) or in the
+        -- space the composite row offers (embedded: available is passed in), else the button.
+        ChooseControl = function(w)
+            local available = embedded and w or ((w or 0) * Def.SegFitShare)
+            if not embedded and resetBtn then available = available - RESET_BTN_SIZE - RESET_GAP end
+            local fits = seg:Fits(available)
+            segShown = fits and true or false
+            seg:SetShown(segShown)
+            btn:SetShown(not segShown)
+            if resetBtn then
+                resetBtn:ClearAllPoints()
+                resetBtn:SetPoint("RIGHT", segShown and seg or btn, "LEFT", -RESET_GAP, 0)
+            end
+            if segShown and list:IsShown() then closeList() end
+            return segShown
+        end
+        -- For a composite row: the width the segments need within `available`, or nil when the
+        -- button shows instead.
+        function row:ChooseSegmented(available)
+            if ChooseControl(available) then return seg:GetWidth() end
+            return nil
+        end
     end
 
 
@@ -1200,7 +1609,9 @@ end
             local newLabel = labelFn()
             if newLabel then label:SetText(newLabel) end
         end
+        if rowText then rowText.Fit(true) end
         local val = get()
+        if seg then seg:SetValue(val) end
         local opts = NormalizeDropdownOptions((type(options) == "function" and options()) or options or {}, preserveOrder)
 
         for _, opt in ipairs(opts) do
@@ -1254,6 +1665,21 @@ end
     return row
 end
 
+-- A short static choice as segmented buttons (addon.SegmentedEligible decides which rows qualify).
+-- The row is a dropdown row that also carries the segments: whenever its width changes it shows the
+-- segments if they fit in Def.SegFitShare of the row, else the dropdown button, so a long locale or
+-- a narrow window falls back on its own. Get, set, Refresh, disabled visuals and the row tooltip are
+-- the dropdown's; each segment adds a tooltip with its full label.
+-- @param layout table|nil  As for the dropdown ({ embedded = true } for a composite row, which
+--   then calls row:ChooseSegmented(available) during its layout)
+-- @return table  The row
+function _G.OptionsWidgets_CreateSegmented(parent, labelText, description, options, get, set, displayFn, disabledFn, tooltip, resetButton, preserveOrder, layout)
+    local lay = { segmented = true }
+    if type(layout) == "table" then for k, v in pairs(layout) do lay[k] = v end end
+    return _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, options, get, set, displayFn,
+        false, disabledFn, tooltip, resetButton, false, preserveOrder, lay)
+end
+
 -- ---------------------------------------------------------------------------
 -- Font row controls. The geometry lives in addon.FONT_ROW_METRICS and addon.FontRowLayout
 -- (OptionsHelpers.lua), so the logic tests can check it without frames.
@@ -1261,7 +1687,7 @@ end
 
 local FONT_ROW_FALLBACK_METRICS = {
     wrapBelow = 640, lineH = 34, line2H = 30, controlH = 26, gap = 8, labelGap = 12,
-    familyMin = 140, familyMax = 220, stepperW = 84, outlineW = 130,
+    familyMin = 140, familyMax = 220, stepperW = 84, outlineW = 130, outlineSegMax = 200,
 }
 local function FontRowMetrics()
     return addon.FONT_ROW_METRICS or FONT_ROW_FALLBACK_METRICS
@@ -1309,6 +1735,9 @@ function _G.OptionsWidgets_CreateSizeStepper(parent, get, set, minVal, maxVal, s
 
     local frame = CreateFrame("Frame", nil, parent)
     frame:SetSize(M.stepperW, H)
+    -- One flat rounded control holding [-] value [+]; a ring shows while the value has focus.
+    local paintBg, paintRing = PaintRounded(frame, Def.ControlRadius, "BACKGROUND", true)
+    PaintToken(paintBg, Def.InputBg)
 
     local function isDisabled()
         return disabledFn and disabledFn() == true
@@ -1317,19 +1746,15 @@ function _G.OptionsWidgets_CreateSizeStepper(parent, get, set, minVal, maxVal, s
     local function makeButton(text)
         local b = CreateFrame("Button", nil, frame)
         b:SetSize(BTN_W, H)
-        local bg = b:CreateTexture(nil, "BACKGROUND")
-        bg:SetPoint("TOPLEFT", b, "TOPLEFT", 1, -1)
-        bg:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", -1, 1)
-        bg:SetColorTexture(Def.InputBg[1], Def.InputBg[2], Def.InputBg[3], Def.InputBg[4])
-        addon.CreateBorder(b, Def.InputBorder)
-        local hi = b:CreateTexture(nil, "HIGHLIGHT")
-        hi:SetAllPoints(b)
-        hi:SetColorTexture(1, 1, 1, 0.06)
         local fs = b:CreateFontString(nil, "OVERLAY")
         SetSafeFont(fs, Def.FontPath, Def.LabelSize, nil)
-        SetTextColor(fs, Def.TextColorLabel)
+        SetTextColor(fs, Def.TextColorMuted)
         fs:SetText(text)
         fs:SetPoint("CENTER", b, "CENTER", 0, 0)
+        b:SetScript("OnEnter", function()
+            if b:IsEnabled() then SetTextColor(fs, Def.TextColorLabel) end
+        end)
+        b:SetScript("OnLeave", function() SetTextColor(fs, Def.TextColorMuted) end)
         return b
     end
     local minus = makeButton("-")
@@ -1340,14 +1765,8 @@ function _G.OptionsWidgets_CreateSizeStepper(parent, get, set, minVal, maxVal, s
     local editWrap = CreateFrame("Frame", nil, frame)
     editWrap:SetPoint("TOPLEFT", minus, "TOPRIGHT", GAP, 0)
     editWrap:SetPoint("BOTTOMRIGHT", plus, "BOTTOMLEFT", -GAP, 0)
-    local editBg = editWrap:CreateTexture(nil, "BACKGROUND")
-    editBg:SetAllPoints(editWrap)
-    editBg:SetColorTexture(Def.InputBg[1], Def.InputBg[2], Def.InputBg[3], Def.InputBg[4])
-    local bt, bb, bl, br = addon.CreateBorder(editWrap, Def.InputBorder)
     local function setEditBorderColor(c)
-        for _, tex in ipairs({ bt, bb, bl, br }) do
-            if tex then tex:SetColorTexture(c[1], c[2], c[3], c[4] or 1) end
-        end
+        if c then PaintToken(paintRing, c) else paintRing(0, 0, 0, 0) end
     end
 
     local edit = CreateFrame("EditBox", nil, editWrap)
@@ -1389,11 +1808,11 @@ function _G.OptionsWidgets_CreateSizeStepper(parent, get, set, minVal, maxVal, s
 
     edit:SetScript("OnEditFocusGained", function()
         if isDisabled() then edit:ClearFocus(); return end
-        setEditBorderColor(Def.AccentColor)
+        setEditBorderColor(Def.FocusRing)
         edit:HighlightText()
     end)
     edit:SetScript("OnEditFocusLost", function()
-        setEditBorderColor(Def.InputBorder)
+        setEditBorderColor(nil)
         edit:HighlightText(0, 0)
         applyTyped()
     end)
@@ -1462,7 +1881,7 @@ end
 -- @return table  Button with Refresh
 function _G.OptionsWidgets_CreateCompactToggle(parent, labelText, get, set, disabledFn, tooltip)
     local M = FontRowMetrics()
-    local TW, TH, INSET, THUMB, LABEL_GAP = 34, 18, 2, 14, 6
+    local LABEL_GAP = 6
     local btn = CreateFrame("Button", nil, parent)
     btn:SetHeight(M.controlH)
 
@@ -1473,32 +1892,14 @@ function _G.OptionsWidgets_CreateCompactToggle(parent, labelText, get, set, disa
     label:SetText(labelText or "")
     label:SetPoint("LEFT", btn, "LEFT", 0, 0)
 
-    local track = CreateFrame("Frame", nil, btn)
-    track:SetSize(TW, TH)
+    local track = CreatePill(btn)
     track:SetPoint("RIGHT", btn, "RIGHT", 0, 0)
-    local trackBg = track:CreateTexture(nil, "BACKGROUND")
-    trackBg:SetPoint("TOPLEFT", track, "TOPLEFT", INSET, -INSET)
-    trackBg:SetPoint("BOTTOMRIGHT", track, "BOTTOMRIGHT", -INSET, INSET)
-    trackBg:SetColorTexture(Def.TrackOff[1], Def.TrackOff[2], Def.TrackOff[3], Def.TrackOff[4])
-    local trackFill = track:CreateTexture(nil, "ARTWORK")
-    trackFill:SetPoint("TOPLEFT", track, "TOPLEFT", INSET, -INSET)
-    trackFill:SetPoint("BOTTOMLEFT", track, "BOTTOMLEFT", INSET, INSET)
-    trackFill:SetWidth(1)
-    local thumb = track:CreateTexture(nil, "OVERLAY")
-    thumb:SetSize(THUMB, THUMB)
-    thumb:SetColorTexture(Def.ThumbColor[1], Def.ThumbColor[2], Def.ThumbColor[3], Def.ThumbColor[4])
 
-    local fillW = TW - 2 * INSET
-    local travel = fillW - THUMB
     local function measure()
-        btn:SetWidth(math.ceil(label:GetStringWidth() or 0) + LABEL_GAP + TW)
+        btn:SetWidth(math.ceil(label:GetStringWidth() or 0) + LABEL_GAP + Def.SwitchWidth)
     end
     local function paint(on)
-        trackFill:SetColorTexture(Def.TrackOn[1], Def.TrackOn[2], Def.TrackOn[3], Def.TrackOn[4] or 0.85)
-        trackFill:SetWidth(fillW)
-        trackFill:SetShown(on and true or false)
-        thumb:ClearAllPoints()
-        thumb:SetPoint("CENTER", track, "LEFT", INSET + THUMB / 2 + (on and travel or 0), 0)
+        track:SetPosition(on and 1 or 0)
     end
     local function isDisabled()
         return disabledFn and disabledFn() == true
@@ -1544,16 +1945,22 @@ function _G.OptionsWidgets_CreateFontRow(parent, labelText, description, parts, 
     local resolvedLabel = labelFn and labelFn() or labelText
 
     local row = CreateFrame("Frame", nil, parent)
-    row:SetHeight(M.lineH)
     row.searchText = ((resolvedLabel or "") .. " " .. (description or "")):lower()
+    row._rowPadded = true
 
+    -- The label on one line, and the row's description under it in the help style.
     local label = row:CreateFontString(nil, "OVERLAY")
     SetSafeFont(label, Def.FontPath, Def.LabelSize, nil)
     label:SetJustifyH("LEFT")
-    label:SetJustifyV("MIDDLE")
+    label:SetJustifyV("TOP")
     SetTextColor(label, Def.TextColorLabel)
     label:SetText(resolvedLabel or "")
     label:SetWordWrap(false)
+
+    local desc, hasDesc = CreateRowDesc(row, description)
+    desc:SetPoint("TOPLEFT", label, "BOTTOMLEFT", 0, -Def.RowDescGap)
+    row._desc = desc
+    row:SetHeight(math.max(M.lineH, EstimatedRowHeight(hasDesc)))
 
     local function rowDisabled()
         return disabledFn and disabledFn() == true
@@ -1591,8 +1998,15 @@ function _G.OptionsWidgets_CreateFontRow(parent, labelText, description, parts, 
         else
             local opts, keepOrder = p.options, p.preserveOrder
             if opts == nil then opts, keepOrder = addon.OUTLINE_OPTIONS or {}, true end
+            -- The same rule as a dropdown row: a short static list shows as segments when they fit
+            -- (Layout passes M.outlineSegMax), else the dropdown.
+            local segOk = addon.SegmentedEligible and addon.SegmentedEligible({
+                options = opts, searchable = p.searchable, fontPreviewInList = p.fontPreviewInList,
+                segmented = p.segmented,
+            })
             outline = _G.OptionsWidgets_CreateCustomDropdown(row, nil, L["FOCUS_OUTLINE"], opts, p.get, p.set,
-                p.displayFn, false, partDisabled(p), p.tooltip, nil, false, keepOrder, { embedded = true })
+                p.displayFn, false, partDisabled(p), p.tooltip, nil, false, keepOrder,
+                { embedded = true, segmented = segOk and true or nil })
             outline:SetSize(M.outlineW, M.controlH)
         end
         controls[#controls + 1] = outline
@@ -1602,12 +2016,10 @@ function _G.OptionsWidgets_CreateFontRow(parent, labelText, description, parts, 
     local function layoutFor(w)
         if addon.FontRowLayout then return addon.FontRowLayout(w, has) end
         local wrapped = (w or 0) > 0 and w < M.wrapBelow
-        return { wrapped = wrapped, familyW = M.familyMax,
-            height = (wrapped and (has.size or has.outline)) and (M.lineH + M.line2H) or M.lineH }
+        return { wrapped = wrapped, familyW = M.familyMax, lines = (wrapped and (has.size or has.outline)) and 2 or 1 }
     end
 
-    -- Right-align a list of controls in a band `top` px down and `h` tall. Returns the width
-    -- they take, gaps between them included.
+    -- Right-align a list of controls in a band `top` px down and `h` tall.
     local function place(list, top, h)
         local x = 0
         for i = #list, 1, -1 do
@@ -1617,12 +2029,24 @@ function _G.OptionsWidgets_CreateFontRow(parent, labelText, description, parts, 
             x = x + (c:GetWidth() or 0)
             if i > 1 then x = x + M.gap end
         end
+    end
+    -- The width a list of controls takes, gaps between them included.
+    local function bandWidth(list)
+        local x = 0
+        for i, c in ipairs(list) do
+            x = x + (c:GetWidth() or 0)
+            if i > 1 then x = x + M.gap end
+        end
         return x
     end
 
     local function Layout(w)
+        w = w or 0
         local lay = layoutFor(w)
         if family then family:SetWidth(lay.familyW) end
+        if outline and outline.ChooseSegmented then
+            outline:SetWidth(outline:ChooseSegmented(M.outlineSegMax or M.outlineW) or M.outlineW)
+        end
         local line1, line2 = {}, {}
         if lay.wrapped then
             if family then line1[1] = family end
@@ -1631,13 +2055,28 @@ function _G.OptionsWidgets_CreateFontRow(parent, labelText, description, parts, 
         else
             for _, c in ipairs(controls) do line1[#line1 + 1] = c end
         end
-        local used = place(line1, 0, M.lineH)
-        place(line2, M.lineH, M.line2H)
+        -- The first line is as tall as a settings row (taller with a description); the text
+        -- block is centred in it and the controls sit on its middle.
+        local used = bandWidth(line1)
+        if w > 0 then
+            local textW = math.max(1, w - (used > 0 and (used + M.labelGap) or 0))
+            label:SetWidth(textW)
+            desc:SetWidth(textW)
+        end
+        local rowH, blockH = addon.SettingsRowHeight(label:GetStringHeight(),
+            hasDesc and desc:GetStringHeight() or 0, RowHeightMetrics())
+        local line1H = math.max(M.lineH, rowH)
+        place(line1, 0, line1H)
+        local height = line1H
+        if #line2 > 0 then
+            place(line2, line1H, M.line2H)
+            -- Pad the second line's bottom like a row's, less what the band already leaves.
+            height = line1H + M.line2H + math.max(0, Def.RowPadY - (M.line2H - M.controlH) / 2)
+        end
         label:ClearAllPoints()
-        label:SetPoint("TOPLEFT", row, "TOPLEFT", 0, 0)
-        label:SetPoint("BOTTOMRIGHT", row, "TOPRIGHT", -(used > 0 and (used + M.labelGap) or 0), -M.lineH)
-        if math.abs((row:GetHeight() or 0) - lay.height) > 0.5 then
-            row:SetHeight(lay.height)
+        label:SetPoint("TOPLEFT", row, "TOPLEFT", 0, -(line1H - blockH) / 2)
+        if math.abs((row:GetHeight() or 0) - height) > 0.5 then
+            row:SetHeight(height)
             if row.onHeightChanged then row.onHeightChanged() end
         end
     end
@@ -1662,8 +2101,10 @@ function _G.OptionsWidgets_CreateFontRow(parent, labelText, description, parts, 
             if c.Refresh then c:Refresh() end
         end
         SetTextColor(label, rowDisabled() and Def.TextColorSection or Def.TextColorLabel)
-        -- The toggle sizes itself to its label in Refresh, so place the line again.
-        if outline and parts.outline.kind == "toggle" then Layout(lastW > 0 and lastW or (row:GetWidth() or 0)) end
+        desc:SetAlpha(rowDisabled() and 0.45 or 1)
+        -- The toggle sizes itself to its label in Refresh, and a font change moves the text,
+        -- so place the line again.
+        Layout(lastW > 0 and lastW or (row:GetWidth() or 0))
     end
 
     Layout(0)
@@ -1836,46 +2277,27 @@ end
 -- Simplified Color Swatch for Dashboard (no anchor required, uses get/set functions)
 function _G.OptionsWidgets_CreateColorSwatch(parent, labelText, description, get, set, hasAlpha, tooltip, liveThrottle)
     local row = CreateFrame("Frame", nil, parent)
-    row:SetHeight(32)
     local searchText = (labelText or "") .. " " .. (description or "")
     row.searchText = searchText:lower()
 
-    local label = row:CreateFontString(nil, "OVERLAY")
-    SetSafeFont(label, Def.FontPath, Def.LabelSize, nil)
-    label:SetJustifyH("LEFT")
-    label:SetJustifyV("MIDDLE")
-    SetTextColor(label, Def.TextColorLabel)
-    label:SetText(labelText or "")
-    label:SetPoint("TOPLEFT", row, "TOPLEFT", 0, 0)
-    label:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", -45, 0)
-
-    local desc = row:CreateFontString(nil, "OVERLAY")
-    SetSafeFont(desc, Def.FontPath, Def.SectionSize, nil)
-    desc:SetJustifyH("LEFT")
-    SetTextColor(desc, Def.TextColorSection)
-    desc:SetText("")
-    desc:Hide()
-    desc:SetPoint("TOPLEFT", label, "BOTTOMLEFT", 0, -2)
-    desc:SetPoint("RIGHT", row, "RIGHT", -45, 0)
-    desc:SetWordWrap(true)
-
+    -- A rounded swatch with a hairline ring, at the row's right.
     local swatch = CreateFrame("Button", nil, row)
-    swatch:SetSize(24, 24)
+    swatch:SetSize(Def.SwatchSize, Def.SwatchSize)
     swatch:SetPoint("RIGHT", row, "RIGHT", 0, 0)
-    local bg = swatch:CreateTexture(nil, "BACKGROUND")
-    bg:SetAllPoints(swatch)
-    bg:SetColorTexture(Def.InputBorder[1], Def.InputBorder[2], Def.InputBorder[3], 0.6)
-    local tex = swatch:CreateTexture(nil, "OVERLAY")
-    tex:SetPoint("TOPLEFT", swatch, "TOPLEFT", 1, -1)
-    tex:SetPoint("BOTTOMRIGHT", swatch, "BOTTOMRIGHT", -1, 1)
+    local paintSwatch, paintRing = PaintRounded(swatch, Def.SwatchRadius, "ARTWORK", true)
+    PaintToken(paintRing, Def.SwatchRing)
+
+    local text = CreateRowText(row, labelText, description, function()
+        return Def.SwatchSize + Def.RowControlGap
+    end)
 
     function swatch:Refresh()
-        if type(get) ~= "function" then 
-            tex:SetColorTexture(1, 1, 1, 1)
-            return 
+        if type(get) ~= "function" then
+            paintSwatch(1, 1, 1, 1)
+            return
         end
         local r, g, b, a = get()
-        tex:SetColorTexture(r or 1, g or 1, b or 1, a or 1)
+        paintSwatch(r or 1, g or 1, b or 1, a or 1)
     end
 
     swatch:SetScript("OnClick", function()
@@ -1903,6 +2325,7 @@ function _G.OptionsWidgets_CreateColorSwatch(parent, labelText, description, get
 
     function row:Refresh()
         swatch:Refresh()
+        text.Fit(true)
     end
 
     row:Refresh()
@@ -1964,7 +2387,7 @@ function _G.OptionsWidgets_CreateSearchInput(parent, onTextChanged, placeholder)
         edit.placeholder = ph
         edit:SetScript("OnEditFocusGained", function()
             if ph then ph:Hide() end
-            setBorderColor(Def.AccentColor)
+            setBorderColor(Def.FocusRing)
             if row.clearBtn then row.clearBtn:SetShown(edit:GetText() ~= "") end
         end)
         edit:SetScript("OnEditFocusLost", function()
@@ -1974,7 +2397,7 @@ function _G.OptionsWidgets_CreateSearchInput(parent, onTextChanged, placeholder)
         end)
     else
         edit:SetScript("OnEditFocusGained", function()
-            setBorderColor(Def.AccentColor)
+            setBorderColor(Def.FocusRing)
             if row.clearBtn then row.clearBtn:SetShown(edit:GetText() ~= "") end
         end)
         edit:SetScript("OnEditFocusLost", function()
@@ -2115,7 +2538,7 @@ function _G.OptionsWidgets_CreateSectionHeader(parent, text, sectionKey, getColl
         SetHeaderCollapsedAnchors(hdr, chevron, hdrLabel, getFn(sk), cw, lw, parent)
 
         -- Text glow on hover instead of full-card highlight
-        local glowColor = Def.AccentColor
+        local glowColor = { 0, 0, 0 } -- neutral drop shadow; the accent is kept for on/selected states
         hdr:SetScript("OnEnter", function()
             SetTextColor(chevron, Def.TextColorHighlight)
             SetTextColor(hdrLabel, Def.TextColorHighlight)
@@ -2256,7 +2679,7 @@ function _G.OptionsWidgets_CreateReorderList(parent, anchor, opt, scrollFrameRef
         if state.insertionLine then return state.insertionLine end
         local line = container:CreateTexture(nil, "OVERLAY")
         line:SetHeight(3)
-        line:SetColorTexture(Def.AccentColor[1], Def.AccentColor[2], Def.AccentColor[3], 1)
+        line:SetColorTexture(Def.TextColorHighlight[1], Def.TextColorHighlight[2], Def.TextColorHighlight[3], 1)
         state.insertionLine = line
         return line
     end
@@ -2509,10 +2932,8 @@ function _G.OptionsWidgets_CreateEditBox(parent, labelText, get, set, opts)
     wrap:SetPoint("TOPLEFT", label, "BOTTOMLEFT", 0, -4)
     wrap:SetPoint("RIGHT", row, "RIGHT", 0, 0)
     wrap:SetHeight(boxH)
-    local wBg = wrap:CreateTexture(nil, "BACKGROUND")
-    wBg:SetAllPoints(wrap)
-    wBg:SetColorTexture(Def.InputBg[1], Def.InputBg[2], Def.InputBg[3], Def.InputBg[4])
-    addon.CreateBorder(wrap, Def.InputBorder)
+    local paintWrapBg, paintWrapRing = PaintRounded(wrap, Def.ControlRadius, "BACKGROUND", true)
+    PaintToken(paintWrapBg, Def.InputBg)
 
     local scroll = CreateFrame("ScrollFrame", nil, wrap)
     scroll:SetPoint("TOPLEFT", wrap, "TOPLEFT", 4, -4)
@@ -2544,6 +2965,10 @@ function _G.OptionsWidgets_CreateEditBox(parent, labelText, get, set, opts)
         end)
         edit:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
     end
+
+    -- The ring shows only while the box has focus; hooked so the handlers above keep running.
+    edit:HookScript("OnEditFocusGained", function() PaintToken(paintWrapRing, Def.FocusRing) end)
+    edit:HookScript("OnEditFocusLost", function() paintWrapRing(0, 0, 0, 0) end)
 
     if opts.storeRef and type(opts.storeRef) == "string" then
         addon[opts.storeRef] = edit
