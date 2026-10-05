@@ -290,6 +290,12 @@ local function getFrameY()
     return math.max(-300, math.min(0, v))
 end
 
+-- Horizontal offset from screen centre, for multi-monitor spans where centre sits on a bezel.
+local function getFrameX()
+    local v = addon.GetDB and tonumber(addon.GetDB("presenceFrameX", 0)) or 0
+    return math.max(-2000, math.min(2000, v))
+end
+
 local function getFrameScale()
     local v = addon.GetDB and tonumber(addon.GetDB("presenceFrameScale", 1)) or 1
     local base = math.max(0.5, math.min(2, v))
@@ -1046,7 +1052,7 @@ local function Init()
 
     F = CreateFrame("Frame", "HorizonSuitePresenceFrame", UIParent)
     F:SetSize(FRAME_WIDTH, FRAME_HEIGHT)
-    F:SetPoint("TOP", 0, getFrameY())
+    F:SetPoint("TOP", getFrameX(), getFrameY())
     F:SetScale(getFrameScale())
     F:Hide()
 
@@ -1384,7 +1390,7 @@ end
 local function ApplyPresenceOptions()
     if not F then return end
     F:ClearAllPoints()
-    F:SetPoint("TOP", 0, getFrameY())
+    F:SetPoint("TOP", getFrameX(), getFrameY())
     F:SetScale(getFrameScale())
     local function reapplyLayerFonts(layer)
         if not layer then return end
