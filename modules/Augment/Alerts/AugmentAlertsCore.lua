@@ -676,12 +676,11 @@ function A.HookNativeEditMode()
         end
         -- Attached path: LootFrame owns panel show/hide; we just apply our overlay state.
 
+        -- Overlay only, as LootFrame: Shift-click on the overlay previews.
         if showOverlay then
             editOverlay:EnableMouse(true)
             editOverlay:Show()
             Frame:Show()
-            A.Enqueue("DURABILITY", L["ALERTS_DURABILITY_TITLE"],
-                string.format(L["ALERTS_DURABILITY_BODY"], 25))
         end
     end, "HorizonSuiteAugmentAlerts")
 
