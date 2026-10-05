@@ -90,6 +90,8 @@ function Echo.ApplyFont()
     if path == appliedPath then return end
     appliedPath = path
     for obj, f in pairs(tracked) do obj:SetFont(path, f.size, f.flags) end
+    -- Bubbles were sized in the old font; lay them out again so the text fits them.
+    if Echo.Card and Echo.Card.Relayout then Echo.Card.Relayout() end
 end
 
 --- Push every setting into the running module.
