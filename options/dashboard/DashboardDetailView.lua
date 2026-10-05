@@ -8,7 +8,7 @@ if not addon then return end
 local L = addon.L
 -- Build detail and subcategory scroll areas; assign f.OpenModule, f.OpenCategoryDetail, f.BuildAccordionDetail.
 -- env fields: f, addon, L, detailView, subCategoryView, contentWidth, dashScrollTopOffset, dashScrollTopOffsetModule, dashAccentRefs,
--- GetAccentColor, MakeText, OptionCategoryKeyIsAxis, moduleLabels, DASHBOARD_CHILD_PANEL_ALPHA,
+-- MakeText, OptionCategoryKeyIsAxis, moduleLabels, DASHBOARD_CHILD_PANEL_ALPHA,
 -- DASHBOARD_CONTENT_CARD_ALPHA_MULT, CLEAR, searchBox, searchDropdown, searchDropdownScroll,
 -- searchDropdownContent, searchDropdownCatch, searchBarShell, searchView, searchEmptyHint,
 -- setSidebarState, crossfadeTo, showDetailHeader, showSubcategoryHeader
@@ -25,7 +25,6 @@ function addon.DashboardDetailView_Init(env)
     local dashScrollTopOffset = env.dashScrollTopOffset
     local dashScrollTopOffsetModule = env.dashScrollTopOffsetModule or env.dashScrollTopOffset
     local dashAccentRefs = env.dashAccentRefs
-    local GetAccentColor = env.GetAccentColor
     local MakeText = env.MakeText
     local OptionCategoryKeyIsAxis = env.OptionCategoryKeyIsAxis
     local moduleLabels = env.moduleLabels
@@ -651,8 +650,6 @@ function addon.DashboardDetailView_Init(env)
             tile:Hide()
         end
         wipe(currentSubTiles)
-        wipe(dashAccentRefs.subcatAccents)
-        wipe(dashAccentRefs.subcatDividers)
         f._layoutModuleRows = nil
         if moduleRowWatcher then moduleRowWatcher:Cancel() end
         moduleRowWatcher = nil
@@ -669,7 +666,6 @@ function addon.DashboardDetailView_Init(env)
     -- Params bound once; referenced by the CreateAccordionCard wrapper below.
     -- UpdateDetailLayout is defined at the top of this Init; all other fields are from env.
     local accordionCardParams = {
-        GetAccentColor              = GetAccentColor,
         MakeText                    = MakeText,
         dashAccentRefs              = dashAccentRefs,
         DASHBOARD_CONTENT_CARD_ALPHA_MULT = DASHBOARD_CONTENT_CARD_ALPHA_MULT,

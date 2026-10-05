@@ -185,8 +185,6 @@ function addon.Dashboard_BuildMainFrame()
             -- Track static accent elements for live class-colour refresh
             local dashAccentRefs = {
                 sidebarBars = {},
-                subcatAccents = {},
-                subcatDividers = {},
                 homeTileDividers = {},
                 cardAccents = {},
                 cardDividers = {},
@@ -195,12 +193,9 @@ function addon.Dashboard_BuildMainFrame()
                 patchNotesSectionLabels = {},
                 patchNotesBullets = {},
                 patchNotesRules = {},
-                underline = nil,
                 sidebarDivider = nil,
                 logoSep = nil,
                 logoText = nil,
-                searchDropBorder = nil,
-                searchFilterDropBorder = nil,
                 welcomeAccentStrip = nil,
                 guideHeroRail = nil,
                 communityFooterTopRules = {},
@@ -255,15 +250,6 @@ function addon.Dashboard_BuildMainFrame()
                 for _, bar in ipairs(dashAccentRefs.sidebarBars) do
                     if bar.SetColorTexture then bar:SetColorTexture(ar, ag, ab, 1) end -- Integrations view bars
                 end
-                if dashAccentRefs.underline then
-                    dashAccentRefs.underline:SetColorTexture(ar, ag, ab, 0.35)
-                end
-                for _, acc in ipairs(dashAccentRefs.subcatAccents) do
-                    if acc.SetColorTexture then acc:SetColorTexture(ar, ag, ab, 1) end
-                end
-                for _, div in ipairs(dashAccentRefs.subcatDividers) do
-                    if div.SetColorTexture then div:SetColorTexture(ar, ag, ab, 0.2) end
-                end
                 for _, div in ipairs(dashAccentRefs.homeTileDividers) do
                     if div.SetColorTexture then
                         local p = div:GetParent()
@@ -292,12 +278,6 @@ function addon.Dashboard_BuildMainFrame()
                 end
                 if dashAccentRefs.logoText then
                     dashAccentRefs.logoText:SetTextColor(ar, ag, ab)
-                end
-                if dashAccentRefs.searchDropBorder and dashAccentRefs.searchDropBorder.SetBackdropBorderColor then
-                    dashAccentRefs.searchDropBorder:SetBackdropBorderColor(ar, ag, ab, 0.5)
-                end
-                if dashAccentRefs.searchFilterDropBorder and dashAccentRefs.searchFilterDropBorder.SetBackdropBorderColor then
-                    dashAccentRefs.searchFilterDropBorder:SetBackdropBorderColor(ar, ag, ab, 0.5)
                 end
                 if dashAccentRefs.welcomeAccentStrip and dashAccentRefs.welcomeAccentStrip.SetColorTexture then
                     dashAccentRefs.welcomeAccentStrip:SetColorTexture(ar, ag, ab, 0.5)
@@ -1366,7 +1346,6 @@ function addon.Dashboard_BuildMainFrame()
                 dashScrollTopOffset = dashScrollTopOffset,
                 dashScrollTopOffsetModule = dashScrollTopOffsetModule,
                 dashAccentRefs = dashAccentRefs,
-                GetAccentColor = GetAccentColor,
                 MakeText = MakeText,
                 OptionCategoryKeyIsAxis = OptionCategoryKeyIsAxis,
                 moduleLabels = moduleLabels,

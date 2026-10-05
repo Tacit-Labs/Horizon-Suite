@@ -358,7 +358,6 @@ local function MakeDot(parent, size, layer)
     end
     return tex
 end
-addon.OptionsWidgets_MakeDot = MakeDot
 
 -- Paint a token colour through a paint function, with an optional alpha multiplier.
 local function PaintToken(paint, c, alphaMult)
@@ -587,7 +586,6 @@ local function AttachPress(host, visual, isDisabled)
     host:HookScript("OnHide", rest)
 end
 addon.OptionsWidgets_AttachPress = AttachPress
-addon.OptionsWidgets_CreatePressVisual = CreatePressVisual
 
 -- A faint highlight across the row while the cursor is over it. The texture is kept on
 -- row._rowHover; DashboardAccordionBuild stretches it to the card's edges.
@@ -836,7 +834,6 @@ local function AttachChangedMarker(row, onReset, isDisabled)
     return marker
 end
 _G.OptionsWidgets_AttachChangedMarker = AttachChangedMarker
-addon.OptionsWidgets_AttachChangedMarker = AttachChangedMarker
 
 -- A switch pill: a rounded TrackOff track, a rounded TrackOn fill that grows (and fades in)
 -- from the left as it turns on, and a round white thumb. pill:SetPosition(t) paints it at t
@@ -1442,7 +1439,6 @@ local function CreateSegmentedControl(parent, opts, onPick, isDisabled)
         pill:SetSize(math.max(1, w), Def.ControlHeight - 2 * Def.SegTrackPad)
     end
 
-    local function Lerp(a, b, t) return a + (b - a) * t end
     local function LerpColor(c1, c2, t)
         return { Lerp(c1[1], c2[1], t), Lerp(c1[2], c2[2], t), Lerp(c1[3], c2[3], t) }
     end
@@ -1477,8 +1473,6 @@ local function CreateSegmentedControl(parent, opts, onPick, isDisabled)
         end
         track:SetAlpha(dis and Def.SegDisabledAlpha or 1)
     end
-
-    local easeOut = addon.easeOut or function(t) return 1 - (1 - t) * (1 - t) end
 
     local function StopSlide()
         slide = nil
@@ -2111,16 +2105,9 @@ end
 
 -- ---------------------------------------------------------------------------
 -- Font row controls. The geometry lives in addon.FONT_ROW_METRICS and addon.FontRowLayout
--- (OptionsHelpers.lua), so the logic tests can check it without frames.
+-- (OptionsHelpers.lua), so the logic tests can check it without frames. OptionsHelpers loads
+-- after this file, so they are read when a row is built, never at load.
 -- ---------------------------------------------------------------------------
-
-local FONT_ROW_FALLBACK_METRICS = {
-    wrapBelow = 640, lineH = 34, line2H = 30, controlH = 26, gap = 8, labelGap = 12,
-    familyMin = 140, familyMax = 220, stepperW = 84, outlineW = 130, outlineSegMax = 200,
-}
-local function FontRowMetrics()
-    return addon.FONT_ROW_METRICS or FONT_ROW_FALLBACK_METRICS
-end
 
 -- Compact size stepper: [-] value [+]. Typed values and steps snap to `step` and clamp to
 -- min/max through addon.FontRowStepSize. Returns a frame (caller anchors it) with Refresh.
@@ -2134,7 +2121,7 @@ end
 -- @param tooltip string|function|nil  Hover text for the buttons and the value
 -- @return table
 function _G.OptionsWidgets_CreateSizeStepper(parent, get, set, minVal, maxVal, step, disabledFn, tooltip)
-    local M = FontRowMetrics()
+    local M = addon.FONT_ROW_METRICS
     minVal = tonumber(minVal) or 0
     maxVal = tonumber(maxVal) or 100
     step = tonumber(step) or 1
@@ -2143,23 +2130,10 @@ function _G.OptionsWidgets_CreateSizeStepper(parent, get, set, minVal, maxVal, s
     local H = M.controlH
 
     local function stepValue(v, delta, fallback)
-        if addon.FontRowStepSize then return addon.FontRowStepSize(v, delta, minVal, maxVal, step, fallback) end
-        local n = tonumber(v)
-        if n == nil then return tonumber(fallback) or minVal end
-        return math.max(minVal, math.min(maxVal, n + (delta or 0) * step))
-    end
-
-    local decimals = 0
-    if step < 1 then
-        local s = tostring(step)
-        local dot = s:find("%.")
-        decimals = dot and (#s - dot) or 0
+        return addon.FontRowStepSize(v, delta, minVal, maxVal, step, fallback)
     end
     local function formatValue(v)
-        v = tonumber(v) or minVal
-        if addon.FontRowFormatSize then return addon.FontRowFormatSize(v, step) end
-        if decimals > 0 then return string.format("%." .. decimals .. "f", v) end
-        return tostring(math.floor(v + 0.5))
+        return addon.FontRowFormatSize(tonumber(v) or minVal, step)
     end
 
     local frame = CreateFrame("Frame", nil, parent)
@@ -2228,13 +2202,7 @@ function _G.OptionsWidgets_CreateSizeStepper(parent, get, set, minVal, maxVal, s
             show(cur)
             return
         end
-        local text = edit:GetText()
-        local v
-        if addon.FontRowTypedSize then
-            v = addon.FontRowTypedSize(text, cur, minVal, maxVal, step)
-        elseif tonumber(text) ~= nil and text ~= formatValue(cur) then
-            v = stepValue(text, 0, cur)
-        end
+        local v = addon.FontRowTypedSize(edit:GetText(), cur, minVal, maxVal, step)
         if v ~= nil then commit(v) else show(cur) end
     end
 
@@ -2312,7 +2280,7 @@ end
 -- @param tooltip string|function|nil
 -- @return table  Button with Refresh
 function _G.OptionsWidgets_CreateCompactToggle(parent, labelText, get, set, disabledFn, tooltip)
-    local M = FontRowMetrics()
+    local M = addon.FONT_ROW_METRICS
     local LABEL_GAP = 6
     local btn = CreateFrame("Button", nil, parent)
     btn:SetHeight(M.controlH)
@@ -2378,7 +2346,7 @@ end
 -- @param tooltip string|function|nil
 -- @return table  Frame with Refresh; set row.onHeightChanged to hear when it wraps or unwraps.
 function _G.OptionsWidgets_CreateFontRow(parent, labelText, description, parts, disabledFn, tooltip)
-    local M = FontRowMetrics()
+    local M = addon.FONT_ROW_METRICS
     parts = parts or {}
     local labelFn = type(labelText) == "function" and labelText or nil
     local resolvedLabel = labelFn and labelFn() or labelText
@@ -2454,11 +2422,6 @@ function _G.OptionsWidgets_CreateFontRow(parent, labelText, description, parts, 
     end
 
     local has = { family = family ~= nil, size = size ~= nil, outline = outline ~= nil }
-    local function layoutFor(w)
-        if addon.FontRowLayout then return addon.FontRowLayout(w, has) end
-        local wrapped = (w or 0) > 0 and w < M.wrapBelow
-        return { wrapped = wrapped, familyW = M.familyMax, lines = (wrapped and (has.size or has.outline)) and 2 or 1 }
-    end
 
     -- Right-align a list of controls in a band `top` px down and `h` tall.
     local function place(list, top, h)
@@ -2483,7 +2446,7 @@ function _G.OptionsWidgets_CreateFontRow(parent, labelText, description, parts, 
 
     local function Layout(w)
         w = w or 0
-        local lay = layoutFor(w)
+        local lay = addon.FontRowLayout(w, has)
         if family then family:SetWidth(lay.familyW) end
         if outline and outline.ChooseSegmented then
             outline:SetWidth(outline:ChooseSegmented(M.outlineSegMax or M.outlineW) or M.outlineW)

@@ -649,7 +649,7 @@ function addon.DashboardAccordionBuild_Init(f, p)
             local keys, keyRows = {}, {}   -- keyRows[i]: the row or part that owns keys[i]
             local function clear() for _, k in ipairs(keys) do SetDB(k, nil) end end
             if opt.type == "fontRow" then
-                for _, slot in ipairs(addon.FONT_ROW_PARTS or { "family", "size", "outline" }) do
+                for _, slot in ipairs(addon.FONT_ROW_PARTS) do
                     local part = fontParts and fontParts[slot]
                     if part and part.dbKey and part.get and part.set then
                         keys[#keys + 1] = part.dbKey
@@ -878,7 +878,7 @@ function addon.DashboardAccordionBuild_Init(f, p)
                     -- refreshIds and the row's (the children wired to any of its keys).
                     local rowKey = opt.dbKey
                     local parts, partKeys = {}, {}
-                    for _, slot in ipairs(addon.FONT_ROW_PARTS or { "family", "size", "outline" }) do
+                    for _, slot in ipairs(addon.FONT_ROW_PARTS) do
                         local part = opt.parts and opt.parts[slot]
                         if type(part) == "table" then
                             local key, default = part.dbKey, part.default

@@ -3,7 +3,7 @@
     Reusable expand/collapse card chrome for the Detail view option accordion.
     Exposed as addon.Dashboard_CreateAccordionCard(parent, title, headerToggleCfg, p, desc).
     Called from DashboardDetailView.lua via a local wrapper that binds p.
-    p fields: GetAccentColor, MakeText, dashAccentRefs, DASHBOARD_CONTENT_CARD_ALPHA_MULT, UpdateDetailLayout
+    p fields: MakeText, DASHBOARD_CONTENT_CARD_ALPHA_MULT, UpdateDetailLayout
 
     Look (Docs/Engineering/2026-10-05-dashboard-modern-style-design.md): a filled rounded panel
     with no border; the title in Def.TitleSize, an optional muted one-line description after it,
@@ -32,7 +32,7 @@ end
 --- @param parent frame
 --- @param title string
 --- @param headerToggleCfg table|nil
---- @param p table  GetAccentColor, MakeText, dashAccentRefs, DASHBOARD_CONTENT_CARD_ALPHA_MULT, UpdateDetailLayout
+--- @param p table  MakeText, DASHBOARD_CONTENT_CARD_ALPHA_MULT, UpdateDetailLayout
 --- @param desc string|function|nil  Muted one-line description shown after the title
 --- @return frame card
 function addon.Dashboard_CreateAccordionCard(parent, title, headerToggleCfg, p, desc)
@@ -203,9 +203,7 @@ function addon.Dashboard_CreateAccordionCard(parent, title, headerToggleCfg, p, 
                 addon.Insight.ApplyInsightOptions()
             end
         end)
-        if addon.OptionsWidgets_AttachPress then
-            addon.OptionsWidgets_AttachPress(pillBtn, pillFrame.body)
-        end
+        addon.OptionsWidgets_AttachPress(pillBtn, pillFrame.body)
 
         card.headerToggleEnabled = GetPillValue
 
