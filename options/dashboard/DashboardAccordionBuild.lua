@@ -108,8 +108,8 @@ function addon.DashboardAccordionBuild_Init(f, p)
             end
         end
 
-        local DEPENDENT_FADE_DUR = 0.12
-        local DEPENDENT_HEIGHT_DUR = 0.15
+        local DEPENDENT_FADE_DUR = 0.2     -- long enough that the text visibly eases in or out
+        local DEPENDENT_HEIGHT_DUR = 0.18
         local CARD_VISIBILITY_FADE_DUR = 0.3
         local easeOutDep = addon.easeOut or function(t) return 1 - (1 - t) * (1 - t) end
 
@@ -416,7 +416,14 @@ function addon.DashboardAccordionBuild_Init(f, p)
                 entry.frame:SetShown(visible)
                 if visible then
                     -- Alpha 1, or where a running open stagger has the row (RowStaggerLook).
-                    entry.frame:SetAlpha((RowStaggerLook(card, entry.frame)))
+                    -- A dependent-row fade (card.relayoutAnim.owned) keeps its own alpha: a restack
+                    -- mid-fade (a new row measuring its text, say) must not flash it to 1.
+                    local anim = card.relayoutAnim
+                    if anim and anim.owned and anim.owned[entry.frame] then
+                        entry.frame:SetAlpha(anim.alpha or 0)
+                    else
+                        entry.frame:SetAlpha((RowStaggerLook(card, entry.frame)))
+                    end
                     local h = entry.frame:GetHeight() or 0
                     if entry.isNote and h < NOTE_MIN_HEIGHT then h = NOTE_MIN_HEIGHT end
                     local kind = (entry.isHeader and "subheading") or (entry.isNote and "note")
@@ -608,7 +615,10 @@ function addon.DashboardAccordionBuild_Init(f, p)
 
             local capturedAnimateVisibility = animateVisibility
             if #toHide > 0 then
-                card.relayoutAnim = { phase = "fadeOut", elapsed = 0, toHide = toHide, oldHeight = oldHeight }
+                local owned = {}
+                for _, entry in ipairs(toHide) do owned[entry.frame] = true end
+                card.relayoutAnim = { phase = "fadeOut", elapsed = 0, toHide = toHide, oldHeight = oldHeight,
+                    owned = owned, alpha = 1 }
                 animFrame:SetScript("OnUpdate", function(self, dt)
                     local a = card.relayoutAnim
                     if not a then self:SetScript("OnUpdate", nil) return end
@@ -616,11 +626,13 @@ function addon.DashboardAccordionBuild_Init(f, p)
                     if a.phase == "fadeOut" then
                         local t = math.min(1, a.elapsed / DEPENDENT_FADE_DUR)
                         local ep = easeOutDep(t)
+                        a.alpha = 1 - ep
                         for _, entry in ipairs(a.toHide) do
-                            entry.frame:SetAlpha(1 - ep)
+                            entry.frame:SetAlpha(a.alpha)
                         end
                         if t >= 1 then
                             local oldY = CaptureRowY(card)
+                            a.owned = nil
                             for _, entry in ipairs(a.toHide) do
                                 entry.frame:Hide()
                                 entry.frame:SetAlpha(1)
@@ -663,6 +675,8 @@ function addon.DashboardAccordionBuild_Init(f, p)
                     toShow = toShow,
                     oldHeight = oldHeight,
                     targetFullH = card.fullHeight,
+                    owned = newRows,
+                    alpha = 0,
                 }
                 -- Rows below glide down to make room while the new ones rise into place.
                 BeginSlide(card, oldY, newRows)
@@ -674,6 +688,7 @@ function addon.DashboardAccordionBuild_Init(f, p)
                     local heightT = math.min(1, a.elapsed / DEPENDENT_HEIGHT_DUR)
                     local fadeEp = easeOutDep(fadeT)
                     local heightEp = easeOutDep(heightT)
+                    a.alpha = fadeEp
                     for _, entry in ipairs(a.toShow) do
                         entry.frame:SetAlpha(fadeEp)
                     end
