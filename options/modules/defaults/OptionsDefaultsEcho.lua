@@ -62,6 +62,8 @@ addon.ECHO_DEFAULTS = {
     echoCardTextSize       = 11,
     echoFontPath           = "__global__",
     echoAnimateCard        = true,
+    -- A conversation line's time (HH:MM) beside it; feed lines always show theirs.
+    echoShowTimestamps     = false,
     -- Seconds untouched before the card closes itself (EchoCard.lua); 0 keeps it open.
     echoCardIdleClose      = 30,
     -- Chat groups (modules/Echo/EchoGroups.lua). A blank name leaves the group unused;
