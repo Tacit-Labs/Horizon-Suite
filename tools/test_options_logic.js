@@ -927,6 +927,60 @@ run(`
   check("unknown width lays out as one line", L(0, { family = true, size = true }).wrapped == false, "wrapped")
 `, 'font-row-widget-logic');
 
+// --- Card row spacing: gaps and hairlines from the visible order ----------------------
+run(`
+  local H = HorizonSuite
+  check("row spacing helper exists", type(H.CardRowSpacing) == "function", type(H.CardRowSpacing))
+  if type(H.CardRowSpacing) ~= "function" then return end
+  local M = { subheadingTop = 12, subheadingBottom = 2, noteTop = 6, blockPad = 8 }
+  local function picture(kinds)
+    local out = {}
+    for i, e in ipairs(H.CardRowSpacing(kinds, M)) do
+      out[i] = (e.divider and "D" or "-") .. e.top .. "/" .. e.bottom
+    end
+    return table.concat(out, " ")
+  end
+  local p = picture({ "row", "row", "row" })
+  check("no hairline above a card's first row, one above each row after", p == "-0/0 D0/0 D0/0", p)
+  p = picture({ "row", "subheading", "row", "row" })
+  check("no hairline above the first row of a subheading group", p == "-0/0 -12/2 -0/0 D0/0", p)
+  p = picture({ "subheading", "row" })
+  check("a subheading opening the card has no hairline and neither does its row", p == "-12/2 -0/0", p)
+  p = picture({ "row", "block", "row" })
+  check("custom widgets are padded and separated like rows", p == "-0/0 D8/8 D0/0", p)
+  p = picture({ "row", "spacer", "row" })
+  check("a zero-height entry is skipped for hairlines", p == "-0/0 -0/0 D0/0", p)
+  p = picture({ "note", "row", "row" })
+  check("a note starts a group like a subheading", p == "-6/0 -0/0 D0/0", p)
+  p = picture({ "spacer", "row" })
+  check("a spacer before the first row leaves it without a hairline", p == "-0/0 -0/0", p)
+  check("an empty card has no entries", #H.CardRowSpacing({}, M) == 0, #H.CardRowSpacing({}, M))
+`, 'card-row-spacing');
+
+// --- Widget type scale: titles and help follow the label size -------------------------
+run(read('options/OptionsWidgets.lua'), 'options/OptionsWidgets.lua');
+run(`
+  local H = HorizonSuite
+  local TS = H.OptionsWidgets_TypeScaleFor
+  check("type scale helper exists", type(TS) == "function", type(TS))
+  if type(TS) ~= "function" then return end
+  local t, h = TS(13)
+  check("label 13 gives title 15 and help 11", t == 15 and h == 11, tostring(t) .. "/" .. tostring(h))
+  t, h = TS(9)
+  check("help never drops below 8", t == 11 and h == 8, tostring(t) .. "/" .. tostring(h))
+  t, h = TS(nil)
+  check("no label size falls back to 13", t == 15 and h == 11, tostring(t) .. "/" .. tostring(h))
+  local D = H.OptionsWidgetsDef
+  check("Def starts on the derived scale", D.TitleSize == 15 and D.HelpSize == 11, tostring(D.TitleSize) .. "/" .. tostring(D.HelpSize))
+  OptionsWidgets_SetDef({ LabelSize = 16 })
+  check("a new label size re-derives both", D.TitleSize == 18 and D.HelpSize == 14, tostring(D.TitleSize) .. "/" .. tostring(D.HelpSize))
+  OptionsWidgets_SetDef({ LabelSize = 12, HelpSize = 20 })
+  check("a size set in the same call wins", D.TitleSize == 14 and D.HelpSize == 20, tostring(D.TitleSize) .. "/" .. tostring(D.HelpSize))
+  OptionsWidgets_SetDef({ FontPath = "x" })
+  check("a call without a label size leaves the scale alone", D.TitleSize == 14 and D.HelpSize == 20, tostring(D.TitleSize) .. "/" .. tostring(D.HelpSize))
+  OptionsWidgets_SetDef({ LabelSize = 13 })
+`, 'widget-type-scale');
+
 // --- Summary -----------------------------------------------------------------------
 run(`
   REAL_PRINT(PASS .. " passed, " .. FAIL .. " failed")

@@ -15,41 +15,9 @@
 local addon = _G.HorizonSuite
 if not addon then return end
 
-local CHEVRON_SIZE = 16     -- the chevron's hit-free box at the header's right
-local CHEVRON_BAR_LEN = 7
-local CHEVRON_BAR_W = 2
-local CHEVRON_HALF = 2.47   -- half a bar's length projected on one axis at 45°
-local HEADER_SWITCH_GAP = 10
-local DESC_MIN_WIDTH = 40   -- narrower than this, the description is hidden
-local TITLE_LINE_FACTOR = 1.35
-
--- Paint a frame as a rounded panel when Echo.Round is available, else as a flat fill.
--- @return function(r, g, b, a) that recolours the fill
-local function PaintRounded(frame, radius, layer)
-    local Round = addon.Echo and addon.Echo.Round
-    if Round and Round.Apply and Round.SetColor then
-        Round.Apply(frame, { radius = radius, layer = layer or "BACKGROUND" })
-        return function(r, g, b, a) Round.SetColor(frame, r, g, b, a) end
-    end
-    local tex = frame:CreateTexture(nil, layer or "BACKGROUND")
-    tex:SetAllPoints()
-    tex:SetColorTexture(1, 1, 1, 1)
-    return function(r, g, b, a) tex:SetVertexColor(r, g, b, a) end
-end
-
--- A round dot (Echo.Round.Dot) or, without it, a square colour texture.
-local function MakeDot(parent, size, layer)
-    local Round = addon.Echo and addon.Echo.Round
-    local tex
-    if Round and Round.Dot then
-        tex = Round.Dot(parent, size, layer)
-    else
-        tex = parent:CreateTexture(nil, layer or "OVERLAY")
-        tex:SetColorTexture(1, 1, 1, 1)
-        tex:SetSize(size, size)
-    end
-    return tex
-end
+-- Rounded fills and dots come from OptionsWidgets (Echo.Round, with a flat fallback).
+local PaintRounded = addon.OptionsWidgets_PaintRounded
+local MakeDot = addon.OptionsWidgets_MakeDot
 
 -- Width of a FontString's text, ignoring any width already set on it.
 local function TextWidth(fs)
@@ -71,25 +39,29 @@ function addon.Dashboard_CreateAccordionCard(parent, title, headerToggleCfg, p, 
     local MakeText           = p.MakeText
     local UpdateDetailLayout = p.UpdateDetailLayout
 
-    local WDef = addon.OptionsWidgetsDef or {}
-    local labelSize = WDef.LabelSize or 13
-    local titleSize = WDef.TitleSize or (labelSize + 2)
-    local helpSize  = WDef.HelpSize or (labelSize - 2)
-    local pad       = WDef.CardPadding or 18
-    local padY      = WDef.CardHeaderPadY or 14
-    local radius    = WDef.CardRadius or 12
-    local descGap   = WDef.CardDescGap or 12
+    local WDef = addon.OptionsWidgetsDef
+    local labelSize = WDef.LabelSize
+    local titleSize = WDef.TitleSize
+    local helpSize  = WDef.HelpSize
+    local pad       = WDef.CardPadding
+    local padY      = WDef.CardHeaderPadY
+    local radius    = WDef.CardRadius
+    local descGap   = WDef.CardDescGap
+    local chevronSize = WDef.CardChevronSize
+    local chevronBarLen = WDef.CardChevronBarLen
+    -- Half a bar's length projected on one axis at 45 degrees.
+    local chevronHalf = chevronBarLen / 2 * math.cos(math.pi / 4)
     local alphaMult = p.DASHBOARD_CONTENT_CARD_ALPHA_MULT or 1
-    local SBg  = WDef.CardBg or WDef.SectionCardBg or { 0.09, 0.09, 0.114, 0.96 }
-    local SHov = WDef.CardBgHover or { 0.11, 0.11, 0.137, 0.96 }
-    local SBgA = (SBg[4] or 1) * alphaMult
-    local SHovA = (SHov[4] or 1) * alphaMult
-    local titleColor = WDef.TextColorTitleBar or { 0.9, 0.92, 0.96 }
-    local mutedColor = WDef.TextColorMuted or { 0.54, 0.565, 0.627 }
-    local faintColor = WDef.TextColorFaint or { 0.365, 0.384, 0.447 }
+    local SBg  = WDef.CardBg
+    local SHov = WDef.CardBgHover
+    local SBgA = SBg[4] * alphaMult
+    local SHovA = SHov[4] * alphaMult
+    local titleColor = WDef.TextColorTitleBar
+    local mutedColor = WDef.TextColorMuted
+    local faintColor = WDef.TextColorFaint
 
     -- Header height follows the title size: the title's line plus padding above and below.
-    local headerH = math.floor(titleSize * TITLE_LINE_FACTOR + 0.5) + 2 * padY
+    local headerH = math.floor(titleSize * WDef.TitleLineFactor + 0.5) + 2 * padY
 
     -- MakeText takes a size relative to the 13px base and registers the FontString with the
     -- dashboard typography, so the dashboard font and text size reach it later.
@@ -104,7 +76,7 @@ function addon.Dashboard_CreateAccordionCard(parent, title, headerToggleCfg, p, 
     card.collapsedHeight = headerH
     card.headerHeight = headerH
     -- Header plus the space below the last row; DashboardAccordionBuild adds the rows' height.
-    card.chromeHeight = headerH + (WDef.CardContentBottom or 12)
+    card.chromeHeight = headerH + WDef.CardContentBottom
     card:SetClipsChildren(true)
 
     -- Background: one filled rounded panel, no border (alpha as the other dashboard cards).
@@ -132,13 +104,13 @@ function addon.Dashboard_CreateAccordionCard(parent, title, headerToggleCfg, p, 
 
     -- Chevron at the right: two thin bars, "v" when open and ">" when closed.
     local chevron = CreateFrame("Frame", nil, card)
-    chevron:SetSize(CHEVRON_SIZE, CHEVRON_SIZE)
-    chevron:SetPoint("CENTER", card, "TOPRIGHT", -(pad + CHEVRON_SIZE / 2), -headerH / 2)
+    chevron:SetSize(chevronSize, chevronSize)
+    chevron:SetPoint("CENTER", card, "TOPRIGHT", -(pad + chevronSize / 2), -headerH / 2)
     chevron:SetFrameLevel(card:GetFrameLevel() + 6)
     local chevBars = {}
     for i = 1, 2 do
         local bar = chevron:CreateTexture(nil, "ARTWORK")
-        bar:SetSize(CHEVRON_BAR_LEN, CHEVRON_BAR_W)
+        bar:SetSize(chevronBarLen, WDef.CardChevronBarW)
         bar:SetColorTexture(faintColor[1], faintColor[2], faintColor[3], 1)
         chevBars[i] = bar
     end
@@ -146,9 +118,9 @@ function addon.Dashboard_CreateAccordionCard(parent, title, headerToggleCfg, p, 
         local q = math.pi / 4
         local shape
         if expanded then
-            shape = { { -CHEVRON_HALF, 0, -q }, { CHEVRON_HALF, 0, q } }
+            shape = { { -chevronHalf, 0, -q }, { chevronHalf, 0, q } }
         else
-            shape = { { 0, CHEVRON_HALF, -q }, { 0, -CHEVRON_HALF, q } }
+            shape = { { 0, chevronHalf, -q }, { 0, -chevronHalf, q } }
         end
         for i, s in ipairs(shape) do
             local bar = chevBars[i]
@@ -160,7 +132,7 @@ function addon.Dashboard_CreateAccordionCard(parent, title, headerToggleCfg, p, 
     SetChevron(false)
 
     -- Space the header keeps clear at its right for the chevron and the switch.
-    local rightReserve = pad + CHEVRON_SIZE
+    local rightReserve = pad + chevronSize
 
     -- Forward-declare so ExpandCollapseCard and headerToggleInit can reference it
     -- before the actual definition (which needs sc to be in scope).
@@ -181,26 +153,26 @@ function addon.Dashboard_CreateAccordionCard(parent, title, headerToggleCfg, p, 
         local htDefault = headerToggleCfg.default
         if htDefault == nil then htDefault = true end
 
-        local tW = WDef.SwitchWidth or 36
-        local tH = WDef.SwitchHeight or 20
-        local tInset = 2
+        local tW = WDef.SwitchWidth
+        local tH = WDef.SwitchHeight
+        local tInset = WDef.SwitchInset
         local tThumb = tH - 2 * tInset
         local pillTravel = tW - 2 * tInset - tThumb
 
         local pillFrame = CreateFrame("Frame", nil, card)
         pillFrame:SetSize(tW, tH)
-        pillFrame:SetPoint("RIGHT", chevron, "LEFT", -HEADER_SWITCH_GAP, 0)
+        pillFrame:SetPoint("RIGHT", chevron, "LEFT", -WDef.CardHeaderSwitchGap, 0)
         pillFrame:SetFrameLevel(card:GetFrameLevel() + 6)
-        rightReserve = rightReserve + HEADER_SWITCH_GAP + tW
+        rightReserve = rightReserve + WDef.CardHeaderSwitchGap + tW
 
-        local tOn  = WDef.TrackOn    or { 0.48, 0.58, 0.82, 0.85 }
-        local tOff = WDef.TrackOff   or { 0.14, 0.14, 0.18, 0.95 }
-        local tTh  = WDef.ThumbColor or { 1, 1, 1, 0.98 }
+        local tOn  = WDef.TrackOn
+        local tOff = WDef.TrackOff
+        local tTh  = WDef.ThumbColor
 
         -- Track: a rounded pill in TrackOff, with a rounded TrackOn fill that grows from the
         -- left as the switch turns on, and a round thumb above both.
         local paintTrack = PaintRounded(pillFrame, tH / 2, "BACKGROUND")
-        paintTrack(tOff[1], tOff[2], tOff[3], tOff[4] or 0.95)
+        paintTrack(tOff[1], tOff[2], tOff[3], tOff[4])
 
         local fillFrame = CreateFrame("Frame", nil, pillFrame)
         fillFrame:SetPoint("TOPLEFT", pillFrame, "TOPLEFT", 0, 0)
@@ -208,13 +180,13 @@ function addon.Dashboard_CreateAccordionCard(parent, title, headerToggleCfg, p, 
         fillFrame:SetWidth(tH)
         fillFrame:SetFrameLevel(pillFrame:GetFrameLevel() + 1)
         local paintFill = PaintRounded(fillFrame, tH / 2, "BACKGROUND")
-        paintFill(tOn[1], tOn[2], tOn[3], tOn[4] or 0.85)
+        paintFill(tOn[1], tOn[2], tOn[3], tOn[4])
 
         local thumbHost = CreateFrame("Frame", nil, pillFrame)
         thumbHost:SetAllPoints(pillFrame)
         thumbHost:SetFrameLevel(pillFrame:GetFrameLevel() + 2)
         local thumb = MakeDot(thumbHost, tThumb, "OVERLAY")
-        thumb:SetVertexColor(tTh[1], tTh[2], tTh[3], tTh[4] or 0.98)
+        thumb:SetVertexColor(tTh[1], tTh[2], tTh[3], tTh[4])
 
         local pillPos = 0
         local pillAnimStart, pillAnimFrom, pillAnimTo
@@ -308,7 +280,7 @@ function addon.Dashboard_CreateAccordionCard(parent, title, headerToggleCfg, p, 
         lbl:SetWidth(0)
         if descFs then
             local room = avail - math.ceil(titleW) - descGap
-            if room < DESC_MIN_WIDTH then
+            if room < WDef.CardDescMinWidth then
                 descFs:Hide()
             else
                 descFs:Show()

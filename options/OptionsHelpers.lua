@@ -212,6 +212,35 @@ local function FontRowTypedSize(text, current, min, max, step)
     return v
 end
 
+--- The vertical rhythm of a card's visible entries, and where its hairlines go. Settings rows
+--- pad themselves; other entries get gaps. A row or custom widget gets a hairline above it
+--- unless it is the first entry in the card or follows a subheading or a note (the start of a
+--- group). Subheadings and notes never get one, and a spacer (a zero-height entry) is skipped.
+--- @param kinds table  Each visible entry in order: "row", "block", "subheading", "note" or "spacer"
+--- @param m table  { subheadingTop, subheadingBottom, noteTop, blockPad }
+--- @return table  One { top = number, bottom = number, divider = boolean } per entry
+local function CardRowSpacing(kinds, m)
+    local out = {}
+    local prev
+    for i, kind in ipairs(kinds or {}) do
+        local e = { top = 0, bottom = 0, divider = false }
+        if kind == "subheading" then
+            e.top, e.bottom = m.subheadingTop or 0, m.subheadingBottom or 0
+        elseif kind == "note" then
+            e.top = m.noteTop or 0
+        elseif kind == "block" then
+            e.top, e.bottom = m.blockPad or 0, m.blockPad or 0
+        end
+        if (kind == "row" or kind == "block") and (prev == "row" or prev == "block") then
+            e.divider = true
+        end
+        if kind ~= "spacer" then prev = kind end
+        out[i] = e
+    end
+    return out
+end
+
+addon.CardRowSpacing                   = CardRowSpacing
 addon.FONT_ROW_METRICS                 = FONT_ROW_METRICS
 addon.FontRowLayout                    = FontRowLayout
 addon.FontRowStepSize                  = FontRowStepSize
