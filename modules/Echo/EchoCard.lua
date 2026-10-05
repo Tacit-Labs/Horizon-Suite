@@ -22,7 +22,9 @@
     message area instead of lines.
     Bubbles are laid out newest-first from the bottom of a clipped area and the wheel
     scrolls by message. Readable text is measured; a secret gets the widest bubble and a
-    fixed three lines, so nothing ever reads a size from a FontString holding a secret.
+    fixed three lines, so nothing ever reads a size from a FontString holding a secret. The
+    height of those three lines is measured on a readable probe in the same font
+    (Card.SecretHeight), since a font's line height is not a fixed share of its size.
     Blizzard: CreateFrame, UISpecialFrames, MenuUtil (through Echo.Menu), InCombatLockdown,
     ChatFrame1EditBox:HasFocus (read only, for the idle close).
 ]]
@@ -101,6 +103,11 @@ local activeNotice  -- the shortcut notice the hint shows now, so only its own t
 -- Point the pin strip back at the newest pin.
 local function ResetPinCursor()
     pinIndex = nil
+end
+
+--- Lay the shown card out again (after a font change), so bubbles fit the new glyphs.
+function Card.Relayout()
+    if root and root:IsShown() then Card.Render() end
 end
 
 --- Take the card's width and height from the settings and re-derive the sizes built on
@@ -567,6 +574,28 @@ local function Label(i)
     return fs
 end
 
+-- The height of Card.SECRET_LINES lines of message text, measured on a hidden readable
+-- FontString in the current font and size. Cached until the font or size changes.
+local probe, secretHeight, secretKey
+function Card.SecretHeight()
+    local path = Echo.FontPath()
+    local key = tostring(path) .. ":" .. tostring(Card.TEXT_SIZE)
+    if secretHeight and secretKey == key then return secretHeight end
+    if not probe then
+        probe = UIParent:CreateFontString(nil, "OVERLAY")
+        probe:SetWordWrap(true)
+        probe:Hide()
+    end
+    probe:SetFont(path, Card.TEXT_SIZE, "")
+    probe:SetText(string.rep("Ag\n", Card.SECRET_LINES - 1) .. "Ag")
+    local h = probe:GetStringHeight()
+    if type(h) ~= "number" or h <= 0 then h = 0 end
+    -- Never below the old fixed estimate, so a probe that can't measure changes nothing.
+    secretHeight = math.max(math.ceil(h), Card.SECRET_LINES * (Card.TEXT_SIZE + 3))
+    secretKey = key
+    return secretHeight
+end
+
 -- Size a bubble to its text and return its height. Readable text is measured; a secret
 -- can't be, so it gets the widest bubble and a fixed number of lines. markSide ("left",
 -- "right" or nil) is where a pinned bubble's marker sits: the text keeps clear of it on
@@ -585,7 +614,7 @@ local function SizeBubble(b, text, secret, markSide)
     local width, height
     if secret then
         width = Card.BUBBLE_MAX
-        height = Card.SECRET_LINES * (Card.TEXT_SIZE + 3)
+        height = Card.SecretHeight()
     else
         local measured
         if b.text.GetUnboundedStringWidth then measured = b.text:GetUnboundedStringWidth() end
@@ -656,7 +685,7 @@ local function SizeFeedLine(b, msg, secret, pinned, text)
     b.text:SetText(text)
     local height
     if secret then
-        height = Card.SECRET_LINES * (Card.TEXT_SIZE + 3)
+        height = Card.SecretHeight()
     else
         local h = b.text:GetStringHeight()
         if Echo.IsSecret(h) or type(h) ~= "number" or h <= 0 then h = Card.LINE_HEIGHT end
