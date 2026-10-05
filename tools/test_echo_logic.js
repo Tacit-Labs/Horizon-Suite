@@ -8504,6 +8504,27 @@ run(`
   fire("UpdateHeader", box)
   check("follow: after deactivate the same target opens again", #shows == before + 1 and C.ShownKey() == "nearby", #shows - before)
 
+  -- echoEnterOpens: what the card opens as the line starts in Say, Yell or Emote.
+  local function opened(chatType)
+    fire("DeactivateChat", box)
+    C.Hide()
+    box.shown, box.focus = true, true
+    box.attrs = { chatType = chatType }
+    fire("ActivateChat", box)
+    fire("UpdateHeader", box)
+    return C.ShownKey()
+  end
+  check("enter: Say opens Nearby by default", opened("SAY") == "nearby", tostring(C.ShownKey()))
+  db.echoEnterOpens = "all"
+  check("enter: set to All, Say opens the All view", opened("SAY") == "all", tostring(C.ShownKey()))
+  check("enter: the All tile is open", S.Get("all") and S.Get("all").open == true, "closed")
+  check("enter: Nearby's mode still follows the line", opened("YELL") == "all" and S.SendModeOf("nearby") == "YELL", S.SendModeOf("nearby"))
+  check("enter: other chat still opens its own card", opened("GUILD") == "guild", tostring(C.ShownKey()))
+  db.echoAllView = false
+  check("enter: with the All view off, Say opens Nearby", opened("SAY") == "nearby", tostring(C.ShownKey()))
+  db.echoAllView, db.echoEnterOpens = nil, nil
+  check("enter: back to Nearby", opened("SAY") == "nearby", tostring(C.ShownKey()))
+
   -- Never while the card is animating a close, and never while docking is off.
   local realClosing = C.IsClosing
   check("follow: the card says whether a close is animating", type(realClosing) == "function" and realClosing() == false, tostring(realClosing))

@@ -12,7 +12,8 @@
     its own reply box, mode chip and send button while the line is shown over it.
     While the line is being typed in, the card follows it: Blizzard's Whisper, R, /w, /g
     and /1 open the conversation the line is aimed at, once per target, without focus
-    or the genie.
+    or the genie. Say, Yell and Emote open Nearby, or the All view when echoEnterOpens is
+    "all" (and All collects).
     Blizzard's chat code is only observed: hooksecurefunc post-hooks on the activate,
     deactivate and header functions and on the box's SetPoint, and HookScript post-hooks on
     its OnShow, OnHide and OnTextChanged. Echo never calls them, never focuses the box, never
@@ -370,10 +371,13 @@ local function Follow(box)
     if key == "nearby" then
         local mode = Attribute(box, "chatType")
         if type(mode) == "string" then Echo.Store.SetSendMode("nearby", mode) end
+        -- echoEnterOpens "all": Say, Yell and Emote open the All view, where every chat is,
+        -- while it collects. The line still sends to Say, Yell or Emote.
+        if Echo.Setting("echoEnterOpens") == "all" and Echo.FeedEnabled("all") then key = "all" end
     end
     if key == followed then return end
     followed = key
-    Echo.Store.Start(key)
+    if key == "all" then Echo.Store.OpenFeed(key) else Echo.Store.Start(key) end
     Card.Show(key, nil)  -- no tile, so no genie: the line is being typed in
 end
 
