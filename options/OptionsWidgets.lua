@@ -64,6 +64,7 @@ local Def = {
     SegRadius = 6,                                  -- a segment's corners (the track uses ControlRadius)
     SegFitShare = 0.5,                              -- segments must fit in this share of the row's width
     SegDisabledAlpha = 0.45,
+    SegSlideDuration = 0.15,                        -- seconds for the selection to slide on a click
     FocusRing = { 0.59, 0.63, 0.75, 0.35 },         -- neutral ring on a focused input (was the accent)
     SidebarSelectedBg = { 0.48, 0.58, 0.82, 0.16 }, -- accent at 16%; the class theme swaps the rgb
     SwitchWidth = 36,
@@ -996,34 +997,118 @@ local function CreateSegmentedControl(parent, opts, onPick, isDisabled)
     local segs = {}
     local value
 
+    -- One raised pill marks the selection. It sits under the segments' labels and slides to the
+    -- picked segment on a click; any other value change (Refresh, profile switch) snaps it.
+    local pill = CreateFrame("Frame", nil, track)
+    pill:SetFrameLevel(track:GetFrameLevel() + 1)   -- above the track's fill, below the labels
+    local paintPill, paintPillRing = PaintRounded(pill, Def.SegRadius, "BACKGROUND", true)
+    local slide          -- { fromX, fromW, fromSeg, toSeg, t, e, curX, curW } while sliding
+    local animateNext    -- set by a click, consumed by the next SetValue
+
+    local function SelectedSeg()
+        for _, sg in ipairs(segs) do
+            if sg.value == value then return sg end
+        end
+    end
+
+    local function SegX(sg)
+        return sg._x or 0
+    end
+
+    local function PlacePill(x, w)
+        pill:ClearAllPoints()
+        pill:SetPoint("LEFT", track, "LEFT", x, 0)
+        pill:SetSize(math.max(1, w), Def.ControlHeight - 2 * Def.SegTrackPad)
+    end
+
+    local function Lerp(a, b, t) return a + (b - a) * t end
+    local function LerpColor(c1, c2, t)
+        return { Lerp(c1[1], c2[1], t), Lerp(c1[2], c2[2], t), Lerp(c1[3], c2[3], t) }
+    end
+
+    local function TextColorFor(sg, dis)
+        if sg.value == value then return Def.SegTextSelected end
+        if sg.hovered and not dis then return Def.TextColorLabel end
+        return Def.TextColorMuted
+    end
+
     function track:Paint()
         local dis = isDisabled()
         PaintToken(paintTrack, Def.SegTrackBg)
+        local sel = SelectedSeg()
+        if sel then
+            PaintToken(paintPill, Def.SegSelectedBg)
+            PaintToken(paintPillRing, Def.SegSelectedRing)
+            pill:Show()
+            if not slide then PlacePill(SegX(sel), sel:GetWidth()) end
+        else
+            pill:Hide()
+        end
         for _, sg in ipairs(segs) do
-            local on = sg.value == value
-            if on then
-                PaintToken(sg.paint, Def.SegSelectedBg)
-                PaintToken(sg.paintRing, Def.SegSelectedRing)
-            else
-                sg.paint(0, 0, 0, 0)
-                sg.paintRing(0, 0, 0, 0)
+            local c = TextColorFor(sg, dis)
+            if slide and (sg == slide.fromSeg or sg == slide.toSeg) then
+                -- Mid-slide, the old label fades down while the new one fades up.
+                local e = slide.e or 0
+                if sg == slide.toSeg then c = LerpColor(Def.TextColorMuted, Def.SegTextSelected, e)
+                else c = LerpColor(Def.SegTextSelected, Def.TextColorMuted, e) end
             end
-            local c = Def.TextColorMuted
-            if on then c = Def.SegTextSelected elseif sg.hovered and not dis then c = Def.TextColorLabel end
             SetTextColor(sg.text, c)
         end
         track:SetAlpha(dis and Def.SegDisabledAlpha or 1)
     end
 
+    local easeOut = addon.easeOut or function(t) return 1 - (1 - t) * (1 - t) end
+
+    local function StopSlide()
+        slide = nil
+        pill:SetScript("OnUpdate", nil)
+    end
+
+    pill:SetScript("OnHide", StopSlide)
+
     function track:SetValue(v)
+        local fromSeg = SelectedSeg()
+        local animate = animateNext
+        animateNext = nil
         value = v
+        local toSeg = SelectedSeg()
+        local dur = Def.SegSlideDuration or 0
+        if fromSeg == toSeg and slide then
+            -- Same value again (a refresh during the slide): let the slide finish.
+            self:Paint()
+            return
+        end
+        if animate and fromSeg and toSeg and fromSeg ~= toSeg and dur > 0
+            and pill:IsVisible() and toSeg:GetWidth() > 0 then
+            -- Start from where the pill is now, so a click mid-slide carries on smoothly.
+            local fromX = slide and slide.curX or SegX(fromSeg)
+            local fromW = slide and slide.curW or fromSeg:GetWidth()
+            slide = { fromX = fromX, fromW = fromW, fromSeg = fromSeg, toSeg = toSeg, t = 0, e = 0 }
+            pill:SetScript("OnUpdate", function(_, elapsed)
+                local s = slide
+                if not s then return end
+                s.t = s.t + (elapsed or 0)
+                local p = math.min(1, s.t / dur)
+                s.e = easeOut(p)
+                s.curX = Lerp(s.fromX, SegX(s.toSeg), s.e)
+                s.curW = Lerp(s.fromW, s.toSeg:GetWidth(), s.e)
+                PlacePill(s.curX, s.curW)
+                track:Paint()
+                if p >= 1 then
+                    StopSlide()
+                    track:Paint()
+                end
+            end)
+        else
+            StopSlide()
+        end
         self:Paint()
     end
 
     for i, opt in ipairs(opts) do
         local sg = CreateFrame("Button", nil, track)
         sg.value, sg.label = opt[2], tostring(opt[1] or "")
-        sg.paint, sg.paintRing = PaintRounded(sg, Def.SegRadius, "BACKGROUND", true)
+        sg:SetFrameLevel(track:GetFrameLevel() + 2)
         local text = sg:CreateFontString(nil, "OVERLAY")
         SetSafeFont(text, Def.FontPath, Def.LabelSize, nil)
         if text.SetWordWrap then text:SetWordWrap(false) end
@@ -1032,7 +1117,9 @@ local function CreateSegmentedControl(parent, opts, onPick, isDisabled)
         sg.text = text
         sg:SetScript("OnClick", function()
             if isDisabled() then return end
+            animateNext = true
             onPick(sg.value, sg.label)
+            animateNext = nil   -- the pick's SetValue has run; nothing else may animate
         end)
         sg:SetScript("OnEnter", function()
             sg.hovered = true
@@ -1068,9 +1155,12 @@ local function CreateSegmentedControl(parent, opts, onPick, isDisabled)
             sg:SetSize(w, Def.ControlHeight - 2 * Def.SegTrackPad)
             sg:ClearAllPoints()
             sg:SetPoint("LEFT", track, "LEFT", x, 0)
+            sg._x = x
             x = x + w + Def.SegGap
         end
         track:SetWidth(natural)
+        local sel = SelectedSeg()
+        if sel and not slide then PlacePill(sel._x, sel:GetWidth()) end
         return fits, natural
     end
 
