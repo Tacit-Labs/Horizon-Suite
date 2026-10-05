@@ -285,15 +285,25 @@ local function ShouldSuppressType()
     return false
 end
 
-local function getFrameY()
-    local v = addon.GetDB and tonumber(addon.GetDB("presenceFrameY", FRAME_Y_DEF)) or FRAME_Y_DEF
-    return math.max(-300, math.min(0, v))
+local CreateEditOverlay
+
+-- Limits come from PRESENCE_LIMITS so the slider, the drag anchor and this clamp agree.
+local function clampFrameOffset(key, v)
+    local lim = addon.PRESENCE_LIMITS and addon.PRESENCE_LIMITS[key]
+    if not lim then return v end
+    return math.max(lim.min, math.min(lim.max, v))
 end
 
--- Horizontal offset from screen centre, for multi-monitor spans where centre sits on a bezel.
+local function getFrameY()
+    local v = addon.GetDB and tonumber(addon.GetDB("presenceFrameY", FRAME_Y_DEF)) or FRAME_Y_DEF
+    return clampFrameOffset("presenceFrameY", v)
+end
+
+-- Horizontal offset from screen centre. Set by dragging the anchor (no slider), so a
+-- game spanning several monitors can move toasts off the bezel at screen centre.
 local function getFrameX()
     local v = addon.GetDB and tonumber(addon.GetDB("presenceFrameX", 0)) or 0
-    return math.max(-2000, math.min(2000, v))
+    return clampFrameOffset("presenceFrameX", v)
 end
 
 local function getFrameScale()
@@ -609,6 +619,85 @@ local active, activeTitle, activeTypeName
 local queue, crossfadeStartAlpha
 local subtitleTransition  -- { phase = "fadeOut"|"fadeIn", elapsed = 0, newText = string }
 local PlayCinematic
+
+-- ============================================================================
+-- Edit mode: drag anchor (mirrors Augment Alerts' editOverlay)
+-- ============================================================================
+
+local editMode = false
+local editOverlay
+
+-- Toasts end by hiding F; while the anchor is shown F has to stay up.
+local function hideFrame()
+    if editMode then return end
+    F:Hide()
+end
+
+-- StartMoving re-anchors F to TOPLEFT of UIParent, so recompute the TOP/centre
+-- offsets the rest of the module uses. F is scaled, so its coordinates (and its
+-- SetPoint offsets) are in F's units; UIParent's edges are converted into them.
+local function SaveDraggedPosition()
+    local left, right, top = F:GetLeft(), F:GetRight(), F:GetTop()
+    if not left or not right or not top then return end
+    local rel = F:GetEffectiveScale() / UIParent:GetEffectiveScale()
+    if rel <= 0 then return end
+    local parentCenterX = (UIParent:GetLeft() + UIParent:GetRight()) / 2 / rel
+    local parentTop = UIParent:GetTop() / rel
+    local x = clampFrameOffset("presenceFrameX", math.floor((left + right) / 2 - parentCenterX + 0.5))
+    local y = clampFrameOffset("presenceFrameY", math.floor(top - parentTop + 0.5))
+    if addon.SetDB then
+        addon.SetDB("presenceFrameX", x)
+        addon.SetDB("presenceFrameY", y)
+    end
+    F:ClearAllPoints()
+    F:SetPoint("TOP", x, y)
+end
+
+CreateEditOverlay = function()
+    if editOverlay then return end
+    editOverlay = CreateFrame("Frame", nil, F, "BackdropTemplate")
+    editOverlay:SetAllPoints(F)
+    editOverlay:SetBackdrop({
+        bgFile   = "Interface\\Tooltips\\UI-Tooltip-Background",
+        edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+        edgeSize = 12,
+        insets   = { left = 2, right = 2, top = 2, bottom = 2 },
+    })
+    editOverlay:SetBackdropColor(0, 0, 0, 0.5)
+    editOverlay:SetBackdropBorderColor(0.95, 0.65, 0.25, 0.8)
+    editOverlay:SetFrameLevel(F:GetFrameLevel() + 20)
+    editOverlay:EnableMouse(false)
+    editOverlay:RegisterForDrag("LeftButton")
+    editOverlay:SetScript("OnDragStart", function()
+        F:SetMovable(true)
+        F:SetClampedToScreen(true)
+        F:StartMoving()
+    end)
+    editOverlay:SetScript("OnDragStop", function()
+        F:StopMovingOrSizing()
+        F:SetMovable(false)
+        F:SetClampedToScreen(false)
+        SaveDraggedPosition()
+    end)
+    editOverlay:SetScript("OnMouseUp", function(_, button)
+        if button == "RightButton" and addon.Presence.HideAnchorFrame then
+            addon.Presence.HideAnchorFrame()
+        end
+    end)
+    editOverlay:Hide()
+
+    local title = editOverlay:CreateFontString(nil, "OVERLAY")
+    title:SetFontObject(GameFontNormalLarge)
+    title:SetTextColor(0.95, 0.65, 0.25, 1)
+    title:SetPoint("CENTER", editOverlay, "CENTER", 0, 10)
+    title:SetText(L["PRESENCE_EDIT_MODE_AREA"])
+
+    local hint = editOverlay:CreateFontString(nil, "OVERLAY")
+    hint:SetFontObject(GameFontNormalSmall)
+    hint:SetTextColor(0.7, 0.7, 0.7, 1)
+    hint:SetPoint("CENTER", editOverlay, "CENTER", 0, -8)
+    hint:SetText(L["PRESENCE_EDIT_MODE_HINT"])
+end
 
 -- Cached at PlayCinematic time so OnUpdate never calls GetDB.
 local cachedEntranceDur   = 0.7
@@ -1022,7 +1111,7 @@ onComplete = function()
     activeTypeName  = nil
     resetLayer(curLayer)
     resetLayer(oldLayer)
-    F:Hide()
+    hideFrame()
 
     if doneTitle then
         addon.Log.debug("presence",("Complete %s \"%s\" | \"%s\"; queue=%d"):format(tostring(doneType or "?"), tostring(doneTitle or ""):gsub('"', "'"), tostring(doneSub):gsub('"', "'"), #queue))
@@ -1055,6 +1144,7 @@ local function Init()
     F:SetPoint("TOP", getFrameX(), getFrameY())
     F:SetScale(getFrameScale())
     F:Hide()
+    CreateEditOverlay()
 
     layerA   = CreateLayer(F)
     layerB   = CreateLayer(F)
@@ -1187,7 +1277,7 @@ local function CancelZoneAnim()
         activeTypeName  = nil
         resetLayer(curLayer)
         resetLayer(oldLayer)
-        F:Hide()
+        hideFrame()
     end
     if queue then
         local kept = {}
@@ -1326,7 +1416,7 @@ local function HideAndClear()
     addon.Presence.pendingDiscovery = nil
     resetLayer(curLayer)
     resetLayer(oldLayer)
-    F:Hide()
+    hideFrame()
 end
 
 -- Dump Presence internal state to chat for debugging.
@@ -1502,6 +1592,36 @@ local function setStoredPreviewTypeName(typeName)
     if addon.SetDB then
         addon.SetDB("presencePreviewType", typeName)
     end
+end
+
+-- Show or hide the drag anchor. Plays the stored preview toast so the text is
+-- visible while positioning.
+local function ToggleAnchorFrame()
+    if not F then Init() end
+    editMode = not editMode
+    if editMode then
+        editOverlay:EnableMouse(true)
+        editOverlay:Show()
+        F:Show()
+        PreviewToast(getStoredPreviewTypeName())
+    else
+        editOverlay:EnableMouse(false)
+        editOverlay:Hide()
+        if anim.phase == "idle" then F:Hide() end
+    end
+end
+
+local function HideAnchorFrame()
+    if not F or not editMode then return end
+    ToggleAnchorFrame()
+end
+
+local function ResetPosition()
+    if addon.SetDB then
+        addon.SetDB("presenceFrameX", 0)
+        addon.SetDB("presenceFrameY", FRAME_Y_DEF)
+    end
+    ApplyPresenceOptions()
 end
 
 local function RegisterPreviewTarget(owner, refreshFn)
@@ -2040,6 +2160,9 @@ addon.Presence.ToggleDebugLive    = ToggleDebugLive
 addon.Presence.ShowDebugPanel     = presencePanel.Show
 addon.Presence.HideDebugPanel     = presencePanel.Hide
 addon.Presence.GetActiveTypeName  = GetActiveTypeName
+addon.Presence.ToggleAnchorFrame  = ToggleAnchorFrame
+addon.Presence.HideAnchorFrame    = HideAnchorFrame
+addon.Presence.ResetPosition      = ResetPosition
 addon.Presence.DISCOVERY_WAIT     = 0.15
 
 addon.Presence.IsTypeEnabled        = IsTypeEnabled
