@@ -681,8 +681,12 @@ CreateEditOverlay = function()
         F:SetClampedToScreen(false)
         SaveDraggedPosition()
     end)
+    -- No sample on Edit Mode entry (see #501); Shift-click asks for one instead.
     editOverlay:SetScript("OnMouseUp", function(_, button)
-        if button == "RightButton" and addon.Presence.HideAnchorFrame then
+        if button == "LeftButton" and IsShiftKeyDown() and addon.Presence.PreviewToast then
+            local typeName = addon.GetDB and addon.GetDB("presencePreviewType", "LEVEL_UP") or "LEVEL_UP"
+            addon.Presence.PreviewToast(typeName)
+        elseif button == "RightButton" and addon.Presence.HideAnchorFrame then
             addon.Presence.HideAnchorFrame()
         end
     end)
@@ -1628,7 +1632,6 @@ local function ShowNativeOverlay(show)
         editOverlay:EnableMouse(true)
         editOverlay:Show()
         F:Show()
-        PreviewToast(getStoredPreviewTypeName())
     elseif not editMode then
         editOverlay:EnableMouse(false)
         editOverlay:Hide()
