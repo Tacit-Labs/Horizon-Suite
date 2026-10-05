@@ -37,11 +37,14 @@ so the target is the mockup's feel, not a pixel match.
   separates each row from the one above. There is no hairline above the first row of a card or
   of a subheading group.
 - **Label and description.** The label is in the label size and colour. Below it, the row's
-  `desc` shows in the help size and muted colour, on one line, ending in an ellipsis when it is
-  too long. The full `desc` and `tooltip` stay in the tooltip. A row without a `desc` is one
-  line tall.
-- **Height.** A one-line row is about 40px and a row with a description about 52px. The layout
-  already reads each widget's height.
+  `desc` shows in the help size and muted colour, wrapping to at most two lines and ending in an
+  ellipsis after the second. Many descriptions are full sentences, so a single line would end
+  most of them in "…". The full `desc` and `tooltip` stay in the tooltip. A row without a
+  `desc` is one line tall.
+- **Height.** A row with no description is about 40px. One with a one-line description is
+  about 52px, and one with a two-line description about 66px. The height is derived from the
+  measured text (label and help sizes), and it grows when the label wraps. The layout already
+  reads each widget's height.
 - **Controls** sit right-aligned on a flat filled background (`Def.InputBg`), with radius 8 and
   no border. That covers dropdowns, the stepper, editboxes and buttons.
 - **Switches** are 36×20 pills. The track is `Def.TrackOff` when off and the accent when on,

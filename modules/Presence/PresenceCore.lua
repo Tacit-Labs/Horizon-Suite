@@ -1824,6 +1824,19 @@ local function CreatePreviewWidget(parent, opts)
     )
     dd:SetPoint("TOPLEFT", container, "TOPLEFT", 0, 0)
     dd:SetPoint("RIGHT", container, "RIGHT", 0, 0)
+    -- The container was sized for a 34px dropdown row; settings rows are now taller (52px or
+    -- more with their description), so it grows by the difference, and again whenever the row
+    -- changes height. onHeightChanged on the container lets the options card restack.
+    local PREVIEW_DROPDOWN_BASE_H = 34
+    local function fitContainer()
+        local h = 260 + math.max(0, (dd:GetHeight() or PREVIEW_DROPDOWN_BASE_H) - PREVIEW_DROPDOWN_BASE_H)
+        if math.abs((container:GetHeight() or 0) - h) > 0.5 then
+            container:SetHeight(h)
+            if container.onHeightChanged then container.onHeightChanged() end
+        end
+    end
+    dd.onHeightChanged = fitContainer
+    fitContainer()
 
     local actionAnchor
     local animateBtn

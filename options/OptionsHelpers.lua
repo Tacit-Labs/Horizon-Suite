@@ -141,7 +141,8 @@ local FONT_ROW_METRICS = {
 --- Lay out a font row at a given width. A width of 0 or less (not yet anchored) lays out as one line.
 --- @param width number
 --- @param has table  { family = bool, size = bool, outline = bool }
---- @return table  { wrapped = bool, familyW = number, height = number }
+--- @return table  { wrapped = bool, familyW = number, lines = 1 or 2 }  The widget sets the
+---   lines' heights (SettingsRowHeight), so the layout reports only how many there are.
 local function FontRowLayout(width, has)
     local M = FONT_ROW_METRICS
     has = has or {}
@@ -150,9 +151,8 @@ local function FontRowLayout(width, has)
     local share = wrapped and 0.4 or 0.24
     local familyW = known and math.floor(width * share) or M.familyMax
     familyW = math.max(M.familyMin, math.min(M.familyMax, familyW))
-    local height = M.lineH
-    if wrapped and (has.size or has.outline) then height = M.lineH + M.line2H end
-    return { wrapped = wrapped and true or false, familyW = familyW, height = height }
+    local lines = (wrapped and (has.size or has.outline)) and 2 or 1
+    return { wrapped = wrapped and true or false, familyW = familyW, lines = lines }
 end
 
 --- Step or clamp a font size the way the old slider did: snap to the step, then clamp.
@@ -240,7 +240,26 @@ local function CardRowSpacing(kinds, m)
     return out
 end
 
+--- The height of a settings row from its measured text. The label and description stack
+--- with descGap between them, centred with padY above and below; the row is never shorter than
+--- minH. Heights over labelMaxH or descMaxH (the line caps: two lines each) are clamped, in
+--- case a client reports the unclamped height of truncated text.
+--- @param labelH number  Measured label height
+--- @param descH number|nil  Measured description height; 0 or nil for no description
+--- @param m table  { minH, padY, descGap, labelMaxH?, descMaxH? }
+--- @return number height, number blockH  The row height and the text block's height
+local function SettingsRowHeight(labelH, descH, m)
+    labelH = math.max(0, tonumber(labelH) or 0)
+    descH = math.max(0, tonumber(descH) or 0)
+    if m.labelMaxH then labelH = math.min(labelH, m.labelMaxH) end
+    if m.descMaxH then descH = math.min(descH, m.descMaxH) end
+    local blockH = labelH
+    if descH > 0 then blockH = blockH + (m.descGap or 0) + descH end
+    return math.max(m.minH or 0, math.ceil(blockH + 2 * (m.padY or 0))), blockH
+end
+
 addon.CardRowSpacing                   = CardRowSpacing
+addon.SettingsRowHeight                = SettingsRowHeight
 addon.FONT_ROW_METRICS                 = FONT_ROW_METRICS
 addon.FontRowLayout                    = FontRowLayout
 addon.FontRowStepSize                  = FontRowStepSize

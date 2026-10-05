@@ -137,7 +137,8 @@ function addon.DashboardAccordionBuild_Init(f, p)
             local startAlpha = card:GetAlpha() or (fadingIn and 0 or 1)
             local startHeight = card:GetHeight() or 0
             local endAlpha = fadingIn and 1 or 0
-            local endHeight = fadingIn and targetHeight or 0
+            -- Read each tick: a row that changes height mid-fade moves the target (OnRowHeightChanged).
+            card._fadeTargetHeight = fadingIn and targetHeight or 0
 
             local animFrame = card.relayoutAnimFrame
             if not animFrame then
@@ -156,6 +157,7 @@ function addon.DashboardAccordionBuild_Init(f, p)
                 local t = math.min(1, elapsed / CARD_VISIBILITY_FADE_DUR)
                 local ep = easeOutDep(t)
                 card:SetAlpha(startAlpha + (endAlpha - startAlpha) * ep)
+                local endHeight = card._fadeTargetHeight or 0
                 card:SetHeight(math.max(0.01, startHeight + (endHeight - startHeight) * ep))
                 UpdateDetailLayout()
                 if t >= 1 then
@@ -206,9 +208,9 @@ function addon.DashboardAccordionBuild_Init(f, p)
 
         -- Restack the card's visible entries. Spacing and hairlines come from
         -- addon.CardRowSpacing, decided from the visible order each time, so a row that hides
-        -- or shows moves the hairlines with it.
-        local function DoInstantRelayout(card, skipHeightApply, animateVisibility)
-            if not card or not card.widgetList then return end
+        -- or shows moves the hairlines with it. restackOnly positions the entries and works out
+        -- card.fullHeight but leaves the card's height and visibility to a running animation.
+        local function DoInstantRelayoutBody(card, skipHeightApply, animateVisibility, restackOnly)
             animateVisibility = animateVisibility == true
             card._inRelayout = true
             local WDef = addon.OptionsWidgetsDef
@@ -267,7 +269,11 @@ function addon.DashboardAccordionBuild_Init(f, p)
             -- A row that changed height while this pass read the heights: stack once more.
             if card._relayoutPending then
                 card._relayoutPending = nil
-                DoInstantRelayout(card, skipHeightApply, animateVisibility)
+                DoInstantRelayoutBody(card, skipHeightApply, animateVisibility, restackOnly)
+                return
+            end
+            if restackOnly then
+                UpdateDetailLayout()
                 return
             end
             if card.headerToggleInit then
@@ -305,6 +311,18 @@ function addon.DashboardAccordionBuild_Init(f, p)
                 end
             end
             UpdateDetailLayout()
+        end
+
+        -- Runs the body under pcall so an error cannot leave card._inRelayout set (which would
+        -- swallow every later restack), then raises the error again.
+        local function DoInstantRelayout(card, skipHeightApply, animateVisibility, restackOnly)
+            if not card or not card.widgetList then return end
+            local ok, err = pcall(DoInstantRelayoutBody, card, skipHeightApply, animateVisibility, restackOnly)
+            if not ok then
+                card._inRelayout = nil
+                card._relayoutPending = nil
+                error(err, 0)
+            end
         end
 
         local function RelayoutCard(card, animateVisibility)
@@ -468,12 +486,26 @@ function addon.DashboardAccordionBuild_Init(f, p)
             end
         end
 
-        -- A settings row reports a new height (a wrapped label, a font row wrapping): restack
-        -- its card, or, when the card is mid-restack, have that pass run once more.
+        -- An entry reports a new height (a wrapped label, a font row wrapping, the colour
+        -- matrix restacking): restack its card. Mid-restack, that pass runs once more. While an
+        -- animation owns the card's height (a visibility fade or a dependent-row fade), only the
+        -- entries move and the animation's target height follows card.fullHeight, so the
+        -- animation is neither dropped nor restarted.
         local function OnRowHeightChanged(card)
             if not card then return end
             if card._inRelayout then
                 card._relayoutPending = true
+                return
+            end
+            if card._visibilityFadingOut then return end
+            local anim = card.relayoutAnim
+            if card._visibilityFadingIn or anim then
+                DoInstantRelayout(card, true, false, true)
+                if card._visibilityFadingIn then
+                    card._fadeTargetHeight = card.expanded and card.fullHeight or card.collapsedHeight
+                end
+                -- The fade-out phase reads card.fullHeight itself when it ends.
+                if anim and anim.phase ~= "fadeOut" then anim.targetFullH = card.fullHeight end
                 return
             end
             RelayoutCard(card, false)
@@ -1007,6 +1039,17 @@ function addon.DashboardAccordionBuild_Init(f, p)
                     local perCatHdr, resetAllBtn, goHdr, otherHdr
                     local ovCompleted, ovCurrentZone, ovCurrentQuest, ovCompletedObj
 
+                    -- A toggle's hover runs to the card's edges, as on the card's own rows: past
+                    -- CARD_PAD inside the grid and the card padding outside it.
+                    local function StretchHover(row)
+                        local hover = row and row._rowHover
+                        if not hover then return end
+                        local edge = addon.OptionsWidgetsDef.CardPadding + CARD_PAD
+                        hover:ClearAllPoints()
+                        hover:SetPoint("TOPLEFT", row, "TOPLEFT", -edge, 0)
+                        hover:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", edge, 0)
+                    end
+
                     local function LayoutAll()
                         -- A row can report a height change before the whole grid exists.
                         if not (perCatHdr and goHdr and otherHdr and overrideGrid and ovCompletedObj) then return end
@@ -1036,16 +1079,19 @@ function addon.DashboardAccordionBuild_Init(f, p)
                         ovCompleted:ClearAllPoints()
                         ovCompleted:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", CARD_PAD, yOff)
                         ovCompleted:SetPoint("RIGHT", cmfContainer, "RIGHT", -CARD_PAD, 0)
+                        StretchHover(ovCompleted)
                         yOff = yOff - ovCompleted:GetHeight()
 
                         ovCurrentZone:ClearAllPoints()
                         ovCurrentZone:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", CARD_PAD, yOff)
                         ovCurrentZone:SetPoint("RIGHT", cmfContainer, "RIGHT", -CARD_PAD, 0)
+                        StretchHover(ovCurrentZone)
                         yOff = yOff - ovCurrentZone:GetHeight()
 
                         ovCurrentQuest:ClearAllPoints()
                         ovCurrentQuest:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", CARD_PAD, yOff)
                         ovCurrentQuest:SetPoint("RIGHT", cmfContainer, "RIGHT", -CARD_PAD, 0)
+                        StretchHover(ovCurrentQuest)
                         yOff = yOff - ovCurrentQuest:GetHeight()
 
                         -- Override grid: show only visible cards in a single row
@@ -1073,6 +1119,7 @@ function addon.DashboardAccordionBuild_Init(f, p)
                         ovCompletedObj:ClearAllPoints()
                         ovCompletedObj:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", CARD_PAD, yOff)
                         ovCompletedObj:SetPoint("RIGHT", cmfContainer, "RIGHT", -CARD_PAD, 0)
+                        StretchHover(ovCompletedObj)
                         yOff = yOff - ovCompletedObj:GetHeight()
 
                         for _, row in ipairs(otherColorRows) do
@@ -1086,9 +1133,8 @@ function addon.DashboardAccordionBuild_Init(f, p)
 
                         local newHeight = math.max(1, -yOff)
                         cmfContainer:SetHeight(newHeight)
-                        cmfCard.contentHeight = newHeight
-                        cmfCard.fullHeight = newHeight + cmfCard.chromeHeight
-                        UpdateDetailLayout()
+                        -- Restack the card around the new height (its padding included).
+                        OnRowHeightChanged(cmfCard)
                     end
 
                     -- Build the layout
@@ -1254,8 +1300,8 @@ function addon.DashboardAccordionBuild_Init(f, p)
                     local isHeader = opt.type == "header" and opt._subheading
                     local isNote = opt.type == "header" and not opt._subheading
 
-                    -- A settings row that grows (a wrapped label) restacks its card.
-                    if widget._rowPadded and not widget.onHeightChanged then
+                    -- An entry that changes height (a wrapped label, the Presence preview) restacks its card.
+                    if widget.SetHeight and not widget.onHeightChanged then
                         local cardRef = currentCard
                         widget.onHeightChanged = function() OnRowHeightChanged(cardRef) end
                     end

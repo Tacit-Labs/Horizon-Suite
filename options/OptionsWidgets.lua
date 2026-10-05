@@ -71,17 +71,19 @@ local Def = {
     CardDescMinWidth = 40,                          -- narrower than this, the card description hides
 
     -- Settings rows: grouped, no boxes, a hairline between rows (mockup .row).
-    RowHeight = 40,                                 -- a row with no description
-    RowHeightDesc = 52,                             -- a row with a description line
+    RowHeight = 40,                                 -- the shortest row (one label line, no description)
     RowPadY = 11,                                   -- space above and below a row's text
     RowDescGap = 2,                                 -- label to description
     RowControlGap = 16,                             -- label column to the controls
     RowLabelMaxLines = 2,
+    RowDescMaxLines = 2,                            -- then an ellipsis
+    LineHeightFactor = 1.2,                         -- line height estimate (x font size) before text is measured
+    RowLineCapFactor = 1.5,                         -- per-line cap (x font size) on a measured height
     RowIndentBarX = 2,                              -- dependent-row line, from the parent row's left
     RowIndentBarW = 2,
     RowIndentBarAlpha = 0.3,
-    SubheadingTopGap = 12,
-    SubheadingBottomGap = 2,
+    SubheadingTopGap = 16,                          -- mockup .sub-h padding
+    SubheadingBottomGap = 6,
     NoteTopGap = 6,
     BlockPadY = 8,                                  -- above and below a custom widget (lists, grids)
 
@@ -347,10 +349,48 @@ local function ApplyRowHoverHighlight(row)
     end)
 end
 
--- The label and one-line description on the left of a settings row. The label wraps to at
--- most Def.RowLabelMaxLines lines; the description (the row's desc) stays on one line and ends
--- in an ellipsis. The row is Def.RowHeight tall without a description and Def.RowHeightDesc
--- with one, taller only when the label wraps; the text block is centred vertically.
+-- Metrics for addon.SettingsRowHeight from the live Def sizes.
+local function RowHeightMetrics()
+    return {
+        minH = Def.RowHeight,
+        padY = Def.RowPadY,
+        descGap = Def.RowDescGap,
+        labelMaxH = Def.RowLabelMaxLines * Def.LabelSize * Def.RowLineCapFactor,
+        descMaxH = Def.RowDescMaxLines * Def.HelpSize * Def.RowLineCapFactor,
+    }
+end
+
+-- A row's height before its text is measured: one label line, and one description line when
+-- there is a description.
+local function EstimatedRowHeight(hasDesc)
+    local labelH = Def.LabelSize * Def.LineHeightFactor
+    local descH = hasDesc and (Def.HelpSize * Def.LineHeightFactor) or 0
+    if addon.SettingsRowHeight then return (addon.SettingsRowHeight(labelH, descH, RowHeightMetrics())) end
+    return Def.RowHeight
+end
+
+-- A description FontString under a row's label: HelpSize, muted, at most Def.RowDescMaxLines
+-- lines ending in an ellipsis.
+local function CreateRowDesc(row, description)
+    local desc = row:CreateFontString(nil, "OVERLAY")
+    SetSafeFont(desc, Def.FontPath, Def.HelpSize, nil)
+    desc:SetJustifyH("LEFT")
+    desc:SetJustifyV("TOP")
+    SetTextColor(desc, Def.TextColorMuted)
+    desc:SetWordWrap(true)
+    if desc.SetNonSpaceWrap then desc:SetNonSpaceWrap(false) end
+    if desc.SetMaxLines then desc:SetMaxLines(Def.RowDescMaxLines) end
+    local hasDesc = type(description) == "string" and description ~= ""
+    desc:SetText(hasDesc and description or "")
+    desc:SetShown(hasDesc)
+    return desc, hasDesc
+end
+
+-- The label and description on the left of a settings row. The label wraps to at most
+-- Def.RowLabelMaxLines lines and the description (the row's desc) to Def.RowDescMaxLines, then
+-- ends in an ellipsis. The row's height comes from addon.SettingsRowHeight: Def.RowHeight
+-- without a description, about 52px with a one-line one and 66px with two; the text block is
+-- centred vertically.
 -- Marks the row as padding itself (row._rowPadded), so the card adds no gap around it.
 -- Re-fits when the row's width changes; call text.Fit(true) after a font or label change.
 -- When the height changes, row.onHeightChanged() runs so the card can restack.
@@ -361,8 +401,6 @@ end
 --   gap to the label included
 -- @return table  { label, desc, hasDesc, Fit }
 local function CreateRowText(row, labelText, description, rightInsetFn)
-    local hasDesc = type(description) == "string" and description ~= ""
-
     local label = row:CreateFontString(nil, "OVERLAY")
     SetSafeFont(label, Def.FontPath, Def.LabelSize, nil)
     label:SetJustifyH("LEFT")
@@ -372,16 +410,8 @@ local function CreateRowText(row, labelText, description, rightInsetFn)
     label:SetWordWrap(true)
     if label.SetMaxLines then label:SetMaxLines(Def.RowLabelMaxLines) end
 
-    local desc = row:CreateFontString(nil, "OVERLAY")
-    SetSafeFont(desc, Def.FontPath, Def.HelpSize, nil)
-    desc:SetJustifyH("LEFT")
-    SetTextColor(desc, Def.TextColorMuted)
-    desc:SetWordWrap(false)
-    if desc.SetNonSpaceWrap then desc:SetNonSpaceWrap(false) end
-    if desc.SetMaxLines then desc:SetMaxLines(1) end
-    desc:SetText(hasDesc and description or "")
+    local desc, hasDesc = CreateRowDesc(row, description)
     desc:SetPoint("TOPLEFT", label, "BOTTOMLEFT", 0, -Def.RowDescGap)
-    desc:SetShown(hasDesc)
 
     -- Until the row has a width: one line, centred (or the pair centred around the middle).
     if hasDesc then
@@ -390,8 +420,7 @@ local function CreateRowText(row, labelText, description, rightInsetFn)
         label:SetPoint("LEFT", row, "LEFT", 0, 0)
     end
 
-    local minH = hasDesc and Def.RowHeightDesc or Def.RowHeight
-    row:SetHeight(minH)
+    row:SetHeight(EstimatedRowHeight(hasDesc))
     row._rowPadded = true
     row._desc = desc
 
@@ -405,11 +434,10 @@ local function CreateRowText(row, labelText, description, rightInsetFn)
         local textW = math.max(1, w - (rightInsetFn and rightInsetFn(w) or 0))
         label:SetWidth(textW)
         desc:SetWidth(textW)
-        local blockH = label:GetStringHeight() or 0
-        if hasDesc then blockH = blockH + Def.RowDescGap + (desc:GetStringHeight() or 0) end
+        local h, blockH = addon.SettingsRowHeight(label:GetStringHeight(),
+            hasDesc and desc:GetStringHeight() or 0, RowHeightMetrics())
         label:ClearAllPoints()
         label:SetPoint("TOPLEFT", row, "LEFT", 0, blockH / 2)
-        local h = math.max(minH, math.ceil(blockH + 2 * Def.RowPadY))
         -- SetHeight fires OnSizeChanged again with the same width; lastW stops that here.
         if math.abs((row:GetHeight() or 0) - h) > 0.5 then
             row:SetHeight(h)
@@ -1005,7 +1033,8 @@ function _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, 
         PaintToken(paintBtnBg, btnHovered and Def.InputBgHover or Def.InputBg, btnBgAlpha)
     end
     paintButton()
-    btn:HookScript("OnEnter", function() btnHovered = true; paintButton() end)
+    -- A disabled dropdown (btn:Disable() in applyDisabledVisuals) keeps its dimmed fill.
+    btn:HookScript("OnEnter", function() btnHovered = btn:IsEnabled() and true or false; paintButton() end)
     btn:HookScript("OnLeave", function() btnHovered = false; paintButton() end)
 
     local btnText = btn:CreateFontString(nil, "OVERLAY")
@@ -1447,7 +1476,9 @@ function _G.OptionsWidgets_CreateSizeStepper(parent, get, set, minVal, maxVal, s
         SetTextColor(fs, Def.TextColorMuted)
         fs:SetText(text)
         fs:SetPoint("CENTER", b, "CENTER", 0, 0)
-        b:SetScript("OnEnter", function() SetTextColor(fs, Def.TextColorLabel) end)
+        b:SetScript("OnEnter", function()
+            if b:IsEnabled() then SetTextColor(fs, Def.TextColorLabel) end
+        end)
         b:SetScript("OnLeave", function() SetTextColor(fs, Def.TextColorMuted) end)
         return b
     end
@@ -1638,13 +1669,11 @@ function _G.OptionsWidgets_CreateFontRow(parent, labelText, description, parts, 
     local labelFn = type(labelText) == "function" and labelText or nil
     local resolvedLabel = labelFn and labelFn() or labelText
 
-    local hasDesc = type(description) == "string" and description ~= ""
     local row = CreateFrame("Frame", nil, parent)
-    row:SetHeight(math.max(M.lineH, hasDesc and Def.RowHeightDesc or Def.RowHeight))
     row.searchText = ((resolvedLabel or "") .. " " .. (description or "")):lower()
     row._rowPadded = true
 
-    -- One line each: the label, and the row's description under it in the help style.
+    -- The label on one line, and the row's description under it in the help style.
     local label = row:CreateFontString(nil, "OVERLAY")
     SetSafeFont(label, Def.FontPath, Def.LabelSize, nil)
     label:SetJustifyH("LEFT")
@@ -1653,17 +1682,10 @@ function _G.OptionsWidgets_CreateFontRow(parent, labelText, description, parts, 
     label:SetText(resolvedLabel or "")
     label:SetWordWrap(false)
 
-    local desc = row:CreateFontString(nil, "OVERLAY")
-    SetSafeFont(desc, Def.FontPath, Def.HelpSize, nil)
-    desc:SetJustifyH("LEFT")
-    SetTextColor(desc, Def.TextColorMuted)
-    desc:SetWordWrap(false)
-    if desc.SetNonSpaceWrap then desc:SetNonSpaceWrap(false) end
-    if desc.SetMaxLines then desc:SetMaxLines(1) end
-    desc:SetText(hasDesc and description or "")
+    local desc, hasDesc = CreateRowDesc(row, description)
     desc:SetPoint("TOPLEFT", label, "BOTTOMLEFT", 0, -Def.RowDescGap)
-    desc:SetShown(hasDesc)
     row._desc = desc
+    row:SetHeight(math.max(M.lineH, EstimatedRowHeight(hasDesc)))
 
     local function rowDisabled()
         return disabledFn and disabledFn() == true
@@ -1712,8 +1734,7 @@ function _G.OptionsWidgets_CreateFontRow(parent, labelText, description, parts, 
     local function layoutFor(w)
         if addon.FontRowLayout then return addon.FontRowLayout(w, has) end
         local wrapped = (w or 0) > 0 and w < M.wrapBelow
-        return { wrapped = wrapped, familyW = M.familyMax,
-            height = (wrapped and (has.size or has.outline)) and (M.lineH + M.line2H) or M.lineH }
+        return { wrapped = wrapped, familyW = M.familyMax, lines = (wrapped and (has.size or has.outline)) and 2 or 1 }
     end
 
     -- Right-align a list of controls in a band `top` px down and `h` tall.
@@ -1757,10 +1778,9 @@ function _G.OptionsWidgets_CreateFontRow(parent, labelText, description, parts, 
             label:SetWidth(textW)
             desc:SetWidth(textW)
         end
-        local blockH = label:GetStringHeight() or 0
-        if hasDesc then blockH = blockH + Def.RowDescGap + (desc:GetStringHeight() or 0) end
-        local line1H = math.max(M.lineH, hasDesc and Def.RowHeightDesc or Def.RowHeight,
-            math.ceil(blockH + 2 * Def.RowPadY))
+        local rowH, blockH = addon.SettingsRowHeight(label:GetStringHeight(),
+            hasDesc and desc:GetStringHeight() or 0, RowHeightMetrics())
+        local line1H = math.max(M.lineH, rowH)
         place(line1, 0, line1H)
         local height = line1H
         if #line2 > 0 then

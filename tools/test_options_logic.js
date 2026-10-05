@@ -917,13 +917,13 @@ run(`
   end
   local L = H.FontRowLayout
   local wide = L(970, { family = true, size = true, outline = true })
-  check("wide row is one line", wide.wrapped == false and wide.height == 34, tostring(wide.wrapped) .. " " .. wide.height)
+  check("wide row is one line", wide.wrapped == false and wide.lines == 1, tostring(wide.wrapped) .. " " .. tostring(wide.lines))
   check("one line at exactly 640", L(640, { family = true, size = true }).wrapped == false, "wrapped")
   local narrow = L(600, { family = true, size = true, outline = true })
-  check("narrow row wraps to two lines", narrow.wrapped == true and narrow.height == 64, tostring(narrow.wrapped) .. " " .. narrow.height)
+  check("narrow row wraps to two lines", narrow.wrapped == true and narrow.lines == 2, tostring(narrow.wrapped) .. " " .. tostring(narrow.lines))
   check("font is never narrower than 140", L(640, { family = true }).familyW >= 140 and L(300, { family = true }).familyW >= 140, L(300, { family = true }).familyW)
   check("font flexes wider on a wide row", wide.familyW > L(640, { family = true, size = true, outline = true }).familyW, wide.familyW)
-  check("narrow row with only a font stays one line tall", L(600, { family = true }).height == 34, L(600, { family = true }).height)
+  check("narrow row with only a font stays one line", L(600, { family = true }).lines == 1, tostring(L(600, { family = true }).lines))
   check("unknown width lays out as one line", L(0, { family = true, size = true }).wrapped == false, "wrapped")
 `, 'font-row-widget-logic');
 
@@ -956,6 +956,31 @@ run(`
   check("a spacer before the first row leaves it without a hairline", p == "-0/0 -0/0", p)
   check("an empty card has no entries", #H.CardRowSpacing({}, M) == 0, #H.CardRowSpacing({}, M))
 `, 'card-row-spacing');
+
+// --- Settings row height from measured text ---------------------------------------------
+run(`
+  local RH = HorizonSuite.SettingsRowHeight
+  check("row height helper exists", type(RH) == "function", type(RH))
+  if type(RH) ~= "function" then return end
+  -- Default sizes: label 13 (about 15px a line), help 11 (about 13px a line).
+  local M = { minH = 40, padY = 11, descGap = 2, labelMaxH = 2 * 13 * 1.5, descMaxH = 2 * 11 * 1.5 }
+  local h, block = RH(15, 0, M)
+  check("one label line and no description is 40", h == 40 and block == 15, h .. "/" .. block)
+  h = RH(15, 13, M)
+  check("a one-line description makes about 52", h == 52, h)
+  h = RH(15, 26, M)
+  check("a two-line description makes about 66", h == 65 or h == 66, h)
+  h = RH(30, 0, M)
+  check("a wrapped label grows the row", h == 52, h)
+  h = RH(15, 60, M)
+  check("a description over two lines is capped", h == math.ceil(15 + 2 + 33 + 22), h)
+  h = RH(60, 0, M)
+  check("a label over two lines is capped", h == math.ceil(39 + 22), h)
+  h, block = RH(nil, nil, M)
+  check("no text still gives the shortest row", h == 40 and block == 0, h .. "/" .. block)
+  local _, b2 = RH(15, 13, M)
+  check("the block includes the gap", b2 == 30, b2)
+`, 'settings-row-height');
 
 // --- Widget type scale: titles and help follow the label size -------------------------
 run(read('options/OptionsWidgets.lua'), 'options/OptionsWidgets.lua');
