@@ -10,6 +10,19 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [6.6.0] – 2026-10-05
+
+### ✨ New Features
+- **(Presence) Move the zone and quest text anywhere** — Drag the zone-entry and quest text from the settings page or Blizzard's Edit Mode, or set its position with two sliders, which helps on multi-monitor setups. Opening Edit Mode shows an empty box to drag, and Shift-clicking it plays a sample.
+- **(Echo) Timestamps on conversations** — A new switch shows the time beside each message, just outside its bubble. It starts off, so nothing changes unless you turn it on.
+
+### 🐛 Fixes
+- **(Augment)** Opening Edit Mode no longer fills the screen with sample loot rolls and alerts; Shift-click a loot box to see a sample.
+- **(Augment)** With Blizzard's controller interface on, Blizzard's loot window no longer flashes up beside Augment's loot toast when auto-looting.
+- **(Echo)** Long messages sent in dungeons and fights fit inside their chat bubble instead of spilling into the next message.
+
+---
+
 ## [6.5.1] – 2026-10-04
 
 ### ✨ New Features
