@@ -2812,4 +2812,7 @@ L["M_BLOCK_WHENEVER_AN_ACTIVE_KEYSTONE"]                      = "Show the M+ blo
 -- L["FOCUS_RUN_RESET_TOOLTIP"]                               = "Start this run's time, experience and money over from zero."
 -- L["FOCUS_RUN_RESET_DONE"]                                  = "Dungeon run reset."
 -- L["FOCUS_RUN_RESET_NOT_IN_DUNGEON"]                        = "No dungeon run to reset."
-
+-- L["INSIGHT_BG_PLAYERS"]                                = "Player background"
+-- L["INSIGHT_BG_NPCS"]                                   = "NPC background"
+-- L["INSIGHT_BG_ITEMS"]                                  = "Item background"
+-- L["ECHO_TIER_TIP"]                                     = "Loud: dot and pop-up. Count: a number only. Quiet: nothing until you open it. Muted: not counted."

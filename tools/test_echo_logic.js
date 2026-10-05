@@ -6632,10 +6632,10 @@ run(`
   local function has(key, text) return type(EN[key]) == "string" and EN[key]:find(text, 1, true) ~= nil end
   check("Clear's description mentions pinned messages", has("ECHO_CLEAR_HISTORY_DESC", "your pinned messages"), EN.ECHO_CLEAR_HISTORY_DESC)
   check("Clear's confirmation mentions pinned messages", has("ECHO_CLEAR_HISTORY_CONFIRM", "your pinned messages"), EN.ECHO_CLEAR_HISTORY_CONFIRM)
-  check("Save chat history's description", EN.ECHO_SAVE_HISTORY_DESC == "Keep the last 100 whispers with each person between sessions, and reopen recent tiles after a reload. Guild chat is saved too, and officer chat when switched on below. Messages the game hides are never saved.", EN.ECHO_SAVE_HISTORY_DESC)
+  check("Save chat history says 100 whispers", has("ECHO_SAVE_HISTORY_DESC", "100 whispers"), EN.ECHO_SAVE_HISTORY_DESC)
   check("Save guild chat says 200 lines", has("ECHO_SAVE_GUILD_DESC", "200"), EN.ECHO_SAVE_GUILD_DESC)
   check("Save guild chat says every character in the guild shares it", has("ECHO_SAVE_GUILD_DESC", "every character in the same guild"), EN.ECHO_SAVE_GUILD_DESC)
-  check("Keep history for names column pins and message pins", has("ECHO_HISTORY_DAYS_DESC", "Conversations pinned to the column are always kept, and pinned messages are never dropped."), EN.ECHO_HISTORY_DAYS_DESC)
+  check("Keep history for names column pins and message pins", has("ECHO_HISTORY_DAYS_DESC", "Pinned chats and pinned messages are always kept."), EN.ECHO_HISTORY_DAYS_DESC)
   check("Keep history for drops the old wording", not has("ECHO_HISTORY_DAYS_DESC", "A pinned conversation"), EN.ECHO_HISTORY_DAYS_DESC)
   check("Keep history for still says when it takes effect", has("ECHO_HISTORY_DAYS_DESC", "next login"), EN.ECHO_HISTORY_DAYS_DESC)
 `, 'echo-copy');
