@@ -779,13 +779,19 @@ local function AttachChangedMarker(row, onReset, isDisabled)
 
     -- Show on entering the row or any of its controls (the switch, the slider's thumb, the
     -- dropdown button, a segment, the swatch, a font row's parts), so moving straight onto a
-    -- control shows the arrow too. Hooking a frame that takes no mouse is harmless.
+    -- control shows the arrow too. Only frames that already take the mouse are hooked: giving
+    -- a frame an OnEnter script makes the client hit-test it, so hooking a purely visual layer
+    -- (a switch's track, a button's press visual) would let it swallow the control's clicks.
+    local function takesMouse(frame)
+        if frame.IsMouseEnabled and frame:IsMouseEnabled() then return true end
+        if frame.IsMouseMotionEnabled and frame:IsMouseMotionEnabled() then return true end
+        return false
+    end
     local function hookEnter(frame)
-        if frame ~= reset and frame.HookScript then
-            frame:HookScript("OnEnter", showReset)
-            if frame.GetChildren then
-                for _, child in ipairs({ frame:GetChildren() }) do hookEnter(child) end
-            end
+        if frame == reset or not frame.HookScript then return end
+        if takesMouse(frame) then frame:HookScript("OnEnter", showReset) end
+        if frame.GetChildren then
+            for _, child in ipairs({ frame:GetChildren() }) do hookEnter(child) end
         end
     end
     hookEnter(row)
