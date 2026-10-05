@@ -24,6 +24,7 @@ local function clamp(v, key)
 end
 
 local Section = addon.Section
+local FontRow = addon.FontRow
 local FONT_USE_GLOBAL                  = addon.FONT_USE_GLOBAL
 local GetPerElementFontDropdownOptions = addon.GetPerElementFontDropdownOptions
 local DisplayPerElementFont            = addon.DisplayPerElementFont
@@ -217,31 +218,31 @@ local category = {
                       get = function() return clamp(tonumber(getDB("lootRollMaxVisible", D.lootRollMaxVisible)) or D.lootRollMaxVisible, "lootRollMaxVisible") end,
                       set = function(v) setDB("lootRollMaxVisible", clamp(v, "lootRollMaxVisible")); applyRoll() end,
                     },
-                    { type = "dropdown",
-                      name = L["AUGMENT_FONT"], desc = L["LOOT_ROLL_FONT_DESC"],
-                      dbKey = "lootRollFontPath",
-                      options = function() return GetPerElementFontDropdownOptions("lootRollFontPath") end,
-                      displayFn = DisplayPerElementFont,
-                      searchable = true,
-                      fontPreviewInList = true,
-                      get = function() return getDB("lootRollFontPath", FONT_USE_GLOBAL) end,
-                      set = function(v) setDB("lootRollFontPath", v); applyRoll() end,
-                    },
-                    { type = "slider",
-                      name = L["AUGMENT_FONT_SIZE"], desc = L["LOOT_ROLL_FONT_SIZE_DESC"],
-                      dbKey = "lootRollFontSize",
-                      min = LIM.lootRollFontSize.min, max = LIM.lootRollFontSize.max,
-                      get = function() return clamp(tonumber(getDB("lootRollFontSize", D.lootRollFontSize)) or D.lootRollFontSize, "lootRollFontSize") end,
-                      set = function(v) setDB("lootRollFontSize", clamp(v, "lootRollFontSize")); applyRoll() end,
-                    },
-                    { type = "dropdown",
-                      name = L["AUGMENT_TEXT_OUTLINE"], desc = L["LOOT_ROLL_OUTLINE_DESC"],
-                      dbKey = "lootRollTextOutlineType",
-                      advanced = true,
-                      options = addon.OUTLINE_OPTIONS, preserveOrder = true,
-                      get = function() return getDB("lootRollTextOutlineType", D.lootRollTextOutlineType) end,
-                      set = function(v) setDB("lootRollTextOutlineType", v); applyRoll() end,
-                    },
+                    FontRow(L["AUGMENT_FONT"], L["LOOT_ROLL_FONT_DESC"], {
+                        family = {
+                            dbKey = "lootRollFontPath",
+                            options = function() return GetPerElementFontDropdownOptions("lootRollFontPath") end,
+                            displayFn = DisplayPerElementFont,
+                            searchable = true,
+                            fontPreviewInList = true,
+                            get = function() return getDB("lootRollFontPath", FONT_USE_GLOBAL) end,
+                            set = function(v) setDB("lootRollFontPath", v); applyRoll() end,
+                        },
+                        size = {
+                            dbKey = "lootRollFontSize",
+                            tooltip = L["LOOT_ROLL_FONT_SIZE_DESC"],
+                            min = LIM.lootRollFontSize.min, max = LIM.lootRollFontSize.max,
+                            get = function() return clamp(tonumber(getDB("lootRollFontSize", D.lootRollFontSize)) or D.lootRollFontSize, "lootRollFontSize") end,
+                            set = function(v) setDB("lootRollFontSize", clamp(v, "lootRollFontSize")); applyRoll() end,
+                        },
+                        outline = {
+                            dbKey = "lootRollTextOutlineType",
+                            tooltip = L["LOOT_ROLL_OUTLINE_DESC"],
+                            options = addon.OUTLINE_OPTIONS, preserveOrder = true,
+                            get = function() return getDB("lootRollTextOutlineType", D.lootRollTextOutlineType) end,
+                            set = function(v) setDB("lootRollTextOutlineType", v); applyRoll() end,
+                        },
+                    }, { keywords = { L["AUGMENT_FONT_SIZE"], L["AUGMENT_TEXT_OUTLINE"] } }),
                 },
             },
         },

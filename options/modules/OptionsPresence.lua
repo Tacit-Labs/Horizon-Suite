@@ -17,6 +17,7 @@ local DisplayPerElementFont    = addon.DisplayPerElementFont
 local Section                  = addon.Section
 local Button                   = addon.Button
 local Toggle                   = addon.Toggle
+local FontRow                  = addon.FontRow
 local Color                    = addon.Color
 local D   = addon.PRESENCE_DEFAULTS
 local LIM = addon.PRESENCE_LIMITS
@@ -142,12 +143,36 @@ local categories = {
                     addon.OptionsPanel_Refresh()
                 end
             end, { refreshIds = { "presencePreview", "presenceTitleFontPath", "presenceSubtitleFontPath", "presenceTitleFontOutline", "presenceSubtitleFontOutline", "presencePrimaryLargeSz", "presenceSecondaryLargeSz", "presencePrimaryMediumSz", "presenceSecondaryMediumSz", "presencePrimarySmallSz", "presenceSecondarySmallSz", "presenceDiscoveryFontPath", "presenceDiscoveryFontOutline", "presenceDiscoverySize", "presenceBossEmoteColor", "presenceDiscoveryColor", "presenceZoneTypeColoring", "presenceZoneColorFriendly", "presenceZoneColorHostile", "presenceZoneColorContested", "presenceZoneColorSanctuary" } }),
-            { type = "dropdown", name = L["PRESENCE_MAIN_TITLE_FONT"], desc = L["PRESENCE_FONT_FAMILY_MAIN_TITLE"], dbKey = "presenceTitleFontPath", searchable = true, options = function() return GetPerElementFontDropdownOptions("presenceTitleFontPath") end, get = function() return getDB("presenceTitleFontPath", FONT_USE_GLOBAL) end, set = function(v) setDB("presenceTitleFontPath", v) end, displayFn = DisplayPerElementFont, refreshIds = { "presencePreview" }, fontPreviewInList = true },
-            { type = "dropdown", name = L["PRESENCE_SUBTITLE_FONT"], desc = L["PRESENCE_FONT_FAMILY_SUBTITLE"], dbKey = "presenceSubtitleFontPath", advanced = true, searchable = true, options = function() return GetPerElementFontDropdownOptions("presenceSubtitleFontPath") end, get = function() return getDB("presenceSubtitleFontPath", FONT_USE_GLOBAL) end, set = function(v) setDB("presenceSubtitleFontPath", v) end, displayFn = DisplayPerElementFont, refreshIds = { "presencePreview" }, fontPreviewInList = true },
-            { type = "dropdown", name = L["PRESENCE_DISCOVERY_FONT"], desc = L["PRESENCE_FONT_FAMILY_DISCOVERY"], dbKey = "presenceDiscoveryFontPath", advanced = true, searchable = true, options = function() return GetPerElementFontDropdownOptions("presenceDiscoveryFontPath") end, get = function() return getDB("presenceDiscoveryFontPath", FONT_USE_GLOBAL) end, set = function(v) setDB("presenceDiscoveryFontPath", v) end, displayFn = DisplayPerElementFont, refreshIds = { "presencePreview" }, fontPreviewInList = true },
-            { type = "dropdown", name = L["PRESENCE_MAIN_TITLE_OUTLINE"], desc = L["PRESENCE_FONT_OUTLINE_MAIN_TITLE"], dbKey = "presenceTitleFontOutline", advanced = true, options = OUTLINE_OPTIONS, preserveOrder = true, get = function() return getDB("presenceTitleFontOutline", D.presenceTitleFontOutline) end, set = function(v) setDB("presenceTitleFontOutline", v) end, refreshIds = { "presencePreview" } },
-            { type = "dropdown", name = L["PRESENCE_SUBTITLE_OUTLINE"], desc = L["PRESENCE_FONT_OUTLINE_SUBTITLE"], dbKey = "presenceSubtitleFontOutline", advanced = true, options = OUTLINE_OPTIONS, preserveOrder = true, get = function() return getDB("presenceSubtitleFontOutline", D.presenceSubtitleFontOutline) end, set = function(v) setDB("presenceSubtitleFontOutline", v) end, refreshIds = { "presencePreview" } },
-            { type = "dropdown", name = L["PRESENCE_DISCOVERY_OUTLINE"], desc = L["PRESENCE_FONT_OUTLINE_DISCOVERY"], dbKey = "presenceDiscoveryFontOutline", advanced = true, options = OUTLINE_OPTIONS, preserveOrder = true, get = function() return getDB("presenceDiscoveryFontOutline", D.presenceDiscoveryFontOutline) end, set = function(v) setDB("presenceDiscoveryFontOutline", v) end, refreshIds = { "presencePreview" } },
+            FontRow(L["PRESENCE_MAIN_TITLE_FONT"], L["PRESENCE_FONT_FAMILY_MAIN_TITLE"], {
+                family = {
+                    dbKey = "presenceTitleFontPath", searchable = true,
+                    options = function() return GetPerElementFontDropdownOptions("presenceTitleFontPath") end,
+                    get = function() return getDB("presenceTitleFontPath", FONT_USE_GLOBAL) end,
+                    set = function(v) setDB("presenceTitleFontPath", v) end,
+                    displayFn = DisplayPerElementFont, refreshIds = { "presencePreview" }, fontPreviewInList = true,
+                },
+                outline = {
+                    dbKey = "presenceTitleFontOutline", options = OUTLINE_OPTIONS, preserveOrder = true,
+                    get = function() return getDB("presenceTitleFontOutline", D.presenceTitleFontOutline) end,
+                    set = function(v) setDB("presenceTitleFontOutline", v) end,
+                    refreshIds = { "presencePreview" }, tooltip = L["PRESENCE_FONT_OUTLINE_MAIN_TITLE"],
+                },
+            }, { keywords = { L["PRESENCE_MAIN_TITLE_OUTLINE"] } }),
+            FontRow(L["PRESENCE_SUBTITLE_FONT"], L["PRESENCE_FONT_FAMILY_SUBTITLE"], {
+                family = {
+                    dbKey = "presenceSubtitleFontPath", searchable = true,
+                    options = function() return GetPerElementFontDropdownOptions("presenceSubtitleFontPath") end,
+                    get = function() return getDB("presenceSubtitleFontPath", FONT_USE_GLOBAL) end,
+                    set = function(v) setDB("presenceSubtitleFontPath", v) end,
+                    displayFn = DisplayPerElementFont, refreshIds = { "presencePreview" }, fontPreviewInList = true,
+                },
+                outline = {
+                    dbKey = "presenceSubtitleFontOutline", options = OUTLINE_OPTIONS, preserveOrder = true,
+                    get = function() return getDB("presenceSubtitleFontOutline", D.presenceSubtitleFontOutline) end,
+                    set = function(v) setDB("presenceSubtitleFontOutline", v) end,
+                    refreshIds = { "presencePreview" }, tooltip = L["PRESENCE_FONT_OUTLINE_SUBTITLE"],
+                },
+            }, { advanced = true, keywords = { L["PRESENCE_SUBTITLE_OUTLINE"] } }),
             Section(L["PRESENCE_LARGE_NOTIFICATIONS"], { page = "look", card = "text" }),
             { type = "slider", name = L["PRESENCE_LARGE_PRIMARY_SIZE"], desc = L["PRESENCE_FONT_SIZE_LARGE_NOTIFICATION_TITLES_ZONE"], dbKey = "presencePrimaryLargeSz", min = LIM.presencePrimaryLargeSz.min, max = LIM.presencePrimaryLargeSz.max, get = function() return math.max(LIM.presencePrimaryLargeSz.min, math.min(LIM.presencePrimaryLargeSz.max, tonumber(getDB("presencePrimaryLargeSz", D.presencePrimaryLargeSz)) or D.presencePrimaryLargeSz)) end, set = function(v) setDB("presencePrimaryLargeSz", clamp(v, "presencePrimaryLargeSz")) end, refreshIds = { "presencePreview" } },
             { type = "slider", name = L["PRESENCE_LARGE_SECONDARY_SIZE"], desc = L["PRESENCE_FONT_SIZE_LARGE_NOTIFICATION_SUBTITLES"], dbKey = "presenceSecondaryLargeSz", min = LIM.presenceSecondaryLargeSz.min, max = LIM.presenceSecondaryLargeSz.max, get = function() return math.max(LIM.presenceSecondaryLargeSz.min, math.min(LIM.presenceSecondaryLargeSz.max, tonumber(getDB("presenceSecondaryLargeSz", D.presenceSecondaryLargeSz)) or D.presenceSecondaryLargeSz)) end, set = function(v) setDB("presenceSecondaryLargeSz", clamp(v, "presenceSecondaryLargeSz")) end, refreshIds = { "presencePreview" } },
@@ -158,7 +183,27 @@ local categories = {
             { type = "slider", name = L["PRESENCE_SMALL_PRIMARY_SIZE"], desc = L["PRESENCE_FONT_SIZE_SMALL_NOTIFICATION_TITLES_QUEST"], dbKey = "presencePrimarySmallSz", advanced = true, min = LIM.presencePrimarySmallSz.min, max = LIM.presencePrimarySmallSz.max, get = function() return math.max(LIM.presencePrimarySmallSz.min, math.min(LIM.presencePrimarySmallSz.max, tonumber(getDB("presencePrimarySmallSz", D.presencePrimarySmallSz)) or D.presencePrimarySmallSz)) end, set = function(v) setDB("presencePrimarySmallSz", clamp(v, "presencePrimarySmallSz")) end, refreshIds = { "presencePreview" } },
             { type = "slider", name = L["PRESENCE_SMALL_SECONDARY_SIZE"], desc = L["PRESENCE_FONT_SIZE_SMALL_NOTIFICATION_SUBTITLES"], dbKey = "presenceSecondarySmallSz", advanced = true, min = LIM.presenceSecondarySmallSz.min, max = LIM.presenceSecondarySmallSz.max, get = function() return math.max(LIM.presenceSecondarySmallSz.min, math.min(LIM.presenceSecondarySmallSz.max, tonumber(getDB("presenceSecondarySmallSz", D.presenceSecondarySmallSz)) or D.presenceSecondarySmallSz)) end, set = function(v) setDB("presenceSecondarySmallSz", clamp(v, "presenceSecondarySmallSz")) end, refreshIds = { "presencePreview" } },
             Section(L["PRESENCE_DISCOVERY_NOTIFICATIONS"], { page = "look", card = "text" }),
-            { type = "slider", name = L["PRESENCE_DISCOVERY_SIZE"], desc = L["PRESENCE_FONT_SIZE_DISCOVERY"], dbKey = "presenceDiscoverySize", advanced = true, min = LIM.presenceDiscoverySize.min, max = LIM.presenceDiscoverySize.max, get = function() return math.max(LIM.presenceDiscoverySize.min, math.min(LIM.presenceDiscoverySize.max, tonumber(getDB("presenceDiscoverySize", D.presenceDiscoverySize)) or D.presenceDiscoverySize)) end, set = function(v) setDB("presenceDiscoverySize", clamp(v, "presenceDiscoverySize")) end, refreshIds = { "presencePreview" } },
+            FontRow(L["PRESENCE_DISCOVERY_FONT"], L["PRESENCE_FONT_FAMILY_DISCOVERY"], {
+                family = {
+                    dbKey = "presenceDiscoveryFontPath", searchable = true,
+                    options = function() return GetPerElementFontDropdownOptions("presenceDiscoveryFontPath") end,
+                    get = function() return getDB("presenceDiscoveryFontPath", FONT_USE_GLOBAL) end,
+                    set = function(v) setDB("presenceDiscoveryFontPath", v) end,
+                    displayFn = DisplayPerElementFont, refreshIds = { "presencePreview" }, fontPreviewInList = true,
+                },
+                size = {
+                    dbKey = "presenceDiscoverySize", min = LIM.presenceDiscoverySize.min, max = LIM.presenceDiscoverySize.max,
+                    get = function() return math.max(LIM.presenceDiscoverySize.min, math.min(LIM.presenceDiscoverySize.max, tonumber(getDB("presenceDiscoverySize", D.presenceDiscoverySize)) or D.presenceDiscoverySize)) end,
+                    set = function(v) setDB("presenceDiscoverySize", clamp(v, "presenceDiscoverySize")) end,
+                    refreshIds = { "presencePreview" }, tooltip = L["PRESENCE_FONT_SIZE_DISCOVERY"],
+                },
+                outline = {
+                    dbKey = "presenceDiscoveryFontOutline", options = OUTLINE_OPTIONS, preserveOrder = true,
+                    get = function() return getDB("presenceDiscoveryFontOutline", D.presenceDiscoveryFontOutline) end,
+                    set = function(v) setDB("presenceDiscoveryFontOutline", v) end,
+                    refreshIds = { "presencePreview" }, tooltip = L["PRESENCE_FONT_OUTLINE_DISCOVERY"],
+                },
+            }, { advanced = true, keywords = { L["PRESENCE_DISCOVERY_SIZE"], L["PRESENCE_DISCOVERY_OUTLINE"] } }),
             Section(L["DASH_COLOURS"], { page = "look", card = "colours" }),
             Color(L["PRESENCE_BOSS_EMOTE_COLOUR"], L["PRESENCE_COLOUR_RAID_DUNGEON_BOSS_EMOTE"],             "presenceBossEmoteColor",    addon.PRESENCE_BOSS_EMOTE_COLOR, { refreshIds = { "presencePreview" } }),
             Color(L["PRESENCE_DISCOVERY_LINE_COLOUR"], L["PRESENCE_COLOUR_OF_DISCOVERED_LINE_UNDER_ZONE_TIP"], "presenceDiscoveryColor",  addon.PRESENCE_DISCOVERY_COLOR,  { refreshIds = { "presencePreview" } }),

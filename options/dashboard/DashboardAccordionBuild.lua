@@ -475,6 +475,60 @@ function addon.DashboardAccordionBuild_Init(f, p)
                     end
                     widget = _G.OptionsWidgets_CreateCustomDropdown(currentCard.settingsContainer, displayName, opt.desc or "", opt.options, g, s, opt.displayFn, opt.searchable, opt.disabled, opt.tooltip, resetBtn, opt.fontPreviewInList, opt.preserveOrder)
                     if widget and widget.Refresh then detailOptionFrames[optId] = widget end
+                elseif opt.type == "fontRow" and _G.OptionsWidgets_CreateFontRow then
+                    -- One row for a text element's font, size and outline (addon.FontRow). Each part
+                    -- keeps its own key, getter and setter; a part's setter refreshes the part's
+                    -- refreshIds and the row's (the children wired to any of its keys).
+                    local rowKey = opt.dbKey
+                    local parts, partKeys = {}, {}
+                    for _, slot in ipairs(addon.FONT_ROW_PARTS or { "family", "size", "outline" }) do
+                        local part = opt.parts and opt.parts[slot]
+                        if type(part) == "table" then
+                            local key, default = part.dbKey, part.default
+                            local pg, ps = part.get, part.set
+                            if not pg and key then pg = function() return _G.OptionsData_GetDB(key, default) end end
+                            if not ps and key then ps = function(v) _G.OptionsData_SetDB(key, v) end end
+                            if pg and ps then
+                                local ids, have = {}, {}
+                                for _, list in ipairs({ part.refreshIds or {}, opt.refreshIds or {} }) do
+                                    for _, id in ipairs(list) do
+                                        if not have[id] then have[id] = true; ids[#ids + 1] = id end
+                                    end
+                                end
+                                if #ids > 0 then
+                                    local origSet = ps
+                                    ps = function(v)
+                                        origSet(v)
+                                        RefreshLinkedTargets(ids, rowKey)
+                                    end
+                                end
+                                -- A copy: the module's part table may be shared, so it is never written.
+                                local p = {}
+                                for k, v in pairs(part) do p[k] = v end
+                                p.get, p.set = pg, ps
+                                parts[slot] = p
+                                if key then partKeys[#partKeys + 1] = key end
+                            end
+                        end
+                    end
+                    local rowDisabled = opt.disabled
+                    if type(rowDisabled) ~= "function" then
+                        local always = rowDisabled == true
+                        rowDisabled = always and function() return true end or nil
+                    end
+                    widget = _G.OptionsWidgets_CreateFontRow(currentCard.settingsContainer, displayName, opt.desc or "", parts, rowDisabled, opt.tooltip)
+                    if widget then
+                        -- Wrapping below 640px changes the row's height; the card must restack.
+                        local cardRef = currentCard
+                        widget.onHeightChanged = function() RelayoutCard(cardRef, false) end
+                        if widget.Refresh then
+                            if optId then detailOptionFrames[optId] = widget end
+                            -- A real row that owns a part key keeps its own registration.
+                            for _, key in ipairs(partKeys) do
+                                if not detailOptionFrames[key] then detailOptionFrames[key] = widget end
+                            end
+                        end
+                    end
                 elseif opt.type == "color" then
                     widget = _G.OptionsWidgets_CreateColorSwatch(currentCard.settingsContainer, displayName, opt.desc or "", g, s, opt.hasAlpha, opt.tooltip, opt.liveThrottle)
                     if widget and widget.Refresh then detailOptionFrames[optId] = widget end

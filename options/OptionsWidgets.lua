@@ -791,11 +791,17 @@ end
 -- When searchable is true, adds an EditBox above the list to filter options by name (e.g. font dropdown).
 -- resetButton: optional table { onClick, tooltip } — adds a small reset-arrow icon button to the left of the dropdown.
 -- fontPreviewInList: when true, each list row (and closed button when a font path is selected) uses ResolveFontPath(value) for SetFont.
-function _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, options, get, set, displayFn, searchable, disabledFn, tooltip, resetButton, fontPreviewInList, preserveOrder)
+-- layout: optional table. { embedded = true } makes the dropdown a control inside a composite row
+-- (the font row): no label, no description, no row hover; the button fills the returned frame,
+-- which the caller sizes and anchors; description and tooltip become the button's own tooltip;
+-- resetButton is ignored. Without layout, nothing changes.
+function _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, options, get, set, displayFn, searchable, disabledFn, tooltip, resetButton, fontPreviewInList, preserveOrder, layout)
+    local embedded = type(layout) == "table" and layout.embedded == true
+    if embedded then resetButton = nil end
     local labelFn = type(labelText) == "function" and labelText or nil
     local resolvedLabel = labelFn and labelFn() or labelText
     local row = CreateFrame("Frame", nil, parent)
-    row:SetHeight(34)
+    row:SetHeight(embedded and 26 or 34)
     local searchText = (resolvedLabel or "") .. " " .. (description or "")
     row.searchText = searchText:lower()
 
@@ -808,11 +814,16 @@ function _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, 
     end
 
     local btn = CreateFrame("Button", nil, row)
-    btn:SetHeight(26)
-    btn:SetWidth(DROPDOWN_BTN_WIDTH)
-    btn:SetPoint("RIGHT", row, "RIGHT", 0, 0)
-    btn:SetPoint("TOP", row, "CENTER", 0, 13)
-    btn:SetPoint("BOTTOM", row, "CENTER", 0, -13)
+    if embedded then
+        btn:SetAllPoints(row)
+    else
+        btn:SetHeight(26)
+        btn:SetWidth(DROPDOWN_BTN_WIDTH)
+        btn:SetPoint("RIGHT", row, "RIGHT", 0, 0)
+        btn:SetPoint("TOP", row, "CENTER", 0, 13)
+        btn:SetPoint("BOTTOM", row, "CENTER", 0, -13)
+    end
+    row.button = btn
 
     if resetButton and resetButton.onClick then
         local resetBtn = CreateFrame("Button", nil, row)
@@ -843,27 +854,31 @@ function _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, 
         resetBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
     end
 
-    local label = row:CreateFontString(nil, "OVERLAY")
-    SetSafeFont(label, Def.FontPath, Def.LabelSize, nil)
-    label:SetJustifyH("LEFT")
-    label:SetJustifyV("MIDDLE")
-    SetTextColor(label, Def.TextColorLabel)
-    label:SetText(resolvedLabel or "")
-    label:SetPoint("TOPLEFT", row, "TOPLEFT", 0, 0)
-    label:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", -rightInset, 0)
-    label:SetWordWrap(true)
+    -- An embedded dropdown has no label or description; label stays nil and is guarded below.
+    local label
+    if not embedded then
+        label = row:CreateFontString(nil, "OVERLAY")
+        SetSafeFont(label, Def.FontPath, Def.LabelSize, nil)
+        label:SetJustifyH("LEFT")
+        label:SetJustifyV("MIDDLE")
+        SetTextColor(label, Def.TextColorLabel)
+        label:SetText(resolvedLabel or "")
+        label:SetPoint("TOPLEFT", row, "TOPLEFT", 0, 0)
+        label:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", -rightInset, 0)
+        label:SetWordWrap(true)
 
-    local desc = row:CreateFontString(nil, "OVERLAY")
-    SetSafeFont(desc, Def.FontPath, Def.SectionSize, nil)
-    desc:SetJustifyH("LEFT")
-    SetTextColor(desc, Def.TextColorSection)
-    desc:SetText("")
-    desc:Hide()
-    desc:SetPoint("TOPLEFT", label, "BOTTOMLEFT", 0, -2)
-    desc:SetPoint("RIGHT", row, "RIGHT", 0, 0)
-    desc:SetWordWrap(true)
+        local desc = row:CreateFontString(nil, "OVERLAY")
+        SetSafeFont(desc, Def.FontPath, Def.SectionSize, nil)
+        desc:SetJustifyH("LEFT")
+        SetTextColor(desc, Def.TextColorSection)
+        desc:SetText("")
+        desc:Hide()
+        desc:SetPoint("TOPLEFT", label, "BOTTOMLEFT", 0, -2)
+        desc:SetPoint("RIGHT", row, "RIGHT", 0, 0)
+        desc:SetWordWrap(true)
 
-    row._desc = desc
+        row._desc = desc
+    end
 
     local btnBg = btn:CreateTexture(nil, "BACKGROUND")
     btnBg:SetPoint("TOPLEFT", btn, "TOPLEFT", 1, -1)
@@ -1004,13 +1019,13 @@ function _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, 
         local dis = isDisabled()
         if dis then
             btn:Disable()
-            SetTextColor(label,   Def.TextColorSection)
+            if label then SetTextColor(label, Def.TextColorSection) end
             SetTextColor(btnText, Def.TextColorSection)
             chevron:SetAlpha(0.5)
             btnBg:SetAlpha(0.6)
         else
             btn:Enable()
-            SetTextColor(label,   Def.TextColorLabel)
+            if label then SetTextColor(label, Def.TextColorLabel) end
             SetTextColor(btnText, Def.TextColorLabel)
             chevron:SetAlpha(1)
             btnBg:SetAlpha(1)
@@ -1181,7 +1196,7 @@ end
     end)
 
     function row:Refresh()
-        if labelFn then
+        if labelFn and label then
             local newLabel = labelFn()
             if newLabel then label:SetText(newLabel) end
         end
@@ -1228,9 +1243,433 @@ end
     end
 
     row:Refresh()
+    if embedded then
+        -- The composite row owns the hover and the row tooltip; the button names what it sets.
+        ApplyOptionTooltip(btn, JoinTooltip(description, tooltip))
+        return row
+    end
     ApplyRowHoverHighlight(row)
     local effectiveTooltip = JoinTooltip(description, tooltip)
     ApplyOptionTooltip(row, effectiveTooltip)
+    return row
+end
+
+-- ---------------------------------------------------------------------------
+-- Font row controls. The geometry lives in addon.FONT_ROW_METRICS and addon.FontRowLayout
+-- (OptionsHelpers.lua), so the logic tests can check it without frames.
+-- ---------------------------------------------------------------------------
+
+local FONT_ROW_FALLBACK_METRICS = {
+    wrapBelow = 640, lineH = 34, line2H = 30, controlH = 26, gap = 8, labelGap = 12,
+    familyMin = 140, familyMax = 220, stepperW = 84, outlineW = 130,
+}
+local function FontRowMetrics()
+    return addon.FONT_ROW_METRICS or FONT_ROW_FALLBACK_METRICS
+end
+
+-- Compact size stepper: [-] value [+]. Typed values and steps snap to `step` and clamp to
+-- min/max through addon.FontRowStepSize. Returns a frame (caller anchors it) with Refresh.
+-- @param parent table
+-- @param get function  Returns the current size
+-- @param set function  Receives the new size
+-- @param minVal number
+-- @param maxVal number
+-- @param step number|nil  Default 1
+-- @param disabledFn function|nil
+-- @param tooltip string|function|nil  Hover text for the buttons and the value
+-- @return table
+function _G.OptionsWidgets_CreateSizeStepper(parent, get, set, minVal, maxVal, step, disabledFn, tooltip)
+    local M = FontRowMetrics()
+    minVal = tonumber(minVal) or 0
+    maxVal = tonumber(maxVal) or 100
+    step = tonumber(step) or 1
+    if step <= 0 then step = 1 end
+    local BTN_W, GAP = 22, 2
+    local H = M.controlH
+
+    local function stepValue(v, delta, fallback)
+        if addon.FontRowStepSize then return addon.FontRowStepSize(v, delta, minVal, maxVal, step, fallback) end
+        local n = tonumber(v)
+        if n == nil then return tonumber(fallback) or minVal end
+        return math.max(minVal, math.min(maxVal, n + (delta or 0) * step))
+    end
+
+    local decimals = 0
+    if step < 1 then
+        local s = tostring(step)
+        local dot = s:find("%.")
+        decimals = dot and (#s - dot) or 0
+    end
+    local function formatValue(v)
+        v = tonumber(v) or minVal
+        if addon.FontRowFormatSize then return addon.FontRowFormatSize(v, step) end
+        if decimals > 0 then return string.format("%." .. decimals .. "f", v) end
+        return tostring(math.floor(v + 0.5))
+    end
+
+    local frame = CreateFrame("Frame", nil, parent)
+    frame:SetSize(M.stepperW, H)
+
+    local function isDisabled()
+        return disabledFn and disabledFn() == true
+    end
+
+    local function makeButton(text)
+        local b = CreateFrame("Button", nil, frame)
+        b:SetSize(BTN_W, H)
+        local bg = b:CreateTexture(nil, "BACKGROUND")
+        bg:SetPoint("TOPLEFT", b, "TOPLEFT", 1, -1)
+        bg:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", -1, 1)
+        bg:SetColorTexture(Def.InputBg[1], Def.InputBg[2], Def.InputBg[3], Def.InputBg[4])
+        addon.CreateBorder(b, Def.InputBorder)
+        local hi = b:CreateTexture(nil, "HIGHLIGHT")
+        hi:SetAllPoints(b)
+        hi:SetColorTexture(1, 1, 1, 0.06)
+        local fs = b:CreateFontString(nil, "OVERLAY")
+        SetSafeFont(fs, Def.FontPath, Def.LabelSize, nil)
+        SetTextColor(fs, Def.TextColorLabel)
+        fs:SetText(text)
+        fs:SetPoint("CENTER", b, "CENTER", 0, 0)
+        return b
+    end
+    local minus = makeButton("-")
+    minus:SetPoint("LEFT", frame, "LEFT", 0, 0)
+    local plus = makeButton("+")
+    plus:SetPoint("RIGHT", frame, "RIGHT", 0, 0)
+
+    local editWrap = CreateFrame("Frame", nil, frame)
+    editWrap:SetPoint("TOPLEFT", minus, "TOPRIGHT", GAP, 0)
+    editWrap:SetPoint("BOTTOMRIGHT", plus, "BOTTOMLEFT", -GAP, 0)
+    local editBg = editWrap:CreateTexture(nil, "BACKGROUND")
+    editBg:SetAllPoints(editWrap)
+    editBg:SetColorTexture(Def.InputBg[1], Def.InputBg[2], Def.InputBg[3], Def.InputBg[4])
+    local bt, bb, bl, br = addon.CreateBorder(editWrap, Def.InputBorder)
+    local function setEditBorderColor(c)
+        for _, tex in ipairs({ bt, bb, bl, br }) do
+            if tex then tex:SetColorTexture(c[1], c[2], c[3], c[4] or 1) end
+        end
+    end
+
+    local edit = CreateFrame("EditBox", nil, editWrap)
+    edit:SetPoint("TOPLEFT", editWrap, "TOPLEFT", 2, 0)
+    edit:SetPoint("BOTTOMRIGHT", editWrap, "BOTTOMRIGHT", -2, 0)
+    edit:SetAutoFocus(false)
+    edit:SetMaxLetters(6)
+    edit:SetJustifyH("CENTER")
+    SetSafeFont(edit, Def.FontPath, Def.LabelSize, nil)
+    local tc = Def.TextColorLabel
+    edit:SetTextColor(tc[1], tc[2], tc[3], tc[4] or 1)
+
+    local function show(v)
+        edit:SetText(formatValue(v))
+    end
+    local function commit(v)
+        if v ~= tonumber(get()) then set(v) end
+        show(v)
+    end
+    -- Save typed text only when the player changed it: text that is not a number, or that still
+    -- shows the saved value (focus in and out, Escape), puts the saved value back untouched, so
+    -- an off-grid or fractional saved value is never re-snapped.
+    local reverting = false
+    local function applyTyped()
+        local cur = get()
+        if reverting or isDisabled() then
+            show(cur)
+            return
+        end
+        local text = edit:GetText()
+        local v
+        if addon.FontRowTypedSize then
+            v = addon.FontRowTypedSize(text, cur, minVal, maxVal, step)
+        elseif tonumber(text) ~= nil and text ~= formatValue(cur) then
+            v = stepValue(text, 0, cur)
+        end
+        if v ~= nil then commit(v) else show(cur) end
+    end
+
+    edit:SetScript("OnEditFocusGained", function()
+        if isDisabled() then edit:ClearFocus(); return end
+        setEditBorderColor(Def.AccentColor)
+        edit:HighlightText()
+    end)
+    edit:SetScript("OnEditFocusLost", function()
+        setEditBorderColor(Def.InputBorder)
+        edit:HighlightText(0, 0)
+        applyTyped()
+    end)
+    edit:SetScript("OnEnterPressed", function()
+        applyTyped()
+        edit:ClearFocus()
+    end)
+    edit:SetScript("OnEscapePressed", function()
+        reverting = true
+        show(get())
+        edit:ClearFocus()
+        reverting = false
+    end)
+    -- A stepper hidden mid-edit (card collapsed, dashboard closed) drops focus; focus loss commits
+    -- the typed value as usual, so a hidden EditBox never keeps the keyboard.
+    edit:SetScript("OnHide", function()
+        if edit:HasFocus() then edit:ClearFocus() end
+    end)
+
+    local function onStep(delta)
+        if isDisabled() then return end
+        -- Commit a half-typed value first, so the step starts from what the player sees.
+        if edit:HasFocus() then edit:ClearFocus() end
+        commit(stepValue(get(), delta, get()))
+    end
+    minus:SetScript("OnClick", function() onStep(-1) end)
+    plus:SetScript("OnClick", function() onStep(1) end)
+
+    local function applyDisabledVisuals()
+        local dis = isDisabled()
+        frame:SetAlpha(dis and 0.35 or 1)
+        if dis then
+            minus:Disable()
+            plus:Disable()
+            if edit:HasFocus() then edit:ClearFocus() end
+            edit:EnableMouse(false)
+        else
+            minus:Enable()
+            plus:Enable()
+            edit:EnableMouse(true)
+        end
+    end
+
+    function frame:Refresh()
+        if not edit:HasFocus() then show(get()) end
+        applyDisabledVisuals()
+    end
+
+    -- Tooltips first: ApplyOptionTooltip enables the mouse, and Refresh must have the last word
+    -- so a stepper that starts disabled keeps its EditBox mouse-disabled.
+    ApplyOptionTooltip(minus, tooltip)
+    ApplyOptionTooltip(plus, tooltip)
+    ApplyOptionTooltip(edit, tooltip)
+    frame:Refresh()
+    return frame
+end
+
+-- Compact on/off pill with its label on the left, for a control inside a composite row
+-- (the font row's outline toggle). Sizes itself to its label; caller anchors it.
+-- @param parent table
+-- @param labelText string
+-- @param get function
+-- @param set function
+-- @param disabledFn function|nil
+-- @param tooltip string|function|nil
+-- @return table  Button with Refresh
+function _G.OptionsWidgets_CreateCompactToggle(parent, labelText, get, set, disabledFn, tooltip)
+    local M = FontRowMetrics()
+    local TW, TH, INSET, THUMB, LABEL_GAP = 34, 18, 2, 14, 6
+    local btn = CreateFrame("Button", nil, parent)
+    btn:SetHeight(M.controlH)
+
+    local label = btn:CreateFontString(nil, "OVERLAY")
+    SetSafeFont(label, Def.FontPath, Def.LabelSize, nil)
+    SetTextColor(label, Def.TextColorLabel)
+    label:SetJustifyH("LEFT")
+    label:SetText(labelText or "")
+    label:SetPoint("LEFT", btn, "LEFT", 0, 0)
+
+    local track = CreateFrame("Frame", nil, btn)
+    track:SetSize(TW, TH)
+    track:SetPoint("RIGHT", btn, "RIGHT", 0, 0)
+    local trackBg = track:CreateTexture(nil, "BACKGROUND")
+    trackBg:SetPoint("TOPLEFT", track, "TOPLEFT", INSET, -INSET)
+    trackBg:SetPoint("BOTTOMRIGHT", track, "BOTTOMRIGHT", -INSET, INSET)
+    trackBg:SetColorTexture(Def.TrackOff[1], Def.TrackOff[2], Def.TrackOff[3], Def.TrackOff[4])
+    local trackFill = track:CreateTexture(nil, "ARTWORK")
+    trackFill:SetPoint("TOPLEFT", track, "TOPLEFT", INSET, -INSET)
+    trackFill:SetPoint("BOTTOMLEFT", track, "BOTTOMLEFT", INSET, INSET)
+    trackFill:SetWidth(1)
+    local thumb = track:CreateTexture(nil, "OVERLAY")
+    thumb:SetSize(THUMB, THUMB)
+    thumb:SetColorTexture(Def.ThumbColor[1], Def.ThumbColor[2], Def.ThumbColor[3], Def.ThumbColor[4])
+
+    local fillW = TW - 2 * INSET
+    local travel = fillW - THUMB
+    local function measure()
+        btn:SetWidth(math.ceil(label:GetStringWidth() or 0) + LABEL_GAP + TW)
+    end
+    local function paint(on)
+        trackFill:SetColorTexture(Def.TrackOn[1], Def.TrackOn[2], Def.TrackOn[3], Def.TrackOn[4] or 0.85)
+        trackFill:SetWidth(fillW)
+        trackFill:SetShown(on and true or false)
+        thumb:ClearAllPoints()
+        thumb:SetPoint("CENTER", track, "LEFT", INSET + THUMB / 2 + (on and travel or 0), 0)
+    end
+    local function isDisabled()
+        return disabledFn and disabledFn() == true
+    end
+
+    btn:SetScript("OnClick", function()
+        if isDisabled() then return end
+        local on = not get()
+        set(on)
+        paint(on)
+    end)
+
+    function btn:Refresh()
+        measure()
+        paint(get() and true or false)
+        local alpha = isDisabled() and 0.45 or 1
+        label:SetAlpha(alpha)
+        track:SetAlpha(alpha)
+    end
+
+    btn:Refresh()
+    ApplyOptionTooltip(btn, tooltip)
+    return btn
+end
+
+-- Font row: the label on the left, then the font dropdown, size stepper and outline control
+-- right-aligned on one line in that order. Below FONT_ROW_METRICS.wrapBelow it wraps: label and
+-- font on the first line, size and outline right-aligned on the second. A missing part leaves no gap.
+-- @param parent table
+-- @param labelText string|function
+-- @param description string|nil  Row tooltip (with tooltip)
+-- @param parts table  { family?, size?, outline? }, each with get and set already wired by the caller.
+--   family: options, displayFn, searchable (default true), fontPreviewInList (default true), preserveOrder.
+--   size: min, max, step. outline: kind ("dropdown" or "toggle"), options (default addon.OUTLINE_OPTIONS).
+--   Any part: disabled (ORed with the row's), tooltip (added to the control's own tooltip).
+-- @param disabledFn function|nil  The row's disabled state
+-- @param tooltip string|function|nil
+-- @return table  Frame with Refresh; set row.onHeightChanged to hear when it wraps or unwraps.
+function _G.OptionsWidgets_CreateFontRow(parent, labelText, description, parts, disabledFn, tooltip)
+    local M = FontRowMetrics()
+    parts = parts or {}
+    local labelFn = type(labelText) == "function" and labelText or nil
+    local resolvedLabel = labelFn and labelFn() or labelText
+
+    local row = CreateFrame("Frame", nil, parent)
+    row:SetHeight(M.lineH)
+    row.searchText = ((resolvedLabel or "") .. " " .. (description or "")):lower()
+
+    local label = row:CreateFontString(nil, "OVERLAY")
+    SetSafeFont(label, Def.FontPath, Def.LabelSize, nil)
+    label:SetJustifyH("LEFT")
+    label:SetJustifyV("MIDDLE")
+    SetTextColor(label, Def.TextColorLabel)
+    label:SetText(resolvedLabel or "")
+    label:SetWordWrap(false)
+
+    local function rowDisabled()
+        return disabledFn and disabledFn() == true
+    end
+    local function partDisabled(part)
+        return function()
+            if rowDisabled() then return true end
+            local d = part.disabled
+            if type(d) == "function" then return d() == true end
+            return d == true
+        end
+    end
+
+    local controls = {}
+    local family, size, outline
+    if parts.family then
+        local p = parts.family
+        family = _G.OptionsWidgets_CreateCustomDropdown(row, nil, L["FOCUS_FONT"], p.options or {}, p.get, p.set,
+            p.displayFn, p.searchable ~= false, partDisabled(p), p.tooltip, nil, p.fontPreviewInList ~= false,
+            p.preserveOrder, { embedded = true })
+        family:SetSize(M.familyMax, M.controlH)
+        controls[#controls + 1] = family
+    end
+    if parts.size then
+        local p = parts.size
+        size = _G.OptionsWidgets_CreateSizeStepper(row, p.get, p.set, p.min, p.max, p.step, partDisabled(p),
+            JoinTooltip(L["AUGMENT_FONT_SIZE"], p.tooltip))
+        controls[#controls + 1] = size
+    end
+    if parts.outline then
+        local p = parts.outline
+        if p.kind == "toggle" then
+            outline = _G.OptionsWidgets_CreateCompactToggle(row, L["FOCUS_OUTLINE"], p.get, p.set, partDisabled(p),
+                JoinTooltip(L["FOCUS_OUTLINE"], p.tooltip))
+        else
+            local opts, keepOrder = p.options, p.preserveOrder
+            if opts == nil then opts, keepOrder = addon.OUTLINE_OPTIONS or {}, true end
+            outline = _G.OptionsWidgets_CreateCustomDropdown(row, nil, L["FOCUS_OUTLINE"], opts, p.get, p.set,
+                p.displayFn, false, partDisabled(p), p.tooltip, nil, false, keepOrder, { embedded = true })
+            outline:SetSize(M.outlineW, M.controlH)
+        end
+        controls[#controls + 1] = outline
+    end
+
+    local has = { family = family ~= nil, size = size ~= nil, outline = outline ~= nil }
+    local function layoutFor(w)
+        if addon.FontRowLayout then return addon.FontRowLayout(w, has) end
+        local wrapped = (w or 0) > 0 and w < M.wrapBelow
+        return { wrapped = wrapped, familyW = M.familyMax,
+            height = (wrapped and (has.size or has.outline)) and (M.lineH + M.line2H) or M.lineH }
+    end
+
+    -- Right-align a list of controls in a band `top` px down and `h` tall. Returns the width
+    -- they take, gaps between them included.
+    local function place(list, top, h)
+        local x = 0
+        for i = #list, 1, -1 do
+            local c = list[i]
+            c:ClearAllPoints()
+            c:SetPoint("RIGHT", row, "TOPRIGHT", -x, -(top + h / 2))
+            x = x + (c:GetWidth() or 0)
+            if i > 1 then x = x + M.gap end
+        end
+        return x
+    end
+
+    local function Layout(w)
+        local lay = layoutFor(w)
+        if family then family:SetWidth(lay.familyW) end
+        local line1, line2 = {}, {}
+        if lay.wrapped then
+            if family then line1[1] = family end
+            if size then line2[#line2 + 1] = size end
+            if outline then line2[#line2 + 1] = outline end
+        else
+            for _, c in ipairs(controls) do line1[#line1 + 1] = c end
+        end
+        local used = place(line1, 0, M.lineH)
+        place(line2, M.lineH, M.line2H)
+        label:ClearAllPoints()
+        label:SetPoint("TOPLEFT", row, "TOPLEFT", 0, 0)
+        label:SetPoint("BOTTOMRIGHT", row, "TOPRIGHT", -(used > 0 and (used + M.labelGap) or 0), -M.lineH)
+        if math.abs((row:GetHeight() or 0) - lay.height) > 0.5 then
+            row:SetHeight(lay.height)
+            if row.onHeightChanged then row.onHeightChanged() end
+        end
+    end
+
+    -- Re-lay out only when the width moves (0.5px guard, as colorMatrixFull does); the height
+    -- change from wrapping fires OnSizeChanged again with the same width.
+    local lastW = -1
+    row:SetScript("OnSizeChanged", function(_, w)
+        w = w or 0
+        if math.abs(w - lastW) > 0.5 then
+            lastW = w
+            Layout(w)
+        end
+    end)
+
+    function row:Refresh()
+        if labelFn then
+            local newLabel = labelFn()
+            if newLabel then label:SetText(newLabel) end
+        end
+        for _, c in ipairs(controls) do
+            if c.Refresh then c:Refresh() end
+        end
+        SetTextColor(label, rowDisabled() and Def.TextColorSection or Def.TextColorLabel)
+        -- The toggle sizes itself to its label in Refresh, so place the line again.
+        if outline and parts.outline.kind == "toggle" then Layout(lastW > 0 and lastW or (row:GetWidth() or 0)) end
+    end
+
+    Layout(0)
+    row:Refresh()
+    ApplyRowHoverHighlight(row)
+    ApplyOptionTooltip(row, JoinTooltip(description, tooltip))
     return row
 end
 

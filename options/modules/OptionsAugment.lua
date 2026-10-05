@@ -13,6 +13,7 @@ local GetPerElementFontDropdownOptions = addon.GetPerElementFontDropdownOptions
 local DisplayPerElementFont            = addon.DisplayPerElementFont
 local Section                          = addon.Section
 local Toggle                           = addon.Toggle
+local FontRow                          = addon.FontRow
 local Button                           = addon.Button
 local D   = addon.AUGMENT_DEFAULTS
 local LIM = addon.AUGMENT_LIMITS
@@ -185,30 +186,31 @@ local categories = {
                             parentIs = "square",
                             advanced = true,
                         },
-                        { type = "dropdown",
-                            name = L["AUGMENT_FONT"],
-                            desc = L["AUGMENT_FONT_FAMILY"],
-                            dbKey = "augmentFontPath",
-                            searchable = true,
-                            options = function() return GetPerElementFontDropdownOptions("augmentFontPath") end,
-                            get = function() return getDB("augmentFontPath", FONT_USE_GLOBAL) end,
-                            set = function(v) setDB("augmentFontPath", v) end,
-                            displayFn = DisplayPerElementFont,
-                            fontPreviewInList = true,
-                        },
-                        { type = "slider", name = L["AUGMENT_FONT_SIZE"], desc = L["AUGMENT_FONT_SIZE_DESC"], dbKey = "augmentFontSize",
-                            min = LIM.augmentFontSize.min, max = LIM.augmentFontSize.max, step = 1,
-                            get = function() return getSlider("augmentFontSize") end,
-                            set = function(v) setDB("augmentFontSize", clamp(v, "augmentFontSize")) end,
-                        },
-                        { type = "dropdown",
-                            name = L["AUGMENT_TEXT_OUTLINE_TYPE"], desc = L["AUGMENT_TEXT_OUTLINE_TYPE_DESC"],
-                            dbKey = "augmentTextOutlineType",
-                            advanced = true,
-                            options = addon.OUTLINE_OPTIONS,
-                            get = function() return getDB("augmentTextOutlineType", D.augmentTextOutlineType) end,
-                            set = function(v) setDB("augmentTextOutlineType", v) end,
-                        },
+                        FontRow(L["AUGMENT_FONT"], L["AUGMENT_FONT_FAMILY"], {
+                            family = {
+                                dbKey = "augmentFontPath",
+                                searchable = true,
+                                options = function() return GetPerElementFontDropdownOptions("augmentFontPath") end,
+                                get = function() return getDB("augmentFontPath", FONT_USE_GLOBAL) end,
+                                set = function(v) setDB("augmentFontPath", v) end,
+                                displayFn = DisplayPerElementFont,
+                                fontPreviewInList = true,
+                            },
+                            size = {
+                                dbKey = "augmentFontSize",
+                                tooltip = L["AUGMENT_FONT_SIZE_DESC"],
+                                min = LIM.augmentFontSize.min, max = LIM.augmentFontSize.max, step = 1,
+                                get = function() return getSlider("augmentFontSize") end,
+                                set = function(v) setDB("augmentFontSize", clamp(v, "augmentFontSize")) end,
+                            },
+                            outline = {
+                                dbKey = "augmentTextOutlineType",
+                                tooltip = L["AUGMENT_TEXT_OUTLINE_TYPE_DESC"],
+                                options = addon.OUTLINE_OPTIONS,
+                                get = function() return getDB("augmentTextOutlineType", D.augmentTextOutlineType) end,
+                                set = function(v) setDB("augmentTextOutlineType", v) end,
+                            },
+                        }, { keywords = { L["AUGMENT_FONT_SIZE"], L["AUGMENT_TEXT_OUTLINE_TYPE"] } }),
                         Toggle(L["AUGMENT_SUPPRESS_BLIZZARD"], L["AUGMENT_SUPPRESS_BLIZZARD_DESC"], "augmentSuppressBlizzard", D.augmentSuppressBlizzard, { advanced = true }),
                         Button(L["AUGMENT_LOOT_WINDOW_RESET_POSITION"], L["AUGMENT_LOOT_WINDOW_RESET_POSITION_DESC"], function()
                             local Y = addon.Augment

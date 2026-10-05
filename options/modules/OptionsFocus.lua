@@ -17,6 +17,7 @@ local Section                          = addon.Section
 local Button                           = addon.Button
 local Toggle                           = addon.Toggle
 local Slider                           = addon.Slider
+local FontRow                          = addon.FontRow
 local Color                            = addon.Color
 local D   = addon.FOCUS_DEFAULTS
 local LIM = addon.FOCUS_LIMITS
@@ -592,7 +593,20 @@ local categories = {
         moduleKey = "focus",
         options = {
             Section(L["FOCUS_FONT_FAMILIES"], { page = "look", card = "text" }),
-            { type = "dropdown", name = L["FOCUS_FONT"], desc = L["FOCUS_FONT_FAMILY"], dbKey = "fontPath", searchable = true, options = GetFontDropdownOptions, get = function() return getDB("fontPath", defaultFontPath) end, set = function(v) setDB("fontPath", v) end, displayFn = addon.GetFontNameForPath, fontPreviewInList = true },
+            FontRow(L["FOCUS_FONT"], L["FOCUS_FONT_FAMILY"], {
+                family = {
+                    dbKey = "fontPath", searchable = true, options = GetFontDropdownOptions,
+                    get = function() return getDB("fontPath", defaultFontPath) end,
+                    set = function(v) setDB("fontPath", v) end,
+                    displayFn = addon.GetFontNameForPath, fontPreviewInList = true,
+                },
+                outline = {
+                    dbKey = "fontOutline", options = OUTLINE_OPTIONS, preserveOrder = true,
+                    get = function() return getDB("fontOutline", D.fontOutline) end,
+                    set = function(v) setDB("fontOutline", v) end,
+                    tooltip = L["FOCUS_FONT_OUTLINE_STYLE"],
+                },
+            }, { keywords = { L["FOCUS_OUTLINE"] } }),
             Toggle(L["FOCUS_PER_ELEMENT_FONTS"], L["OVERRIDE_FONT_PER_ELEMENT"], "usePerElementFonts", D.usePerElementFonts, { advanced = true }),
             { type = "dropdown", name = L["FOCUS_TITLE_FONT"], desc = L["FOCUS_FONT_FAMILY_QUEST_TITLES"], dbKey = "titleFontPath", advanced = true, searchable = true, options = function() return GetPerElementFontDropdownOptions("titleFontPath") end, get = function() return getDB("titleFontPath", FONT_USE_GLOBAL) end, set = function(v) setDB("titleFontPath", v) end, displayFn = DisplayPerElementFont, parent = "usePerElementFonts", id = "titleFontPath", fontPreviewInList = true },
             { type = "dropdown", name = L["VISTA_ZONE_FONT"], desc = L["FOCUS_FONT_FAMILY_ZONE_LABELS"], dbKey = "zoneFontPath", advanced = true, searchable = true, options = function() return GetPerElementFontDropdownOptions("zoneFontPath") end, get = function() return getDB("zoneFontPath", FONT_USE_GLOBAL) end, set = function(v) setDB("zoneFontPath", v) end, displayFn = DisplayPerElementFont, parent = "usePerElementFonts", id = "zoneFontPath", fontPreviewInList = true },
@@ -611,7 +625,6 @@ local categories = {
             Slider(L["FOCUS_PROGRESS_BAR_TEXT_SIZE"], L["FONT_SIZE_BAR_LABEL_BAR_HEIGHT"], "progressBarFontSize", LIM.progressBarFontSize.min, LIM.progressBarFontSize.max, D.progressBarFontSize, { tooltip = L["AFFECTS_SCENARIO_PROGRESS_TIMER_BARS"], advanced = true }),
             Slider(L["FOCUS_TIMER_TEXT_SIZE"], L["FOCUS_TIMER_TEXT_FONT_SIZE"], "timerFontSize", LIM.timerFontSize.min, LIM.timerFontSize.max, D.timerFontSize, { advanced = true }),
             Slider(L["FOCUS_OPTIONS_TEXT_SIZE"], L["FOCUS_OPTIONS_TEXT_FONT_SIZE"], "optionsFontSize", LIM.optionsFontSize.min, LIM.optionsFontSize.max, D.optionsFontSize, { advanced = true }),
-            { type = "dropdown", name = L["FOCUS_OUTLINE"], desc = L["FOCUS_FONT_OUTLINE_STYLE"], dbKey = "fontOutline", advanced = true, options = OUTLINE_OPTIONS, preserveOrder = true, get = function() return getDB("fontOutline", D.fontOutline) end, set = function(v) setDB("fontOutline", v) end },
             Section(L["FOCUS_TEXT_CASE"], { page = "look", card = "text" }),
             { type = "dropdown", name = L["FOCUS_HEADER_TEXT_CASE"], desc = L["FOCUS_DISPLAY_CASE_HEADER"], dbKey = "headerTextCase", advanced = true, options = TEXT_CASE_OPTIONS, get = function() local v = getDB("headerTextCase", D.headerTextCase); return (v == "default") and D.headerTextCase or v end, set = function(v) setDB("headerTextCase", v) end },
             { type = "dropdown", name = L["FOCUS_SECTION_HEADER_CASE"], desc = L["FOCUS_DISPLAY_CASE_CATEGORY_LABELS"], dbKey = "sectionHeaderTextCase", advanced = true, options = TEXT_CASE_OPTIONS, get = function() local v = getDB("sectionHeaderTextCase", D.sectionHeaderTextCase); return (v == "default") and D.sectionHeaderTextCase or v end, set = function(v) setDB("sectionHeaderTextCase", v) end },
