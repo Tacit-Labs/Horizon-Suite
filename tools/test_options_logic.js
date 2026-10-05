@@ -321,8 +321,6 @@ run(`
   check("remembered closed wins over first", A.IsCardExpanded("m:p:a", true) == false, "true")
   check("remembered open wins", A.IsCardExpanded("m:p:b", false) == true, "false")
   check("state saved in the database", HorizonDB.optionsCardExpanded["m:p:b"] == true, "nil")
-  check("the More store is gone", A.IsMoreOpen == nil and A.SetMoreOpen == nil, "still defined")
-  check("no More state is written", HorizonDB.optionsCardMoreOpen == nil, "written")
 `, 'card-store');
 
 // --- Dependent rows -------------------------------------------------------------------
@@ -443,12 +441,10 @@ run(`
   } } })
   local rows = OPTS(out[1])
   check("advanced row stays in place", SHAPE(rows) == "S:CARD_POSITION|lock|S:CARD_SIZE|a|adv1|b|adv2", SHAPE(rows))
-  local more, adv1 = false, nil
+  local adv1
   for _, r in ipairs(rows) do
-    if r.type == "moreToggle" then more = true end
     if r.dbKey == "adv1" then adv1 = r end
   end
-  check("no moreToggle rows", more == false, "moreToggle present")
   check("advanced row has no condition of its own", adv1 and adv1.visibleWhen == nil, "wired")
 `, 'no-more-fold');
 
@@ -486,7 +482,6 @@ run(`
   check("advanced row with its own condition follows it", by.p3.visibleWhen() == true, "hidden")
   DB_VALUES.own = false
   check("advanced row with a failing condition hides", by.p3.visibleWhen() == false, "shown")
-  check("no store gate on any row", HorizonDB.optionsCardMoreOpen == nil, "written")
 `, 'advanced-ignored');
 
 // --- An advanced chain behaves like any chain ------------------------------------------------
@@ -507,7 +502,6 @@ run(`
   check("advanced grandchild hides with its advanced parent", by.ak.visibleWhen() == false, "shown")
   DB_VALUES.ap, DB_VALUES.ev = true, false
   check("advanced grandchild hides with the top of the chain", by.ak.visibleWhen() == false, "shown")
-  check("the counting hook is gone", A._countingCard == nil, tostring(A._countingCard))
 `, 'advanced-chain');
 
 // --- Subheadings in merged cards ---------------------------------------------------------

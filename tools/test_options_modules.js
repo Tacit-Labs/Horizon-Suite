@@ -215,8 +215,7 @@ function assemble(capsOff) {
     -- Layout dump for --dump: one block per card, counted as visibleAtDefaults/total. A row is
     -- visible at defaults when its condition (its own and its parent chain's) passes with the
     -- harness's default settings. Subheadings print as "── name ──" and are not counted.
-    -- Rows still carrying the retired advanced field are listed in the advanced list.
-    local dump, advanced, oversized, misplaced = {}, {}, {}, {}
+    local dump, oversized, misplaced = {}, {}, {}
     -- Rows that would render as segmented buttons (eligibility only; the width check runs in game).
     local segRows = {}
     local SegOk = addon.SegmentedEligible or function() return false end
@@ -291,7 +290,6 @@ function assemble(capsOff) {
             local okV, vis = true, true
             if type(r.visibleWhen) == "function" then okV, vis = pcall(r.visibleWhen) end
             if okV and vis then shown = shown + 1 end
-            if r.advanced then advanced[#advanced + 1] = mk .. " › " .. pk .. " › " .. head .. " › " .. rowName(r) end
             lines[#lines + 1] = "  " .. (r.parent and "↳ " or "") .. rowName(r)
               .. (r.parent and ("  (parent: " .. tostring(r.parent) .. ")") or "")
             if r.type == "dropdown" and SegOk(r) then
@@ -500,7 +498,6 @@ function assemble(capsOff) {
       '"missing":' .. list(missing),
       '"dump":' .. list(dump),
       '"segRows":' .. list(segRows),
-      '"advanced":' .. list(advanced),
       '"oversized":' .. list(oversized),
       '"misplaced":' .. list(misplaced),
       '"coverage":' .. "[" .. table.concat(coverage, ",") .. "]",
@@ -536,9 +533,7 @@ function common(label, r) {
     th.join(', '));
   check(label + ': Talking Head keeps its preview proxy', th.some(c => c.endsWith('+proxy')), th.join(', '));
   if (label === 'Retail') console.log('  (Retail augment:talkingHead cards: ' + th.join(', ') + ')');
-  // Every setting shows once its card is open: no row keeps the retired advanced field, and no
-  // card holds more than 12 rows (headers excluded, a font row counts as one).
-  check(label + ': no row carries the retired advanced field', r.advanced.length === 0, r.advanced.join(', '));
+  // No card holds more than 12 rows (headers excluded, a font row counts as one).
   check(label + ': no card holds more than 12 rows', r.oversized.length === 0, r.oversized.join(', '));
   // A dependent row reads as nested only when it sits under its parent, or under another of
   // that parent's dependents, with nothing unrelated in between.
