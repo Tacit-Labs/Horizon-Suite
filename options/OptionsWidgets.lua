@@ -75,6 +75,9 @@ local Def = {
     MotionFast = 0.12,                              -- seconds: switch slide, slider thumb and value
     MotionPress = 0.06,                             -- seconds: a control easing to and from its press scale
     PressScale = 0.97,                              -- a held-down control's scale, about its centre
+    RowStagger = 0.02,                              -- seconds between rows starting as a card opens
+    RowStaggerCap = 0.25,                           -- seconds: the whole card-opening sequence, at most
+    RowRise = 6,                                    -- px a row rises into place as a card opens
 
     -- Card header geometry (DashboardAccordionCard.lua).
     TitleLineFactor = 1.35,                         -- title line height as a multiple of TitleSize
@@ -417,6 +420,45 @@ local function SliderThumbSizeAt(base, e)
     return base * Lerp(1, Def.SliderThumbHoverScale or 1, e)
 end
 addon.OptionsWidgets_SliderThumbSizeAt = SliderThumbSizeAt
+
+--- The timing of a card's rows staggering in as it opens. Pure. Each row runs for rowDur and
+--- starts step after the row above; when that would run past cap, the step shrinks so the last
+--- row lands exactly at cap (and rowDur itself never exceeds cap).
+--- @param count number  Rows that stagger
+--- @param step number  Def.RowStagger
+--- @param rowDur number  One row's fade and rise
+--- @param cap number|nil  Def.RowStaggerCap
+--- @return number step, number rowDur, number total (seconds until the last row is in place)
+local function RowStaggerSchedule(count, step, rowDur, cap)
+    count = math.max(0, math.floor(tonumber(count) or 0))
+    step = math.max(0, tonumber(step) or 0)
+    rowDur = math.max(0, tonumber(rowDur) or 0)
+    cap = tonumber(cap)
+    if cap and cap < 0 then cap = 0 end
+    if cap and rowDur > cap then rowDur = cap end
+    if count == 0 then return step, rowDur, 0 end
+    if cap and count > 1 and (count - 1) * step + rowDur > cap then
+        step = (cap - rowDur) / (count - 1)
+    end
+    return step, rowDur, (count - 1) * step + rowDur
+end
+addon.OptionsWidgets_RowStaggerSchedule = RowStaggerSchedule
+
+--- One staggered row's look at time t. Pure. Before its start a row is invisible and rise px
+--- low; it eases up and in, and is exactly alpha 1 at offset 0 once done.
+--- @param index number  1 for the top row
+--- @param t number  Seconds since the card started opening
+--- @param step number  From RowStaggerSchedule
+--- @param rowDur number  From RowStaggerSchedule
+--- @param rise number  Def.RowRise
+--- @return number alpha, number dy (added to the row's y; negative is lower), boolean done
+local function RowStaggerAt(index, t, step, rowDur, rise)
+    local start = ((tonumber(index) or 1) - 1) * (tonumber(step) or 0)
+    local _, e, done = TweenAdvance(0, (tonumber(t) or 0) - start, rowDur)
+    if done then return 1, 0, true end
+    return e, -(tonumber(rise) or 0) * (1 - e), false
+end
+addon.OptionsWidgets_RowStaggerAt = RowStaggerAt
 
 --- Stop frame's tween where it is, without finishing it. Returns the stopped tween, if any.
 local function StopTween(frame)

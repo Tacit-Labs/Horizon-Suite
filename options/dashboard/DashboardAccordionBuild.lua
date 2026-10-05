@@ -206,6 +206,106 @@ function addon.DashboardAccordionBuild_Init(f, p)
             div:Show()
         end
 
+        -- Rows staggering in as the player opens a card (spec item 3): each visible row fades
+        -- from 0 and rises Def.RowRise px into place, Def.RowStagger after the row above, the
+        -- whole sequence capped at Def.RowStaggerCap. card._rowStagger holds the state. The rise
+        -- is an offset added to the y DoInstantRelayout computes, so a relayout mid-sequence
+        -- reapplies it rather than fighting it; every relayout pass remembers each row's base
+        -- anchor in frame._hsRowX/_hsRowY.
+        local RowStaggerAt = addon.OptionsWidgets_RowStaggerAt
+        local RowStaggerSchedule = addon.OptionsWidgets_RowStaggerSchedule
+
+        -- A row's alpha and y offset now: 1 and 0 unless a running stagger owns it.
+        local function RowStaggerLook(card, frame)
+            local st = card._rowStagger
+            local idx = st and st.index[frame]
+            if not idx then return 1, 0 end
+            local alpha, dy = RowStaggerAt(idx, st.t, st.step, st.dur, st.rise)
+            return alpha, dy
+        end
+
+        local function PlaceStaggerRow(card, frame, alpha, dy)
+            frame:SetAlpha(alpha)
+            if frame._hsRowX then
+                -- Replaces only the TOPLEFT point; the RIGHT point relayout set stays.
+                frame:SetPoint("TOPLEFT", card.settingsContainer, "TOPLEFT", frame._hsRowX, frame._hsRowY + dy)
+            end
+        end
+
+        -- End the stagger now: every row it owned sits exactly in place at alpha 1. Hidden rows
+        -- stay hidden (alpha alone never shows a frame).
+        local function FinishRowStagger(card)
+            local st = card and card._rowStagger
+            if not st then return end
+            card._rowStagger = nil
+            if st.driver then st.driver:SetScript("OnUpdate", nil) end
+            for frame in pairs(st.index) do
+                PlaceStaggerRow(card, frame, 1, 0)
+            end
+        end
+
+        -- Start the stagger on the player's open. Returns true when it runs. Skipped while the
+        -- card is hidden or fading, or a dependent-row fade owns row alpha (card.relayoutAnim).
+        local function StartRowStagger(card)
+            FinishRowStagger(card)
+            if not card or not card.widgetList or not RowStaggerAt or not RowStaggerSchedule then return false end
+            if card.relayoutAnim or card._visibilityFadingIn or card._visibilityFadingOut then return false end
+            if not card:IsVisible() then return false end
+            local index, n = {}, 0
+            for _, entry in ipairs(card.widgetList) do
+                local frame = entry.frame
+                if frame:IsShown() and (frame:GetHeight() or 0) >= 1 and frame._hsRowX then
+                    n = n + 1
+                    index[frame] = n
+                end
+            end
+            if n == 0 then return false end
+            local WDef = addon.OptionsWidgetsDef
+            local step, dur, total = RowStaggerSchedule(n, WDef.RowStagger, WDef.MotionFast, WDef.RowStaggerCap)
+            if total <= 0 then return false end
+            local driver = card._rowStaggerDriver
+            if not driver then
+                -- A child of the card, so it hides with the card or the dashboard and ends the
+                -- stagger exactly.
+                driver = CreateFrame("Frame", nil, card)
+                driver:SetScript("OnHide", function() FinishRowStagger(card) end)
+                card._rowStaggerDriver = driver
+            end
+            local st = { t = 0, step = step, dur = dur, total = total, rise = WDef.RowRise or 0,
+                index = index, driver = driver }
+            card._rowStagger = st
+            -- Paint the first frame now, so no row flashes in place before the first tick.
+            for frame in pairs(index) do
+                local alpha, dy = RowStaggerLook(card, frame)
+                PlaceStaggerRow(card, frame, alpha, dy)
+            end
+            driver:SetScript("OnUpdate", function(self, elapsed)
+                if card._rowStagger ~= st then
+                    self:SetScript("OnUpdate", nil)
+                    return
+                end
+                st.t = st.t + math.max(0, tonumber(elapsed) or 0)
+                if st.t >= st.total then
+                    FinishRowStagger(card)
+                    return
+                end
+                for frame in pairs(st.index) do
+                    if frame:IsShown() then
+                        local alpha, dy = RowStaggerLook(card, frame)
+                        PlaceStaggerRow(card, frame, alpha, dy)
+                    end
+                end
+            end)
+            return true
+        end
+
+        -- The card calls these: StartRowStagger on a player's open, StopRowStagger on a close
+        -- or an instant open.
+        local function AttachRowStagger(card)
+            card.StartRowStagger = function() return StartRowStagger(card) end
+            card.StopRowStagger = function() FinishRowStagger(card) end
+        end
+
         -- Restack the card's visible entries. Spacing and hairlines come from
         -- addon.CardRowSpacing, decided from the visible order each time, so a row that hides
         -- or shows moves the hairlines with it. restackOnly positions the entries and works out
@@ -226,7 +326,8 @@ function addon.DashboardAccordionBuild_Init(f, p)
                 end
                 entry.frame:SetShown(visible)
                 if visible then
-                    entry.frame:SetAlpha(1)
+                    -- Alpha 1, or where a running open stagger has the row (RowStaggerLook).
+                    entry.frame:SetAlpha((RowStaggerLook(card, entry.frame)))
                     local h = entry.frame:GetHeight() or 0
                     if entry.isNote and h < NOTE_MIN_HEIGHT then h = NOTE_MIN_HEIGHT end
                     local kind = (entry.isHeader and "subheading") or (entry.isNote and "note")
@@ -251,7 +352,9 @@ function addon.DashboardAccordionBuild_Init(f, p)
                 local rowX = cardPadX + indentX
                 yOff = yOff + sp.top
                 frame:ClearAllPoints()
-                frame:SetPoint("TOPLEFT", sc, "TOPLEFT", rowX, -yOff)
+                frame._hsRowX, frame._hsRowY = rowX, -yOff
+                local _, staggerDy = RowStaggerLook(card, frame)
+                frame:SetPoint("TOPLEFT", sc, "TOPLEFT", rowX, -yOff + staggerDy)
                 frame:SetPoint("RIGHT", sc, "RIGHT", -cardPadX, 0)
                 SetRowDivider(frame, sp.divider, indentX, sp.top)
                 -- The row hover runs across the whole card, past the row's own inset.
@@ -402,6 +505,10 @@ function addon.DashboardAccordionBuild_Init(f, p)
                 DoInstantRelayout(card, false, animateVisibility)
                 return
             end
+
+            -- A dependent-row fade takes over row alpha from here: land an open stagger first,
+            -- so the two never animate the same row.
+            FinishRowStagger(card)
 
             local oldHeight = card:GetHeight()
             local animFrame = card.relayoutAnimFrame or CreateFrame("Frame", nil, card)
@@ -563,6 +670,7 @@ function addon.DashboardAccordionBuild_Init(f, p)
                 end
 
                 currentCard = CreateAccordionCard(detailContent, opt.name, opt.headerToggle, opt.desc)
+                AttachRowStagger(currentCard)
                 currentCard.contentHeight = 0
                 currentCard.optionIds = {}
                 currentCard.widgetList = {}
@@ -578,6 +686,7 @@ function addon.DashboardAccordionBuild_Init(f, p)
             else
                 if not currentCard then
                     currentCard = CreateAccordionCard(detailContent, moduleSubName)
+                    AttachRowStagger(currentCard)
                     currentCard.contentHeight = 0
                     currentCard.optionIds = {}
                     currentCard.widgetList = {}

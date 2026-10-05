@@ -137,6 +137,8 @@ function addon.Dashboard_CreateAccordionCard(parent, title, headerToggleCfg, p, 
     -- Forward-declare so ExpandCollapseCard and headerToggleInit can reference it
     -- before the actual definition (which needs sc to be in scope).
     local updateExpandedVisuals
+    -- Defined with the settings container below: the rows' motion for an open or close.
+    local playerToggleMotion
 
     -- Shared expand/collapse logic used by both headerBtn and the header pill toggle
     local function ExpandCollapseCard(targetExpanded)
@@ -144,6 +146,7 @@ function addon.Dashboard_CreateAccordionCard(parent, title, headerToggleCfg, p, 
         if targetExpanded == card.expanded then return end
         card.expanded = targetExpanded
         updateExpandedVisuals()
+        playerToggleMotion()
         card.anim:Play()
     end
 
@@ -276,6 +279,23 @@ function addon.Dashboard_CreateAccordionCard(parent, title, headerToggleCfg, p, 
         SetChevron(card.expanded)
     end
 
+    -- Rows stagger in when the player opens the card (DashboardAccordionBuild attaches
+    -- card.StartRowStagger and card.StopRowStagger). While they do, the rows carry the fade, so
+    -- the settings container shows at once rather than fading as well. Opens from saved state,
+    -- a search jump or SetExpandedInstant never stagger; a close lands any running stagger.
+    local staggerOpen = false
+    local function StopRowStagger()
+        staggerOpen = false
+        if card.StopRowStagger then card.StopRowStagger() end
+    end
+    playerToggleMotion = function()
+        StopRowStagger()
+        if card.expanded and card.StartRowStagger and card.StartRowStagger() then
+            staggerOpen = true
+            sc:SetAlpha(1)
+        end
+    end
+
     -- Animation logic
     card.anim = card:CreateAnimationGroup()
     local sizeAnim = card.anim:CreateAnimation("Animation")
@@ -291,7 +311,7 @@ function addon.Dashboard_CreateAccordionCard(parent, title, headerToggleCfg, p, 
         card:SetHeight(curH)
 
         if card.expanded then
-            sc:SetAlpha(progress)
+            sc:SetAlpha(staggerOpen and 1 or progress)
         else
             sc:SetAlpha(1 - progress)
         end
@@ -302,6 +322,7 @@ function addon.Dashboard_CreateAccordionCard(parent, title, headerToggleCfg, p, 
         local finalH = card.expanded and (card.fullHeight or 200) or card.collapsedHeight
         card:SetHeight(finalH)
         sc:SetAlpha(card.expanded and 1 or 0)
+        staggerOpen = false   -- the rows' own stagger runs on until it lands
         updateExpandedVisuals()
         UpdateDetailLayout()
     end)
@@ -312,6 +333,7 @@ function addon.Dashboard_CreateAccordionCard(parent, title, headerToggleCfg, p, 
         if card.anim:IsPlaying() then return end
         card.expanded = not card.expanded
         updateExpandedVisuals()
+        playerToggleMotion()
         card.anim:Play()
         if card.onExpandedChanged then card.onExpandedChanged(card.expanded) end
     end)
@@ -320,6 +342,7 @@ function addon.Dashboard_CreateAccordionCard(parent, title, headerToggleCfg, p, 
     --- @param expanded boolean
     function card.SetExpandedInstant(expanded)
         expanded = expanded and true or false
+        StopRowStagger()
         card.expanded = expanded
         card:SetHeight(expanded and (card.fullHeight or card.collapsedHeight) or card.collapsedHeight)
         sc:SetAlpha(expanded and 1 or 0)

@@ -1134,6 +1134,77 @@ run(`
   end
 `, 'widget-motion');
 
+// --- Card opening: rows stagger in, the whole sequence capped -------------------------
+run(`
+  local H = HorizonSuite
+  local D = H.OptionsWidgetsDef
+  check("stagger tokens", D.RowStagger == 0.02 and D.RowStaggerCap == 0.25 and D.RowRise == 6,
+    tostring(D.RowStagger) .. "/" .. tostring(D.RowStaggerCap) .. "/" .. tostring(D.RowRise))
+  local near = function(a, b) return math.abs(a - b) < 1e-9 end
+
+  local S = H.OptionsWidgets_RowStaggerSchedule
+  check("stagger schedule exists", type(S) == "function", type(S))
+  if type(S) == "function" then
+    local step, dur, total = S(5, 0.02, 0.12, 0.25)
+    check("few rows keep the full step", step == 0.02 and dur == 0.12 and near(total, 0.2), total)
+    step, dur, total = S(7, 0.02, 0.12, 0.25)
+    check("seven rows still fit under the cap", step == 0.02 and near(total, 0.24), total)
+    step, dur, total = S(40, 0.02, 0.12, 0.25)
+    check("many rows end exactly at the cap", near(total, 0.25) and dur == 0.12, total)
+    check("many rows shrink the step", step < 0.02 and near(step, 0.13 / 39), step)
+    step, dur, total = S(1, 0.02, 0.12, 0.25)
+    check("one row is just its own fade", near(total, 0.12), total)
+    step, dur, total = S(0, 0.02, 0.12, 0.25)
+    check("no rows take no time", total == 0, total)
+    step, dur, total = S(3, 0.02, 0.4, 0.25)
+    check("a row never runs past the cap", dur == 0.25 and step == 0 and near(total, 0.25), tostring(dur) .. "/" .. tostring(step))
+    step, dur, total = S(3, 0.02, 0.12, nil)
+    check("no cap keeps the step", step == 0.02 and near(total, 0.16), total)
+    step, dur, total = S(nil, nil, nil, nil)
+    check("nil inputs take no time", total == 0, total)
+    for _, n in ipairs({ 2, 8, 13, 100 }) do
+      local _, _, tt = S(n, 0.02, 0.12, 0.25)
+      check("never past the cap with " .. n .. " rows", tt <= 0.25 + 1e-9, tt)
+    end
+  end
+
+  local R = H.OptionsWidgets_RowStaggerAt
+  check("stagger row look exists", type(R) == "function", type(R))
+  if type(R) == "function" then
+    local a, dy, done = R(1, 0, 0.02, 0.12, 6)
+    check("the top row starts hidden and 6px low", a == 0 and dy == -6 and done == false, tostring(a) .. "/" .. tostring(dy))
+    a, dy, done = R(3, 0.03, 0.02, 0.12, 6)
+    check("a row before its start waits hidden and low", a == 0 and dy == -6 and done == false, tostring(a) .. "/" .. tostring(dy))
+    a, dy, done = R(2, 0.08, 0.02, 0.12, 6)
+    check("half way through its own fade", near(a, 0.75) and near(dy, -1.5) and done == false, tostring(a) .. "/" .. tostring(dy))
+    a, dy, done = R(2, 0.14, 0.02, 0.12, 6)
+    check("done is exactly in place at alpha 1", a == 1 and dy == 0 and done == true, tostring(a) .. "/" .. tostring(dy))
+    a, dy, done = R(1, 5, 0.02, 0.12, 6)
+    check("long after, still exactly in place", a == 1 and dy == 0 and done == true)
+    a, dy, done = R(1, 0, 0.02, 0, 6)
+    check("no duration lands at once", a == 1 and dy == 0 and done == true)
+    -- Rising and fading never step back over a run of frames.
+    local t, lastA, lastDy, mono = 0, -1, -100, true
+    for _ = 1, 40 do
+      t = t + 0.007
+      local aa, dd = R(4, t, 0.02, 0.12, 6)
+      if aa < lastA or dd < lastDy then mono = false end
+      lastA, lastDy = aa, dd
+    end
+    check("a row only ever fades in and rises", mono)
+    -- Every row of a capped schedule is in place by the schedule's total.
+    if type(S) == "function" then
+      local step, dur, total = S(30, 0.02, 0.12, 0.25)
+      local all = true
+      for i = 1, 30 do
+        local aa, dd, dn = R(i, total, step, dur, 6)
+        if not (aa == 1 and dd == 0 and dn) then all = false end
+      end
+      check("every row is in place when the sequence ends", all)
+    end
+  end
+`, 'row-stagger');
+
 // --- Summary -----------------------------------------------------------------------
 run(`
   REAL_PRINT(PASS .. " passed, " .. FAIL .. " failed")
