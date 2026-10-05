@@ -74,7 +74,7 @@ end
 
 local function Toggle(name, desc, dbKey, default, opts)
     return merge({
-        type = "toggle", name = name, desc = desc, dbKey = dbKey,
+        type = "toggle", name = name, desc = desc, dbKey = dbKey, default = default,
         get = function() return getDB(dbKey, default) end,
         set = function(v) setDB(dbKey, v) end,
     }, opts)
@@ -82,7 +82,7 @@ end
 
 local function Slider(name, desc, dbKey, min, max, default, opts)
     return merge({
-        type = "slider", name = name, desc = desc, dbKey = dbKey,
+        type = "slider", name = name, desc = desc, dbKey = dbKey, default = default,
         min = min, max = max,
         get = function() return getDB(dbKey, default) end,
         set = function(v) setDB(dbKey, v) end,
@@ -97,8 +97,8 @@ local FONT_ROW_PARTS = { "family", "size", "outline" }
 
 -- One row that sets a text element's font, size and outline. Each part keeps its own saved
 -- key, getter and setter; a part without a getter or setter reads and writes its key. The
--- row's dbKey is its primary key (family, else size), which the assembler and search
--- key on. The assembler also resolves a `parent` that names any part key.
+-- row's dbKey is its primary key (family, else size, else outline), which the assembler and
+-- search key on. The assembler also resolves a `parent` that names any part key.
 -- @param name string|function
 -- @param desc string|function|nil
 -- @param parts table  { family?, size?, outline? }; each { dbKey, default?, get?, set?, refreshIds?, ... }.
@@ -156,6 +156,14 @@ local function FontRowLayout(width, has)
     return { wrapped = wrapped and true or false, familyW = familyW, lines = lines }
 end
 
+-- Decimal places a step shows (0.1 gives 1, 0.05 gives 2); 0 for a step of 1 or more.
+local function StepDecimals(step)
+    if step >= 1 then return 0 end
+    local s = tostring(step)
+    local dot = s:find("%.")
+    return dot and (#s - dot) or 0
+end
+
 --- Step or clamp a font size the way the old slider did: snap to the step, then clamp.
 --- @param value number|string  Current or typed value
 --- @param delta number  -1, 0 or 1 (0 for a typed value)
@@ -173,10 +181,7 @@ local function FontRowStepSize(value, delta, min, max, step, fallback)
     v = math.floor(v / step + 0.5) * step
     v = math.max(min, math.min(max, v))
     if step < 1 then
-        local s = tostring(step)
-        local dot = s:find("%.")
-        local decimals = dot and (#s - dot) or 0
-        v = tonumber(string.format("%." .. decimals .. "f", v))
+        v = tonumber(string.format("%." .. StepDecimals(step) .. "f", v))
     end
     return v
 end
@@ -189,10 +194,7 @@ local function FontRowFormatSize(value, step)
     step = tonumber(step) or 1
     local v = tonumber(value) or 0
     if step > 0 and step < 1 then
-        local s = tostring(step)
-        local dot = s:find("%.")
-        local decimals = dot and (#s - dot) or 0
-        return string.format("%." .. decimals .. "f", v)
+        return string.format("%." .. StepDecimals(step) .. "f", v)
     end
     return tostring(math.floor(v + 0.5))
 end
@@ -309,6 +311,247 @@ local function SegmentedFits(labelWidths, available, padding)
     local space = tonumber(available)
     return (n > 0 and space ~= nil and space > 0 and width <= space) and true or false, width
 end
+
+-- ---------------------------------------------------------------------------
+-- Changed-from-default markers (Docs/Engineering/2026-10-05-dashboard-premium-polish-design.md,
+-- item 4). A row is changed when the active profile stores a value for its key and that value
+-- differs from the row's default. The helpers are pure: the stored-value reader is injected,
+-- and the live one (OptionStoredValue) reads the profile with no default fallback.
+-- ---------------------------------------------------------------------------
+
+-- Module defaults tables, searched in this order; Axis (suite-wide keys) comes last, as the
+-- key-ownership rule in OptionsData.lua reads them. TALKING_HEAD_DEFAULTS is an alias of
+-- AUGMENT_DEFAULTS today and is listed in case that changes.
+local DEFAULT_TABLES = {
+    "FOCUS_DEFAULTS", "VISTA_DEFAULTS", "INSIGHT_DEFAULTS", "PRESENCE_DEFAULTS", "ECHO_DEFAULTS",
+    "AUGMENT_DEFAULTS", "TALKING_HEAD_DEFAULTS", "ESSENCE_DEFAULTS", "AXIS_DEFAULTS",
+}
+local SPLIT_SUFFIXES = { "R", "G", "B", "A" }
+local COLOR_FIELDS = { r = 1, g = 2, b = 3, a = 4 }
+local NUMBER_TOLERANCE = 0.001   -- a colour channel step is about 0.004; slider steps are coarser
+
+-- Row types that carry a changed marker. Buttons, notes, subheadings, previews, lists and the
+-- colour matrices are left out.
+local MARKABLE_TYPES = { toggle = true, binary = true, slider = true, dropdown = true, color = true, fontRow = true }
+
+local function TableDefault(key)
+    for _, name in ipairs(DEFAULT_TABLES) do
+        local t = rawget(addon, name)
+        if type(t) == "table" then
+            local v = t[key]
+            if v ~= nil then return v end
+        end
+    end
+    return nil
+end
+
+--- The default for a saved key: the row's own default when it has one (a helper set it, or a
+--- font-row part carries it), else the first module defaults table that holds the key, else a
+--- colour assembled from split <key>R/G/B(/A) defaults. Nil when none is found.
+--- @param key string
+--- @param row table|nil  The row, or a font-row part, whose dbKey is key
+--- @return any
+local function OptionDefault(key, row)
+    if type(key) ~= "string" then return nil end
+    if type(row) == "table" and row.default ~= nil and (row.dbKey == nil or row.dbKey == key) then
+        return row.default
+    end
+    local v = TableDefault(key)
+    if v ~= nil then return v end
+    local r, g, b = TableDefault(key .. "R"), TableDefault(key .. "G"), TableDefault(key .. "B")
+    if r ~= nil and g ~= nil and b ~= nil then
+        return { r, g, b, TableDefault(key .. "A") }
+    end
+    return nil
+end
+
+--- Whether a row can carry a changed marker: a settings row of a markable type with a saved key.
+--- Keys starting with "_" are pseudo-keys (the Profiles page) and are never marked.
+--- @param row table
+--- @return boolean
+local function OptionMarkable(row)
+    if type(row) ~= "table" or not MARKABLE_TYPES[row.type] then return false end
+    local key = row.dbKey
+    return type(key) == "string" and key ~= "" and key:sub(1, 1) ~= "_"
+end
+
+-- A colour's channels in 1..4 order, whether it uses array or r/g/b/a fields.
+local function ColorChannels(t)
+    local out = {}
+    for k, v in pairs(t) do
+        local i = COLOR_FIELDS[k] or k
+        out[i] = v
+    end
+    return out
+end
+
+local function ValuesEqual(a, b)
+    if type(a) == "number" and type(b) == "number" then
+        return math.abs(a - b) <= NUMBER_TOLERANCE
+    end
+    if type(a) == "table" and type(b) == "table" then
+        local ca, cb = ColorChannels(a), ColorChannels(b)
+        -- A colour saved without alpha is opaque.
+        if type(ca[1]) == "number" and type(cb[1]) == "number" then
+            if ca[4] == nil then ca[4] = 1 end
+            if cb[4] == nil then cb[4] = 1 end
+        end
+        for k, v in pairs(ca) do
+            if not ValuesEqual(v, cb[k]) then return false end
+        end
+        for k in pairs(cb) do
+            if ca[k] == nil then return false end
+        end
+        return true
+    end
+    return a == b
+end
+
+-- What a row's getter shows now: a packed table of its results, or nil when it errors.
+local function ShownNow(row)
+    local res = { pcall(row.get) }
+    if not res[1] then return nil end
+    table.remove(res, 1)
+    return res
+end
+
+-- What a row's getter shows when nothing is stored for key: its getter is called with
+-- addon.GetDB answering `default` for that one key, so a default kept in code (a getter's
+-- fallback, a helper such as GetCombatVisibility) is found in the row's own units. Returns a
+-- packed table of the getter's results, or nil when the row has no getter or it errors. A
+-- getter that captured GetDB at load ignores the mask; it then shows its stored value both
+-- ways and reads as unchanged, which is the safe side.
+local function ShownWithKeyCleared(row, key)
+    if type(row) ~= "table" or type(row.get) ~= "function" then return nil end
+    local real = addon.GetDB
+    if type(real) ~= "function" then return nil end
+    addon.GetDB = function(k, d)
+        if k == key then return d end
+        return real(k, d)
+    end
+    local res = ShownNow(row)
+    addon.GetDB = real
+    return res
+end
+
+--- For a row with no default in a table: whether its stored value shows the same as its
+--- code default. Nil when that can't be worked out (no getter, or the getter errors).
+--- @param row table  The row or font-row part whose dbKey is key
+--- @param key string
+--- @return boolean|nil
+local function ShownMatchesCodeDefault(row, key)
+    local def = ShownWithKeyCleared(row, key)
+    if not def then return nil end
+    local now = ShownNow(row)
+    if not now then return nil end
+    if #now ~= #def then return false end
+    for i = 1, #def do
+        if not ValuesEqual(now[i], def[i]) then return false end
+    end
+    return true
+end
+
+-- One saved key against its default. A colour row stored as split <key>R/G/B/A keys is changed
+-- when any stored part differs from the matching part of the default. With no default in a
+-- table, a row whose getter can be asked (ShownMatchesCodeDefault) is compared as it shows.
+local function KeyChanged(key, row, getStored, isColor)
+    local def = OptionDefault(key, row)
+    if def == nil then
+        if getStored(key) == nil then return false end
+        local same = ShownMatchesCodeDefault(row, key)
+        return same == false
+    end
+    local stored = getStored(key)
+    if stored ~= nil then
+        -- A row that reads several stored forms as one value (legacy numbers for an outline
+        -- choice, say) gives `normalize`, and both sides are compared as the row shows them.
+        if type(row) == "table" and type(row.normalize) == "function" then
+            stored, def = row.normalize(stored), row.normalize(def)
+        end
+        return not ValuesEqual(stored, def)
+    end
+    if not isColor or type(def) ~= "table" then return false end
+    local dc = ColorChannels(def)
+    for i, suffix in ipairs(SPLIT_SUFFIXES) do
+        local part = getStored(key .. suffix)
+        if part ~= nil then
+            local want = dc[i]
+            if want == nil and i == 4 then want = 1 end
+            if want == nil or not ValuesEqual(part, want) then return true end
+        end
+    end
+    return false
+end
+
+--- Whether key stores a value that equals its default (through the row's normalize, as
+--- OptionIsChanged compares). A reset's deferred second clear only clears such a key, so a
+--- player's own change made in the meantime is kept. Nil stored or no default: false.
+--- @param key string
+--- @param row table|nil  The row or font-row part whose dbKey is key (nil for a split colour key)
+--- @param getStored function  key -> stored value
+--- @return boolean
+local function OptionStoredIsDefault(key, row, getStored)
+    local def = OptionDefault(key, row)
+    local stored = getStored(key)
+    if stored == nil then return false end
+    if def == nil then
+        return ShownMatchesCodeDefault(row, key) == true
+    end
+    if type(row) == "table" and type(row.normalize) == "function" then
+        stored, def = row.normalize(stored), row.normalize(def)
+    end
+    return ValuesEqual(stored, def)
+end
+
+--- The value the active profile stores for key, with no default fallback (nil when unset).
+--- @param key string
+--- @return any
+local function OptionStoredValue(key)
+    if type(key) ~= "string" then return nil end
+    if addon.DATABASE and not _G[addon.DATABASE] then return nil end
+    local profile = addon.GetActiveProfile and addon.GetActiveProfile()
+    if type(profile) ~= "table" then return nil end
+    return profile[key]
+end
+
+--- Whether a row's setting is changed from its default in the active profile. A font row is
+--- changed when any of its parts is. A row with no default found is never changed. A row or
+--- part may carry normalize(value) -> shown value, used on both sides of the comparison.
+--- @param row table
+--- @param getStored function|nil  key -> stored value; default OptionStoredValue
+--- @return boolean
+local function OptionIsChanged(row, getStored)
+    if not OptionMarkable(row) then return false end
+    getStored = getStored or OptionStoredValue
+    if row.type == "fontRow" then
+        for _, slot in ipairs(FONT_ROW_PARTS) do
+            local part = type(row.parts) == "table" and row.parts[slot]
+            if type(part) == "table" and type(part.dbKey) == "string"
+                and KeyChanged(part.dbKey, part, getStored, false) then
+                return true
+            end
+        end
+        return false
+    end
+    return KeyChanged(row.dbKey, row, getStored, row.type == "color")
+end
+
+--- The split <key>R/G/B/A keys a colour row saves through, when the defaults tables know them.
+--- @param key string
+--- @return table  Key names (empty when the colour is saved as one table)
+local function OptionSplitColorKeys(key)
+    local out = {}
+    if type(key) ~= "string" or TableDefault(key .. "R") == nil then return out end
+    for _, suffix in ipairs(SPLIT_SUFFIXES) do out[#out + 1] = key .. suffix end
+    return out
+end
+
+addon.OptionDefault                    = OptionDefault
+addon.OptionMarkable                   = OptionMarkable
+addon.OptionIsChanged                  = OptionIsChanged
+addon.OptionStoredValue                = OptionStoredValue
+addon.OptionSplitColorKeys             = OptionSplitColorKeys
+addon.OptionStoredIsDefault            = OptionStoredIsDefault
 
 addon.CardRowSpacing                   = CardRowSpacing
 addon.SettingsRowHeight                = SettingsRowHeight

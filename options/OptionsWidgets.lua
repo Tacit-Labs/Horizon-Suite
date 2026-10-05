@@ -71,6 +71,20 @@ local Def = {
     SwitchHeight = 20,
     SwitchInset = 2,                                -- track edge to thumb
 
+    -- Motion (Docs/Engineering/2026-10-05-dashboard-premium-polish-design.md).
+    MotionFast = 0.12,                              -- seconds: switch slide, slider thumb and value
+    MotionPress = 0.06,                             -- seconds: a control easing to and from its press scale
+    PressScale = 0.97,                              -- a held-down control's scale, about its centre
+    RowStagger = 0.02,                              -- seconds between rows starting as a card opens
+    RowStaggerCap = 0.25,                           -- seconds: the whole card-opening sequence, at most
+    RowRise = 6,                                    -- px a row rises into place as a card opens
+
+    -- Changed-from-default markers (AttachChangedMarker). The dot is the accent colour.
+    ChangedDotSize = 6,
+    ChangedDotX = 9,                                -- dot centre, left of the label (in the card padding)
+    ChangedResetSize = 12,                          -- the hover reset arrow
+    ChangedResetGap = 4,                            -- label text to the reset arrow
+
     -- Card header geometry (DashboardAccordionCard.lua).
     TitleLineFactor = 1.35,                         -- title line height as a multiple of TitleSize
     CardHeaderSwitchGap = 10,                       -- header switch to chevron
@@ -104,7 +118,7 @@ local Def = {
     SliderTrackMin = 120,
     SliderTrackMax = 180,
     SliderThumbSize = 14,
-    SliderThumbSizeActive = 16,
+    SliderThumbHoverScale = 1.15,                   -- the thumb's size while hovered or dragged
     SliderValueW = 44,
     SliderValueH = 20,
     SliderValueGap = 10,
@@ -251,7 +265,6 @@ end
 addon.OptionsWidgets_SetSafeFont = SetSafeFont
 
 local easeOut = addon.easeOut or function(t) return 1 - (1 - t) * (1 - t) end
-local TOGGLE_ANIM_DUR = 0.15
 
 -- Apply optional hover tooltip to option rows (desc = inline; tooltip = hover detail).
 local function ApplyOptionTooltip(frame, tooltip)
@@ -345,12 +358,234 @@ local function MakeDot(parent, size, layer)
     end
     return tex
 end
-addon.OptionsWidgets_MakeDot = MakeDot
 
 -- Paint a token colour through a paint function, with an optional alpha multiplier.
 local function PaintToken(paint, c, alphaMult)
     paint(c[1], c[2], c[3], (c[4] or 1) * (alphaMult or 1))
 end
+
+-- ---------------------------------------------------------------------------
+-- Motion: one small tween runner shared by the switches, the sliders and press feedback.
+-- The maths is pure and exposed for the logic tests; frames only drive it from OnUpdate.
+-- ---------------------------------------------------------------------------
+
+--- a to b at t. Pure. Exact at the ends (t <= 0 gives a, t >= 1 gives b), so a finished
+--- tween never leaves a rounding error behind.
+local function Lerp(a, b, t)
+    if t <= 0 then return a end
+    if t >= 1 then return b end
+    return a + (b - a) * t
+end
+addon.OptionsWidgets_Lerp = Lerp
+
+--- Advance a tween by one frame. Pure.
+--- @param t number|nil  Seconds run so far
+--- @param elapsed number|nil  Seconds since the last frame (negative counts as 0)
+--- @param dur number|nil  Total seconds; 0 or nil finishes at once
+--- @param ease function|nil  Default easeOut
+--- @return number t, number e (eased progress, exactly 1 when done), boolean done
+local function TweenAdvance(t, elapsed, dur, ease)
+    t = (tonumber(t) or 0) + math.max(0, tonumber(elapsed) or 0)
+    if not dur or dur <= 0 or t >= dur then return t, 1, true end
+    return t, (ease or easeOut)(t / dur), false
+end
+addon.OptionsWidgets_TweenAdvance = TweenAdvance
+
+--- How a control paints a new value: the segmented control's rule, shared. Pure.
+--- A player action animates; anything else (a refresh, a profile switch) snaps; the same
+--- value again while a tween already heads there lets that tween finish.
+--- @param animate boolean|nil  A player click or typed value asked for this paint
+--- @param from number|nil  What the control shows now
+--- @param to number  The new value
+--- @param tweenTo number|nil  Where the running tween heads, if one runs
+--- @param canAnimate boolean|nil  The control is visible and the duration is above 0
+--- @return string "finish", "animate" or "snap"
+local function TweenPlan(animate, from, to, tweenTo, canAnimate)
+    if tweenTo ~= nil and tweenTo == to then return "finish" end
+    if animate and canAnimate and from ~= nil and from ~= to then return "animate" end
+    return "snap"
+end
+addon.OptionsWidgets_TweenPlan = TweenPlan
+
+--- The scale a pressable control heads to. Pure.
+--- @param down boolean  The mouse is held on it
+--- @param disabled boolean|nil
+--- @return number
+local function PressTarget(down, disabled)
+    if down and not disabled then return Def.PressScale or 1 end
+    return 1
+end
+addon.OptionsWidgets_PressTarget = PressTarget
+
+--- A slider thumb's drawn size at an active amount e (0 at rest, 1 hovered or dragged). Pure.
+--- @param base number  Def.SliderThumbSize
+--- @param e number
+--- @return number
+local function SliderThumbSizeAt(base, e)
+    return base * Lerp(1, Def.SliderThumbHoverScale or 1, e)
+end
+addon.OptionsWidgets_SliderThumbSizeAt = SliderThumbSizeAt
+
+--- The timing of a card's rows staggering in as it opens. Pure. Each row runs for rowDur and
+--- starts step after the row above; when that would run past cap, the step shrinks so the last
+--- row lands exactly at cap (and rowDur itself never exceeds cap).
+--- @param count number  Rows that stagger
+--- @param step number  Def.RowStagger
+--- @param rowDur number  One row's fade and rise
+--- @param cap number|nil  Def.RowStaggerCap
+--- @return number step, number rowDur, number total (seconds until the last row is in place)
+local function RowStaggerSchedule(count, step, rowDur, cap)
+    count = math.max(0, math.floor(tonumber(count) or 0))
+    step = math.max(0, tonumber(step) or 0)
+    rowDur = math.max(0, tonumber(rowDur) or 0)
+    cap = tonumber(cap)
+    if cap and cap < 0 then cap = 0 end
+    if cap and rowDur > cap then rowDur = cap end
+    if count == 0 then return step, rowDur, 0 end
+    if cap and count > 1 and (count - 1) * step + rowDur > cap then
+        step = (cap - rowDur) / (count - 1)
+    end
+    return step, rowDur, (count - 1) * step + rowDur
+end
+addon.OptionsWidgets_RowStaggerSchedule = RowStaggerSchedule
+
+--- One staggered row's look at time t. Pure. Before its start a row is invisible and rise px
+--- low; it eases up and in, and is exactly alpha 1 at offset 0 once done.
+--- @param index number  1 for the top row
+--- @param t number  Seconds since the card started opening
+--- @param step number  From RowStaggerSchedule
+--- @param rowDur number  From RowStaggerSchedule
+--- @param rise number  Def.RowRise
+--- @return number alpha, number dy (added to the row's y; negative is lower), boolean done
+local function RowStaggerAt(index, t, step, rowDur, rise)
+    local start = ((tonumber(index) or 1) - 1) * (tonumber(step) or 0)
+    local _, e, done = TweenAdvance(0, (tonumber(t) or 0) - start, rowDur)
+    if done then return 1, 0, true end
+    return e, -(tonumber(rise) or 0) * (1 - e), false
+end
+addon.OptionsWidgets_RowStaggerAt = RowStaggerAt
+
+--- Stop frame's tween where it is, without finishing it. Returns the stopped tween, if any.
+local function StopTween(frame)
+    local tw = frame._hsTween
+    if not tw then return nil end
+    frame._hsTween = nil
+    frame:SetScript("OnUpdate", nil)
+    return tw
+end
+
+--- Jump frame's tween to its end state: onStep(1), then onFinish.
+local function FinishTween(frame)
+    local tw = StopTween(frame)
+    if not tw then return end
+    tw.onStep(1)
+    if tw.onFinish then tw.onFinish() end
+end
+
+--- Run onStep(e) on frame's OnUpdate, e easing from 0 to exactly 1 over dur, then onFinish().
+--- One tween per frame, owning that frame's OnUpdate while it runs: a new tween replaces the
+--- old one without finishing it, so the caller restarts from what is on screen. A hidden frame
+--- (or a duration of 0) jumps to the end at once. Hiding the frame mid-tween ends it exactly:
+--- onHide() when given, else onStep(1) then onFinish().
+--- @param frame Frame
+--- @param dur number
+--- @param onStep function(e)
+--- @param onFinish function|nil
+--- @param onHide function|nil
+local function StartTween(frame, dur, onStep, onFinish, onHide)
+    StopTween(frame)
+    if not dur or dur <= 0 or not frame:IsVisible() then
+        onStep(1)
+        if onFinish then onFinish() end
+        return
+    end
+    local tw = { t = 0, dur = dur, onStep = onStep, onFinish = onFinish, onHide = onHide }
+    frame._hsTween = tw
+    if not frame._hsTweenHooked then
+        frame._hsTweenHooked = true
+        frame:HookScript("OnHide", function(self)
+            local cur = self._hsTween
+            if not cur then return end
+            if cur.onHide then
+                StopTween(self)
+                cur.onHide()
+            else
+                FinishTween(self)
+            end
+        end)
+    end
+    frame:SetScript("OnUpdate", function(self, elapsed)
+        if self._hsTween ~= tw then return end
+        local e, done
+        tw.t, e, done = TweenAdvance(tw.t, elapsed, tw.dur)
+        tw.onStep(e)
+        if done then
+            StopTween(self)
+            if tw.onFinish then tw.onFinish() end
+        end
+    end)
+end
+
+--- A frame for a control's visible parts, anchored by its CENTER alone to host's centre and
+--- kept at host's size, so press feedback can scale it about the centre. WoW scales a frame
+--- about its anchor point, so scaling host itself (anchored by RIGHT or TOPLEFT) would shift
+--- it, and would shrink its click area. Build the fill and the text on the returned frame.
+--- @param host Frame
+--- @return Frame
+local function CreatePressVisual(host)
+    local vis = CreateFrame("Frame", nil, host)
+    vis:SetPoint("CENTER", host, "CENTER", 0, 0)
+    local function sync()
+        local w, h = host:GetSize()
+        vis:SetSize(math.max(1, w or 1), math.max(1, h or 1))
+    end
+    sync()
+    host:HookScript("OnSizeChanged", sync)
+    -- A caller may raise host's frame level after building it (the detail page's fixed buttons
+    -- do). Keep vis above host on show, so its fill never drops under host's neighbours.
+    host:HookScript("OnShow", function()
+        local lvl = host:GetFrameLevel()
+        if vis:GetFrameLevel() <= lvl then vis:SetFrameLevel(lvl + 1) end
+    end)
+    return vis
+end
+
+--- Press feedback: while the left button is held on host, visual eases to Def.PressScale over
+--- Def.MotionPress and eases back on release; hiding host puts it straight back to 1. Visual
+--- only: host's scripts are hooked, never replaced, and host keeps its size, so the click lands
+--- exactly as before. A disabled host (isDisabled() true, or a Button that is not enabled)
+--- does not react. Visual must be anchored by its CENTER alone (CreatePressVisual).
+--- @param host Frame  Receives the mouse
+--- @param visual Frame  Scaled
+--- @param isDisabled function|nil
+local function AttachPress(host, visual, isDisabled)
+    if not (host and visual and host.HookScript and visual.SetScale) then return end
+    local function rest()
+        StopTween(visual)
+        visual:SetScale(1)
+    end
+    local function toward(target)
+        local from = visual:GetScale() or 1
+        if math.abs(from - target) < 0.0001 then
+            StopTween(visual)
+            visual:SetScale(target)
+            return
+        end
+        StartTween(visual, Def.MotionPress, function(e)
+            visual:SetScale(Lerp(from, target, e))
+        end, nil, rest)
+    end
+    host:HookScript("OnMouseDown", function(_, button)
+        if button and button ~= "LeftButton" then return end
+        local dis = (isDisabled and isDisabled() == true)
+            or (host.IsEnabled and not host:IsEnabled())
+        if dis then return end
+        toward(PressTarget(true, false))
+    end)
+    host:HookScript("OnMouseUp", function() toward(1) end)
+    host:HookScript("OnHide", rest)
+end
+addon.OptionsWidgets_AttachPress = AttachPress
 
 -- A faint highlight across the row while the cursor is over it. The texture is kept on
 -- row._rowHover; DashboardAccordionBuild stretches it to the card's edges.
@@ -448,6 +683,7 @@ local function CreateRowText(row, labelText, description, rightInsetFn)
     row:SetHeight(EstimatedRowHeight(hasDesc))
     row._rowPadded = true
     row._desc = desc
+    row._rowLabel = label   -- AttachChangedMarker places its dot and reset arrow from it
 
     local lastW = -1
     local function Fit(force)
@@ -474,33 +710,167 @@ local function CreateRowText(row, labelText, description, rightInsetFn)
     return { label = label, desc = desc, hasDesc = hasDesc, Fit = Fit }
 end
 
--- A switch pill: a rounded TrackOff track, a rounded TrackOn fill that grows from the left as
--- it turns on, and a round white thumb. pill:SetPosition(t) paints it at t (0 off, 1 on) and
--- picks up the live Def colours each time.
+--- The changed-from-default marker on a settings row (row._rowLabel, set by CreateRowText and the
+--- font row). A small accent dot sits in the left gutter, centred on the label's first line,
+--- inside the card padding, so it never moves the label. While a changed row is hovered (and not
+--- disabled), a small reset arrow shows just right of the label's text; clicking it runs onReset.
+--- The caller decides what is changed and calls marker.SetChanged after every refresh.
+--- @param row Frame
+--- @param onReset function
+--- @param isDisabled function|nil
+--- @return table|nil  { SetChanged(changed), IsChanged() }; nil when the row has no label
+local function AttachChangedMarker(row, onReset, isDisabled)
+    local label = row and row._rowLabel
+    if not label then return nil end
+    if row._changedMarker then return row._changedMarker end
+
+    local dot = MakeDot(row, Def.ChangedDotSize, "OVERLAY")
+    dot:Hide()
+
+    local reset = CreateFrame("Button", nil, row)
+    reset:SetSize(Def.ChangedResetSize, Def.ChangedResetSize)
+    reset:SetFrameLevel(row:GetFrameLevel() + 10)
+    reset:Hide()
+    local vis = CreatePressVisual(reset)
+    AttachPress(reset, vis)
+    local icon = vis:CreateTexture(nil, "OVERLAY")
+    icon:SetAllPoints(vis)
+    icon:SetTexture("Interface\\Buttons\\UI-RefreshButton")
+    if icon.SetDesaturated then icon:SetDesaturated(true) end   -- so the muted and hover tints read true
+
+    local changed = false
+    local function disabled() return isDisabled and isDisabled() == true end
+    local function tintIcon(hot)
+        local c = hot and Def.TextColorHighlight or Def.TextColorMuted
+        icon:SetVertexColor(c[1], c[2], c[3], 1)
+    end
+
+    -- Read the label each time: the dashboard text size and the row's width move it.
+    local function place()
+        local midY = -(Def.LabelSize * Def.LineHeightFactor) / 2
+        dot:SetSize(Def.ChangedDotSize, Def.ChangedDotSize)
+        dot:ClearAllPoints()
+        dot:SetPoint("CENTER", label, "TOPLEFT", -Def.ChangedDotX, midY)
+        local ac = Def.AccentColor
+        dot:SetVertexColor(ac[1], ac[2], ac[3], 1)
+        local textW = label:GetStringWidth() or 0
+        local boxW = label:GetWidth() or 0
+        if boxW > 0 then
+            -- The arrow and its gap must fit in the space right of the label box (the row's gap
+            -- to its controls); a label that fills its box gives the arrow its last few px.
+            local room = row._rowLabelGap or Def.RowControlGap
+            local over = math.max(0, Def.ChangedResetSize + Def.ChangedResetGap - room)
+            local maxX = math.max(0, boxW - over)
+            if textW > maxX then textW = maxX end
+        end
+        reset:ClearAllPoints()
+        reset:SetPoint("LEFT", label, "TOPLEFT", math.ceil(textW) + Def.ChangedResetGap, midY)
+    end
+
+    local function showReset()
+        if not changed or disabled() then return end
+        if row.IsMouseOver and not row:IsMouseOver() then return end   -- a child reaching outside the row
+        place()
+        tintIcon(false)
+        reset:Show()
+    end
+
+    -- Show on entering the row or any of its controls (the switch, the slider's thumb, the
+    -- dropdown button, a segment, the swatch, a font row's parts), so moving straight onto a
+    -- control shows the arrow too. Only frames that already take the mouse are hooked: giving
+    -- a frame an OnEnter script makes the client hit-test it, so hooking a purely visual layer
+    -- (a switch's track, a button's press visual) would let it swallow the control's clicks.
+    local function takesMouse(frame)
+        if frame.IsMouseEnabled and frame:IsMouseEnabled() then return true end
+        if frame.IsMouseMotionEnabled and frame:IsMouseMotionEnabled() then return true end
+        return false
+    end
+    local function hookEnter(frame)
+        if frame == reset or not frame.HookScript then return end
+        if takesMouse(frame) then frame:HookScript("OnEnter", showReset) end
+        if frame.GetChildren then
+            for _, child in ipairs({ frame:GetChildren() }) do hookEnter(child) end
+        end
+    end
+    hookEnter(row)
+    -- The row's OnLeave also fires when the cursor moves onto one of its controls, so the arrow
+    -- hides only once the cursor has left the whole row (checked while the arrow shows).
+    reset:SetScript("OnUpdate", function(self)
+        if not row:IsMouseOver() then self:Hide() end
+    end)
+    reset:SetScript("OnEnter", function(self)
+        tintIcon(true)
+        -- Entering a child counts as leaving the row: keep the row's hover band lit.
+        if row._rowHover then row._rowHover:Show() end
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText((L and L["DASH_RESET_TO_DEFAULT"]) or "Reset to default", 1, 1, 1, 1, true)
+        GameTooltip:Show()
+    end)
+    reset:SetScript("OnLeave", function()
+        tintIcon(false)
+        GameTooltip:Hide()
+        if row._rowHover and not row:IsMouseOver() then row._rowHover:Hide() end
+    end)
+    reset:SetScript("OnClick", function()
+        if not changed or disabled() then return end
+        GameTooltip:Hide()
+        if onReset then onReset() end
+    end)
+
+    local marker = {}
+    --- @param isChanged boolean
+    function marker.SetChanged(isChanged)
+        changed = isChanged and true or false
+        dot:SetShown(changed)
+        if changed then
+            place()
+            if reset:IsShown() and disabled() then reset:Hide() end
+        else
+            reset:Hide()
+        end
+    end
+    function marker.IsChanged() return changed end
+    row._changedMarker = marker
+    return marker
+end
+_G.OptionsWidgets_AttachChangedMarker = AttachChangedMarker
+
+-- A switch pill: a rounded TrackOff track, a rounded TrackOn fill that grows (and fades in)
+-- from the left as it turns on, and a round white thumb. pill:SetPosition(t) paints it at t
+-- (0 off, 1 on) and picks up the live Def colours each time. pill:SetOn(on, animate) slides
+-- there over Def.MotionFast when animate is set (a player click), else snaps; the same value
+-- again mid-slide lets the slide finish (TweenPlan). The visible parts sit on pill.body,
+-- anchored to the pill's centre, so AttachPress(button, pill.body) scales it in place.
 -- @param parent Frame
+-- @param frameLevel number|nil  Set before the parts are built, so they stack above it
 -- @return Frame pill  Sized Def.SwitchWidth x Def.SwitchHeight; the caller anchors it
-local function CreatePill(parent)
+local function CreatePill(parent, frameLevel)
     local w, h, inset = Def.SwitchWidth, Def.SwitchHeight, Def.SwitchInset
     local thumbSize = h - 2 * inset
     local travel = w - 2 * inset - thumbSize
 
     local pill = CreateFrame("Frame", nil, parent)
     pill:SetSize(w, h)
-    local paintTrack = PaintRounded(pill, h / 2, "BACKGROUND")
+    if frameLevel then pill:SetFrameLevel(frameLevel) end
+    local body = CreatePressVisual(pill)
+    pill.body = body
+    local paintTrack = PaintRounded(body, h / 2, "BACKGROUND")
 
-    local fill = CreateFrame("Frame", nil, pill)
-    fill:SetPoint("TOPLEFT", pill, "TOPLEFT", 0, 0)
-    fill:SetPoint("BOTTOMLEFT", pill, "BOTTOMLEFT", 0, 0)
+    local fill = CreateFrame("Frame", nil, body)
+    fill:SetPoint("TOPLEFT", body, "TOPLEFT", 0, 0)
+    fill:SetPoint("BOTTOMLEFT", body, "BOTTOMLEFT", 0, 0)
     fill:SetWidth(h)
-    fill:SetFrameLevel(pill:GetFrameLevel() + 1)
+    fill:SetFrameLevel(body:GetFrameLevel() + 1)
     local paintFill = PaintRounded(fill, h / 2, "BACKGROUND")
 
-    local thumbHost = CreateFrame("Frame", nil, pill)
-    thumbHost:SetAllPoints(pill)
-    thumbHost:SetFrameLevel(pill:GetFrameLevel() + 2)
+    local thumbHost = CreateFrame("Frame", nil, body)
+    thumbHost:SetAllPoints(body)
+    thumbHost:SetFrameLevel(body:GetFrameLevel() + 2)
     local thumb = MakeDot(thumbHost, thumbSize, "OVERLAY")
 
+    local pos = 0
     function pill:SetPosition(t)
+        pos = t
         PaintToken(paintTrack, Def.TrackOff)
         PaintToken(paintFill, Def.TrackOn)
         local tc = Def.ThumbColor
@@ -508,11 +878,34 @@ local function CreatePill(parent)
         fill:SetWidth(h + t * (w - h))
         fill:SetAlpha(t)
         thumb:ClearAllPoints()
-        thumb:SetPoint("CENTER", pill, "LEFT", inset + thumbSize / 2 + t * travel, 0)
+        thumb:SetPoint("CENTER", body, "LEFT", inset + thumbSize / 2 + t * travel, 0)
     end
+
+    local tweenTo   -- the slide's target while one runs
+    function pill:SetOn(on, animate)
+        local target = on and 1 or 0
+        local dur = Def.MotionFast or 0
+        local plan = TweenPlan(animate, pos, target, tweenTo, dur > 0 and pill:IsVisible())
+        if plan == "finish" then return end
+        if plan == "snap" then
+            StopTween(pill)
+            tweenTo = nil
+            pill:SetPosition(target)
+            return
+        end
+        -- Start from where the thumb is now, so a slide reversed mid-way carries on smoothly.
+        local from = pos
+        tweenTo = target
+        StartTween(pill, dur, function(e) pill:SetPosition(Lerp(from, target, e)) end,
+            function() tweenTo = nil end)
+    end
+
+    function pill:IsAnimating() return tweenTo ~= nil end
+
     pill:SetPosition(0)
     return pill
 end
+addon.OptionsWidgets_CreatePill = CreatePill
 
 function _G.OptionsWidgets_CreateToggleSwitch(parent, labelText, description, get, set, disabledFn, tooltip, shiftClickFn)
     local row = CreateFrame("Frame", nil, parent)
@@ -530,60 +923,39 @@ function _G.OptionsWidgets_CreateToggleSwitch(parent, labelText, description, ge
     local btn = CreateFrame("Button", nil, row)
     btn:SetAllPoints(track)
 
-    row.thumbPos = get() and 1 or 0
-    row.animStart = nil
-    row.animFrom = nil
-    row.animTo = nil
-
-    local function updateVisuals(t)
-        -- SetPosition repaints from Def.TrackOn every time, so a colour change made inside
-        -- set() before the slide animation still shows (Refresh is skipped on the clicked row).
-        track:SetPosition(t)
+    local function isDisabled()
+        return disabledFn and disabledFn() == true
     end
 
     local function applyDisabledVisuals()
-        local dis = disabledFn and disabledFn() == true
-        local alpha = dis and 0.45 or 1
+        local alpha = isDisabled() and 0.45 or 1
         label:SetAlpha(alpha)
         desc:SetAlpha(alpha)
         track:SetAlpha(alpha)
     end
 
-    local function toggleOnUpdate()
-        if not row.animStart then
-            track:SetScript("OnUpdate", nil)
-            return
-        end
-        local elapsed = GetTime() - row.animStart
-        if elapsed >= TOGGLE_ANIM_DUR then
-            row.thumbPos = row.animTo
-            row.animStart = nil
-            updateVisuals(row.thumbPos)
-            track:SetScript("OnUpdate", nil)
-            return
-        end
-        row.thumbPos = row.animFrom + (row.animTo - row.animFrom) * easeOut(elapsed / TOGGLE_ANIM_DUR)
-        updateVisuals(row.thumbPos)
+    -- Set by a click and consumed by the next paint, so only the player's own change slides;
+    -- a Refresh from outside (another row, a profile switch) snaps. SetPosition repaints from
+    -- Def.TrackOn every frame, so a colour change made inside set() still shows.
+    local animateNext
+    local function paint()
+        local animate = animateNext
+        animateNext = nil
+        track:SetOn(get() and true or false, animate)
     end
 
     btn:SetScript("OnClick", function()
         if IsShiftKeyDown() and shiftClickFn then shiftClickFn(); return end
-        if disabledFn and disabledFn() == true then return end
-        if row.animStart then return end  -- Debounce: ignore clicks during animation (prevents double-click reverting)
-        local newOn = not get()
-        set(newOn)
-        row.animStart = GetTime()
-        row.animFrom = row.thumbPos
-        row.animTo = newOn and 1 or 0
-        track:SetScript("OnUpdate", toggleOnUpdate)
+        if isDisabled() then return end
+        if track:IsAnimating() then return end  -- Debounce: ignore clicks during animation (prevents double-click reverting)
+        animateNext = true
+        set(not get())
+        paint()   -- a Refresh inside set() may already have started the slide; this lets it run
     end)
+    AttachPress(btn, track.body, isDisabled)
 
     function row:Refresh()
-        local on = get()
-        row.thumbPos = on and 1 or 0
-        row.animStart = nil
-        track:SetScript("OnUpdate", nil)
-        updateVisuals(row.thumbPos)
+        paint()
         applyDisabledVisuals()
         text.Fit(true)
     end
@@ -618,15 +990,18 @@ function _G.OptionsWidgets_CreateButton(parent, labelText, onClick, opts)
 
     local btn = CreateFrame("Button", nil, parent)
     btn:SetSize(width, height)
+    -- The fill and label sit on a centred visual frame, so a press scales them in place.
+    local vis = CreatePressVisual(btn)
+    btn._visual = vis
 
-    local paintBg = PaintRounded(btn, Def.ControlRadius, "BACKGROUND")
+    local paintBg = PaintRounded(vis, Def.ControlRadius, "BACKGROUND")
     PaintToken(paintBg, Def.InputBg)
 
-    local lbl = btn:CreateFontString(nil, "OVERLAY")
+    local lbl = vis:CreateFontString(nil, "OVERLAY")
     SetSafeFont(lbl, Def.FontPath, Def.LabelSize, nil)
     SetTextColor(lbl, Def.TextColorLabel)
     lbl:SetText(labelText or "")
-    lbl:SetPoint("CENTER", btn, "CENTER", 0, 0)
+    lbl:SetPoint("CENTER", vis, "CENTER", 0, 0)
     btn._label = lbl
     function btn:SetLabel(text)
         lbl:SetText(text or "")
@@ -643,6 +1018,7 @@ function _G.OptionsWidgets_CreateButton(parent, labelText, onClick, opts)
         PaintToken(paintBg, Def.InputBg)
         SetTextColor(lbl, Def.TextColorLabel)
     end)
+    AttachPress(btn, vis)
 
     ApplyOptionTooltip(btn, opts.tooltip)
     return btn
@@ -651,8 +1027,6 @@ end
 -- Slider: a thin rounded track with the accent fill up to a white round thumb, and the value
 -- (an editable box) at the right. The track width follows the row: 36% of it, clamped.
 local SLIDER_TRACK_SHARE = 0.36
--- Hover/drag "active" ease duration (seconds).
-local SLIDER_ACTIVE_DUR = 0.12
 
 local function SliderTrackWidth(rowWidth)
     local w = math.floor((rowWidth or 0) * SLIDER_TRACK_SHARE)
@@ -684,7 +1058,6 @@ function _G.OptionsWidgets_CreateSlider(parent, labelText, description, get, set
     row.searchText = searchText:lower()
 
     local thumbW = Def.SliderThumbSize
-    local thumbActiveW = Def.SliderThumbSizeActive
     local trackH = Def.SliderTrackH
 
     -- Value box at the right edge, the track just left of it.
@@ -711,9 +1084,12 @@ function _G.OptionsWidgets_CreateSlider(parent, labelText, description, get, set
     thumb:SetSize(thumbW, thumbW)
     thumb:SetPoint("CENTER", track, "LEFT", 0, 0)
     thumb:SetFrameLevel(fillHost:GetFrameLevel() + 2)
+    -- The drawn dot grows about the thumb's centre on hover and drag; the thumb (its click
+    -- area) keeps its size.
     local thumbTex = MakeDot(thumb, thumbW, "ARTWORK")
     thumbTex:ClearAllPoints()
-    thumbTex:SetAllPoints(thumb)
+    thumbTex:SetPoint("CENTER", thumb, "CENTER", 0, 0)
+    thumbTex:SetSize(thumbW, thumbW)
     local tc0 = Def.ThumbColor
     thumbTex:SetVertexColor(tc0[1], tc0[2], tc0[3], tc0[4] or 1)
 
@@ -724,6 +1100,7 @@ function _G.OptionsWidgets_CreateSlider(parent, labelText, description, get, set
 
     -- Pre-declare so edit scripts and drag handler can reference it before the body is assigned.
     local updateFromValue
+    local animateNext   -- set around a typed commit's set(), consumed by the next Refresh
 
     local edit = CreateFrame("EditBox", nil, editWrap)
     edit:SetPoint("TOPLEFT", editWrap, "TOPLEFT", 4, 0)
@@ -742,6 +1119,8 @@ function _G.OptionsWidgets_CreateSlider(parent, labelText, description, get, set
     end)
     edit:SetScript("OnEditFocusGained", function()
         if disabledFn and disabledFn() == true then edit:ClearFocus(); return end
+        -- Land any value tween first, so the box never changes under the player's typing.
+        FinishTween(editWrap)
         PaintToken(paintEditRing, Def.FocusRing)
     end)
     edit:SetScript("OnEditFocusLost", function()
@@ -750,22 +1129,19 @@ function _G.OptionsWidgets_CreateSlider(parent, labelText, description, get, set
         local v = tonumber(edit:GetText())
         if v ~= nil then
             v = snapToStep(math.max(minVal, math.min(maxVal, v)))
+            -- A set() that refreshes this row at once (the dashboard text size, say) paints
+            -- through Refresh: the flag makes that paint ease too, and it is cleared after.
+            animateNext = true
             set(v)
-            updateFromValue(v)
+            animateNext = nil
+            updateFromValue(v, true)   -- typed: the thumb and the number ease there
         else
             updateFromValue(get())
         end
     end)
+    -- Enter commits through focus loss above. (It used to commit here as well, then again on
+    -- the focus loss; reading the box mid-tween there would commit the wrong number.)
     edit:SetScript("OnEnterPressed", function()
-        if disabledFn and disabledFn() == true then edit:ClearFocus(); return end
-        local v = tonumber(edit:GetText())
-        if v ~= nil then
-            v = snapToStep(math.max(minVal, math.min(maxVal, v)))
-            set(v)
-            updateFromValue(v)
-        else
-            updateFromValue(get())
-        end
         edit:ClearFocus()
     end)
     -- OnTextChanged intentionally omitted: would call set() on every keystroke,
@@ -796,9 +1172,10 @@ function _G.OptionsWidgets_CreateSlider(parent, labelText, description, get, set
         end
     end
 
-    -- Now assign the body — all closures above that captured the upvalue slot will see this.
-    updateFromValue = function(v)
-        v = math.max(minVal, math.min(maxVal, v))
+    -- The value the thumb, fill and number show now; it differs from get() only mid-tween.
+    local shownV
+    local function paintValue(v)
+        shownV = v
         local n = valueToNorm(v)
         local center = thumbW / 2 + n * thumbTravel
         thumb:ClearAllPoints()
@@ -807,40 +1184,71 @@ function _G.OptionsWidgets_CreateSlider(parent, labelText, description, get, set
         edit:SetText(formatValue(v))
     end
 
-    -- Active (hover/drag) feedback: ease the thumb slightly larger over SLIDER_ACTIVE_DUR.
+    -- Now assign the body — all closures above that captured the upvalue slot will see this.
+    -- byPlayer: a typed value eases there over Def.MotionFast (the number follows the thumb);
+    -- anything else snaps, unless it is the value a running tween already heads to (TweenPlan).
+    -- A drag paints through dragTo below, so the number follows the thumb exactly.
+    local valueTweenTo
+    updateFromValue = function(v, byPlayer)
+        v = math.max(minVal, math.min(maxVal, v))
+        local dur = Def.MotionFast or 0
+        local plan = TweenPlan(byPlayer, shownV, v, valueTweenTo, dur > 0 and editWrap:IsVisible())
+        if plan == "finish" then return end
+        if plan == "snap" then
+            StopTween(editWrap)
+            valueTweenTo = nil
+            paintValue(v)
+            return
+        end
+        local from = shownV
+        valueTweenTo = v
+        StartTween(editWrap, dur, function(e) paintValue(Lerp(from, v, e)) end,
+            function() valueTweenTo = nil end)
+    end
+    local function dragTo(v)
+        StopTween(editWrap)
+        valueTweenTo = nil
+        paintValue(math.max(minVal, math.min(maxVal, v)))
+    end
+
+    -- Active (hover/drag) feedback: the dot eases to Def.SliderThumbHoverScale over
+    -- Def.MotionFast, and back. Hiding the thumb puts it straight back to rest.
     local activeCur, activeTarget = 0, 0
     local function applyThumbState(t)
-        local w = thumbW + (thumbActiveW - thumbW) * t
-        thumb:SetSize(w, w)
+        local w = SliderThumbSizeAt(thumbW, t)
+        thumbTex:SetSize(w, w)
     end
-    local function tickThumbAnim(_, elapsed)
-        local stepAmt = (SLIDER_ACTIVE_DUR > 0) and (elapsed / SLIDER_ACTIVE_DUR) or 1
-        if activeCur < activeTarget then
-            activeCur = math.min(activeTarget, activeCur + stepAmt)
-        else
-            activeCur = math.max(activeTarget, activeCur - stepAmt)
-        end
-        applyThumbState(activeCur)
-        if activeCur == activeTarget then
-            thumb:SetScript("OnUpdate", nil)
-        end
+    local function restThumb()
+        StopTween(thumb)
+        activeCur, activeTarget = 0, 0
+        applyThumbState(0)
     end
     local function setThumbActive(on)
         if disabledFn and disabledFn() == true then on = false end
         local tgt = on and 1 or 0
         if tgt == activeTarget then return end
         activeTarget = tgt
-        thumb:SetScript("OnUpdate", tickThumbAnim)
+        local from = activeCur
+        StartTween(thumb, Def.MotionFast, function(e)
+            activeCur = Lerp(from, tgt, e)
+            applyThumbState(activeCur)
+        end, nil, restThumb)
     end
     applyThumbState(0)
 
     local dragging = false
     local rowHovered = false
+    -- A row hidden while hovered gets no OnLeave: start from rest when it shows again.
+    thumb:HookScript("OnHide", function()
+        rowHovered = false
+        restThumb()
+    end)
     local startNorm, startX
     thumb:SetScript("OnMouseDown", function(_, btn)
         if btn ~= "LeftButton" then return end
         if disabledFn and disabledFn() == true then return end
         dragging = true
+        FinishTween(editWrap)   -- a typed value still easing in lands before the drag starts
         setThumbActive(true)
         startNorm = valueToNorm(get())
         local scale = track:GetEffectiveScale()
@@ -869,7 +1277,7 @@ function _G.OptionsWidgets_CreateSlider(parent, labelText, description, get, set
             -- work, which is too costly to run every drag tick.
             -- Update the visual LAST so the smooth position wins over any row:Refresh()
             -- the set() callback may trigger (which would otherwise snap the handle = lag).
-            updateFromValue(v)
+            dragTo(v)
             startNorm = n
             startX = x
         end)
@@ -893,8 +1301,11 @@ function _G.OptionsWidgets_CreateSlider(parent, labelText, description, get, set
     function row:Refresh()
         updateResponsiveTrackWidth()
         PaintToken(paintFill, Def.TrackOn)
-        -- Don't reposition the handle from the DB mid-drag; the drag handler owns it.
-        if not dragging then updateFromValue(get()) end
+        -- Don't reposition the handle from the DB mid-drag; the drag handler owns it. A typed
+        -- commit sets animateNext, so a Refresh its set() causes eases rather than snaps.
+        local animate = animateNext
+        animateNext = nil
+        if not dragging then updateFromValue(get(), animate) end
         applyDisabledVisuals()
         text.Fit(true)
     end
@@ -993,14 +1404,21 @@ end
 local function CreateSegmentedControl(parent, opts, onPick, isDisabled)
     local track = CreateFrame("Frame", nil, parent)
     track:SetHeight(Def.ControlHeight)
-    local paintTrack = PaintRounded(track, Def.ControlRadius, "BACKGROUND")
+    -- What shows (the track fill, the pill and the labels) sits on body, anchored to the track's
+    -- centre, so a press scales the whole control in place. The segment buttons stay on the
+    -- track, so their click areas never move. Everything on body is placed from body's LEFT.
+    local body = CreatePressVisual(track)
+    local paintTrack = PaintRounded(body, Def.ControlRadius, "BACKGROUND")
     local segs = {}
     local value
 
     -- One raised pill marks the selection. It sits under the segments' labels and slides to the
     -- picked segment on a click; any other value change (Refresh, profile switch) snaps it.
-    local pill = CreateFrame("Frame", nil, track)
-    pill:SetFrameLevel(track:GetFrameLevel() + 1)   -- above the track's fill, below the labels
+    local pill = CreateFrame("Frame", nil, body)
+    pill:SetFrameLevel(body:GetFrameLevel() + 1)    -- above the track's fill, below the labels
+    local labels = CreateFrame("Frame", nil, body)  -- holds the segment labels, above the pill
+    labels:SetAllPoints(body)
+    labels:SetFrameLevel(body:GetFrameLevel() + 2)
     local paintPill, paintPillRing = PaintRounded(pill, Def.SegRadius, "BACKGROUND", true)
     local slide          -- { fromX, fromW, fromSeg, toSeg, t, e, curX, curW } while sliding
     local animateNext    -- set by a click, consumed by the next SetValue
@@ -1017,11 +1435,10 @@ local function CreateSegmentedControl(parent, opts, onPick, isDisabled)
 
     local function PlacePill(x, w)
         pill:ClearAllPoints()
-        pill:SetPoint("LEFT", track, "LEFT", x, 0)
+        pill:SetPoint("LEFT", body, "LEFT", x, 0)
         pill:SetSize(math.max(1, w), Def.ControlHeight - 2 * Def.SegTrackPad)
     end
 
-    local function Lerp(a, b, t) return a + (b - a) * t end
     local function LerpColor(c1, c2, t)
         return { Lerp(c1[1], c2[1], t), Lerp(c1[2], c2[2], t), Lerp(c1[3], c2[3], t) }
     end
@@ -1056,8 +1473,6 @@ local function CreateSegmentedControl(parent, opts, onPick, isDisabled)
         end
         track:SetAlpha(dis and Def.SegDisabledAlpha or 1)
     end
-
-    local easeOut = addon.easeOut or function(t) return 1 - (1 - t) * (1 - t) end
 
     local function StopSlide()
         slide = nil
@@ -1108,11 +1523,11 @@ local function CreateSegmentedControl(parent, opts, onPick, isDisabled)
     for i, opt in ipairs(opts) do
         local sg = CreateFrame("Button", nil, track)
         sg.value, sg.label = opt[2], tostring(opt[1] or "")
-        sg:SetFrameLevel(track:GetFrameLevel() + 2)
-        local text = sg:CreateFontString(nil, "OVERLAY")
+        sg:SetFrameLevel(labels:GetFrameLevel() + 1)
+        local text = labels:CreateFontString(nil, "OVERLAY")
         SetSafeFont(text, Def.FontPath, Def.LabelSize, nil)
         if text.SetWordWrap then text:SetWordWrap(false) end
-        text:SetPoint("CENTER", sg, "CENTER", 0, 0)
+        text:SetPoint("CENTER", body, "CENTER", 0, 0)   -- placed over its segment by Fits
         text:SetText(sg.label)
         sg.text = text
         sg:SetScript("OnClick", function()
@@ -1133,6 +1548,7 @@ local function CreateSegmentedControl(parent, opts, onPick, isDisabled)
             track:Paint()
             GameTooltip:Hide()
         end)
+        AttachPress(sg, body, isDisabled)
         segs[i] = sg
     end
 
@@ -1156,9 +1572,12 @@ local function CreateSegmentedControl(parent, opts, onPick, isDisabled)
             sg:ClearAllPoints()
             sg:SetPoint("LEFT", track, "LEFT", x, 0)
             sg._x = x
+            sg.text:ClearAllPoints()
+            sg.text:SetPoint("CENTER", body, "LEFT", x + w / 2, 0)
             x = x + w + Def.SegGap
         end
         track:SetWidth(natural)
+        body:SetSize(math.max(1, natural), Def.ControlHeight)   -- now, not on the next size event
         local sel = SelectedSeg()
         if sel and not slide then PlacePill(sel._x, sel:GetWidth()) end
         return fits, natural
@@ -1254,8 +1673,12 @@ function _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, 
         label, descFs = rowText.label, rowText.desc
     end
 
-    -- Flat control: a rounded InputBg fill with no border, lighter under the cursor.
-    local paintBtnBg = PaintRounded(btn, Def.ControlRadius, "BACKGROUND")
+    -- Flat control: a rounded InputBg fill with no border, lighter under the cursor. The fill and
+    -- text sit on a centred visual frame, so a press scales them in place (the button keeps
+    -- its size; a disabled button, btn:Disable(), does not react).
+    local btnVis = CreatePressVisual(btn)
+    AttachPress(btn, btnVis)
+    local paintBtnBg = PaintRounded(btnVis, Def.ControlRadius, "BACKGROUND")
     local btnBgAlpha = 1
     local btnHovered = false
     local function paintButton()
@@ -1266,19 +1689,19 @@ function _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, 
     btn:HookScript("OnEnter", function() btnHovered = btn:IsEnabled() and true or false; paintButton() end)
     btn:HookScript("OnLeave", function() btnHovered = false; paintButton() end)
 
-    local btnText = btn:CreateFontString(nil, "OVERLAY")
+    local btnText = btnVis:CreateFontString(nil, "OVERLAY")
     SetSafeFont(btnText, Def.FontPath, Def.LabelSize, nil)
     SetTextColor(btnText, Def.TextColorLabel)
-    btnText:SetPoint("LEFT", btn, "LEFT", 10, 0)
-    btnText:SetPoint("RIGHT", btn, "RIGHT", -24, 0)
+    btnText:SetPoint("LEFT", btnVis, "LEFT", 10, 0)
+    btnText:SetPoint("RIGHT", btnVis, "RIGHT", -24, 0)
     btnText:SetJustifyH("LEFT")
     if btnText.SetWordWrap then btnText:SetWordWrap(false) end
 
-    local chevron = btn:CreateFontString(nil, "OVERLAY")
+    local chevron = btnVis:CreateFontString(nil, "OVERLAY")
     SetSafeFont(chevron, Def.FontPath, Def.LabelSize, nil)
     SetTextColor(chevron, Def.TextColorFaint)
     chevron:SetText("v")
-    chevron:SetPoint("RIGHT", btn, "RIGHT", -8, 0)
+    chevron:SetPoint("RIGHT", btnVis, "RIGHT", -8, 0)
 
     local list = CreateFrame("Frame", nil, UIParent, "BackdropTemplate")
     list:SetFrameStrata("TOOLTIP")
@@ -1682,16 +2105,9 @@ end
 
 -- ---------------------------------------------------------------------------
 -- Font row controls. The geometry lives in addon.FONT_ROW_METRICS and addon.FontRowLayout
--- (OptionsHelpers.lua), so the logic tests can check it without frames.
+-- (OptionsHelpers.lua), so the logic tests can check it without frames. OptionsHelpers loads
+-- after this file, so they are read when a row is built, never at load.
 -- ---------------------------------------------------------------------------
-
-local FONT_ROW_FALLBACK_METRICS = {
-    wrapBelow = 640, lineH = 34, line2H = 30, controlH = 26, gap = 8, labelGap = 12,
-    familyMin = 140, familyMax = 220, stepperW = 84, outlineW = 130, outlineSegMax = 200,
-}
-local function FontRowMetrics()
-    return addon.FONT_ROW_METRICS or FONT_ROW_FALLBACK_METRICS
-end
 
 -- Compact size stepper: [-] value [+]. Typed values and steps snap to `step` and clamp to
 -- min/max through addon.FontRowStepSize. Returns a frame (caller anchors it) with Refresh.
@@ -1705,7 +2121,7 @@ end
 -- @param tooltip string|function|nil  Hover text for the buttons and the value
 -- @return table
 function _G.OptionsWidgets_CreateSizeStepper(parent, get, set, minVal, maxVal, step, disabledFn, tooltip)
-    local M = FontRowMetrics()
+    local M = addon.FONT_ROW_METRICS
     minVal = tonumber(minVal) or 0
     maxVal = tonumber(maxVal) or 100
     step = tonumber(step) or 1
@@ -1714,23 +2130,10 @@ function _G.OptionsWidgets_CreateSizeStepper(parent, get, set, minVal, maxVal, s
     local H = M.controlH
 
     local function stepValue(v, delta, fallback)
-        if addon.FontRowStepSize then return addon.FontRowStepSize(v, delta, minVal, maxVal, step, fallback) end
-        local n = tonumber(v)
-        if n == nil then return tonumber(fallback) or minVal end
-        return math.max(minVal, math.min(maxVal, n + (delta or 0) * step))
-    end
-
-    local decimals = 0
-    if step < 1 then
-        local s = tostring(step)
-        local dot = s:find("%.")
-        decimals = dot and (#s - dot) or 0
+        return addon.FontRowStepSize(v, delta, minVal, maxVal, step, fallback)
     end
     local function formatValue(v)
-        v = tonumber(v) or minVal
-        if addon.FontRowFormatSize then return addon.FontRowFormatSize(v, step) end
-        if decimals > 0 then return string.format("%." .. decimals .. "f", v) end
-        return tostring(math.floor(v + 0.5))
+        return addon.FontRowFormatSize(tonumber(v) or minVal, step)
     end
 
     local frame = CreateFrame("Frame", nil, parent)
@@ -1746,11 +2149,14 @@ function _G.OptionsWidgets_CreateSizeStepper(parent, get, set, minVal, maxVal, s
     local function makeButton(text)
         local b = CreateFrame("Button", nil, frame)
         b:SetSize(BTN_W, H)
-        local fs = b:CreateFontString(nil, "OVERLAY")
+        -- The glyph sits on a centred visual frame, so a press scales it in place.
+        local vis = CreatePressVisual(b)
+        AttachPress(b, vis, isDisabled)
+        local fs = vis:CreateFontString(nil, "OVERLAY")
         SetSafeFont(fs, Def.FontPath, Def.LabelSize, nil)
         SetTextColor(fs, Def.TextColorMuted)
         fs:SetText(text)
-        fs:SetPoint("CENTER", b, "CENTER", 0, 0)
+        fs:SetPoint("CENTER", vis, "CENTER", 0, 0)
         b:SetScript("OnEnter", function()
             if b:IsEnabled() then SetTextColor(fs, Def.TextColorLabel) end
         end)
@@ -1796,13 +2202,7 @@ function _G.OptionsWidgets_CreateSizeStepper(parent, get, set, minVal, maxVal, s
             show(cur)
             return
         end
-        local text = edit:GetText()
-        local v
-        if addon.FontRowTypedSize then
-            v = addon.FontRowTypedSize(text, cur, minVal, maxVal, step)
-        elseif tonumber(text) ~= nil and text ~= formatValue(cur) then
-            v = stepValue(text, 0, cur)
-        end
+        local v = addon.FontRowTypedSize(edit:GetText(), cur, minVal, maxVal, step)
         if v ~= nil then commit(v) else show(cur) end
     end
 
@@ -1880,7 +2280,7 @@ end
 -- @param tooltip string|function|nil
 -- @return table  Button with Refresh
 function _G.OptionsWidgets_CreateCompactToggle(parent, labelText, get, set, disabledFn, tooltip)
-    local M = FontRowMetrics()
+    local M = addon.FONT_ROW_METRICS
     local LABEL_GAP = 6
     local btn = CreateFrame("Button", nil, parent)
     btn:SetHeight(M.controlH)
@@ -1898,23 +2298,30 @@ function _G.OptionsWidgets_CreateCompactToggle(parent, labelText, get, set, disa
     local function measure()
         btn:SetWidth(math.ceil(label:GetStringWidth() or 0) + LABEL_GAP + Def.SwitchWidth)
     end
-    local function paint(on)
-        track:SetPosition(on and 1 or 0)
-    end
     local function isDisabled()
         return disabledFn and disabledFn() == true
+    end
+    -- Set by a click and consumed by the next paint: the player's change slides, a Refresh
+    -- from outside snaps (as the full-width switch).
+    local animateNext
+    local function paint()
+        local animate = animateNext
+        animateNext = nil
+        track:SetOn(get() and true or false, animate)
     end
 
     btn:SetScript("OnClick", function()
         if isDisabled() then return end
-        local on = not get()
-        set(on)
-        paint(on)
+        animateNext = true
+        set(not get())
+        paint()
     end)
+    -- Only the switch scales on a press; the label and the click area stay put.
+    AttachPress(btn, track.body, isDisabled)
 
     function btn:Refresh()
         measure()
-        paint(get() and true or false)
+        paint()
         local alpha = isDisabled() and 0.45 or 1
         label:SetAlpha(alpha)
         track:SetAlpha(alpha)
@@ -1939,7 +2346,7 @@ end
 -- @param tooltip string|function|nil
 -- @return table  Frame with Refresh; set row.onHeightChanged to hear when it wraps or unwraps.
 function _G.OptionsWidgets_CreateFontRow(parent, labelText, description, parts, disabledFn, tooltip)
-    local M = FontRowMetrics()
+    local M = addon.FONT_ROW_METRICS
     parts = parts or {}
     local labelFn = type(labelText) == "function" and labelText or nil
     local resolvedLabel = labelFn and labelFn() or labelText
@@ -1960,6 +2367,8 @@ function _G.OptionsWidgets_CreateFontRow(parent, labelText, description, parts, 
     local desc, hasDesc = CreateRowDesc(row, description)
     desc:SetPoint("TOPLEFT", label, "BOTTOMLEFT", 0, -Def.RowDescGap)
     row._desc = desc
+    row._rowLabel = label   -- AttachChangedMarker places its dot and reset arrow from it
+    row._rowLabelGap = M.labelGap   -- the label box to the first control (the arrow must fit)
     row:SetHeight(math.max(M.lineH, EstimatedRowHeight(hasDesc)))
 
     local function rowDisabled()
@@ -2013,11 +2422,6 @@ function _G.OptionsWidgets_CreateFontRow(parent, labelText, description, parts, 
     end
 
     local has = { family = family ~= nil, size = size ~= nil, outline = outline ~= nil }
-    local function layoutFor(w)
-        if addon.FontRowLayout then return addon.FontRowLayout(w, has) end
-        local wrapped = (w or 0) > 0 and w < M.wrapBelow
-        return { wrapped = wrapped, familyW = M.familyMax, lines = (wrapped and (has.size or has.outline)) and 2 or 1 }
-    end
 
     -- Right-align a list of controls in a band `top` px down and `h` tall.
     local function place(list, top, h)
@@ -2042,7 +2446,7 @@ function _G.OptionsWidgets_CreateFontRow(parent, labelText, description, parts, 
 
     local function Layout(w)
         w = w or 0
-        local lay = layoutFor(w)
+        local lay = addon.FontRowLayout(w, has)
         if family then family:SetWidth(lay.familyW) end
         if outline and outline.ChooseSegmented then
             outline:SetWidth(outline:ChooseSegmented(M.outlineSegMax or M.outlineW) or M.outlineW)

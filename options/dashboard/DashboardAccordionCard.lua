@@ -3,7 +3,7 @@
     Reusable expand/collapse card chrome for the Detail view option accordion.
     Exposed as addon.Dashboard_CreateAccordionCard(parent, title, headerToggleCfg, p, desc).
     Called from DashboardDetailView.lua via a local wrapper that binds p.
-    p fields: GetAccentColor, MakeText, dashAccentRefs, DASHBOARD_CONTENT_CARD_ALPHA_MULT, UpdateDetailLayout
+    p fields: MakeText, DASHBOARD_CONTENT_CARD_ALPHA_MULT, UpdateDetailLayout
 
     Look (Docs/Engineering/2026-10-05-dashboard-modern-style-design.md): a filled rounded panel
     with no border; the title in Def.TitleSize, an optional muted one-line description after it,
@@ -15,9 +15,9 @@
 local addon = _G.HorizonSuite
 if not addon then return end
 
--- Rounded fills and dots come from OptionsWidgets (Echo.Round, with a flat fallback).
+-- Rounded fills come from OptionsWidgets (Echo.Round, with a flat fallback); so does the header
+-- switch (addon.OptionsWidgets_CreatePill), looked up when a card is built.
 local PaintRounded = addon.OptionsWidgets_PaintRounded
-local MakeDot = addon.OptionsWidgets_MakeDot
 
 -- Width of a FontString's text, ignoring any width already set on it.
 local function TextWidth(fs)
@@ -32,7 +32,7 @@ end
 --- @param parent frame
 --- @param title string
 --- @param headerToggleCfg table|nil
---- @param p table  GetAccentColor, MakeText, dashAccentRefs, DASHBOARD_CONTENT_CARD_ALPHA_MULT, UpdateDetailLayout
+--- @param p table  MakeText, DASHBOARD_CONTENT_CARD_ALPHA_MULT, UpdateDetailLayout
 --- @param desc string|function|nil  Muted one-line description shown after the title
 --- @return frame card
 function addon.Dashboard_CreateAccordionCard(parent, title, headerToggleCfg, p, desc)
@@ -89,6 +89,15 @@ function addon.Dashboard_CreateAccordionCard(parent, title, headerToggleCfg, p, 
     if lbl.SetWordWrap then lbl:SetWordWrap(false) end
     if lbl.SetMaxLines then lbl:SetMaxLines(1) end
 
+    -- "N changed": a muted count of the card's rows changed from their default, after the title
+    -- and ahead of the description. Hidden at 0; DashboardAccordionBuild calls SetChangedCount.
+    local changedFs = MakeText(card, "", helpBase, mutedColor[1], mutedColor[2], mutedColor[3], "LEFT")
+    changedFs:SetPoint("LEFT", lbl, "RIGHT", descGap, 0)
+    if changedFs.SetWordWrap then changedFs:SetWordWrap(false) end
+    if changedFs.SetMaxLines then changedFs:SetMaxLines(1) end
+    changedFs:Hide()
+    local changedCount = 0
+
     -- Optional muted description on the title's line.
     if type(desc) == "function" then desc = desc() end
     local descFs
@@ -101,6 +110,7 @@ function addon.Dashboard_CreateAccordionCard(parent, title, headerToggleCfg, p, 
     end
     card.titleText = lbl
     card.descText = descFs
+    card.changedText = changedFs
 
     -- Chevron at the right: two thin bars, "v" when open and ">" when closed.
     local chevron = CreateFrame("Frame", nil, card)
@@ -137,6 +147,8 @@ function addon.Dashboard_CreateAccordionCard(parent, title, headerToggleCfg, p, 
     -- Forward-declare so ExpandCollapseCard and headerToggleInit can reference it
     -- before the actual definition (which needs sc to be in scope).
     local updateExpandedVisuals
+    -- Defined with the settings container below: the rows' motion for an open or close.
+    local playerToggleMotion
 
     -- Shared expand/collapse logic used by both headerBtn and the header pill toggle
     local function ExpandCollapseCard(targetExpanded)
@@ -144,6 +156,7 @@ function addon.Dashboard_CreateAccordionCard(parent, title, headerToggleCfg, p, 
         if targetExpanded == card.expanded then return end
         card.expanded = targetExpanded
         updateExpandedVisuals()
+        playerToggleMotion()
         card.anim:Play()
     end
 
@@ -154,89 +167,35 @@ function addon.Dashboard_CreateAccordionCard(parent, title, headerToggleCfg, p, 
         if htDefault == nil then htDefault = true end
 
         local tW = WDef.SwitchWidth
-        local tH = WDef.SwitchHeight
-        local tInset = WDef.SwitchInset
-        local tThumb = tH - 2 * tInset
-        local pillTravel = tW - 2 * tInset - tThumb
 
-        local pillFrame = CreateFrame("Frame", nil, card)
-        pillFrame:SetSize(tW, tH)
+        -- The shared switch pill (OptionsWidgets CreatePill): it slides and fills over
+        -- Def.MotionFast on a click, snaps on an outside refresh, and scales on a press.
+        -- The level is set before its parts are built so they stack above the header button.
+        local pillFrame = addon.OptionsWidgets_CreatePill(card, card:GetFrameLevel() + 6)
         pillFrame:SetPoint("RIGHT", chevron, "LEFT", -WDef.CardHeaderSwitchGap, 0)
-        pillFrame:SetFrameLevel(card:GetFrameLevel() + 6)
         rightReserve = rightReserve + WDef.CardHeaderSwitchGap + tW
-
-        local tOn  = WDef.TrackOn
-        local tOff = WDef.TrackOff
-        local tTh  = WDef.ThumbColor
-
-        -- Track: a rounded pill in TrackOff, with a rounded TrackOn fill that grows from the
-        -- left as the switch turns on, and a round thumb above both.
-        local paintTrack = PaintRounded(pillFrame, tH / 2, "BACKGROUND")
-        paintTrack(tOff[1], tOff[2], tOff[3], tOff[4])
-
-        local fillFrame = CreateFrame("Frame", nil, pillFrame)
-        fillFrame:SetPoint("TOPLEFT", pillFrame, "TOPLEFT", 0, 0)
-        fillFrame:SetPoint("BOTTOMLEFT", pillFrame, "BOTTOMLEFT", 0, 0)
-        fillFrame:SetWidth(tH)
-        fillFrame:SetFrameLevel(pillFrame:GetFrameLevel() + 1)
-        local paintFill = PaintRounded(fillFrame, tH / 2, "BACKGROUND")
-        paintFill(tOn[1], tOn[2], tOn[3], tOn[4])
-
-        local thumbHost = CreateFrame("Frame", nil, pillFrame)
-        thumbHost:SetAllPoints(pillFrame)
-        thumbHost:SetFrameLevel(pillFrame:GetFrameLevel() + 2)
-        local thumb = MakeDot(thumbHost, tThumb, "OVERLAY")
-        thumb:SetVertexColor(tTh[1], tTh[2], tTh[3], tTh[4])
-
-        local pillPos = 0
-        local pillAnimStart, pillAnimFrom, pillAnimTo
-
-        local function UpdatePillVisuals(t)
-            -- Repaint from the live tokens so a class-theme change reaches the switch.
-            local on, off = WDef.TrackOn, WDef.TrackOff
-            paintTrack(off[1], off[2], off[3], off[4])
-            paintFill(on[1], on[2], on[3], on[4])
-            fillFrame:SetWidth(tH + t * (tW - tH))
-            fillFrame:SetAlpha(t)
-            thumb:ClearAllPoints()
-            thumb:SetPoint("CENTER", pillFrame, "LEFT", tInset + tThumb / 2 + t * pillTravel, 0)
-        end
 
         local function GetPillValue()
             return _G.OptionsData_GetDB(htDbKey, htDefault)
         end
 
+        -- Set by a click, consumed by the next paint: only the player's own change slides.
+        local animateNext
         local function RefreshPill()
-            local on = GetPillValue()
-            pillPos = on and 1 or 0
-            UpdatePillVisuals(pillPos)
+            local animate = animateNext
+            animateNext = nil
+            pillFrame:SetOn(GetPillValue() and true or false, animate)
         end
         RefreshPill()
-
-        -- Store handler in a local so re-triggering after nil-clear always works
-        local pillOnUpdate
-        pillOnUpdate = function(self)
-            if not pillAnimStart then return end
-            local t = math.min((GetTime() - pillAnimStart) / 0.12, 1)
-            UpdatePillVisuals(pillAnimFrom + (pillAnimTo - pillAnimFrom) * t)
-            if t >= 1 then
-                pillPos       = pillAnimTo
-                pillAnimStart = nil
-                self:SetScript("OnUpdate", nil)
-            end
-        end
 
         local pillBtn = CreateFrame("Button", nil, card)
         pillBtn:SetAllPoints(pillFrame)
         pillBtn:SetFrameLevel(card:GetFrameLevel() + 7)
         pillBtn:SetScript("OnClick", function()
             local newVal = not GetPillValue()
+            animateNext = true
             _G.OptionsData_SetDB(htDbKey, newVal)
-            -- Animate pill (re-set from stored ref so it works on every click)
-            pillAnimFrom  = pillPos
-            pillAnimTo    = newVal and 1 or 0
-            pillAnimStart = GetTime()
-            pillFrame:SetScript("OnUpdate", pillOnUpdate)
+            RefreshPill()   -- slides; a refresh inside SetDB may already have started it
             -- Expand/collapse card to match toggle state
             ExpandCollapseCard(newVal)
             -- Refresh preview
@@ -244,6 +203,7 @@ function addon.Dashboard_CreateAccordionCard(parent, title, headerToggleCfg, p, 
                 addon.Insight.ApplyInsightOptions()
             end
         end)
+        addon.OptionsWidgets_AttachPress(pillBtn, pillFrame.body)
 
         card.headerToggleEnabled = GetPillValue
 
@@ -274,16 +234,28 @@ function addon.Dashboard_CreateAccordionCard(parent, title, headerToggleCfg, p, 
         if not force and math.abs(w - lastFitW) < 0.5 then return end
         lastFitW = w
         local avail = math.max(1, w - pad - rightReserve - descGap)
+        -- The changed count is short and comes first: it keeps its width and the title gives way.
+        local countW = 0
+        if changedCount > 0 then
+            changedFs:SetWidth(0)
+            countW = math.ceil(TextWidth(changedFs)) + descGap
+        end
+        local titleAvail = math.max(1, avail - countW)
         local titleW = TextWidth(lbl)
-        if titleW > avail then
-            lbl:SetWidth(avail)
+        changedFs:SetShown(changedCount > 0)
+        if descFs then
+            descFs:ClearAllPoints()
+            descFs:SetPoint("LEFT", changedCount > 0 and changedFs or lbl, "RIGHT", descGap, 0)
+        end
+        if titleW > titleAvail then
+            lbl:SetWidth(titleAvail)
             if descFs then descFs:Hide() end
             return
         end
         -- Width 0 lets a title that fits size itself, so a later font change still shows it whole.
         lbl:SetWidth(0)
         if descFs then
-            local room = avail - math.ceil(titleW) - descGap
+            local room = avail - math.ceil(titleW) - countW - descGap
             if room < WDef.CardDescMinWidth then
                 descFs:Hide()
             else
@@ -293,6 +265,21 @@ function addon.Dashboard_CreateAccordionCard(parent, title, headerToggleCfg, p, 
         end
     end
     card.FitHeader = function() FitHeader(true) end
+
+    --- Show "N changed" after the title (hidden at 0) and refit the header.
+    --- @param n number
+    function card.SetChangedCount(n)
+        n = math.max(0, math.floor(tonumber(n) or 0))
+        if n == changedCount then return end
+        changedCount = n
+        if n > 0 then
+            local fmt = (addon.L and addon.L["DASH_N_CHANGED"]) or "%d changed"
+            changedFs:SetText(string.format(fmt, n))
+        else
+            changedFs:SetText("")
+        end
+        FitHeader(true)
+    end
     if card.HookScript then
         card:HookScript("OnSizeChanged", function() FitHeader(false) end)
     end
@@ -327,6 +314,23 @@ function addon.Dashboard_CreateAccordionCard(parent, title, headerToggleCfg, p, 
         SetChevron(card.expanded)
     end
 
+    -- Rows stagger in when the player opens the card (DashboardAccordionBuild attaches
+    -- card.StartRowStagger and card.StopRowStagger). While they do, the rows carry the fade, so
+    -- the settings container shows at once rather than fading as well. Opens from saved state,
+    -- a search jump or SetExpandedInstant never stagger; a close lands any running stagger.
+    local staggerOpen = false
+    local function StopRowStagger()
+        staggerOpen = false
+        if card.StopRowStagger then card.StopRowStagger() end
+    end
+    playerToggleMotion = function()
+        StopRowStagger()
+        if card.expanded and card.StartRowStagger and card.StartRowStagger() then
+            staggerOpen = true
+            sc:SetAlpha(1)
+        end
+    end
+
     -- Animation logic
     card.anim = card:CreateAnimationGroup()
     local sizeAnim = card.anim:CreateAnimation("Animation")
@@ -342,7 +346,7 @@ function addon.Dashboard_CreateAccordionCard(parent, title, headerToggleCfg, p, 
         card:SetHeight(curH)
 
         if card.expanded then
-            sc:SetAlpha(progress)
+            sc:SetAlpha(staggerOpen and 1 or progress)
         else
             sc:SetAlpha(1 - progress)
         end
@@ -353,6 +357,7 @@ function addon.Dashboard_CreateAccordionCard(parent, title, headerToggleCfg, p, 
         local finalH = card.expanded and (card.fullHeight or 200) or card.collapsedHeight
         card:SetHeight(finalH)
         sc:SetAlpha(card.expanded and 1 or 0)
+        staggerOpen = false   -- the rows' own stagger runs on until it lands
         updateExpandedVisuals()
         UpdateDetailLayout()
     end)
@@ -363,6 +368,7 @@ function addon.Dashboard_CreateAccordionCard(parent, title, headerToggleCfg, p, 
         if card.anim:IsPlaying() then return end
         card.expanded = not card.expanded
         updateExpandedVisuals()
+        playerToggleMotion()
         card.anim:Play()
         if card.onExpandedChanged then card.onExpandedChanged(card.expanded) end
     end)
@@ -371,6 +377,7 @@ function addon.Dashboard_CreateAccordionCard(parent, title, headerToggleCfg, p, 
     --- @param expanded boolean
     function card.SetExpandedInstant(expanded)
         expanded = expanded and true or false
+        StopRowStagger()
         card.expanded = expanded
         card:SetHeight(expanded and (card.fullHeight or card.collapsedHeight) or card.collapsedHeight)
         sc:SetAlpha(expanded and 1 or 0)

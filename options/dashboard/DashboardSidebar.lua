@@ -261,26 +261,16 @@ function addon.DashboardSidebar_CreateChrome(p)
     end
 
     -- Selection and hover fill for a sidebar row: a rounded rect with a margin at each side (the
-    -- OptionsWidgets rounded paint, flat when Echo.Round is missing). It stands in for the old
-    -- full-width btnBg texture and takes the same SetColorTexture(r, g, b, a) calls, so the
-    -- callers that tint btnBg need no change. The host sits one level under the button so the
-    -- button's icon and label draw over it.
+    -- OptionsWidgets rounded paint, flat when Echo.Round is missing). It takes the same
+    -- SetColorTexture(r, g, b, a) calls as a texture, so the callers that tint btnBg need no
+    -- change. The host sits one level under the button so the button's icon and label draw over it.
     local SIDEBAR_HOVER_FILL = { 1, 1, 1, 0.05 }
     local function MakeSelectionFill(btn, radius)
         local host = CreateFrame("Frame", nil, btn)
         host:SetPoint("TOPLEFT", btn, "TOPLEFT", 6, -1)
         host:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", -6, 1)
         host:SetFrameLevel(math.max(0, btn:GetFrameLevel() - 1))
-        local paintRounded = addon.OptionsWidgets_PaintRounded
-        local paint
-        if paintRounded then
-            paint = paintRounded(host, radius or 8, "BACKGROUND")
-        else
-            local tex = host:CreateTexture(nil, "BACKGROUND")
-            tex:SetAllPoints(host)
-            tex:SetColorTexture(1, 1, 1, 1)
-            paint = function(r, g, b, a) tex:SetVertexColor(r, g, b, a) end
-        end
+        local paint = addon.OptionsWidgets_PaintRounded(host, radius or 8, "BACKGROUND")
         paint(0, 0, 0, 0)
         local fill = { host = host }
         function fill:SetColorTexture(r, g, b, a) paint(r, g, b, a or 1) end
@@ -421,14 +411,9 @@ function addon.DashboardSidebar_CreateChrome(p)
         dashSession.activeSidebarBtn = btn
         if btn then
             -- A rounded accent fill (SidebarSelectedBg: the accent at about 16%, class colour
-            -- when the class theme is on) with normal text. The old accent bar stays hidden.
-            local sel = (addon.OptionsWidgetsDef and addon.OptionsWidgetsDef.SidebarSelectedBg)
-            if sel then
-                btn.btnBg:SetColorTexture(sel[1], sel[2], sel[3], sel[4])
-            else
-                local bar, bag, bab = GetAccentColor()
-                btn.btnBg:SetColorTexture(bar, bag, bab, 0.16)
-            end
+            -- when the class theme is on) with normal text.
+            local sel = addon.OptionsWidgetsDef.SidebarSelectedBg
+            btn.btnBg:SetColorTexture(sel[1], sel[2], sel[3], sel[4])
             if btn._patchNotesSidebarRowStyle and addon.PatchNotes_ApplyWhatsNewSidebarRowStyle then
                 addon.PatchNotes_ApplyWhatsNewSidebarRowStyle(btn, btn.label, btn.icon, false)
             else

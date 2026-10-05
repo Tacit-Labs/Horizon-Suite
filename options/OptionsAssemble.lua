@@ -245,12 +245,6 @@ local function IsTrue(fnOrBool)
     return fnOrBool == true
 end
 
--- A row's condition for counting as content of its card or subheading: its own condition
--- and its parent chain, which ExpandParents folds into visibleWhen. nil means always.
-local function ContentCondition(r)
-    return r.visibleWhen
-end
-
 -- A font row's part slots, in display order.
 local FONT_ROW_PARTS = { "family", "size", "outline" }
 
@@ -432,14 +426,14 @@ end
 -- Rows that never count as content of a card or a subheading.
 local NOT_CONTENT = { section = true, header = true, talkingHeadPreview = true }
 
--- The condition under which any of `rows` would show, read from their content conditions when
--- called, since ExpandParents has rewritten them by then. Returns nil when one of them always
--- shows, and `false` when none counts as content.
+-- The condition under which any of `rows` would show: their visibleWhen, which by now holds
+-- each row's own condition and its parent chain (ExpandParents runs first). Returns nil when
+-- one of them always shows, and `false` when none counts as content.
 local function AnyContent(rows)
     local conds = {}
     for _, r in ipairs(rows) do
         if not NOT_CONTENT[r.type] then
-            local c = ContentCondition(r)
+            local c = r.visibleWhen
             if c == nil or c == true then return nil end
             if type(c) == "function" then conds[#conds + 1] = c end
         end

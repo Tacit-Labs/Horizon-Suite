@@ -206,6 +206,123 @@ function addon.DashboardAccordionBuild_Init(f, p)
             div:Show()
         end
 
+        -- Rows staggering in as the player opens a card (spec item 3): each visible row fades
+        -- from 0 and rises Def.RowRise px into place, Def.RowStagger after the row above, the
+        -- whole sequence capped at Def.RowStaggerCap. card._rowStagger holds the state. The rise
+        -- is an offset added to the y DoInstantRelayout computes, so a relayout mid-sequence
+        -- reapplies it rather than fighting it; every relayout pass remembers each row's base
+        -- anchor in frame._hsRowX/_hsRowY.
+        local RowStaggerAt = addon.OptionsWidgets_RowStaggerAt
+        local RowStaggerSchedule = addon.OptionsWidgets_RowStaggerSchedule
+
+        -- A row's alpha and y offset now: 1 and 0 unless a running stagger owns it.
+        local function RowStaggerLook(card, frame)
+            local st = card._rowStagger
+            local idx = st and st.index[frame]
+            if not idx then return 1, 0 end
+            local alpha, dy = RowStaggerAt(idx, st.t, st.step, st.dur, st.rise)
+            return alpha, dy
+        end
+
+        local function PlaceStaggerRow(card, frame, alpha, dy)
+            frame:SetAlpha(alpha)
+            if frame._hsRowX then
+                -- Replaces only the TOPLEFT point; the RIGHT point relayout set stays.
+                frame:SetPoint("TOPLEFT", card.settingsContainer, "TOPLEFT", frame._hsRowX, frame._hsRowY + dy)
+            end
+        end
+
+        -- End the stagger now: every row it owned sits exactly in place at alpha 1. Hidden rows
+        -- stay hidden (alpha alone never shows a frame).
+        local function FinishRowStagger(card)
+            local st = card and card._rowStagger
+            if not st then return end
+            card._rowStagger = nil
+            if st.driver then st.driver:SetScript("OnUpdate", nil) end
+            for frame in pairs(st.index) do
+                PlaceStaggerRow(card, frame, 1, 0)
+            end
+        end
+
+        -- Start the stagger on the player's open. Returns true when it runs. Skipped while the
+        -- card is hidden or fading, or a dependent-row fade owns row alpha (card.relayoutAnim).
+        local function StartRowStagger(card)
+            FinishRowStagger(card)
+            if not card or not card.widgetList or not RowStaggerAt or not RowStaggerSchedule then return false end
+            if card.relayoutAnim or card._visibilityFadingIn or card._visibilityFadingOut then return false end
+            if not card:IsVisible() then return false end
+            local index, n = {}, 0
+            for _, entry in ipairs(card.widgetList) do
+                local frame = entry.frame
+                -- A note may measure under 1px before its text lays out; the layout gives it
+                -- NOTE_MIN_HEIGHT, so it staggers like any row. Only true spacers are skipped.
+                local h = frame:GetHeight() or 0
+                if entry.isNote and h < NOTE_MIN_HEIGHT then h = NOTE_MIN_HEIGHT end
+                if frame:IsShown() and h >= 1 and frame._hsRowX then
+                    n = n + 1
+                    index[frame] = n
+                end
+            end
+            if n == 0 then return false end
+            local WDef = addon.OptionsWidgetsDef
+            local step, dur, total = RowStaggerSchedule(n, WDef.RowStagger, WDef.MotionFast, WDef.RowStaggerCap)
+            if total <= 0 then return false end
+            local driver = card._rowStaggerDriver
+            if not driver then
+                -- A child of the card, so it hides with the card or the dashboard and ends the
+                -- stagger exactly.
+                driver = CreateFrame("Frame", nil, card)
+                driver:SetScript("OnHide", function() FinishRowStagger(card) end)
+                card._rowStaggerDriver = driver
+            end
+            local st = { t = 0, step = step, dur = dur, total = total, rise = WDef.RowRise or 0,
+                index = index, driver = driver }
+            card._rowStagger = st
+            -- Paint the first frame now, so no row flashes in place before the first tick.
+            for frame in pairs(index) do
+                local alpha, dy = RowStaggerLook(card, frame)
+                PlaceStaggerRow(card, frame, alpha, dy)
+            end
+            driver:SetScript("OnUpdate", function(self, elapsed)
+                if card._rowStagger ~= st then
+                    self:SetScript("OnUpdate", nil)
+                    return
+                end
+                st.t = st.t + math.max(0, tonumber(elapsed) or 0)
+                if st.t >= st.total then
+                    FinishRowStagger(card)
+                    return
+                end
+                for frame in pairs(st.index) do
+                    if frame:IsShown() then
+                        local alpha, dy = RowStaggerLook(card, frame)
+                        PlaceStaggerRow(card, frame, alpha, dy)
+                    end
+                end
+            end)
+            return true
+        end
+
+        -- The card calls these: StartRowStagger on a player's open, StopRowStagger on a close
+        -- or an instant open.
+        local function AttachRowStagger(card)
+            card.StartRowStagger = function() return StartRowStagger(card) end
+            card.StopRowStagger = function() FinishRowStagger(card) end
+        end
+
+        -- "N changed" in the card header: the rows shown in the card whose marker is lit
+        -- (frame._hsChanged, set by the row's marker update below). Runs after every marker
+        -- update and every relayout, so a row a condition hides drops out of the count.
+        local function UpdateCardChangedCount(card)
+            if not (card and card.SetChangedCount and card.widgetList) then return end
+            local n = 0
+            for _, entry in ipairs(card.widgetList) do
+                local fr = entry.frame
+                if fr and fr._hsChanged and fr:IsShown() then n = n + 1 end
+            end
+            card.SetChangedCount(n)
+        end
+
         -- Restack the card's visible entries. Spacing and hairlines come from
         -- addon.CardRowSpacing, decided from the visible order each time, so a row that hides
         -- or shows moves the hairlines with it. restackOnly positions the entries and works out
@@ -226,7 +343,8 @@ function addon.DashboardAccordionBuild_Init(f, p)
                 end
                 entry.frame:SetShown(visible)
                 if visible then
-                    entry.frame:SetAlpha(1)
+                    -- Alpha 1, or where a running open stagger has the row (RowStaggerLook).
+                    entry.frame:SetAlpha((RowStaggerLook(card, entry.frame)))
                     local h = entry.frame:GetHeight() or 0
                     if entry.isNote and h < NOTE_MIN_HEIGHT then h = NOTE_MIN_HEIGHT end
                     local kind = (entry.isHeader and "subheading") or (entry.isNote and "note")
@@ -251,7 +369,9 @@ function addon.DashboardAccordionBuild_Init(f, p)
                 local rowX = cardPadX + indentX
                 yOff = yOff + sp.top
                 frame:ClearAllPoints()
-                frame:SetPoint("TOPLEFT", sc, "TOPLEFT", rowX, -yOff)
+                frame._hsRowX, frame._hsRowY = rowX, -yOff
+                local _, staggerDy = RowStaggerLook(card, frame)
+                frame:SetPoint("TOPLEFT", sc, "TOPLEFT", rowX, -yOff + staggerDy)
                 frame:SetPoint("RIGHT", sc, "RIGHT", -cardPadX, 0)
                 SetRowDivider(frame, sp.divider, indentX, sp.top)
                 -- The row hover runs across the whole card, past the row's own inset.
@@ -265,6 +385,7 @@ function addon.DashboardAccordionBuild_Init(f, p)
             end
             card.contentHeight = yOff
             card.fullHeight = yOff + card.chromeHeight
+            UpdateCardChangedCount(card)
             card._inRelayout = nil
             -- A row that changed height while this pass read the heights: stack once more.
             if card._relayoutPending then
@@ -403,6 +524,10 @@ function addon.DashboardAccordionBuild_Init(f, p)
                 return
             end
 
+            -- A dependent-row fade takes over row alpha from here: land an open stagger first,
+            -- so the two never animate the same row.
+            FinishRowStagger(card)
+
             local oldHeight = card:GetHeight()
             local animFrame = card.relayoutAnimFrame or CreateFrame("Frame", nil, card)
             animFrame:ClearAllPoints()
@@ -511,7 +636,105 @@ function addon.DashboardAccordionBuild_Init(f, p)
             RelayoutCard(card, false)
         end
 
+        -- Reset a changed row to its default (the reset arrow). The stored value is cleared
+        -- first, so the row's own getter reads the default in the units its setter takes (some
+        -- rows show 0-100 for a 0-1 value); the row's setter then runs with it, so the module's
+        -- apply code sees exactly what a player choosing the default would cause; then the
+        -- stored value is cleared again, so the setting follows the default from now on. A
+        -- colour takes its default straight from the row or the defaults tables, and split
+        -- R/G/B/A keys are cleared with it. A font row resets every part.
+        local function ResetRowToDefault(opt, g, s, fontParts, widget)
+            local SetDB = addon.SetDB
+            if not SetDB then return end
+            local keys, keyRows = {}, {}   -- keyRows[i]: the row or part that owns keys[i]
+            local function clear() for _, k in ipairs(keys) do SetDB(k, nil) end end
+            if opt.type == "fontRow" then
+                for _, slot in ipairs(addon.FONT_ROW_PARTS) do
+                    local part = fontParts and fontParts[slot]
+                    if part and part.dbKey and part.get and part.set then
+                        keys[#keys + 1] = part.dbKey
+                        keyRows[#keys] = part
+                        SetDB(part.dbKey, nil)
+                        part.set(part.get())
+                        SetDB(part.dbKey, nil)
+                    end
+                end
+            else
+                keys[1] = opt.dbKey
+                keyRows[1] = opt
+                if opt.type == "color" and addon.OptionSplitColorKeys then
+                    for _, k in ipairs(addon.OptionSplitColorKeys(opt.dbKey)) do keys[#keys + 1] = k end
+                end
+                clear()
+                if s then
+                    if opt.type == "color" then
+                        local def = addon.OptionDefault and addon.OptionDefault(opt.dbKey, opt)
+                        if type(def) == "table" then
+                            s(def[1] or def.r or 1, def[2] or def.g or 1, def[3] or def.b or 1, def[4] or def.a or 1)
+                        elseif g then
+                            s(g())
+                        end
+                    else
+                        -- A row with no getter of its own reads nil once cleared: use the default.
+                        local v = g and g()
+                        if v == nil and addon.OptionDefault then v = addon.OptionDefault(opt.dbKey, opt) end
+                        if v ~= nil then s(v) end
+                    end
+                end
+                clear()
+            end
+            local function after()
+                if widget and widget.Refresh then widget:Refresh() end
+                RefreshLinkedTargets(opt.refreshIds)
+                if addon.OptionsData_NotifyMainAddon then addon.OptionsData_NotifyMainAddon() end
+            end
+            after()
+            -- A setter that writes on the next frame (C_Timer.After(0)) lands after the clear
+            -- above: clear once more then, so the profile ends with nothing stored. Only on the
+            -- same profile, and only a key still holding its default, so a profile switch or
+            -- the player's own change in that frame is never undone.
+            if C_Timer and C_Timer.After then
+                local profileAtClick = addon.GetActiveProfile and addon.GetActiveProfile()
+                C_Timer.After(0, function()
+                    local now = addon.GetActiveProfile and addon.GetActiveProfile()
+                    if now ~= profileAtClick then return end
+                    local atDefault = addon.OptionStoredIsDefault
+                    local read = addon.OptionStoredValue
+                    if not (atDefault and read) then return end
+                    for i, k in ipairs(keys) do
+                        if atDefault(k, keyRows[i], read) then SetDB(k, nil) end
+                    end
+                    after()
+                end)
+            end
+        end
+
         for _, opt in ipairs(options) do
+            -- Changed-from-default marker (addon.OptionMarkable rows). markUpdate is set once the
+            -- row's marker exists; the setters below call it, so a player's change updates the dot
+            -- and the card count even when the row does not Refresh itself.
+            local markable = addon.OptionMarkable and addon.OptionMarkable(opt) or false
+            local markUpdate
+            local fontParts
+            -- A few setters write on the next frame (C_Timer.After(0)), so a set also looks again
+            -- one frame later; repeated sets in one frame (a colour drag) queue one look.
+            local recheckPending = false
+            local function markRecheck()
+                if recheckPending or not (C_Timer and C_Timer.After) then return end
+                recheckPending = true
+                C_Timer.After(0, function()
+                    recheckPending = false
+                    if markUpdate then markUpdate() end
+                end)
+            end
+            -- A setter that also updates the marker now and looks again next frame.
+            local function withMark(setFn)
+                return function(...)
+                    setFn(...)
+                    if markUpdate then markUpdate() end
+                    markRecheck()
+                end
+            end
             -- Resolve get/set fallbacks if missing
             local g = opt.get
             local s = opt.set
@@ -556,6 +779,8 @@ function addon.DashboardAccordionBuild_Init(f, p)
                 end
             end
 
+            if markable and s then s = withMark(s) end
+
             if opt.type == "section" then
                 -- Finalize previous card if any (relayout to apply visibility)
                 if currentCard then
@@ -563,6 +788,7 @@ function addon.DashboardAccordionBuild_Init(f, p)
                 end
 
                 currentCard = CreateAccordionCard(detailContent, opt.name, opt.headerToggle, opt.desc)
+                AttachRowStagger(currentCard)
                 currentCard.contentHeight = 0
                 currentCard.optionIds = {}
                 currentCard.widgetList = {}
@@ -578,6 +804,7 @@ function addon.DashboardAccordionBuild_Init(f, p)
             else
                 if not currentCard then
                     currentCard = CreateAccordionCard(detailContent, moduleSubName)
+                    AttachRowStagger(currentCard)
                     currentCard.contentHeight = 0
                     currentCard.optionIds = {}
                     currentCard.widgetList = {}
@@ -652,7 +879,7 @@ function addon.DashboardAccordionBuild_Init(f, p)
                     -- refreshIds and the row's (the children wired to any of its keys).
                     local rowKey = opt.dbKey
                     local parts, partKeys = {}, {}
-                    for _, slot in ipairs(addon.FONT_ROW_PARTS or { "family", "size", "outline" }) do
+                    for _, slot in ipairs(addon.FONT_ROW_PARTS) do
                         local part = opt.parts and opt.parts[slot]
                         if type(part) == "table" then
                             local key, default = part.dbKey, part.default
@@ -673,6 +900,11 @@ function addon.DashboardAccordionBuild_Init(f, p)
                                         RefreshLinkedTargets(ids, rowKey)
                                     end
                                 end
+                                if markable then
+                                    -- A part's setter takes one value, as the widget calls it.
+                                    local one = ps
+                                    ps = withMark(function(v) one(v) end)
+                                end
                                 -- A copy: the module's part table may be shared, so it is never written.
                                 local p = {}
                                 for k, v in pairs(part) do p[k] = v end
@@ -682,6 +914,7 @@ function addon.DashboardAccordionBuild_Init(f, p)
                             end
                         end
                     end
+                    fontParts = parts
                     local rowDisabled = opt.disabled
                     if type(rowDisabled) ~= "function" then
                         local always = rowDisabled == true
@@ -1339,6 +1572,37 @@ function addon.DashboardAccordionBuild_Init(f, p)
                         visibleWhen = (opt.type == "moduleReloadPrompt" and function() return addon._moduleReloadRecommended end) or opt.visibleWhen,
                     })
 
+                    -- The changed marker: a dot in the gutter and a reset arrow on hover
+                    -- (OptionsWidgets AttachChangedMarker). It updates after every Refresh of the
+                    -- row and every set, and keeps the card's "N changed" in step.
+                    if markable and widget._rowLabel and _G.OptionsWidgets_AttachChangedMarker
+                        and addon.OptionIsChanged then
+                        local cardRef, rowWidget, rowG, rowS, rowParts = currentCard, widget, g, s, fontParts
+                        local function disabledNow()
+                            local d = opt.disabled
+                            if type(d) == "function" then return d() == true end
+                            return d == true
+                        end
+                        local marker = _G.OptionsWidgets_AttachChangedMarker(widget, function()
+                            ResetRowToDefault(opt, rowG, rowS, rowParts, rowWidget)
+                        end, disabledNow)
+                        if marker then
+                            markUpdate = function()
+                                local changed = addon.OptionIsChanged(opt) and true or false
+                                marker.SetChanged(changed)
+                                rowWidget._hsChanged = changed
+                                UpdateCardChangedCount(cardRef)
+                            end
+                            rowWidget._hsMarkUpdate = markUpdate
+                            local origRefresh = widget.Refresh
+                            widget.Refresh = function(self, ...)
+                                if origRefresh then origRefresh(self, ...) end
+                                markUpdate()
+                            end
+                            markUpdate()
+                        end
+                    end
+
                     if opt.visibleWhen and type(opt.visibleWhen) == "function" and widget.Refresh then
                         local origRefresh = widget.Refresh
                         local cardRef = currentCard
@@ -1395,6 +1659,11 @@ function addon.DashboardAccordionBuild_Init(f, p)
                 detailContent:SetWidth(newW)
             end
             for _, card in ipairs(currentDetailCards) do
+                -- A profile switch (OnActiveProfileChangedDeferred -> Dashboard_Refresh) lands
+                -- here: re-read every marker before the relayout recounts the card.
+                for _, entry in ipairs(card.widgetList or {}) do
+                    if entry.frame and entry.frame._hsMarkUpdate then entry.frame._hsMarkUpdate() end
+                end
                 RelayoutCard(card)
             end
             UpdateDetailLayout()

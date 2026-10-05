@@ -321,8 +321,6 @@ run(`
   check("remembered closed wins over first", A.IsCardExpanded("m:p:a", true) == false, "true")
   check("remembered open wins", A.IsCardExpanded("m:p:b", false) == true, "false")
   check("state saved in the database", HorizonDB.optionsCardExpanded["m:p:b"] == true, "nil")
-  check("the More store is gone", A.IsMoreOpen == nil and A.SetMoreOpen == nil, "still defined")
-  check("no More state is written", HorizonDB.optionsCardMoreOpen == nil, "written")
 `, 'card-store');
 
 // --- Dependent rows -------------------------------------------------------------------
@@ -443,12 +441,10 @@ run(`
   } } })
   local rows = OPTS(out[1])
   check("advanced row stays in place", SHAPE(rows) == "S:CARD_POSITION|lock|S:CARD_SIZE|a|adv1|b|adv2", SHAPE(rows))
-  local more, adv1 = false, nil
+  local adv1
   for _, r in ipairs(rows) do
-    if r.type == "moreToggle" then more = true end
     if r.dbKey == "adv1" then adv1 = r end
   end
-  check("no moreToggle rows", more == false, "moreToggle present")
   check("advanced row has no condition of its own", adv1 and adv1.visibleWhen == nil, "wired")
 `, 'no-more-fold');
 
@@ -486,7 +482,6 @@ run(`
   check("advanced row with its own condition follows it", by.p3.visibleWhen() == true, "hidden")
   DB_VALUES.own = false
   check("advanced row with a failing condition hides", by.p3.visibleWhen() == false, "shown")
-  check("no store gate on any row", HorizonDB.optionsCardMoreOpen == nil, "written")
 `, 'advanced-ignored');
 
 // --- An advanced chain behaves like any chain ------------------------------------------------
@@ -507,7 +502,6 @@ run(`
   check("advanced grandchild hides with its advanced parent", by.ak.visibleWhen() == false, "shown")
   DB_VALUES.ap, DB_VALUES.ev = true, false
   check("advanced grandchild hides with the top of the chain", by.ak.visibleWhen() == false, "shown")
-  check("the counting hook is gone", A._countingCard == nil, tostring(A._countingCard))
 `, 'advanced-chain');
 
 // --- Subheadings in merged cards ---------------------------------------------------------
@@ -1056,6 +1050,354 @@ run(`
   check("a call without a label size leaves the scale alone", D.TitleSize == 14 and D.HelpSize == 20, tostring(D.TitleSize) .. "/" .. tostring(D.HelpSize))
   OptionsWidgets_SetDef({ LabelSize = 13 })
 `, 'widget-type-scale');
+
+// --- Widget motion: tween maths, the animate-or-snap rule, press and thumb scales -------
+run(`
+  local H = HorizonSuite
+  local D = H.OptionsWidgetsDef
+  check("motion tokens", D.MotionFast == 0.12 and D.MotionPress == 0.06 and D.PressScale == 0.97
+    and D.SliderThumbHoverScale == 1.15,
+    tostring(D.MotionFast) .. "/" .. tostring(D.MotionPress) .. "/" .. tostring(D.PressScale) .. "/" .. tostring(D.SliderThumbHoverScale))
+
+  local Lerp = H.OptionsWidgets_Lerp
+  check("lerp exists", type(Lerp) == "function", type(Lerp))
+  if type(Lerp) == "function" then
+    check("lerp start is exact", Lerp(0.3, 0.7, 0) == 0.3, Lerp(0.3, 0.7, 0))
+    check("lerp end is exact", Lerp(0.1, 0.7, 1) == 0.7, Lerp(0.1, 0.7, 1))
+    check("lerp past the end clamps", Lerp(0, 10, 1.5) == 10 and Lerp(0, 10, -1) == 0)
+    check("lerp middle", Lerp(0, 10, 0.25) == 2.5, Lerp(0, 10, 0.25))
+    check("lerp runs backwards", Lerp(1, 0, 0.25) == 0.75, Lerp(1, 0, 0.25))
+  end
+
+  local A = H.OptionsWidgets_TweenAdvance
+  check("tween advance exists", type(A) == "function", type(A))
+  if type(A) == "function" then
+    local t, e, done = A(0, 0.06, 0.12)
+    check("half way is eased out, not done", t == 0.06 and math.abs(e - 0.75) < 1e-9 and done == false, e)
+    t, e, done = A(0.1, 0.05, 0.12)
+    check("passing the duration is done at exactly 1", e == 1 and done == true, e)
+    t, e, done = A(0, 0.12, 0.12)
+    check("landing on the duration is done", e == 1 and done == true, e)
+    t, e, done = A(0, 0.01, 0)
+    check("no duration finishes at once", e == 1 and done == true, e)
+    t, e, done = A(nil, nil, nil)
+    check("nil inputs finish at once", t == 0 and e == 1 and done == true)
+    t, e, done = A(0.02, -5, 0.12)
+    check("a negative frame time does not run backwards", t == 0.02 and done == false, t)
+    t, e, done = A(0, 0.06, 0.12, function(p) return p end)
+    check("a custom ease is used", e == 0.5, e)
+    -- Monotonic: an eased tween never steps back.
+    local tt, last, mono = 0, 0, true
+    for _ = 1, 20 do
+      local ee
+      tt, ee = A(tt, 0.007, 0.12)
+      if ee < last then mono = false end
+      last = ee
+    end
+    check("eased progress never steps back", mono)
+  end
+
+  local P = H.OptionsWidgets_TweenPlan
+  check("tween plan exists", type(P) == "function", type(P))
+  if type(P) == "function" then
+    check("a click animates", P(true, 0, 1, nil, true) == "animate")
+    check("an outside change snaps", P(nil, 0, 1, nil, true) == "snap")
+    check("a hidden control snaps", P(true, 0, 1, nil, false) == "snap")
+    check("no change snaps (repaints)", P(true, 1, 1, nil, true) == "snap")
+    check("unknown start snaps", P(true, nil, 1, nil, true) == "snap")
+    check("same value mid-tween lets it finish", P(nil, 0.4, 1, 1, true) == "finish")
+    check("a click to the running target also finishes", P(true, 0.4, 1, 1, true) == "finish")
+    check("a different value mid-tween from outside snaps", P(nil, 0.4, 0, 1, true) == "snap")
+    check("a click reversing mid-tween animates from where it is", P(true, 0.4, 0, 1, true) == "animate")
+  end
+
+  local PT = H.OptionsWidgets_PressTarget
+  check("press target exists", type(PT) == "function", type(PT))
+  if type(PT) == "function" then
+    check("held down scales to PressScale", PT(true, false) == 0.97, PT(true, false))
+    check("released returns to 1", PT(false, false) == 1)
+    check("disabled never scales", PT(true, true) == 1)
+  end
+
+  local TS = H.OptionsWidgets_SliderThumbSizeAt
+  check("thumb size helper exists", type(TS) == "function", type(TS))
+  if type(TS) == "function" then
+    check("thumb at rest is its base size", TS(14, 0) == 14, TS(14, 0))
+    check("thumb when active is 1.15x", math.abs(TS(14, 1) - 16.1) < 1e-9, TS(14, 1))
+    check("thumb half way", math.abs(TS(14, 0.5) - 15.05) < 1e-9, TS(14, 0.5))
+  end
+`, 'widget-motion');
+
+// --- Card opening: rows stagger in, the whole sequence capped -------------------------
+run(`
+  local H = HorizonSuite
+  local D = H.OptionsWidgetsDef
+  check("stagger tokens", D.RowStagger == 0.02 and D.RowStaggerCap == 0.25 and D.RowRise == 6,
+    tostring(D.RowStagger) .. "/" .. tostring(D.RowStaggerCap) .. "/" .. tostring(D.RowRise))
+  local near = function(a, b) return math.abs(a - b) < 1e-9 end
+
+  local S = H.OptionsWidgets_RowStaggerSchedule
+  check("stagger schedule exists", type(S) == "function", type(S))
+  if type(S) == "function" then
+    local step, dur, total = S(5, 0.02, 0.12, 0.25)
+    check("few rows keep the full step", step == 0.02 and dur == 0.12 and near(total, 0.2), total)
+    step, dur, total = S(7, 0.02, 0.12, 0.25)
+    check("seven rows still fit under the cap", step == 0.02 and near(total, 0.24), total)
+    step, dur, total = S(40, 0.02, 0.12, 0.25)
+    check("many rows end exactly at the cap", near(total, 0.25) and dur == 0.12, total)
+    check("many rows shrink the step", step < 0.02 and near(step, 0.13 / 39), step)
+    step, dur, total = S(1, 0.02, 0.12, 0.25)
+    check("one row is just its own fade", near(total, 0.12), total)
+    step, dur, total = S(0, 0.02, 0.12, 0.25)
+    check("no rows take no time", total == 0, total)
+    step, dur, total = S(3, 0.02, 0.4, 0.25)
+    check("a row never runs past the cap", dur == 0.25 and step == 0 and near(total, 0.25), tostring(dur) .. "/" .. tostring(step))
+    step, dur, total = S(3, 0.02, 0.12, nil)
+    check("no cap keeps the step", step == 0.02 and near(total, 0.16), total)
+    step, dur, total = S(nil, nil, nil, nil)
+    check("nil inputs take no time", total == 0, total)
+    for _, n in ipairs({ 2, 8, 13, 100 }) do
+      local _, _, tt = S(n, 0.02, 0.12, 0.25)
+      check("never past the cap with " .. n .. " rows", tt <= 0.25 + 1e-9, tt)
+    end
+  end
+
+  local R = H.OptionsWidgets_RowStaggerAt
+  check("stagger row look exists", type(R) == "function", type(R))
+  if type(R) == "function" then
+    local a, dy, done = R(1, 0, 0.02, 0.12, 6)
+    check("the top row starts hidden and 6px low", a == 0 and dy == -6 and done == false, tostring(a) .. "/" .. tostring(dy))
+    a, dy, done = R(3, 0.03, 0.02, 0.12, 6)
+    check("a row before its start waits hidden and low", a == 0 and dy == -6 and done == false, tostring(a) .. "/" .. tostring(dy))
+    a, dy, done = R(2, 0.08, 0.02, 0.12, 6)
+    check("half way through its own fade", near(a, 0.75) and near(dy, -1.5) and done == false, tostring(a) .. "/" .. tostring(dy))
+    a, dy, done = R(2, 0.14, 0.02, 0.12, 6)
+    check("done is exactly in place at alpha 1", a == 1 and dy == 0 and done == true, tostring(a) .. "/" .. tostring(dy))
+    a, dy, done = R(1, 5, 0.02, 0.12, 6)
+    check("long after, still exactly in place", a == 1 and dy == 0 and done == true)
+    a, dy, done = R(1, 0, 0.02, 0, 6)
+    check("no duration lands at once", a == 1 and dy == 0 and done == true)
+    -- Rising and fading never step back over a run of frames.
+    local t, lastA, lastDy, mono = 0, -1, -100, true
+    for _ = 1, 40 do
+      t = t + 0.007
+      local aa, dd = R(4, t, 0.02, 0.12, 6)
+      if aa < lastA or dd < lastDy then mono = false end
+      lastA, lastDy = aa, dd
+    end
+    check("a row only ever fades in and rises", mono)
+    -- Every row of a capped schedule is in place by the schedule's total.
+    if type(S) == "function" then
+      local step, dur, total = S(30, 0.02, 0.12, 0.25)
+      local all = true
+      for i = 1, 30 do
+        local aa, dd, dn = R(i, total, step, dur, 6)
+        if not (aa == 1 and dd == 0 and dn) then all = false end
+      end
+      check("every row is in place when the sequence ends", all)
+    end
+  end
+`, 'row-stagger');
+
+// --- Changed-from-default markers: where a default comes from, and what counts as changed ---
+run(`
+  local H = HorizonSuite
+  local OD, OC, OM = H.OptionDefault, H.OptionIsChanged, H.OptionMarkable
+  check("OptionDefault exists", type(OD) == "function", type(OD))
+  check("OptionIsChanged exists", type(OC) == "function", type(OC))
+  check("OptionMarkable exists", type(OM) == "function", type(OM))
+  check("OptionStoredValue exists", type(H.OptionStoredValue) == "function", type(H.OptionStoredValue))
+  if type(OD) == "function" and type(OC) == "function" and type(OM) == "function" then
+    H.FOCUS_DEFAULTS = { focusSize = 12, focusOn = true, focusColor = { 0.2, 0.4, 0.6 },
+      bgColorR = 0.1, bgColorG = 0.2, bgColorB = 0.3, bgColorA = 0.8,
+      fontFam = "__global__", fontSz = 12, fontOut = "OUTLINE", shared = "focus" }
+    H.AXIS_DEFAULTS = { axisMode = "a", shared = "axis" }
+    H.AUGMENT_DEFAULTS = { augOnly = 5 }
+    local STORE = {}
+    local get = function(k) return STORE[k] end
+
+    -- Where the default comes from.
+    check("default: the row's own default wins", OD("focusSize", { dbKey = "focusSize", default = 20 }) == 20)
+    check("default: a false row default is a default", OD("focusOn", { dbKey = "focusOn", default = false }) == false)
+    check("default: else the module table", OD("focusSize", { dbKey = "focusSize" }) == 12)
+    check("default: no row needed", OD("axisMode") == "a")
+    check("default: a module table before Axis", OD("shared") == "focus")
+    check("default: the augment table", OD("augOnly") == 5)
+    check("default: unknown key is nil", OD("nope") == nil)
+    check("default: a non-string key is nil", OD(nil) == nil and OD(5) == nil)
+    local split = OD("bgColor", { type = "color", dbKey = "bgColor" })
+    check("default: split R/G/B/A keys make a colour", type(split) == "table" and split[1] == 0.1
+      and split[2] == 0.2 and split[3] == 0.3 and split[4] == 0.8, split)
+    check("default: a lone R key is no colour", OD("loneColor") == nil)
+
+    -- Which rows can carry a marker.
+    check("markable: toggle with a key", OM({ type = "toggle", dbKey = "focusOn" }))
+    check("markable: slider, dropdown, colour, font row", OM({ type = "slider", dbKey = "a" })
+      and OM({ type = "dropdown", dbKey = "a" }) and OM({ type = "color", dbKey = "a" })
+      and OM({ type = "fontRow", dbKey = "a", parts = {} }))
+    check("not markable: no dbKey", not OM({ type = "toggle" }))
+    check("not markable: buttons, notes, previews, lists",
+      not OM({ type = "button", dbKey = "a" }) and not OM({ type = "header", dbKey = "a" })
+      and not OM({ type = "presencePreview", dbKey = "a" }) and not OM({ type = "reorderList", dbKey = "a" })
+      and not OM({ type = "blacklistGrid", dbKey = "a" }) and not OM({ type = "colorMatrix", dbKey = "a" })
+      and not OM({ type = "colorMatrixFull", dbKey = "a" }) and not OM({ type = "section", dbKey = "a" }))
+    check("not markable: Profiles page rows", not OM({ type = "dropdown", dbKey = "_profiles_current" }))
+
+    -- What counts as changed.
+    local tog = { type = "toggle", dbKey = "focusOn" }
+    check("changed: stored nil is not changed", OC(tog, get) == false)
+    STORE.focusOn = true
+    check("changed: stored equal to the default is not changed", OC(tog, get) == false)
+    STORE.focusOn = false
+    check("changed: stored false against a true default", OC(tog, get) == true)
+    local sl = { type = "slider", dbKey = "focusSize" }
+    STORE.focusSize = 12.00001
+    check("changed: numbers within tolerance are not changed", OC(sl, get) == false)
+    STORE.focusSize = 12.5
+    check("changed: a number past tolerance", OC(sl, get) == true)
+    STORE.focusSize = "12"
+    check("changed: a string against a number default", OC(sl, get) == true)
+    local unk = { type = "toggle", dbKey = "nope" }
+    STORE.nope = true
+    check("changed: no default, no marker", OC(unk, get) == false)
+
+    -- A default kept in code: the row's getter is asked what it shows with the key cleared.
+    local oldGetDB = H.GetDB
+    H.GetDB = function(k, d) local v = STORE[k]; if v == nil then return d end return v end
+    local cv = { type = "dropdown", dbKey = "codeVis", get = function()
+      local v = H.GetDB("codeVis", nil)
+      if v == nil then return "show" end     -- the default lives in the getter, like GetCombatVisibility
+      return v
+    end }
+    check("code default: nothing stored", OC(cv, get) == false)
+    STORE.codeVis = "show"
+    check("code default: stored at the getter's default", OC(cv, get) == false)
+    STORE.codeVis = "hide"
+    check("code default: a different choice is changed", OC(cv, get) == true)
+    check("code default: the key's real value is back after asking", H.GetDB("codeVis") == "hide")
+    check("code default: stored-is-default false while changed",
+      H.OptionStoredIsDefault("codeVis", cv, get) == false)
+    STORE.codeVis = "show"
+    check("code default: stored-is-default true at the default",
+      H.OptionStoredIsDefault("codeVis", cv, get) == true)
+    STORE.codeVis = nil
+    local pct = { type = "slider", dbKey = "codePct", get = function() return (H.GetDB("codePct", 1)) * 100 end }
+    STORE.codePct = 1
+    check("code default: compared in the row's own units", OC(pct, get) == false)
+    STORE.codePct = 0.8
+    check("code default: a changed scale", OC(pct, get) == true)
+    STORE.codePct = nil
+    local multi = { type = "color", dbKey = "codeCol", get = function()
+      local c = H.GetDB("codeCol", nil) or { 1, 0.5, 0 }
+      return c[1], c[2], c[3]
+    end }
+    STORE.codeCol = { 1, 0.5, 0 }
+    check("code default: a colour getter's several results", OC(multi, get) == false)
+    STORE.codeCol = { 1, 0.4, 0 }
+    check("code default: a changed colour from a getter", OC(multi, get) == true)
+    STORE.codeCol = nil
+    local boom = { type = "toggle", dbKey = "codeBoom", get = function() error("no") end }
+    STORE.codeBoom = true
+    check("code default: an erroring getter gives no marker", OC(boom, get) == false)
+    check("code default: GetDB restored after an erroring getter", H.GetDB("codeBoom") == true)
+    STORE.codeBoom = nil
+    H.GetDB = oldGetDB
+    check("changed: an unmarkable row never is", OC({ type = "button", dbKey = "focusOn" }, function() return false end) == false)
+
+    local col = { type = "color", dbKey = "focusColor" }
+    STORE.focusColor = { 0.2, 0.4, 0.6 }
+    check("colour: equal field by field", OC(col, get) == false)
+    STORE.focusColor = { 0.2, 0.4, 0.61 }
+    check("colour: one field differs", OC(col, get) == true)
+    STORE.focusColor = { r = 0.2, g = 0.4, b = 0.6 }
+    check("colour: r/g/b fields match 1/2/3", OC(col, get) == false)
+    STORE.focusColor = { 0.2, 0.4, 0.6, 1 }
+    check("colour: an opaque alpha matches no alpha", OC(col, get) == false)
+    STORE.focusColor = { 0.2, 0.4, 0.6, 0.5 }
+    check("colour: a real alpha differs", OC(col, get) == true)
+    STORE.focusColor = nil
+
+    local sc = { type = "color", dbKey = "bgColor", hasAlpha = true }
+    check("split colour: nothing stored", OC(sc, get) == false)
+    STORE.bgColorR, STORE.bgColorG, STORE.bgColorB = 0.1, 0.2, 0.3
+    check("split colour: stored at the defaults", OC(sc, get) == false)
+    STORE.bgColorG = 0.9
+    check("split colour: one part changed", OC(sc, get) == true)
+    STORE.bgColorG = 0.2
+    STORE.bgColorA = 0.5
+    check("split colour: alpha changed", OC(sc, get) == true)
+    STORE.bgColorR, STORE.bgColorG, STORE.bgColorB, STORE.bgColorA = nil, nil, nil, nil
+    local scRow = { type = "color", dbKey = "bgColor", default = { 0.1, 0.2, 0.3 } }
+    STORE.bgColorR = 0.5
+    check("split colour: the row's default table is used", OC(scRow, get) == true)
+    STORE.bgColorR = nil
+
+    local fr = { type = "fontRow", dbKey = "fontFam", parts = {
+      family = { dbKey = "fontFam" }, size = { dbKey = "fontSz", default = 14 }, outline = { dbKey = "fontOut" } } }
+    check("font row: nothing stored", OC(fr, get) == false)
+    STORE.fontFam = "__global__"
+    STORE.fontSz = 14
+    check("font row: parts at their defaults (a part's own default wins)", OC(fr, get) == false)
+    STORE.fontOut = ""
+    check("font row: changed when one part is", OC(fr, get) == true)
+    STORE.fontOut = nil
+    STORE.fontSz = 12
+    check("font row: the size part against its own default", OC(fr, get) == true)
+
+    -- normalize: a row that reads several stored forms as one value compares as it shows them.
+    H.AXIS_DEFAULTS.outl = 1
+    local norm = function(v) if v == 1 or v == "OUTLINE" then return "OUTLINE" end return v end
+    local nr = { type = "fontRow", dbKey = "outl", parts = { outline = { dbKey = "outl", default = "OUTLINE", normalize = norm } } }
+    STORE.outl = "OUTLINE"
+    check("normalize: the shown default stored as a string is not changed", OC(nr, get) == false)
+    STORE.outl = 1
+    check("normalize: a legacy stored form of the default is not changed", OC(nr, get) == false)
+    STORE.outl = ""
+    check("normalize: a different choice is changed", OC(nr, get) == true)
+    STORE.outl = nil
+
+    -- A reset's deferred clear only clears a key still at its default.
+    local SD = H.OptionStoredIsDefault
+    check("stored-is-default exists", type(SD) == "function", type(SD))
+    if type(SD) == "function" then
+      STORE.focusSize = 12
+      check("stored-is-default: stored at the default", SD("focusSize", nil, get) == true)
+      STORE.focusSize = 15
+      check("stored-is-default: a player's new value is kept", SD("focusSize", nil, get) == false)
+      STORE.focusSize = nil
+      check("stored-is-default: nothing stored", SD("focusSize", nil, get) == false)
+      check("stored-is-default: no default", SD("nope", nil, function() return 1 end) == false)
+      STORE.outl = 1
+      check("stored-is-default: through normalize", SD("outl", nr.parts.outline, get) == true)
+      STORE.outl = nil
+      STORE.bgColorG = 0.2
+      check("stored-is-default: a split colour key", SD("bgColorG", nil, get) == true)
+      STORE.bgColorG = nil
+    end
+
+    -- Split colour keys a reset must clear.
+    local sk = H.OptionSplitColorKeys and H.OptionSplitColorKeys("bgColor") or {}
+    check("split keys: R/G/B/A of a split colour", table.concat(sk, ",") == "bgColorR,bgColorG,bgColorB,bgColorA",
+      table.concat(sk, ","))
+    check("split keys: none for a table colour", #(H.OptionSplitColorKeys and H.OptionSplitColorKeys("focusColor") or { 1 }) == 0)
+
+    -- The helpers put their default on the row, so the row's default is the one it shows.
+    check("Toggle carries its default", H.Toggle("n", "d", "focusOn", false).default == false)
+    check("Slider carries its default", H.Slider("n", "d", "focusSize", 1, 30, 14).default == 14)
+    check("Color carries its default", type(H.Color("n", "d", "focusColor", { 1, 1, 1 }).default) == "table")
+
+    -- The live reader: the active profile's value, with no default fallback.
+    local oldGAP = H.GetActiveProfile
+    H.GetActiveProfile = function() return { focusOn = false } end
+    check("stored: reads the active profile", H.OptionStoredValue("focusOn") == false)
+    check("stored: unset is nil, not the default", H.OptionStoredValue("focusSize") == nil)
+    check("live getter: a stored false against a true default is changed", OC(tog) == true)
+    H.GetActiveProfile = oldGAP
+
+    STORE = {}
+    H.FOCUS_DEFAULTS, H.AXIS_DEFAULTS, H.AUGMENT_DEFAULTS = nil, nil, nil
+  end
+`, 'changed-markers');
 
 // --- Summary -----------------------------------------------------------------------
 run(`

@@ -215,8 +215,7 @@ function assemble(capsOff) {
     -- Layout dump for --dump: one block per card, counted as visibleAtDefaults/total. A row is
     -- visible at defaults when its condition (its own and its parent chain's) passes with the
     -- harness's default settings. Subheadings print as "── name ──" and are not counted.
-    -- Rows still carrying the retired advanced field are listed in the advanced list.
-    local dump, advanced, oversized, misplaced = {}, {}, {}, {}
+    local dump, oversized, misplaced = {}, {}, {}
     -- Rows that would render as segmented buttons (eligibility only; the width check runs in game).
     local segRows = {}
     local SegOk = addon.SegmentedEligible or function() return false end
@@ -291,7 +290,6 @@ function assemble(capsOff) {
             local okV, vis = true, true
             if type(r.visibleWhen) == "function" then okV, vis = pcall(r.visibleWhen) end
             if okV and vis then shown = shown + 1 end
-            if r.advanced then advanced[#advanced + 1] = mk .. " › " .. pk .. " › " .. head .. " › " .. rowName(r) end
             lines[#lines + 1] = "  " .. (r.parent and "↳ " or "") .. rowName(r)
               .. (r.parent and ("  (parent: " .. tostring(r.parent) .. ")") or "")
             if r.type == "dropdown" and SegOk(r) then
@@ -320,6 +318,169 @@ function assemble(capsOff) {
         flush()
       end
     end
+    -- Changed-marker coverage for --dump: per module, the rows that can carry a marker
+    -- (addon.OptionMarkable) and how many of them resolve a default (addon.OptionDefault; a
+    -- font row only when every part does). Rows without one never show a marker.
+    local cover, unresolved, mismatched = {}, {}, {}
+    local OM, OD0 = addon.OptionMarkable, addon.OptionDefault
+    -- A key has a default when a row or table gives one, or when its getter can be asked what
+    -- it shows with the key cleared (a default kept in code); OD reports either as non-nil.
+    local OD = OD0 and function(key, row)
+      local v = OD0(key, row)
+      if v ~= nil then return v end
+      if type(row) == "table" and type(row.get) == "function" then return true end
+      return nil
+    end
+    if OM and OD then
+      for _, cat in ipairs(addon.OptionCategories) do
+        local ok, opts = pcall(function()
+          if type(cat.options) == "function" then return cat.options() end
+          return cat.options
+        end)
+        local mk = cat.moduleKey or "axis"
+        for _, r in ipairs(ok and opts or {}) do
+          if type(r) == "table" and OM(r) then
+            local c = cover[mk] or { n = 0, ok = 0 }
+            cover[mk] = c
+            c.n = c.n + 1
+            local good = true
+            if r.type == "fontRow" then
+              for _, part in pairs(r.parts or {}) do
+                if type(part) == "table" and part.dbKey and OD(part.dbKey, part) == nil then good = false end
+              end
+            else
+              good = OD(r.dbKey, r) ~= nil
+            end
+            if good then c.ok = c.ok + 1 else unresolved[#unresolved + 1] = mk .. " › " .. tostring(r.dbKey) end
+            -- A row default that disagrees with its module table: the row shows one default and
+            -- the stored value is judged against it, so a mismatch is worth a look.
+            if r.type ~= "fontRow" and r.default ~= nil and type(r.default) ~= "table" then
+              local td
+              for _, name in ipairs({ "FOCUS_DEFAULTS", "VISTA_DEFAULTS", "INSIGHT_DEFAULTS", "PRESENCE_DEFAULTS",
+                  "ECHO_DEFAULTS", "AUGMENT_DEFAULTS", "ESSENCE_DEFAULTS", "AXIS_DEFAULTS" }) do
+                local t = rawget(addon, name)
+                if td == nil and type(t) == "table" then td = t[r.dbKey] end
+              end
+              if td ~= nil and td ~= r.default then
+                mismatched[#mismatched + 1] = mk .. " › " .. tostring(r.dbKey) .. " (row " .. tostring(r.default) .. ", table " .. tostring(td) .. ")"
+              end
+            end
+          end
+        end
+      end
+    end
+    -- Round trip: for every markable row with a default, write the value the row shows at
+    -- defaults back through its own setter (into an empty store), and the row must not read as
+    -- changed. This catches a default stored in a different form from what the row writes
+    -- (a number default for a row that saves a string). C_Timer.After callbacks run at once.
+    -- Rows whose getter or setter needs an addon function the harness lacks are skipped.
+    local roundFail, roundSkipped, roundRun = {}, 0, 0
+    if OM and OD and addon.OptionIsChanged then
+      local STORE = {}
+      local saved = { GetDB = rawget(addon, "GetDB"), OGet = rawget(addon, "OptionsData_GetDB"),
+        OSet = rawget(addon, "OptionsData_SetDB"), SetDB = rawget(addon, "SetDB"),
+        GOGet = rawget(_G, "OptionsData_GetDB"), GOSet = rawget(_G, "OptionsData_SetDB"),
+        Timer = rawget(_G, "C_Timer") }
+      local missingBefore = {}
+      for k in pairs(MISSING) do missingBefore[k] = true end
+      local function get(k, d) local v = STORE[k]; if v == nil then return d end; return v end
+      local function put(k, v) STORE[k] = v end
+      rawset(addon, "GetDB", get); rawset(addon, "OptionsData_GetDB", get)
+      rawset(addon, "OptionsData_SetDB", put); rawset(addon, "SetDB", put)
+      _G.OptionsData_GetDB, _G.OptionsData_SetDB = get, put
+      local timers = {}
+      _G.C_Timer = { After = function(_, fn) timers[#timers + 1] = fn end }
+      local function drain()
+        local n = 0
+        while #timers > 0 and n < 50 do
+          local fn = table.remove(timers, 1)
+          fn()
+          n = n + 1
+        end
+      end
+      local function stored(k) return STORE[k] end
+      -- One key's getter and setter, as the card builder resolves them.
+      local function pair(r, key, default, isColor)
+        local g, st = r.get, r.set
+        if not g then
+          if isColor then
+            g = function()
+              local t = get(key, nil)
+              if type(t) == "table" and t[1] then return t[1], t[2], t[3], t[4] or 1 end
+              if type(default) == "table" then return default[1], default[2], default[3], default[4] end
+              return 1, 1, 1, 1
+            end
+          else
+            g = function() return get(key, default) end
+          end
+        end
+        if not st then
+          if isColor then
+            st = function(a, b, c, d) local t = { a, b, c }; if r.hasAlpha then t[4] = d end; put(key, t) end
+          else
+            st = function(v) put(key, v) end
+          end
+        end
+        return g, st
+      end
+      for _, cat in ipairs(addon.OptionCategories) do
+        local ok, opts = pcall(function()
+          if type(cat.options) == "function" then return cat.options() end
+          return cat.options
+        end)
+        local mk = cat.moduleKey or "axis"
+        for _, r in ipairs(ok and opts or {}) do
+          local resolvable = type(r) == "table" and OM(r)
+          if resolvable then
+            if r.type == "fontRow" then
+              for _, part in pairs(r.parts or {}) do
+                if type(part) == "table" and part.dbKey and OD(part.dbKey, part) == nil then resolvable = false end
+              end
+            else
+              resolvable = OD(r.dbKey, r) ~= nil
+            end
+          end
+          if resolvable then
+            for k in pairs(STORE) do STORE[k] = nil end
+            timers = {}
+            local okRun = pcall(function()
+              if r.type == "fontRow" then
+                for _, slot in ipairs(addon.FONT_ROW_PARTS) do
+                  local part = r.parts[slot]
+                  if part and part.dbKey then
+                    local g, st = pair(part, part.dbKey, part.default, false)
+                    st(g())
+                  end
+                end
+              elseif r.type == "color" then
+                local g, st = pair(r, r.dbKey, r.default, true)
+                st(g())
+              else
+                local g, st = pair(r, r.dbKey, r.default, false)
+                st(g())
+              end
+              drain()
+            end)
+            if not okRun then
+              roundSkipped = roundSkipped + 1
+            else
+              roundRun = roundRun + 1
+              if addon.OptionIsChanged(r, stored) then
+                roundFail[#roundFail + 1] = mk .. " › " .. tostring(r.dbKey)
+              end
+            end
+          end
+        end
+      end
+      rawset(addon, "GetDB", saved.GetDB); rawset(addon, "OptionsData_GetDB", saved.OGet)
+      rawset(addon, "OptionsData_SetDB", saved.OSet); rawset(addon, "SetDB", saved.SetDB)
+      _G.OptionsData_GetDB, _G.OptionsData_SetDB, _G.C_Timer = saved.GOGet, saved.GOSet, saved.Timer
+      for k in pairs(MISSING) do if not missingBefore[k] then MISSING[k] = nil end end
+    end
+    local coverage = {}
+    for mk, c in pairs(cover) do coverage[#coverage + 1] = q(mk .. " " .. c.ok .. "/" .. c.n) end
+    table.sort(coverage)
+    table.sort(unresolved)
     local mods = {}
     for mk, keys in pairs(pages) do mods[#mods + 1] = q(mk) .. ":" .. list(keys) end
     local missing = {}
@@ -337,9 +498,14 @@ function assemble(capsOff) {
       '"missing":' .. list(missing),
       '"dump":' .. list(dump),
       '"segRows":' .. list(segRows),
-      '"advanced":' .. list(advanced),
       '"oversized":' .. list(oversized),
       '"misplaced":' .. list(misplaced),
+      '"coverage":' .. "[" .. table.concat(coverage, ",") .. "]",
+      '"unresolved":' .. list(unresolved),
+      '"mismatched":' .. list(mismatched),
+      '"roundFail":' .. list(roundFail),
+      '"roundRun":' .. roundRun,
+      '"roundSkipped":' .. roundSkipped,
     }, ",") .. "}"
   `, 'collect');
   return JSON.parse(json);
@@ -367,13 +533,16 @@ function common(label, r) {
     th.join(', '));
   check(label + ': Talking Head keeps its preview proxy', th.some(c => c.endsWith('+proxy')), th.join(', '));
   if (label === 'Retail') console.log('  (Retail augment:talkingHead cards: ' + th.join(', ') + ')');
-  // Every setting shows once its card is open: no row keeps the retired advanced field, and no
-  // card holds more than 12 rows (headers excluded, a font row counts as one).
-  check(label + ': no row carries the retired advanced field', r.advanced.length === 0, r.advanced.join(', '));
+  // No card holds more than 12 rows (headers excluded, a font row counts as one).
   check(label + ': no card holds more than 12 rows', r.oversized.length === 0, r.oversized.join(', '));
   // A dependent row reads as nested only when it sits under its parent, or under another of
   // that parent's dependents, with nothing unrelated in between.
   check(label + ': every dependent row sits under its parent', r.misplaced.length === 0, r.misplaced.join('; '));
+  // Writing a row's shown default back through its own setter must not mark it changed.
+  check(label + ': a row set to its shown default is not marked changed',
+    r.roundRun > 0 && r.roundFail.length === 0, r.roundFail.join(', ') || ('ran ' + r.roundRun));
+  console.log('  (' + label + ' changed-marker round trip: ' + r.roundRun + ' rows checked, '
+    + r.roundSkipped + ' skipped for unstubbed addon functions)');
   if (r.missing.length) console.log('  (' + label + ' read unstubbed addon fields: ' + r.missing.join(', ') + ')');
 }
 
@@ -392,6 +561,12 @@ function common(label, r) {
     for (const mk of r.segRows || []) segCounts[mk] = (segCounts[mk] || 0) + 1;
     console.log('[seg] rows by module: ' + (Object.entries(segCounts).map(([k, v]) => k + ' ' + v).join(', ') || 'none')
       + ' (total ' + (r.segRows || []).length + ')');
+    // Changed-marker coverage: markable rows that resolve a default, per module.
+    console.log('Changed-marker coverage (rows with a default / markable rows): '
+      + ((r.coverage || []).map(c => c.replace(/ (\d+)\/(\d+)$/, (_, a, b) => ' ' + a + '/' + b
+        + ' (' + Math.round(100 * a / b) + '%)')).join(', ') || 'none'));
+    if ((r.unresolved || []).length) console.log('  no default: ' + r.unresolved.join(', '));
+    if ((r.mismatched || []).length) console.log('  row default differs from its table: ' + r.mismatched.join(', '));
   }
   for (const [mk, want] of Object.entries(EXPECTED)) {
     const got = r.pages[mk] || [];
