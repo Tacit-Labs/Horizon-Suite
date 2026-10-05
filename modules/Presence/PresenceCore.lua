@@ -624,12 +624,14 @@ local PlayCinematic
 -- Edit mode: drag anchor (mirrors Augment Alerts' editOverlay)
 -- ============================================================================
 
+-- editMode = dashboard toggle; nativeEditMode = Blizzard's Edit Mode is open.
 local editMode = false
+local nativeEditMode = false
 local editOverlay
 
 -- Toasts end by hiding F; while the anchor is shown F has to stay up.
 local function hideFrame()
-    if editMode then return end
+    if editMode or nativeEditMode then return end
     F:Hide()
 end
 
@@ -1145,6 +1147,7 @@ local function Init()
     F:SetScale(getFrameScale())
     F:Hide()
     CreateEditOverlay()
+    if addon.Presence.HookNativeEditMode then addon.Presence.HookNativeEditMode() end
 
     layerA   = CreateLayer(F)
     layerB   = CreateLayer(F)
@@ -1604,7 +1607,7 @@ local function ToggleAnchorFrame()
         editOverlay:Show()
         F:Show()
         PreviewToast(getStoredPreviewTypeName())
-    else
+    elseif not nativeEditMode then
         editOverlay:EnableMouse(false)
         editOverlay:Hide()
         if anim.phase == "idle" then F:Hide() end
@@ -1614,6 +1617,63 @@ end
 local function HideAnchorFrame()
     if not F or not editMode then return end
     ToggleAnchorFrame()
+end
+
+-- ============================================================================
+-- Blizzard Edit Mode (mirrors Augment LootRoll's HookNativeEditMode)
+-- ============================================================================
+
+local function ShowNativeOverlay(show)
+    if show then
+        editOverlay:EnableMouse(true)
+        editOverlay:Show()
+        F:Show()
+        PreviewToast(getStoredPreviewTypeName())
+    elseif not editMode then
+        editOverlay:EnableMouse(false)
+        editOverlay:Hide()
+        if anim.phase == "idle" then F:Hide() end
+    end
+end
+
+-- Chain onto Augment LootFrame's Edit Mode panel so its single "Horizon Suite"
+-- checkbox governs this overlay too. Done lazily on Enter: the panel only exists
+-- once Augment is enabled, and module load order isn't fixed.
+local attachedPanel
+local function AttachToAugmentPanel()
+    local panel = addon.Augment and addon.Augment.editModePanel
+    if not panel or panel == attachedPanel then return end
+    attachedPanel = panel
+    local previous = panel.onCheckboxToggle
+    panel.onCheckboxToggle = function(checked)
+        if previous then pcall(previous, checked) end
+        if addon.SetDB then addon.SetDB("presenceEditModeShow", checked) end
+        if nativeEditMode and F then ShowNativeOverlay(checked) end
+    end
+end
+
+local nativeHooked = false
+local function HookNativeEditMode()
+    if nativeHooked or not EventRegistry then return end
+    nativeHooked = true
+
+    EventRegistry:RegisterCallback("EditMode.Enter", function()
+        if not F then return end
+        AttachToAugmentPanel()
+        nativeEditMode = true
+        local show = not addon.GetDB or addon.GetDB("presenceEditModeShow", true) ~= false
+        if show then ShowNativeOverlay(true) end
+    end, "HorizonSuitePresence")
+
+    EventRegistry:RegisterCallback("EditMode.Exit", function()
+        if not F then return end
+        -- Deferred a frame: reacting inline to Blizzard's synchronous Edit Mode
+        -- exit chain can taint secure frame state (same as Augment).
+        C_Timer.After(0, function()
+            nativeEditMode = false
+            ShowNativeOverlay(false)
+        end)
+    end, "HorizonSuitePresence")
 end
 
 local function ResetPosition()
@@ -2163,6 +2223,7 @@ addon.Presence.GetActiveTypeName  = GetActiveTypeName
 addon.Presence.ToggleAnchorFrame  = ToggleAnchorFrame
 addon.Presence.HideAnchorFrame    = HideAnchorFrame
 addon.Presence.ResetPosition      = ResetPosition
+addon.Presence.HookNativeEditMode = HookNativeEditMode
 addon.Presence.DISCOVERY_WAIT     = 0.15
 
 addon.Presence.IsTypeEnabled        = IsTypeEnabled

@@ -1026,6 +1026,9 @@ local function CreateEditModePanel()
         if editModePanel.onCheckboxToggle then
             GameTooltip:AddLine("- Alerts", 0.8, 0.8, 0.8, 1)
         end
+        if addon.Presence and addon.Presence.HookNativeEditMode then
+            GameTooltip:AddLine("- Presence", 0.8, 0.8, 0.8, 1)
+        end
         GameTooltip:AddLine(" ", 1, 1, 1, 1)
         GameTooltip:AddLine("This checkbox only controls their visibility in Edit Mode. It will not enable or disable these modules.", 0.7, 0.7, 0.7, 1, true)
         GameTooltip:Show()

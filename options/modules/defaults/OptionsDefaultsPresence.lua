@@ -68,6 +68,7 @@ addon.PRESENCE_DEFAULTS = {
     showPresenceDiscovery          = true,
     presenceFrameY                 = -180,
     presenceFrameX                 = 0,
+    presenceEditModeShow           = true,
     presenceFrameScale             = 1,
     presenceAnimations             = true,
     presenceEntranceDur            = 0.7,
