@@ -278,11 +278,13 @@ local function HookNativeEditMode()
 
         local D = addon.AUGMENT_DEFAULTS
         local show = R.GetDB("lootRollEditModeShow", D.lootRollEditModeShow) ~= false
+        -- No demo reel here: Edit Mode is opened to lay out the whole UI, and
+        -- four fabricated rolls lingering for a minute get in the way of that.
+        -- Shift-click on the overlay still runs one on request.
         if show then
             editOverlay:EnableMouse(true)
             editOverlay:Show()
             R.GetAnchorFrame():Show()
-            if R.Demo and R.Demo.Run then R.Demo.Run() end
         end
     end, "HorizonSuiteAugmentLootRoll")
 
@@ -297,6 +299,7 @@ local function HookNativeEditMode()
                 editOverlay:Hide()
             end
             SaveFramePosition()
+            if not editMode and R.Demo and R.Demo.Clear then R.Demo.Clear() end
             local frame = R.GetAnchorFrame()
             if frame and not R.HasActiveRows() and not editMode then frame:Hide() end
         end)
