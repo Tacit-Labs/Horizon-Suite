@@ -52,6 +52,9 @@ addon.ECHO_DEFAULTS = {
     echoHideStoredWhispers = false,
     echoDockInput          = true,
     echoInputAlwaysVisible = false,
+    -- What the card opens as the docked line starts in Say, Yell or Emote (EchoInput.lua):
+    -- "nearby", or "all" for the All view.
+    echoEnterOpens         = "nearby",
     echoHideBlizzardChat   = true,
     -- Where the combat log goes while Blizzard's chat is hidden (EchoCombatLog.lua):
     -- "echo" (in Echo's card), "blizzard" (its own tab) or "hide". Read through
