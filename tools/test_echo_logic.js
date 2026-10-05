@@ -191,6 +191,35 @@ run(`
   check("IsSecret passes nil", HorizonSuite.Echo.IsSecret(nil) == false, "true")
 `, 'store-keys');
 
+// --- Chat routing: kinds Echo leaves to Blizzard's chat ------------------------
+run(`
+  local Echo = HorizonSuite.Echo
+  local S, E = Echo.Store, Echo.Events
+  local savedUtil, savedGet = ChatFrameUtil, ChatFrame_GetMessageEventFilters
+  ChatFrameUtil, ChatFrame_GetMessageEventFilters = nil, nil
+  S.Reset()
+  check("routing: every kind handled by default", S.Handles("whisper") and S.Handles("guild") and S.Handles(nil), "unhandled")
+  check("routing: a feed can't be left to Blizzard here", S.SetKindHandled("loot", false) == false and S.Handles("loot"), "accepted")
+  check("routing: an unknown kind is refused", S.SetKindHandled("say", false) == false, "accepted")
+  check("routing: a kind can be left to Blizzard", S.SetKindHandled("guild", false) == true and S.Handles("guild") == false, "still handled")
+
+  E.Dispatch("CHAT_MSG_GUILD", "hello", "Brisa-Horizon", nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+  check("routing: an unhandled kind files nothing", S.Get("guild") == nil, "filed")
+  E.Dispatch("CHAT_MSG_PARTY", "hi", "Brisa-Horizon", nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+  check("routing: other kinds still file", S.Get("party") ~= nil and #S.Get("party").messages == 1, "missing")
+
+  S.SetKindHandled("whisper", false)
+  check("routing: an unhandled kind can't be started", S.Start("w:Brisa-Horizon") == nil and S.Get("w:Brisa-Horizon") == nil, "started")
+  check("routing: nor restored", S.Restore({ "w:Brisa-Horizon", "w:Varo-Horizon" }) == 0 and S.Get("w:Varo-Horizon") == nil, "restored")
+
+  S.SetKindHandled("whisper", true)
+  S.SetKindHandled("guild", true)
+  check("routing: handled again", S.Handles("whisper") and S.Handles("guild"), "unhandled")
+  check("routing: and startable again", S.Start("w:Brisa-Horizon") ~= nil, "refused")
+  S.Reset()
+  ChatFrameUtil, ChatFrame_GetMessageEventFilters = savedUtil, savedGet
+`, 'routing-store');
+
 // --- Store: conversations, ordering, unread -------------------------------------
 run(`
   local S = HorizonSuite.Echo.Store
@@ -4195,11 +4224,11 @@ run(`
   local lastTell
   ChatEdit_SetLastTellTarget = function(name, chatType) lastTell = { name, chatType } end
 
-  F.Apply(true)
+  F.Apply({ whisper = true, bnet = true })
   check("filter on registers whispers", added.CHAT_MSG_WHISPER == F.Handler and added.CHAT_MSG_WHISPER_INFORM == F.Handler, "missing")
   check("filter on registers Battle.net whispers", added.CHAT_MSG_BN_WHISPER == F.Handler, "missing")
   check("filter active", F.active == true, F.active)
-  F.Apply(true)
+  F.Apply({ whisper = true, bnet = true })
   check("applying twice is harmless", added.CHAT_MSG_WHISPER == F.Handler, "lost")
 
   local hide = F.Handler(nil, "CHAT_MSG_WHISPER", "hi", "Brisa-Horizon", "", "", "", "", 0, 0, "", 0, 1, "Player-1-DRUID")
@@ -4215,11 +4244,11 @@ run(`
   check("a secret sender stays in Blizzard chat", keep == false, keep)
 
   HorizonSuite.Platform.caps.bnetWhispers = false
-  F.Apply(false); F.Apply(true)
+  F.Apply(nil); F.Apply({ whisper = true, bnet = true })
   check("no Battle.net filter without Battle.net whispers", added.CHAT_MSG_BN_WHISPER == nil, "registered")
   HorizonSuite.Platform.caps.bnetWhispers = true
 
-  F.Apply(false)
+  F.Apply(nil)
   check("filter off removes whispers", added.CHAT_MSG_WHISPER == nil and added.CHAT_MSG_WHISPER_INFORM == nil, "still there")
   check("filter inactive", F.active == false, F.active)
 
@@ -4315,6 +4344,116 @@ run(`
   PlaySound, SOUNDKIT, ChatEdit_SetLastTellTarget = nil, nil, nil
 `, 'echo-filter-lockdown');
 
+// --- The filter hides any set of kinds ---------------------------------------------
+run(`
+  local Echo = HorizonSuite.Echo
+  local F = Echo.Filter
+  local savedUtil = ChatFrameUtil
+  ChatFrameUtil = nil
+  local added = {}
+  ChatFrame_AddMessageEventFilter = function(event, fn) added[event] = fn end
+  ChatFrame_RemoveMessageEventFilter = function(event, fn) if added[event] == fn then added[event] = nil end end
+  local tells = 0
+  ChatEdit_SetLastTellTarget = function() tells = tells + 1 end
+  local savedWhisper, sounds = Echo.Sound.Whisper, 0
+  Echo.Sound.Whisper = function() sounds = sounds + 1 end
+
+  F.Apply({ guild = true, party = true })
+  check("kinds: guild is hidden", added.CHAT_MSG_GUILD == F.Handler, "missing")
+  check("kinds: party and its leader are hidden", added.CHAT_MSG_PARTY == F.Handler and added.CHAT_MSG_PARTY_LEADER == F.Handler, "missing")
+  check("kinds: whispers are not", added.CHAT_MSG_WHISPER == nil, "hidden")
+  check("kinds: active", F.active == true, F.active)
+  check("kinds: the same set", F.SameKinds({ party = true, guild = true }) == true, "differs")
+  check("kinds: a different set", F.SameKinds({ guild = true }) == false and F.SameKinds(nil) == false, "same")
+
+  local hide = F.Handler(nil, "CHAT_MSG_GUILD", "hello", "Brisa-Horizon", "", "", "", "", 0, 0, "", 0, 1, "Player-1-DRUID")
+  check("kinds: a filed guild line is hidden", hide == true, hide)
+  check("kinds: it sets no reply target and plays no sound", tells == 0 and sounds == 0, tells .. "/" .. sounds)
+  local keep = F.Handler(nil, "CHAT_MSG_GUILD", SECRET("hello"), "Brisa-Horizon", "", "", "", "", 0, 0, "", 0, 1, "Player-1-DRUID")
+  check("kinds: a secret guild line stays", keep == false, keep)
+
+  F.Apply({ loot = true })
+  check("kinds: a feed has nothing to hide", next(added) == nil and F.active == false, next(added))
+
+  HorizonSuite.Platform.caps.bnetWhispers = false
+  F.Apply({ bnet = true })
+  check("kinds: no Battle.net filter without Battle.net whispers", added.CHAT_MSG_BN_WHISPER == nil and F.active == false, "registered")
+  HorizonSuite.Platform.caps.bnetWhispers = true
+
+  F.Apply(nil)
+  check("kinds: off", next(added) == nil and F.active == false and F.SameKinds(nil), next(added))
+
+  Echo.Sound.Whisper = savedWhisper
+  ChatFrameUtil = savedUtil
+  ChatFrame_AddMessageEventFilter, ChatFrame_RemoveMessageEventFilter, ChatEdit_SetLastTellTarget = nil, nil, nil
+`, 'echo-filter-kinds');
+
+// --- Routes: where each type of chat shows -----------------------------------------
+run(`
+  local Echo = HorizonSuite.Echo
+  local S, F = Echo.Store, Echo.Filter
+  local db = {}
+  HorizonSuite.GetDB = function(k, d) if db[k] ~= nil then return db[k] end return d end
+  local savedUtil, savedGroups, savedWindow = ChatFrameUtil, ChatTypeGroup, GetChatWindowMessages
+  ChatFrameUtil, GetChatWindowMessages = nil, nil
+  ChatTypeGroup = { GUILD = { "CHAT_MSG_GUILD" }, WHISPER = { "CHAT_MSG_WHISPER", "CHAT_MSG_WHISPER_INFORM" } }
+  local added, adds = {}, 0
+  ChatFrame_AddMessageEventFilter = function(event, fn) adds = adds + 1; added[event] = fn end
+  ChatFrame_RemoveMessageEventFilter = function(event, fn) if added[event] == fn then added[event] = nil end end
+  CreateFrame = STUB_CREATE_FRAME
+  local function AllTakes(event)
+    for _, e in ipairs(Echo.All.ExtraEvents()) do if e == event then return true end end
+    return false
+  end
+  S.Reset()
+
+  check("route: both by default", Echo.Route("guild") == "both" and Echo.Route("whisper") == "both", Echo.Route("guild"))
+  db.echoHideStoredWhispers = true
+  check("route: the old whisper setting reads as Echo only", Echo.Route("whisper") == "echo" and Echo.Route("bnet") == "echo", Echo.Route("whisper"))
+  check("route: and leaves other kinds alone", Echo.Route("guild") == "both", Echo.Route("guild"))
+  db.echoRouteWhisper = "blizzard"
+  check("route: a set route beats the old setting", Echo.Route("whisper") == "blizzard", Echo.Route("whisper"))
+  db.echoRouteWhisper = "shouty"
+  check("route: an invalid route falls back", Echo.Route("whisper") == "echo", Echo.Route("whisper"))
+  db.echoHideStoredWhispers, db.echoRouteWhisper = nil, nil
+  check("route: a getter can be passed", Echo.Route("guild", function(k, d) return k == "echoRouteGuild" and "echo" or d end) == "echo", "ignored")
+
+  -- Whispers in Echo only, everything else in Blizzard's chat.
+  S.Add({ convKey = "guild", text = "old", sender = "Brisa-Horizon" })
+  check("route: a guild tile is open", S.Get("guild").open == true, "closed")
+  for _, kind in ipairs(Echo.ROUTE_KINDS) do db[Echo.RouteKey(kind)] = "blizzard" end
+  db.echoRouteWhisper, db.echoRouteBnet = "echo", "echo"
+  Echo.ApplyOptions()
+  check("route: Blizzard-only kinds are not handled", not S.Handles("guild") and not S.Handles("nearby"), "handled")
+  check("route: Echo-only kinds are", S.Handles("whisper") and S.Handles("bnet"), "unhandled")
+  check("route: an open tile of a Blizzard-only kind closes", S.Get("guild").open == false, "open")
+  check("route: whispers are hidden from Blizzard's windows", added.CHAT_MSG_WHISPER == F.Handler and added.CHAT_MSG_WHISPER_INFORM == F.Handler, "missing")
+  check("route: guild chat is not", added.CHAT_MSG_GUILD == nil, "hidden")
+  check("route: All takes the guild chat Echo leaves", AllTakes("CHAT_MSG_GUILD"), "missing")
+  check("route: All doesn't take whispers Echo files", not AllTakes("CHAT_MSG_WHISPER"), "taken")
+
+  adds = 0
+  Echo.ApplyOptions()
+  check("route: re-applying the same routes registers nothing", adds == 0, adds)
+
+  db.echoRouteGuild = "both"
+  Echo.ApplyOptions()
+  check("route: both is handled and not hidden", S.Handles("guild") and added.CHAT_MSG_GUILD == nil, "wrong")
+  check("route: All leaves guild chat to Echo again", not AllTakes("CHAT_MSG_GUILD"), "taken")
+  db.echoRouteGuild = "echo"
+  Echo.ApplyOptions()
+  check("route: Echo-only guild is hidden from Blizzard", added.CHAT_MSG_GUILD == F.Handler, "shown")
+
+  for _, kind in ipairs(Echo.ROUTE_KINDS) do db[Echo.RouteKey(kind)] = nil end
+  Echo.ApplyOptions()
+  check("route: back to both everywhere", F.active == false and S.Handles("guild") and S.Handles("nearby"), tostring(F.active))
+
+  HorizonSuite.GetDB = nil
+  ChatFrameUtil, ChatTypeGroup, GetChatWindowMessages = savedUtil, savedGroups, savedWindow
+  ChatFrame_AddMessageEventFilter, ChatFrame_RemoveMessageEventFilter = nil, nil
+  S.Reset()
+`, 'echo-routes');
+
 // --- OptionsData: the global-font override pushes Echo's font too -------------------------
 run(`
   local A = HorizonSuite
@@ -4405,6 +4544,18 @@ run(`
   keys.echoMaxTiles.set(1)
   check("max tiles at least two", A.OptionsData_GetDB("echoMaxTiles") == 2, A.OptionsData_GetDB("echoMaxTiles"))
   check("guild tier default", keys.echoTierGuild.get() == "quiet", keys.echoTierGuild.get())
+  check("route: on the page, both by default", keys.echoRouteGuild and keys.echoRouteGuild.get() == "both", keys.echoRouteGuild and keys.echoRouteGuild.get())
+  local routeValues = {}
+  for _, o in ipairs(keys.echoRouteGuild.options) do routeValues[#routeValues + 1] = o[2] end
+  check("route: Echo only, both, Blizzard only", table.concat(routeValues, ",") == "echo,both,blizzard", table.concat(routeValues, ","))
+  A.OptionsData_SetDB("echoRouteGuild", "blizzard")
+  check("route: the guild tier hides when guild is left to Blizzard", keys.echoTierGuild.visibleWhen() == false, "shown")
+  A.OptionsData_SetDB("echoRouteGuild", nil)
+  check("route: and shows otherwise", keys.echoTierGuild.visibleWhen() == true, "hidden")
+  A.OptionsData_SetDB("echoHideStoredWhispers", true)
+  check("route: the whisper route reads the old setting", keys.echoRouteWhisper.get() == "echo", keys.echoRouteWhisper.get())
+  A.OptionsData_SetDB("echoHideStoredWhispers", nil)
+  check("route: the old whisper toggle is gone", keys.echoHideStoredWhispers == nil, "still there")
   A.OptionsData_SetDB("echoFeedLoot", false)
   check("loot tier hidden with its feed off", keys.echoTierLoot.visibleWhen() == false, "shown")
   check("keyword box tooltip, not desc", keys.echoKeywords.tooltip == A.L["ECHO_KEYWORDS_DESC"], keys.echoKeywords.tooltip)
@@ -4424,14 +4575,21 @@ run(`
   check("officer toggle hidden with history off", keys.echoSaveOfficer.visibleWhen() == false, "shown")
   A.OptionsData_SetDB("echoSaveHistory", nil)
   local combat = keys.echoCombatLog
-  check("combat log choice shown by default, with hiding on", combat and combat.visibleWhen
-      and combat.visibleWhen() == true, "hidden")
+  check("combat log choice always shown", combat and combat.visibleWhen == nil, "conditional")
+  local routeSection, combatSection
+  for _, opt in ipairs(cat.options) do
+    if opt.type == "section" then routeSection = opt.name end
+    if opt == combat then combatSection = routeSection; break end
+  end
+  check("combat log choice sits with the chat routes", combatSection == A.L["ECHO_SECTION_ROUTES"], tostring(combatSection))
   A.OptionsData_SetDB("echoHideBlizzardChat", false)
-  check("combat log choice hidden while Blizzard chat shows", combat and combat.visibleWhen
-      and combat.visibleWhen() == false, "shown")
-  A.OptionsData_SetDB("echoHideBlizzardChat", true)
-  check("combat log choice shown while hiding", combat and combat.visibleWhen
-      and combat.visibleWhen() == true, "hidden")
+  check("combat log stays in Blizzard's tab by default while Blizzard chat shows", combat.get() == "blizzard", tostring(combat.get()))
+  A.OptionsData_SetDB("echoKeepCombatLog", false)
+  check("the old keep-the-combat-log setting only applied while hiding", combat.get() == "blizzard", tostring(combat.get()))
+  A.OptionsData_SetDB("echoKeepCombatLog", nil)
+  A.OptionsData_SetDB("echoCombatLog", "echo")
+  check("a combat log choice holds while Blizzard chat shows", combat.get() == "echo", tostring(combat.get()))
+  A.OptionsData_SetDB("echoCombatLog", nil)
   A.OptionsData_SetDB("echoHideBlizzardChat", nil)
   local combatValues = {}
   for _, o in ipairs(combat and combat.options or {}) do combatValues[#combatValues + 1] = o[2] end
@@ -8328,6 +8486,17 @@ run(`
   check("target: a secret chat type has none", target(SECRET("GUILD")) == nil, "keyed")
   check("target: a secret whisper name has none", target("WHISPER", { tellTarget = SECRET("Brisa-Horizon") }) == nil, "keyed")
 
+  -- A kind left to Blizzard's chat opens no card as the line targets it.
+  local S = HorizonSuite.Echo.Store
+  S.SetKindHandled("officer", false)
+  C.Hide()
+  fire("ActivateChat", box)
+  target("OFFICER")
+  fire("UpdateHeader", box)
+  check("input: a kind left to Blizzard's chat opens no card", S.Get("officer") == nil and C.ShownKey() ~= "officer", "opened")
+  fire("DeactivateChat", box)
+  S.SetKindHandled("officer", true)
+
   -- The card hides its reply box while the line targets its conversation.
   local f = C._frames()
   local function areaBottom() return f.area.points[2] and f.area.points[2][5] end
@@ -9002,11 +9171,11 @@ run(`
   }
   local savedWhisper = Echo.Sound.Whisper
   Echo.Sound.Whisper = function() end
-  Echo.Filter.Apply(true)
+  Echo.Filter.Apply({ whisper = true })
   E.Dispatch("CHAT_MSG_WHISPER", "ping", "Brisa-Horizon", nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
   check("filter: Echo's own whisper filter never blocks Echo", S.Get("w:Brisa-Horizon") and #S.Get("w:Brisa-Horizon").messages == 1, "blocked")
   check("filter: and still hides it from Blizzard's windows", Echo.Filter.Handler(chatFrame, "CHAT_MSG_WHISPER", "ping", "Brisa-Horizon") == true, "shown")
-  Echo.Filter.Apply(false)
+  Echo.Filter.Apply(nil)
   Echo.Sound.Whisper = savedWhisper
 
   -- Older clients: loop over ChatFrame_GetMessageEventFilters.
@@ -9452,6 +9621,137 @@ run(`
   CombatLogQuickButtonFrame_Custom = nil
   S.Reset()
 `, 'echo-combat-log');
+
+// --- Combat log with Blizzard's chat shown ------------------------------------------------
+run(`
+  local A, Echo = HorizonSuite, HorizonSuite.Echo
+  local S, HC, CL = Echo.Store, Echo.HideChat, Echo.CombatLog
+  local saved = { hook = hooksecurefunc, frames = CHAT_FRAMES, create = CreateFrame, getDB = A.GetDB,
+    setDB = A.SetDB, defaults = A.ECHO_DEFAULTS, combat = InCombatLockdown, after = C_Timer.After,
+    util = C_EventUtils, cvar = C_CVar, logged = IsLoggedIn, refresh = A.Dashboard_Refresh,
+    flag = A._moduleReloadRecommended, group = ChatTypeGroup }
+  ChatTypeGroup = {}
+  local db = {}
+  A.GetDB = function(k, d) if db[k] ~= nil then return db[k] end return d end
+  A.SetDB = function(k, v) db[k] = v end
+  A.ECHO_DEFAULTS = { echoHideBlizzardChat = false, echoCombatLog = "echo", echoDockInput = true, echoAllView = true }
+  hooksecurefunc = function(t, name, fn)
+    if type(t) == "string" then
+      local orig = _G[t]
+      _G[t] = function(...) local r = orig(...); name(...); return r end
+      return
+    end
+    local orig = t[name]
+    t[name] = function(...) orig(...); fn(...) end
+  end
+  CreateFrame = function(...)
+    local f = STUB_CREATE_FRAME(...)
+    f.events = {}
+    f.RegisterEvent = function(self, e) self.events[e] = true end
+    f.UnregisterEvent = function(self, e) self.events[e] = nil end
+    f.UnregisterAllEvents = function(self) self.events = {} end
+    f.SetParent = function(self, p) self.parent = p end
+    f.GetParent = function(self) return self.parent end
+    return f
+  end
+  local function Reparentable(t)
+    t.parent = UIParent
+    function t:SetParent(p) self.parent = p end
+    function t:GetParent() return self.parent end
+    return t
+  end
+  local function Window(name)
+    local w = Reparentable({ name = name, shown = false, points = {},
+      events = { CHAT_MSG_SAY = true, UPDATE_CHAT_COLOR = true } })
+    function w:RegisterEvent(e) self.events[e] = true end
+    function w:UnregisterEvent(e) self.events[e] = nil end
+    function w:UnregisterAllEvents() self.events = {} end
+    function w:ClearAllPoints() self.points = {} end
+    function w:SetPoint(...) self.points[#self.points + 1] = { ... } end
+    function w:SetAllPoints(t) self.points = { { "ALL", t } } end
+    function w:Show() self.shown = true end
+    function w:Hide() self.shown = false end
+    function w:IsShown() return self.shown end
+    function w:SetFrameStrata(v) self.strata = v end
+    function w:SetFrameLevel(v) self.level = v end
+    _G[name] = w
+    local tab = Reparentable({})
+    _G[name .. "Tab"] = tab
+    return w, tab
+  end
+  CHAT_FRAMES = { "ChatFrame1", "ChatFrame2" }
+  C_EventUtils = { IsEventValid = function() return true end }
+  local cvars = { whisperMode = "inline" }
+  C_CVar = { GetCVar = function(n) return cvars[n] end, SetCVar = function(n, v) cvars[n] = v end }
+  local inCombat = false
+  InCombatLockdown = function() return inCombat end
+  local timers = {}
+  C_Timer.After = function(_, fn) timers[#timers + 1] = fn end
+  local function RunTimers() local t = timers; timers = {}; for _, fn in ipairs(t) do fn() end end
+  IsLoggedIn = function() return true end
+  A.Dashboard_Refresh = function() end
+  local function Fresh()
+    HC.Disable()
+    HC._reset()
+    S.Reset()
+    timers = {}
+    A._moduleReloadRecommended = nil
+    local cf1, tab1 = Window("ChatFrame1")
+    local cf2, tab2 = Window("ChatFrame2")
+    cf2.ScrollBar = { GetWidth = function() return 16 end }
+    cf2.buttonFrame = Reparentable({})
+    HC.Enable()
+    return cf1, tab1, cf2, tab2
+  end
+
+  -- Left in Blizzard's tab: nothing moves, nothing is even scheduled.
+  local cf1, tab1, cf2, tab2 = Fresh()
+  check("shown: an unset combat log stays in Blizzard's tab", CL.Mode() == "blizzard", CL.Mode())
+  HC.Refresh()
+  check("shown: nothing to schedule", #timers == 0, #timers)
+  check("shown: the combat log is left alone", cf2.parent == UIParent and tab2.parent == UIParent, tostring(cf2.parent))
+
+  -- Echo only: the combat log moves into Echo; the other windows stay.
+  db.echoCombatLog = "echo"
+  cf1, tab1, cf2, tab2 = Fresh()
+  inCombat = true
+  HC.Refresh()
+  RunTimers()
+  check("shown: not in combat", not CL.IsHosted(), "hosted in combat")
+  inCombat = false
+  HC._frame().scripts.OnEvent(HC._frame(), "PLAYER_REGEN_ENABLED")
+  check("shown: after combat, the combat log moves into Echo", CL.IsHosted() and cf2.parent == CL._host(), tostring(cf2.parent))
+  check("shown: its tile opens", S.Get(CL.KEY) ~= nil and S.Get(CL.KEY).open == true, "no tile")
+  check("shown: the main window stays", cf1.parent == UIParent and tab1.parent == UIParent, tostring(cf1.parent))
+  check("shown: Blizzard's chat doesn't count as hidden", HC.IsApplied() == false, "applied")
+  db.echoAllView = false
+  check("shown: the All view keeps its own setting", Echo.FeedEnabled("all") == false, "forced on")
+  db.echoAllView = nil
+  db.echoCombatLog = "blizzard"
+  HC.Refresh()
+  check("shown: moving it back out asks for a reload", A._moduleReloadRecommended == true, tostring(A._moduleReloadRecommended))
+
+  -- Hidden: the combat log and its tab go; the other windows stay.
+  db.echoCombatLog = "hide"
+  cf1, tab1, cf2, tab2 = Fresh()
+  HC.Refresh()
+  RunTimers()
+  check("shown: a hidden combat log goes with its tab", cf2.parent ~= UIParent and tab2.parent == cf2.parent, tostring(cf2.parent))
+  check("shown: and only it", cf1.parent == UIParent and tab1.parent == UIParent, tostring(cf1.parent))
+  check("shown: hiding the combat log alone isn't hiding chat", HC.IsApplied() == false, "applied")
+  HC.Disable()
+  check("shown: disabling asks for a reload to bring it back", A._moduleReloadRecommended == true, tostring(A._moduleReloadRecommended))
+
+  db.echoCombatLog = nil
+  HC._reset()
+  hooksecurefunc, CHAT_FRAMES, CreateFrame = saved.hook, saved.frames, saved.create
+  A.GetDB, A.SetDB, A.ECHO_DEFAULTS = saved.getDB, saved.setDB, saved.defaults
+  InCombatLockdown, C_Timer.After, C_EventUtils, C_CVar = saved.combat, saved.after, saved.util, saved.cvar
+  IsLoggedIn, ChatTypeGroup = saved.logged, saved.group
+  A.Dashboard_Refresh, A._moduleReloadRecommended = saved.refresh, saved.flag
+  for _, name in ipairs({ "ChatFrame1", "ChatFrame2" }) do _G[name], _G[name .. "Tab"] = nil, nil end
+  S.Reset()
+`, 'echo-combat-log-shown');
 
 // --- Every feed kind has its English labels -----------------------------------------------
 // The harness's L returns the key itself, so a missing string never shows up in a check

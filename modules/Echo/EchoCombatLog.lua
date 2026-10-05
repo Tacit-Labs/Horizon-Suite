@@ -1,11 +1,11 @@
 --[[
     Horizon Suite - Echo - Combat log
-    With Blizzard's chat hidden and echoCombatLog on "echo", Blizzard's own combat log
-    window (ChatFrame2) lives in Echo: a "combat" feed tile opens the card, and the card
+    With echoCombatLog on "echo", Blizzard's own combat log window (ChatFrame2) lives in
+    Echo, whether or not Blizzard's other chat windows are hidden: a "combat" feed tile opens the card, and the card
     shows the real window, filter bar and all, where its messages would be. Addons can't
     read the combat log in Midnight, so Echo never draws its lines: Blizzard parses,
     formats and filters them as it does in its own tab.
-      - CombatLog.Host (HideChat.Apply, out of combat) moves the window onto Echo's host
+      - CombatLog.Host (HideChat.Apply or HideChat.ApplyCombatLog, out of combat) moves the window onto Echo's host
         frame for good, its tab and side buttons onto a hidden frame, and opens the tile
         (Store.EnsureFeed). The window keeps its events.
       - The host frame is the only thing that moves after that. The card parents it and
@@ -47,9 +47,10 @@ local pending = false  -- a Place is waiting for the next frame
 local hooked = setmetatable({}, { __mode = "k" })
 local watcher          -- ADDON_LOADED, for the filter bar
 
---- Where the combat log goes while Blizzard's chat is hidden: "echo", "blizzard" or
--- "hide". A profile from before echoCombatLog that turned "Keep the combat log" off
--- (echoKeepCombatLog false) reads as "hide".
+--- Where the combat log goes: "echo", "blizzard" or "hide". Unset, it is in Echo while
+-- Blizzard's chat is hidden and in Blizzard's tab while it shows. A profile from before
+-- echoCombatLog that turned "Keep the combat log" off (echoKeepCombatLog false) reads as
+-- "hide" while Blizzard's chat is hidden, the only time that setting applied.
 -- @param get function|nil  (key, default) -> value; addon.GetDB unless the options page
 --   passes its own
 -- @return string
@@ -57,6 +58,9 @@ function CombatLog.Mode(get)
     get = get or addon.GetDB or function(_, d) return d end
     local mode = get("echoCombatLog", nil)
     if CombatLog.MODES[mode] then return mode end
+    local defaults = addon.ECHO_DEFAULTS
+    -- As HideChat reads it: anything but true is shown.
+    if get("echoHideBlizzardChat", defaults and defaults.echoHideBlizzardChat) ~= true then return "blizzard" end
     if get("echoKeepCombatLog", nil) == false then return "hide" end
     local default = addon.ECHO_DEFAULTS and addon.ECHO_DEFAULTS.echoCombatLog
     if CombatLog.MODES[default] then return default end
