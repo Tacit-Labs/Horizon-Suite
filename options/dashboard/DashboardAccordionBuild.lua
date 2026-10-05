@@ -232,78 +232,6 @@ function addon.DashboardAccordionBuild_Init(f, p)
             end
         end
 
-        -- Rows sliding while a dependent row shows or hides (card.relayoutAnim): instead of
-        -- jumping to the place the relayout gives them, rows below the change glide there in
-        -- step with the card's height, and newly shown rows rise Def.RowRise px as they fade in.
-        -- frame._hsSlideFrom is the offset from the new anchor at the start; the offset now
-        -- (frame._hsSlideDy) eases to 0. It only counts while card.relayoutAnim runs, so a
-        -- cancelled animation can never leave a row out of place.
-        local function SlideDy(card, frame)
-            if not card.relayoutAnim then return 0 end
-            return frame._hsSlideDy or 0
-        end
-
-        local function PlaceSlideRow(card, frame)
-            if frame._hsRowX then
-                local _, sdy = RowStaggerLook(card, frame)
-                frame:SetPoint("TOPLEFT", card.settingsContainer, "TOPLEFT", frame._hsRowX,
-                    frame._hsRowY + sdy + SlideDy(card, frame))
-            end
-        end
-
-        -- Each shown row's y on screen before a relayout moves it (mid-slide, where it is now,
-        -- so a second toggle carries on from there instead of jumping).
-        local function CaptureRowY(card)
-            local ys = {}
-            for _, entry in ipairs(card.widgetList) do
-                local f = entry.frame
-                if f:IsShown() and f._hsRowY then ys[f] = f._hsRowY + (f._hsSlideDy or 0) end
-            end
-            return ys
-        end
-
-        -- After the relayout: start every moved row at its old place, and new rows just below.
-        local function BeginSlide(card, oldY, newRows)
-            local rise = (addon.OptionsWidgetsDef and addon.OptionsWidgetsDef.RowRise) or 0
-            for _, entry in ipairs(card.widgetList) do
-                local f = entry.frame
-                f._hsSlideFrom, f._hsSlideDy = nil, nil
-                if f:IsShown() and f._hsRowY then
-                    local from
-                    if newRows and newRows[f] then
-                        from = -rise
-                    elseif oldY[f] then
-                        from = oldY[f] - f._hsRowY
-                    end
-                    if from and math.abs(from) >= 0.5 then
-                        f._hsSlideFrom, f._hsSlideDy = from, from
-                        PlaceSlideRow(card, f)
-                    end
-                end
-            end
-        end
-
-        -- ep: the eased progress of the card's height, 0..1.
-        local function StepSlide(card, ep)
-            for _, entry in ipairs(card.widgetList) do
-                local f = entry.frame
-                if f._hsSlideFrom then
-                    f._hsSlideDy = f._hsSlideFrom * (1 - ep)
-                    PlaceSlideRow(card, f)
-                end
-            end
-        end
-
-        local function EndSlide(card)
-            for _, entry in ipairs(card.widgetList) do
-                local f = entry.frame
-                if f._hsSlideFrom or f._hsSlideDy then
-                    f._hsSlideFrom, f._hsSlideDy = nil, nil
-                    PlaceSlideRow(card, f)
-                end
-            end
-        end
-
         -- End the stagger now: every row it owned sits exactly in place at alpha 1. Hidden rows
         -- stay hidden (alpha alone never shows a frame).
         local function FinishRowStagger(card)
@@ -443,7 +371,7 @@ function addon.DashboardAccordionBuild_Init(f, p)
                 frame:ClearAllPoints()
                 frame._hsRowX, frame._hsRowY = rowX, -yOff
                 local _, staggerDy = RowStaggerLook(card, frame)
-                frame:SetPoint("TOPLEFT", sc, "TOPLEFT", rowX, -yOff + staggerDy + SlideDy(card, frame))
+                frame:SetPoint("TOPLEFT", sc, "TOPLEFT", rowX, -yOff + staggerDy)
                 frame:SetPoint("RIGHT", sc, "RIGHT", -cardPadX, 0)
                 SetRowDivider(frame, sp.divider, indentX, sp.top)
                 -- The row hover runs across the whole card, past the row's own inset.
@@ -620,14 +548,11 @@ function addon.DashboardAccordionBuild_Init(f, p)
                             entry.frame:SetAlpha(1 - ep)
                         end
                         if t >= 1 then
-                            local oldY = CaptureRowY(card)
                             for _, entry in ipairs(a.toHide) do
                                 entry.frame:Hide()
                                 entry.frame:SetAlpha(1)
                             end
                             DoInstantRelayout(card, true, capturedAnimateVisibility)
-                            -- Rows below the hidden ones glide up as the card shrinks.
-                            BeginSlide(card, oldY, nil)
                             a.phase = "heightShrink"
                             a.elapsed = 0
                             a.targetFullH = card.fullHeight
@@ -637,23 +562,18 @@ function addon.DashboardAccordionBuild_Init(f, p)
                         local ep = easeOutDep(t)
                         local curH = a.oldHeight + (a.targetFullH - a.oldHeight) * ep
                         card:SetHeight(curH)
-                        StepSlide(card, ep)
                         UpdateDetailLayout()
                         if t >= 1 then
-                            EndSlide(card)
-                            card.relayoutAnim = nil
                             DoInstantRelayout(card, false, capturedAnimateVisibility)
+                            card.relayoutAnim = nil
                             self:SetScript("OnUpdate", nil)
                         end
                     end
                 end)
             elseif #toShow > 0 then
-                local oldY = CaptureRowY(card)
                 DoInstantRelayout(card, true, capturedAnimateVisibility)
-                local newRows = {}
                 for _, entry in ipairs(toShow) do
                     entry.frame:SetAlpha(0)
-                    newRows[entry.frame] = true
                 end
                 card:SetHeight(oldHeight)
 
@@ -664,8 +584,6 @@ function addon.DashboardAccordionBuild_Init(f, p)
                     oldHeight = oldHeight,
                     targetFullH = card.fullHeight,
                 }
-                -- Rows below glide down to make room while the new ones rise into place.
-                BeginSlide(card, oldY, newRows)
                 animFrame:SetScript("OnUpdate", function(self, dt)
                     local a = card.relayoutAnim
                     if not a then self:SetScript("OnUpdate", nil) return end
@@ -679,13 +597,11 @@ function addon.DashboardAccordionBuild_Init(f, p)
                     end
                     local curH = a.oldHeight + (a.targetFullH - a.oldHeight) * heightEp
                     card:SetHeight(curH)
-                    StepSlide(card, heightEp)
                     UpdateDetailLayout()
                     if fadeT >= 1 and heightT >= 1 then
                         for _, entry in ipairs(a.toShow) do
                             entry.frame:SetAlpha(1)
                         end
-                        EndSlide(card)
                         card:SetHeight(a.targetFullH)
                         card.relayoutAnim = nil
                         self:SetScript("OnUpdate", nil)
