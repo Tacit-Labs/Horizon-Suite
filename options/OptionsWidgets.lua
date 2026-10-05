@@ -1078,6 +1078,7 @@ function _G.OptionsWidgets_CreateSlider(parent, labelText, description, get, set
 
     -- Pre-declare so edit scripts and drag handler can reference it before the body is assigned.
     local updateFromValue
+    local animateNext   -- set around a typed commit's set(), consumed by the next Refresh
 
     local edit = CreateFrame("EditBox", nil, editWrap)
     edit:SetPoint("TOPLEFT", editWrap, "TOPLEFT", 4, 0)
@@ -1106,7 +1107,11 @@ function _G.OptionsWidgets_CreateSlider(parent, labelText, description, get, set
         local v = tonumber(edit:GetText())
         if v ~= nil then
             v = snapToStep(math.max(minVal, math.min(maxVal, v)))
+            -- A set() that refreshes this row at once (the dashboard text size, say) paints
+            -- through Refresh: the flag makes that paint ease too, and it is cleared after.
+            animateNext = true
             set(v)
+            animateNext = nil
             updateFromValue(v, true)   -- typed: the thumb and the number ease there
         else
             updateFromValue(get())
@@ -1274,8 +1279,11 @@ function _G.OptionsWidgets_CreateSlider(parent, labelText, description, get, set
     function row:Refresh()
         updateResponsiveTrackWidth()
         PaintToken(paintFill, Def.TrackOn)
-        -- Don't reposition the handle from the DB mid-drag; the drag handler owns it.
-        if not dragging then updateFromValue(get()) end
+        -- Don't reposition the handle from the DB mid-drag; the drag handler owns it. A typed
+        -- commit sets animateNext, so a Refresh its set() causes eases rather than snaps.
+        local animate = animateNext
+        animateNext = nil
+        if not dragging then updateFromValue(get(), animate) end
         applyDisabledVisuals()
         text.Fit(true)
     end

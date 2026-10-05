@@ -254,7 +254,11 @@ function addon.DashboardAccordionBuild_Init(f, p)
             local index, n = {}, 0
             for _, entry in ipairs(card.widgetList) do
                 local frame = entry.frame
-                if frame:IsShown() and (frame:GetHeight() or 0) >= 1 and frame._hsRowX then
+                -- A note may measure under 1px before its text lays out; the layout gives it
+                -- NOTE_MIN_HEIGHT, so it staggers like any row. Only true spacers are skipped.
+                local h = frame:GetHeight() or 0
+                if entry.isNote and h < NOTE_MIN_HEIGHT then h = NOTE_MIN_HEIGHT end
+                if frame:IsShown() and h >= 1 and frame._hsRowX then
                     n = n + 1
                     index[frame] = n
                 end
