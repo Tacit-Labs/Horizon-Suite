@@ -1320,6 +1320,25 @@ run(`
     check("normalize: a different choice is changed", OC(nr, get) == true)
     STORE.outl = nil
 
+    -- A reset's deferred clear only clears a key still at its default.
+    local SD = H.OptionStoredIsDefault
+    check("stored-is-default exists", type(SD) == "function", type(SD))
+    if type(SD) == "function" then
+      STORE.focusSize = 12
+      check("stored-is-default: stored at the default", SD("focusSize", nil, get) == true)
+      STORE.focusSize = 15
+      check("stored-is-default: a player's new value is kept", SD("focusSize", nil, get) == false)
+      STORE.focusSize = nil
+      check("stored-is-default: nothing stored", SD("focusSize", nil, get) == false)
+      check("stored-is-default: no default", SD("nope", nil, function() return 1 end) == false)
+      STORE.outl = 1
+      check("stored-is-default: through normalize", SD("outl", nr.parts.outline, get) == true)
+      STORE.outl = nil
+      STORE.bgColorG = 0.2
+      check("stored-is-default: a split colour key", SD("bgColorG", nil, get) == true)
+      STORE.bgColorG = nil
+    end
+
     -- Split colour keys a reset must clear.
     local sk = H.OptionSplitColorKeys and H.OptionSplitColorKeys("bgColor") or {}
     check("split keys: R/G/B/A of a split colour", table.concat(sk, ",") == "bgColorR,bgColorG,bgColorB,bgColorA",

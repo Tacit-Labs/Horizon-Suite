@@ -757,19 +757,38 @@ local function AttachChangedMarker(row, onReset, isDisabled)
         dot:SetVertexColor(ac[1], ac[2], ac[3], 1)
         local textW = label:GetStringWidth() or 0
         local boxW = label:GetWidth() or 0
-        if boxW > 0 and textW > boxW then textW = boxW end
+        if boxW > 0 then
+            -- The arrow and its gap must fit in the space right of the label box (the row's gap
+            -- to its controls); a label that fills its box gives the arrow its last few px.
+            local room = row._rowLabelGap or Def.RowControlGap
+            local over = math.max(0, Def.ChangedResetSize + Def.ChangedResetGap - room)
+            local maxX = math.max(0, boxW - over)
+            if textW > maxX then textW = maxX end
+        end
         reset:ClearAllPoints()
         reset:SetPoint("LEFT", label, "TOPLEFT", math.ceil(textW) + Def.ChangedResetGap, midY)
     end
 
     local function showReset()
         if not changed or disabled() then return end
+        if row.IsMouseOver and not row:IsMouseOver() then return end   -- a child reaching outside the row
         place()
         tintIcon(false)
         reset:Show()
     end
 
-    row:HookScript("OnEnter", showReset)
+    -- Show on entering the row or any of its controls (the switch, the slider's thumb, the
+    -- dropdown button, a segment, the swatch, a font row's parts), so moving straight onto a
+    -- control shows the arrow too. Hooking a frame that takes no mouse is harmless.
+    local function hookEnter(frame)
+        if frame ~= reset and frame.HookScript then
+            frame:HookScript("OnEnter", showReset)
+            if frame.GetChildren then
+                for _, child in ipairs({ frame:GetChildren() }) do hookEnter(child) end
+            end
+        end
+    end
+    hookEnter(row)
     -- The row's OnLeave also fires when the cursor moves onto one of its controls, so the arrow
     -- hides only once the cursor has left the whole row (checked while the arrow shows).
     reset:SetScript("OnUpdate", function(self)
@@ -2375,6 +2394,7 @@ function _G.OptionsWidgets_CreateFontRow(parent, labelText, description, parts, 
     desc:SetPoint("TOPLEFT", label, "BOTTOMLEFT", 0, -Def.RowDescGap)
     row._desc = desc
     row._rowLabel = label   -- AttachChangedMarker places its dot and reset arrow from it
+    row._rowLabelGap = M.labelGap   -- the label box to the first control (the arrow must fit)
     row:SetHeight(math.max(M.lineH, EstimatedRowHeight(hasDesc)))
 
     local function rowDisabled()

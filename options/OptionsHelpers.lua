@@ -432,6 +432,24 @@ local function KeyChanged(key, row, getStored, isColor)
     return false
 end
 
+--- Whether key stores a value that equals its default (through the row's normalize, as
+--- OptionIsChanged compares). A reset's deferred second clear only clears such a key, so a
+--- player's own change made in the meantime is kept. Nil stored or no default: false.
+--- @param key string
+--- @param row table|nil  The row or font-row part whose dbKey is key (nil for a split colour key)
+--- @param getStored function  key -> stored value
+--- @return boolean
+local function OptionStoredIsDefault(key, row, getStored)
+    local def = OptionDefault(key, row)
+    if def == nil then return false end
+    local stored = getStored(key)
+    if stored == nil then return false end
+    if type(row) == "table" and type(row.normalize) == "function" then
+        stored, def = row.normalize(stored), row.normalize(def)
+    end
+    return ValuesEqual(stored, def)
+end
+
 --- The value the active profile stores for key, with no default fallback (nil when unset).
 --- @param key string
 --- @return any
@@ -480,6 +498,7 @@ addon.OptionMarkable                   = OptionMarkable
 addon.OptionIsChanged                  = OptionIsChanged
 addon.OptionStoredValue                = OptionStoredValue
 addon.OptionSplitColorKeys             = OptionSplitColorKeys
+addon.OptionStoredIsDefault            = OptionStoredIsDefault
 
 addon.CardRowSpacing                   = CardRowSpacing
 addon.SettingsRowHeight                = SettingsRowHeight

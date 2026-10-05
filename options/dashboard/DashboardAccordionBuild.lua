@@ -646,13 +646,14 @@ function addon.DashboardAccordionBuild_Init(f, p)
         local function ResetRowToDefault(opt, g, s, fontParts, widget)
             local SetDB = addon.SetDB
             if not SetDB then return end
-            local keys = {}
+            local keys, keyRows = {}, {}   -- keyRows[i]: the row or part that owns keys[i]
             local function clear() for _, k in ipairs(keys) do SetDB(k, nil) end end
             if opt.type == "fontRow" then
                 for _, slot in ipairs(addon.FONT_ROW_PARTS or { "family", "size", "outline" }) do
                     local part = fontParts and fontParts[slot]
                     if part and part.dbKey and part.get and part.set then
                         keys[#keys + 1] = part.dbKey
+                        keyRows[#keys] = part
                         SetDB(part.dbKey, nil)
                         part.set(part.get())
                         SetDB(part.dbKey, nil)
@@ -660,6 +661,7 @@ function addon.DashboardAccordionBuild_Init(f, p)
                 end
             else
                 keys[1] = opt.dbKey
+                keyRows[1] = opt
                 if opt.type == "color" and addon.OptionSplitColorKeys then
                     for _, k in ipairs(addon.OptionSplitColorKeys(opt.dbKey)) do keys[#keys + 1] = k end
                 end
@@ -688,10 +690,20 @@ function addon.DashboardAccordionBuild_Init(f, p)
             end
             after()
             -- A setter that writes on the next frame (C_Timer.After(0)) lands after the clear
-            -- above: clear once more then, so the profile ends with nothing stored.
+            -- above: clear once more then, so the profile ends with nothing stored. Only on the
+            -- same profile, and only a key still holding its default, so a profile switch or
+            -- the player's own change in that frame is never undone.
             if C_Timer and C_Timer.After then
+                local profileAtClick = addon.GetActiveProfile and addon.GetActiveProfile()
                 C_Timer.After(0, function()
-                    clear()
+                    local now = addon.GetActiveProfile and addon.GetActiveProfile()
+                    if now ~= profileAtClick then return end
+                    local atDefault = addon.OptionStoredIsDefault
+                    local read = addon.OptionStoredValue
+                    if not (atDefault and read) then return end
+                    for i, k in ipairs(keys) do
+                        if atDefault(k, keyRows[i], read) then SetDB(k, nil) end
+                    end
                     after()
                 end)
             end
@@ -704,6 +716,17 @@ function addon.DashboardAccordionBuild_Init(f, p)
             local markable = addon.OptionMarkable and addon.OptionMarkable(opt) or false
             local markUpdate
             local fontParts
+            -- A few setters write on the next frame (C_Timer.After(0)), so a set also looks again
+            -- one frame later; repeated sets in one frame (a colour drag) queue one look.
+            local recheckPending = false
+            local function markRecheck()
+                if recheckPending or not (C_Timer and C_Timer.After) then return end
+                recheckPending = true
+                C_Timer.After(0, function()
+                    recheckPending = false
+                    if markUpdate then markUpdate() end
+                end)
+            end
             -- Resolve get/set fallbacks if missing
             local g = opt.get
             local s = opt.set
@@ -753,10 +776,7 @@ function addon.DashboardAccordionBuild_Init(f, p)
                 s = function(...)
                     innerSet(...)
                     if markUpdate then markUpdate() end
-                    -- A few setters write on the next frame (C_Timer.After(0)); look again then.
-                    if C_Timer and C_Timer.After then
-                        C_Timer.After(0, function() if markUpdate then markUpdate() end end)
-                    end
+                    if markRecheck then markRecheck() end
                 end
             end
 
@@ -884,9 +904,7 @@ function addon.DashboardAccordionBuild_Init(f, p)
                                     ps = function(v)
                                         innerSet(v)
                                         if markUpdate then markUpdate() end
-                                        if C_Timer and C_Timer.After then
-                                            C_Timer.After(0, function() if markUpdate then markUpdate() end end)
-                                        end
+                                        if markRecheck then markRecheck() end
                                     end
                                 end
                                 -- A copy: the module's part table may be shared, so it is never written.
