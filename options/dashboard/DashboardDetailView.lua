@@ -1048,6 +1048,7 @@ function addon.DashboardDetailView_Init(env)
                 local selCat = matchedCatIdx and addon.OptionCategories[matchedCatIdx]
                 local isAugment = selCat and selCat.key == "AugmentImprovements"
                 local isAugmentAlerts = selCat and selCat.key == "AugmentAlerts"
+                local isPresence = selCat and selCat.key == "PresenceGeneral"
                 if f.detailPreviewBtn then
                     if isAugment then
                         f.detailPreviewBtn._onClick = function()
@@ -1078,6 +1079,11 @@ function addon.DashboardDetailView_Init(env)
                             end
                         end
                         f.detailResetBtn:Show()
+                    elseif isPresence then
+                        f.detailResetBtn._onClick = function()
+                            if addon.Presence and addon.Presence.ResetPosition then addon.Presence.ResetPosition() end
+                        end
+                        f.detailResetBtn:Show()
                     else
                         f.detailResetBtn:Hide()
                     end
@@ -1093,6 +1099,11 @@ function addon.DashboardDetailView_Init(env)
                             if addon.Augment and addon.Augment.Alerts and addon.Augment.Alerts.ToggleEditMode then
                                 addon.Augment.Alerts.ToggleEditMode()
                             end
+                        end
+                        f.detailAnchorBtn:Show()
+                    elseif isPresence then
+                        f.detailAnchorBtn._onClick = function()
+                            if addon.Presence and addon.Presence.ToggleAnchorFrame then addon.Presence.ToggleAnchorFrame() end
                         end
                         f.detailAnchorBtn:Show()
                     else
@@ -1319,6 +1330,7 @@ function addon.DashboardDetailView_Init(env)
             do
                 local isAugment = cats[1] and cats[1].key == "AugmentImprovements"
                 local isAugmentAlerts = cats[1] and cats[1].key == "AugmentAlerts"
+                local isPresence = cats[1] and cats[1].key == "PresenceGeneral"
                 if f.detailPreviewBtn then
                     if isAugment then
                         f.detailPreviewBtn._onClick = function()
@@ -1349,6 +1361,11 @@ function addon.DashboardDetailView_Init(env)
                             end
                         end
                         f.detailResetBtn:Show()
+                    elseif isPresence then
+                        f.detailResetBtn._onClick = function()
+                            if addon.Presence and addon.Presence.ResetPosition then addon.Presence.ResetPosition() end
+                        end
+                        f.detailResetBtn:Show()
                     else
                         f.detailResetBtn:Hide()
                     end
@@ -1364,6 +1381,11 @@ function addon.DashboardDetailView_Init(env)
                             if addon.Augment and addon.Augment.Alerts and addon.Augment.Alerts.ToggleEditMode then
                                 addon.Augment.Alerts.ToggleEditMode()
                             end
+                        end
+                        f.detailAnchorBtn:Show()
+                    elseif isPresence then
+                        f.detailAnchorBtn._onClick = function()
+                            if addon.Presence and addon.Presence.ToggleAnchorFrame then addon.Presence.ToggleAnchorFrame() end
                         end
                         f.detailAnchorBtn:Show()
                     else

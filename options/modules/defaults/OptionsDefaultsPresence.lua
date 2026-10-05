@@ -8,6 +8,7 @@ if not addon then return end
 
 addon.PRESENCE_KEYS = {
     presenceFrameY = true,
+    presenceFrameX = true,
     presenceFrameScale = true,
     presenceBossEmoteColor = true,
     presenceDiscoveryColor = true,
@@ -66,6 +67,8 @@ addon.PRESENCE_DEFAULTS = {
     presenceHideQuestUpdateTitle   = false,
     showPresenceDiscovery          = true,
     presenceFrameY                 = -180,
+    presenceFrameX                 = 0,
+    presenceEditModeShow           = true,
     presenceFrameScale             = 1,
     presenceAnimations             = true,
     presenceEntranceDur            = 0.7,
@@ -100,7 +103,8 @@ addon.PRESENCE_DEFAULTS = {
 
 addon.PRESENCE_LIMITS = {
     presenceIconSize          = { min = 16,   max = 36  },
-    presenceFrameY            = { min = -300, max = 0   },
+    presenceFrameY            = { min = -1200, max = 0  },
+    presenceFrameX            = { min = -2000, max = 2000 },
     presenceFrameScale        = { min = 0.5,  max = 2   },
     presenceEntranceDur       = { min = 0.2,  max = 1.5 },
     presenceExitDur           = { min = 0.2,  max = 1.5 },
