@@ -982,6 +982,57 @@ run(`
   check("the block includes the gap", b2 == 30, b2)
 `, 'settings-row-height');
 
+// --- Segmented buttons: which dropdowns qualify, and whether the segments fit --------------
+run(`
+  local H = HorizonSuite
+  local E, F = H.SegmentedEligible, H.SegmentedFits
+  check("SegmentedEligible exists", type(E) == "function", type(E))
+  check("SegmentedFits exists", type(F) == "function", type(F))
+  if type(E) ~= "function" or type(F) ~= "function" then return end
+  local function opts(n)
+    local t = {}
+    for i = 1, n do t[i] = { "Choice " .. i, i } end
+    return t
+  end
+  check("two static entries qualify", E({ type = "dropdown", options = opts(2) }) == true)
+  check("three static entries qualify", E({ type = "dropdown", options = opts(3) }) == true)
+  check("four static entries qualify", E({ type = "dropdown", options = opts(4) }) == true)
+  check("one entry does not", E({ type = "dropdown", options = opts(1) }) == false)
+  check("five entries do not", E({ type = "dropdown", options = opts(5) }) == false)
+  check("no options do not", E({ type = "dropdown" }) == false)
+  check("options as a function do not", E({ type = "dropdown", options = function() return opts(3) end }) == false)
+  check("a searchable dropdown does not", E({ type = "dropdown", options = opts(3), searchable = true }) == false)
+  check("a font preview does not", E({ type = "dropdown", options = opts(3), fontPreviewInList = true }) == false)
+  check("segmented = false opts out", E({ type = "dropdown", options = opts(3), segmented = false }) == false)
+  check("segmented = true is still eligible", E({ type = "dropdown", options = opts(3), segmented = true }) == true)
+  check("a map of three names qualifies", E({ type = "dropdown", options = { A = 1, B = 2, C = 3 } }) == true)
+  check("a greyed-out entry does not", E({ type = "dropdown", options = { { "A", 1 }, { "B", 2, true } } }) == false)
+  check("another row type does not", E({ type = "slider", options = opts(3) }) == false)
+  check("a font-row part (no type) qualifies", E({ options = opts(3) }) == true)
+  check("a toggle outline part does not", E({ kind = "toggle", options = opts(3) }) == false)
+  check("a non-table does not", E(nil) == false and E("x") == false)
+  check("the shared outline list (six entries) stays a dropdown", E({ options = H.OUTLINE_OPTIONS }) == false)
+
+  local P = { segPadX = 11, trackPad = 2, gap = 2 }
+  -- 2*2 track + (30+22) + (40+22) + (20+22) + 2 gaps of 2 = 4 + 52 + 62 + 42 + 4 = 164
+  local fits, w = F({ 30, 40, 20 }, 164, P)
+  check("segments that exactly fit fit", fits == true and w == 164, tostring(fits) .. "/" .. tostring(w))
+  fits, w = F({ 30, 40, 20 }, 163.5, P)
+  check("half a pixel short does not fit", fits == false and w == 164, tostring(fits) .. "/" .. tostring(w))
+  fits, w = F({ 30.2, 39.6 }, 200, P)
+  check("label widths round up", w == 4 + 31 + 22 + 40 + 22 + 2, w)
+  fits = F({}, 200, P)
+  check("no labels never fit", fits == false)
+  fits = F({ 30, 40 }, 0, P)
+  check("no space never fits", fits == false)
+  fits = F({ 30, 40 }, nil, P)
+  check("unknown space never fits", fits == false)
+  fits, w = F({ 10, 10 }, 100, 5)
+  check("a number is the per-segment padding", w == 10 + 10 + 20 + 0 + 0, w)
+  fits, w = F({ 10, 10 }, 100, nil)
+  check("no padding table pads nothing", w == 20, w)
+`, 'segmented');
+
 // --- Widget type scale: titles and help follow the label size -------------------------
 run(read('options/OptionsWidgets.lua'), 'options/OptionsWidgets.lua');
 run(`

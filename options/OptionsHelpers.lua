@@ -136,6 +136,7 @@ local FONT_ROW_METRICS = {
     familyMax   = 220,
     stepperW    = 84,
     outlineW    = 130,
+    outlineSegMax = 200, -- the widest the outline part may grow as segmented buttons
 }
 
 --- Lay out a font row at a given width. A width of 0 or less (not yet anchored) lays out as one line.
@@ -258,8 +259,61 @@ local function SettingsRowHeight(labelH, descH, m)
     return math.max(m.minH or 0, math.ceil(blockH + 2 * (m.padY or 0))), blockH
 end
 
+local SEGMENTED_MIN, SEGMENTED_MAX = 2, 4  -- segments a dropdown may become
+
+--- Whether a dropdown row (or a font row's outline part) may show as segmented buttons: a
+--- static option table of two to four entries, not searchable, with no font preview, no greyed
+--- out entry, and no `segmented = false`. Whether the segments fit is decided at layout time
+--- (SegmentedFits), so an eligible row can still render as a dropdown.
+--- @param opt table  The row definition or the font-row part
+--- @return boolean
+local function SegmentedEligible(opt)
+    if type(opt) ~= "table" then return false end
+    if opt.type ~= nil and opt.type ~= "dropdown" then return false end
+    if opt.kind == "toggle" or opt.segmented == false then return false end
+    if opt.searchable or opt.fontPreviewInList then return false end
+    if type(opt.options) ~= "table" then return false end
+    -- Count entries the way the dropdown normalises them: array rows and name -> value pairs.
+    local n = 0
+    for k, v in pairs(opt.options) do
+        if type(k) == "number" and type(v) == "table" then
+            if v[3] == true then return false end
+            n = n + 1
+        elseif type(k) == "string" then
+            n = n + 1
+        end
+    end
+    return n >= SEGMENTED_MIN and n <= SEGMENTED_MAX
+end
+
+--- Whether segments fit a space. Each segment is its label (rounded up) plus segPadX on each
+--- side; segments are gap apart inside a track padded by trackPad.
+--- @param labelWidths table  Measured label widths, in order
+--- @param available number|nil  The space for the control
+--- @param padding table|number|nil  { segPadX, trackPad, gap }, or a number for segPadX alone
+--- @return boolean fits, number width  The control's natural width
+local function SegmentedFits(labelWidths, available, padding)
+    local segPadX, trackPad, gap = 0, 0, 0
+    if type(padding) == "number" then
+        segPadX = padding
+    elseif type(padding) == "table" then
+        segPadX = tonumber(padding.segPadX) or 0
+        trackPad = tonumber(padding.trackPad) or 0
+        gap = tonumber(padding.gap) or 0
+    end
+    local n = type(labelWidths) == "table" and #labelWidths or 0
+    local width = 2 * trackPad + math.max(0, n - 1) * gap
+    for i = 1, n do
+        width = width + math.ceil(tonumber(labelWidths[i]) or 0) + 2 * segPadX
+    end
+    local space = tonumber(available)
+    return (n > 0 and space ~= nil and space > 0 and width <= space) and true or false, width
+end
+
 addon.CardRowSpacing                   = CardRowSpacing
 addon.SettingsRowHeight                = SettingsRowHeight
+addon.SegmentedEligible                = SegmentedEligible
+addon.SegmentedFits                    = SegmentedFits
 addon.FONT_ROW_METRICS                 = FONT_ROW_METRICS
 addon.FontRowLayout                    = FontRowLayout
 addon.FontRowStepSize                  = FontRowStepSize

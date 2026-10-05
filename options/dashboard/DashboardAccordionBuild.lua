@@ -638,7 +638,13 @@ function addon.DashboardAccordionBuild_Init(f, p)
                             tooltip = resetBtn.tooltip,
                         }
                     end
-                    widget = _G.OptionsWidgets_CreateCustomDropdown(currentCard.settingsContainer, displayName, opt.desc or "", opt.options, g, s, opt.displayFn, opt.searchable, opt.disabled, opt.tooltip, resetBtn, opt.fontPreviewInList, opt.preserveOrder)
+                    -- A short static choice shows as segmented buttons when they fit the row, else
+                    -- as this dropdown (the row switches itself as its width changes).
+                    if addon.SegmentedEligible and addon.SegmentedEligible(opt) and _G.OptionsWidgets_CreateSegmented then
+                        widget = _G.OptionsWidgets_CreateSegmented(currentCard.settingsContainer, displayName, opt.desc or "", opt.options, g, s, opt.displayFn, opt.disabled, opt.tooltip, resetBtn, opt.preserveOrder)
+                    else
+                        widget = _G.OptionsWidgets_CreateCustomDropdown(currentCard.settingsContainer, displayName, opt.desc or "", opt.options, g, s, opt.displayFn, opt.searchable, opt.disabled, opt.tooltip, resetBtn, opt.fontPreviewInList, opt.preserveOrder)
+                    end
                     if widget and widget.Refresh then detailOptionFrames[optId] = widget end
                 elseif opt.type == "fontRow" and _G.OptionsWidgets_CreateFontRow then
                     -- One row for a text element's font, size and outline (addon.FontRow). Each part

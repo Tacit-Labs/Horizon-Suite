@@ -57,6 +57,13 @@ local Def = {
     SegTrackBg = { 0.063, 0.063, 0.082, 0.96 },     -- segmented track (#101015, as InputBg)
     SegSelectedBg = { 0.11, 0.11, 0.137, 1 },       -- raised selected segment (#1c1c23)
     SegSelectedRing = { 0.59, 0.63, 0.75, 0.18 },
+    SegTextSelected = { 0.914, 0.918, 0.937 },      -- the selected segment's label (#e9eaef)
+    SegTrackPad = 2,                                -- track edge to the segments
+    SegGap = 2,                                     -- between segments
+    SegPadX = 11,                                   -- label to segment edge, each side
+    SegRadius = 6,                                  -- a segment's corners (the track uses ControlRadius)
+    SegFitShare = 0.5,                              -- segments must fit in this share of the row's width
+    SegDisabledAlpha = 0.45,
     SidebarSelectedBg = { 0.48, 0.58, 0.82, 0.16 }, -- accent at 16%; the class theme swaps the rgb
     SwitchWidth = 36,
     SwitchHeight = 20,
@@ -955,6 +962,99 @@ local function NormalizeDropdownOptions(opts, preserveOrder)
     return out
 end
 
+-- Segmented buttons for a short static choice: an inset SegTrackBg track (radius ControlRadius,
+-- SegTrackPad padding) holding one segment per option, each sized to its label. The selected
+-- segment is a raised SegSelectedBg fill with a SegSelectedRing hairline; the others are muted
+-- text. Each segment's tooltip names its full label. Disabled dims the whole control to
+-- SegDisabledAlpha and ignores clicks and hover.
+-- @param parent Frame
+-- @param opts table  Normalised options ({ name, value } in display order)
+-- @param onPick function(value, name)  Called on a click while enabled
+-- @param isDisabled function() -> boolean
+-- @return Frame  The track, with :SetValue(v), :Paint(), :Fits(available) -> fits, width
+local function CreateSegmentedControl(parent, opts, onPick, isDisabled)
+    local track = CreateFrame("Frame", nil, parent)
+    track:SetHeight(Def.ControlHeight)
+    local paintTrack = PaintRounded(track, Def.ControlRadius, "BACKGROUND")
+    local segs = {}
+    local value
+
+    function track:Paint()
+        local dis = isDisabled()
+        PaintToken(paintTrack, Def.SegTrackBg)
+        for _, sg in ipairs(segs) do
+            local on = sg.value == value
+            if on then
+                PaintToken(sg.paint, Def.SegSelectedBg)
+                PaintToken(sg.paintRing, Def.SegSelectedRing)
+            else
+                sg.paint(0, 0, 0, 0)
+                sg.paintRing(0, 0, 0, 0)
+            end
+            local c = Def.TextColorMuted
+            if on then c = Def.SegTextSelected elseif sg.hovered and not dis then c = Def.TextColorLabel end
+            SetTextColor(sg.text, c)
+        end
+        track:SetAlpha(dis and Def.SegDisabledAlpha or 1)
+    end
+
+    function track:SetValue(v)
+        value = v
+        self:Paint()
+    end
+
+    for i, opt in ipairs(opts) do
+        local sg = CreateFrame("Button", nil, track)
+        sg.value, sg.label = opt[2], tostring(opt[1] or "")
+        sg.paint, sg.paintRing = PaintRounded(sg, Def.SegRadius, "BACKGROUND", true)
+        local text = sg:CreateFontString(nil, "OVERLAY")
+        SetSafeFont(text, Def.FontPath, Def.LabelSize, nil)
+        if text.SetWordWrap then text:SetWordWrap(false) end
+        text:SetPoint("CENTER", sg, "CENTER", 0, 0)
+        text:SetText(sg.label)
+        sg.text = text
+        sg:SetScript("OnClick", function()
+            if isDisabled() then return end
+            onPick(sg.value, sg.label)
+        end)
+        sg:SetScript("OnEnter", function()
+            sg.hovered = true
+            track:Paint()
+            GameTooltip:SetOwner(sg, "ANCHOR_TOP")
+            GameTooltip:SetText(sg.label, 1, 1, 1, 1, true)
+            GameTooltip:Show()
+        end)
+        sg:SetScript("OnLeave", function()
+            sg.hovered = false
+            track:Paint()
+            GameTooltip:Hide()
+        end)
+        segs[i] = sg
+    end
+
+    -- Measure the labels, place the segments, and size the track to them. The labels' widths
+    -- follow the dashboard font, so this runs on every layout pass rather than once.
+    function track:Fits(available)
+        local widths = {}
+        for i, sg in ipairs(segs) do widths[i] = sg.text:GetStringWidth() or 0 end
+        local fits, natural = addon.SegmentedFits(widths, available,
+            { segPadX = Def.SegPadX, trackPad = Def.SegTrackPad, gap = Def.SegGap })
+        local x = Def.SegTrackPad
+        for i, sg in ipairs(segs) do
+            local w = math.ceil(widths[i]) + 2 * Def.SegPadX
+            sg:SetSize(w, Def.ControlHeight - 2 * Def.SegTrackPad)
+            sg:ClearAllPoints()
+            sg:SetPoint("LEFT", track, "LEFT", x, 0)
+            x = x + w + Def.SegGap
+        end
+        track:SetWidth(natural)
+        return fits, natural
+    end
+
+    track:Paint()
+    return track
+end
+
 -- Custom dropdown: button + popup list (no UIDropDownMenuTemplate)
 -- When searchable is true, adds an EditBox above the list to filter options by name (e.g. font dropdown).
 -- resetButton: optional table { onClick, tooltip } — adds a small reset-arrow icon button to the left of the dropdown.
@@ -962,9 +1062,12 @@ end
 -- layout: optional table. { embedded = true } makes the dropdown a control inside a composite row
 -- (the font row): no label, no description, no row hover; the button fills the returned frame,
 -- which the caller sizes and anchors; description and tooltip become the button's own tooltip;
--- resetButton is ignored. Without layout, nothing changes.
+-- resetButton is ignored. { segmented = true } also builds segmented buttons for a static options
+-- table and shows them in place of the button whenever they fit (see OptionsWidgets_CreateSegmented);
+-- both can be set. Without layout, nothing changes.
 function _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, options, get, set, displayFn, searchable, disabledFn, tooltip, resetButton, fontPreviewInList, preserveOrder, layout)
     local embedded = type(layout) == "table" and layout.embedded == true
+    local wantSeg = type(layout) == "table" and layout.segmented == true and type(options) == "table"
     if embedded then resetButton = nil end
     local labelFn = type(labelText) == "function" and labelText or nil
     local resolvedLabel = labelFn and labelFn() or labelText
@@ -990,8 +1093,9 @@ function _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, 
     end
     row.button = btn
 
+    local resetBtn
     if resetButton and resetButton.onClick then
-        local resetBtn = CreateFrame("Button", nil, row)
+        resetBtn = CreateFrame("Button", nil, row)
         resetBtn:SetSize(RESET_BTN_SIZE, RESET_BTN_SIZE)
         resetBtn:SetPoint("RIGHT", btn, "LEFT", -RESET_GAP, 0)
         resetBtn:SetFrameLevel(row:GetFrameLevel() + 10)
@@ -1019,9 +1123,21 @@ function _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, 
     end
 
     -- An embedded dropdown has no label or description; label stays nil and is guarded below.
+    -- Segmented buttons (layout.segmented), built further down; ChooseControl shows them or the
+    -- button. Declared here so the row text's inset function can see them.
+    local seg, segShown = nil, false
+    local ChooseControl
+    local function controlInset(w)
+        if seg then ChooseControl(w) end
+        if not segShown then return rightInset end
+        local inset = seg:GetWidth() + Def.RowControlGap
+        if resetBtn then inset = inset + RESET_BTN_SIZE + RESET_GAP end
+        return inset
+    end
+
     local label, descFs, rowText
     if not embedded then
-        rowText = CreateRowText(row, resolvedLabel, description, function() return rightInset end)
+        rowText = CreateRowText(row, resolvedLabel, description, controlInset)
         label, descFs = rowText.label, rowText.desc
     end
 
@@ -1180,6 +1296,7 @@ function _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, 
             btnBgAlpha = 1
         end
         paintButton()
+        if seg then seg:Paint() end
     end
 
     local function applyBtnTextFontForValue(value)
@@ -1196,8 +1313,37 @@ function _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, 
         set(value)
         btnText:SetText(display or tostring(value))
         applyBtnTextFontForValue(value)
+        if seg then seg:SetValue(value) end
         applyDisabledVisuals()
         closeList()
+    end
+
+    if wantSeg then
+        seg = CreateSegmentedControl(row, NormalizeDropdownOptions(options, preserveOrder), setValue, isDisabled)
+        seg:SetPoint("RIGHT", row, "RIGHT", 0, 0)
+        seg:Hide()
+        -- Show the segments when they fit in Def.SegFitShare of the row's width (a row) or in the
+        -- space the composite row offers (embedded: available is passed in), else the button.
+        ChooseControl = function(w)
+            local available = embedded and w or ((w or 0) * Def.SegFitShare)
+            if not embedded and resetBtn then available = available - RESET_BTN_SIZE - RESET_GAP end
+            local fits = seg:Fits(available)
+            segShown = fits and true or false
+            seg:SetShown(segShown)
+            btn:SetShown(not segShown)
+            if resetBtn then
+                resetBtn:ClearAllPoints()
+                resetBtn:SetPoint("RIGHT", segShown and seg or btn, "LEFT", -RESET_GAP, 0)
+            end
+            if segShown and list:IsShown() then closeList() end
+            return segShown
+        end
+        -- For a composite row: the width the segments need within `available`, or nil when the
+        -- button shows instead.
+        function row:ChooseSegmented(available)
+            if ChooseControl(available) then return seg:GetWidth() end
+            return nil
+        end
     end
 
 
@@ -1352,6 +1498,7 @@ end
         end
         if rowText then rowText.Fit(true) end
         local val = get()
+        if seg then seg:SetValue(val) end
         local opts = NormalizeDropdownOptions((type(options) == "function" and options()) or options or {}, preserveOrder)
 
         for _, opt in ipairs(opts) do
@@ -1405,6 +1552,21 @@ end
     return row
 end
 
+-- A short static choice as segmented buttons (addon.SegmentedEligible decides which rows qualify).
+-- The row is a dropdown row that also carries the segments: whenever its width changes it shows the
+-- segments if they fit in Def.SegFitShare of the row, else the dropdown button, so a long locale or
+-- a narrow window falls back on its own. Get, set, Refresh, disabled visuals and the row tooltip are
+-- the dropdown's; each segment adds a tooltip with its full label.
+-- @param layout table|nil  As for the dropdown ({ embedded = true } for a composite row, which
+--   then calls row:ChooseSegmented(available) during its layout)
+-- @return table  The row
+function _G.OptionsWidgets_CreateSegmented(parent, labelText, description, options, get, set, displayFn, disabledFn, tooltip, resetButton, preserveOrder, layout)
+    local lay = { segmented = true }
+    if type(layout) == "table" then for k, v in pairs(layout) do lay[k] = v end end
+    return _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, options, get, set, displayFn,
+        false, disabledFn, tooltip, resetButton, false, preserveOrder, lay)
+end
+
 -- ---------------------------------------------------------------------------
 -- Font row controls. The geometry lives in addon.FONT_ROW_METRICS and addon.FontRowLayout
 -- (OptionsHelpers.lua), so the logic tests can check it without frames.
@@ -1412,7 +1574,7 @@ end
 
 local FONT_ROW_FALLBACK_METRICS = {
     wrapBelow = 640, lineH = 34, line2H = 30, controlH = 26, gap = 8, labelGap = 12,
-    familyMin = 140, familyMax = 220, stepperW = 84, outlineW = 130,
+    familyMin = 140, familyMax = 220, stepperW = 84, outlineW = 130, outlineSegMax = 200,
 }
 local function FontRowMetrics()
     return addon.FONT_ROW_METRICS or FONT_ROW_FALLBACK_METRICS
@@ -1723,8 +1885,15 @@ function _G.OptionsWidgets_CreateFontRow(parent, labelText, description, parts, 
         else
             local opts, keepOrder = p.options, p.preserveOrder
             if opts == nil then opts, keepOrder = addon.OUTLINE_OPTIONS or {}, true end
+            -- The same rule as a dropdown row: a short static list shows as segments when they fit
+            -- (Layout passes M.outlineSegMax), else the dropdown.
+            local segOk = addon.SegmentedEligible and addon.SegmentedEligible({
+                options = opts, searchable = p.searchable, fontPreviewInList = p.fontPreviewInList,
+                segmented = p.segmented,
+            })
             outline = _G.OptionsWidgets_CreateCustomDropdown(row, nil, L["FOCUS_OUTLINE"], opts, p.get, p.set,
-                p.displayFn, false, partDisabled(p), p.tooltip, nil, false, keepOrder, { embedded = true })
+                p.displayFn, false, partDisabled(p), p.tooltip, nil, false, keepOrder,
+                { embedded = true, segmented = segOk and true or nil })
             outline:SetSize(M.outlineW, M.controlH)
         end
         controls[#controls + 1] = outline
@@ -1762,6 +1931,9 @@ function _G.OptionsWidgets_CreateFontRow(parent, labelText, description, parts, 
         w = w or 0
         local lay = layoutFor(w)
         if family then family:SetWidth(lay.familyW) end
+        if outline and outline.ChooseSegmented then
+            outline:SetWidth(outline:ChooseSegmented(M.outlineSegMax or M.outlineW) or M.outlineW)
+        end
         local line1, line2 = {}, {}
         if lay.wrapped then
             if family then line1[1] = family end

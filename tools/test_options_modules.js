@@ -217,6 +217,9 @@ function assemble(capsOff) {
     -- harness's default settings. Subheadings print as "── name ──" and are not counted.
     -- Rows still carrying the retired advanced field are listed in the advanced list.
     local dump, advanced, oversized, misplaced = {}, {}, {}, {}
+    -- Rows that would render as segmented buttons (eligibility only; the width check runs in game).
+    local segRows = {}
+    local SegOk = addon.SegmentedEligible or function() return false end
     local function rowName(r)
       local n = r.name or r.searchName or r.labelText or r.type
       if type(n) == "function" then local ok, v = pcall(n); n = ok and v or r.type end
@@ -291,14 +294,23 @@ function assemble(capsOff) {
             if r.advanced then advanced[#advanced + 1] = mk .. " › " .. pk .. " › " .. head .. " › " .. rowName(r) end
             lines[#lines + 1] = "  " .. (r.parent and "↳ " or "") .. rowName(r)
               .. (r.parent and ("  (parent: " .. tostring(r.parent) .. ")") or "")
+            if r.type == "dropdown" and SegOk(r) then
+              lines[#lines] = lines[#lines] .. "  [seg]"
+              segRows[#segRows + 1] = mk
+            end
             -- A font row lists its parts: "[font: family=<key>, size=<key>, outline=<key> (toggle)]".
             if r.type == "fontRow" and type(r.parts) == "table" then
               local ps = {}
               for _, slot in ipairs({ "family", "size", "outline" }) do
                 local p = r.parts[slot]
                 if p then
+                  local segPart = slot == "outline" and p.kind ~= "toggle"
+                    and SegOk({ options = p.options or addon.OUTLINE_OPTIONS, searchable = p.searchable,
+                      fontPreviewInList = p.fontPreviewInList, segmented = p.segmented })
+                  if segPart then segRows[#segRows + 1] = mk end
                   ps[#ps + 1] = slot .. "=" .. tostring(p.dbKey)
                     .. ((slot == "outline" and p.kind == "toggle") and " (toggle)" or "")
+                    .. (segPart and " [seg]" or "")
                 end
               end
               lines[#lines] = lines[#lines] .. "  [font: " .. table.concat(ps, ", ") .. "]"
@@ -324,6 +336,7 @@ function assemble(capsOff) {
       '"pages":{' .. table.concat(mods, ",") .. "}",
       '"missing":' .. list(missing),
       '"dump":' .. list(dump),
+      '"segRows":' .. list(segRows),
       '"advanced":' .. list(advanced),
       '"oversized":' .. list(oversized),
       '"misplaced":' .. list(misplaced),
@@ -374,6 +387,11 @@ function common(label, r) {
     const src = fs.readFileSync(path.join(REPO, 'locales/horizon/enUS.lua'), 'utf8');
     for (const m of src.matchAll(/^L\["([^"]+)"\]\s*=\s*"((?:[^"\\]|\\.)*)"/gm)) enUS[m[1]] = m[2];
     console.log(r.dump.map(l => l.replace(/«([^»]*)»/, (_, k) => '"' + (enUS[k] !== undefined ? enUS[k] : k) + '"')).join('\n'));
+    // Rows marked [seg] per module: eligible for segmented buttons (they still need to fit in game).
+    const segCounts = {};
+    for (const mk of r.segRows || []) segCounts[mk] = (segCounts[mk] || 0) + 1;
+    console.log('[seg] rows by module: ' + (Object.entries(segCounts).map(([k, v]) => k + ' ' + v).join(', ') || 'none')
+      + ' (total ' + (r.segRows || []).length + ')');
   }
   for (const [mk, want] of Object.entries(EXPECTED)) {
     const got = r.pages[mk] || [];
