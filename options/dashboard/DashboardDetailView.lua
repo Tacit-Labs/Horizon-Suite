@@ -667,7 +667,6 @@ function addon.DashboardDetailView_Init(env)
     -- UpdateDetailLayout is defined at the top of this Init; all other fields are from env.
     local accordionCardParams = {
         MakeText                    = MakeText,
-        dashAccentRefs              = dashAccentRefs,
         DASHBOARD_CONTENT_CARD_ALPHA_MULT = DASHBOARD_CONTENT_CARD_ALPHA_MULT,
         UpdateDetailLayout          = UpdateDetailLayout,
     }

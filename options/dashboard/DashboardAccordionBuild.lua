@@ -900,7 +900,11 @@ function addon.DashboardAccordionBuild_Init(f, p)
                                         RefreshLinkedTargets(ids, rowKey)
                                     end
                                 end
-                                if markable then ps = withMark(ps) end
+                                if markable then
+                                    -- A part's setter takes one value, as the widget calls it.
+                                    local one = ps
+                                    ps = withMark(function(v) one(v) end)
+                                end
                                 -- A copy: the module's part table may be shared, so it is never written.
                                 local p = {}
                                 for k, v in pairs(part) do p[k] = v end
