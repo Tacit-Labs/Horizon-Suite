@@ -299,8 +299,8 @@ local function getFrameY()
     return clampFrameOffset("presenceFrameY", v)
 end
 
--- Horizontal offset from screen centre. Set by dragging the anchor (no slider), so a
--- game spanning several monitors can move toasts off the bezel at screen centre.
+-- Horizontal offset from screen centre, so a game spanning several monitors can move
+-- toasts off the bezel at screen centre. Set by the slider or by dragging the anchor.
 local function getFrameX()
     local v = addon.GetDB and tonumber(addon.GetDB("presenceFrameX", 0)) or 0
     return clampFrameOffset("presenceFrameX", v)

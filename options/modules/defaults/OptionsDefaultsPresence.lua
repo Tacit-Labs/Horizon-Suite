@@ -104,7 +104,7 @@ addon.PRESENCE_DEFAULTS = {
 addon.PRESENCE_LIMITS = {
     presenceIconSize          = { min = 16,   max = 36  },
     presenceFrameY            = { min = -1200, max = 0  },
-    presenceFrameX            = { min = -2000, max = 2000 },  -- drag anchor only
+    presenceFrameX            = { min = -2000, max = 2000 },
     presenceFrameScale        = { min = 0.5,  max = 2   },
     presenceEntranceDur       = { min = 0.2,  max = 1.5 },
     presenceExitDur           = { min = 0.2,  max = 1.5 },
