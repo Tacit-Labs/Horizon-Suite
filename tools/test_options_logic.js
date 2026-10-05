@@ -1308,6 +1308,18 @@ run(`
     STORE.fontSz = 12
     check("font row: the size part against its own default", OC(fr, get) == true)
 
+    -- normalize: a row that reads several stored forms as one value compares as it shows them.
+    H.AXIS_DEFAULTS.outl = 1
+    local norm = function(v) if v == 1 or v == "OUTLINE" then return "OUTLINE" end return v end
+    local nr = { type = "fontRow", dbKey = "outl", parts = { outline = { dbKey = "outl", default = "OUTLINE", normalize = norm } } }
+    STORE.outl = "OUTLINE"
+    check("normalize: the shown default stored as a string is not changed", OC(nr, get) == false)
+    STORE.outl = 1
+    check("normalize: a legacy stored form of the default is not changed", OC(nr, get) == false)
+    STORE.outl = ""
+    check("normalize: a different choice is changed", OC(nr, get) == true)
+    STORE.outl = nil
+
     -- Split colour keys a reset must clear.
     local sk = H.OptionSplitColorKeys and H.OptionSplitColorKeys("bgColor") or {}
     check("split keys: R/G/B/A of a split colour", table.concat(sk, ",") == "bgColorR,bgColorG,bgColorB,bgColorA",

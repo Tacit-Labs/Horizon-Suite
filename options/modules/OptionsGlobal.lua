@@ -10,6 +10,22 @@ local function getDB(k, d) return addon.OptionsData_GetDB(k, d) end
 local function setDB(k, v) addon.OptionsData_SetDB(k, v) end
 local OUTLINE_OPTIONS      = addon.OUTLINE_OPTIONS
 local VALID_OUTLINE_VALUES = addon.VALID_OUTLINE_VALUES
+
+-- The dashboard outline as the outline choice shows it: a flag string, from a saved flag string
+-- or a legacy boolean or 0-2 number (0 none, 1 outline, 2 thick).
+-- @param v any
+-- @return string
+local function NormalizeDashboardOutline(v)
+    if VALID_OUTLINE_VALUES[v] then return v end
+    if v == true then return "OUTLINE" end
+    if v == false then return "" end
+    local n = tonumber(v)
+    if not n then return "OUTLINE" end
+    n = math.max(0, math.min(2, math.floor(n + 0.5)))
+    if n == 0 then return "" end
+    if n == 2 then return "THICKOUTLINE" end
+    return "OUTLINE"
+end
 local FONT_USE_GLOBAL      = addon.FONT_USE_GLOBAL  -- luacheck: ignore (used inside options fn)
 local D                    = addon.AXIS_DEFAULTS
 
@@ -183,17 +199,12 @@ local categories = {
                     tooltip = L["DASHBOARD_TYPO_OUTLINE_DESC"],
                     options = OUTLINE_OPTIONS,
                     preserveOrder = true,
+                    -- The saved value may be a flag string, or a legacy boolean or 0-2 number
+                    -- (AXIS_DEFAULTS still holds 1); the changed marker compares through this too.
+                    default = "OUTLINE",
+                    normalize = NormalizeDashboardOutline,
                     get = function()
-                        local v = getDB("dashboardTextOutline", 1)
-                        if VALID_OUTLINE_VALUES[v] then return v end
-                        if v == true then return "OUTLINE" end
-                        if v == false then return "" end
-                        local n = tonumber(v)
-                        if not n then return "OUTLINE" end
-                        n = math.max(0, math.min(2, math.floor(n + 0.5)))
-                        if n == 0 then return "" end
-                        if n == 2 then return "THICKOUTLINE" end
-                        return "OUTLINE"
+                        return NormalizeDashboardOutline(getDB("dashboardTextOutline", 1))
                     end,
                     set = function(v) setDB("dashboardTextOutline", v) end,
                     refreshIds = dashboardTypoRefreshIds,

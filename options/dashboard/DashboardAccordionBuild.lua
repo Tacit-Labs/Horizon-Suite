@@ -642,21 +642,23 @@ function addon.DashboardAccordionBuild_Init(f, p)
         local function ResetRowToDefault(opt, g, s, fontParts, widget)
             local SetDB = addon.SetDB
             if not SetDB then return end
+            local keys = {}
+            local function clear() for _, k in ipairs(keys) do SetDB(k, nil) end end
             if opt.type == "fontRow" then
                 for _, slot in ipairs(addon.FONT_ROW_PARTS or { "family", "size", "outline" }) do
                     local part = fontParts and fontParts[slot]
                     if part and part.dbKey and part.get and part.set then
+                        keys[#keys + 1] = part.dbKey
                         SetDB(part.dbKey, nil)
                         part.set(part.get())
                         SetDB(part.dbKey, nil)
                     end
                 end
             else
-                local keys = { opt.dbKey }
+                keys[1] = opt.dbKey
                 if opt.type == "color" and addon.OptionSplitColorKeys then
                     for _, k in ipairs(addon.OptionSplitColorKeys(opt.dbKey)) do keys[#keys + 1] = k end
                 end
-                local function clear() for _, k in ipairs(keys) do SetDB(k, nil) end end
                 clear()
                 if s then
                     if opt.type == "color" then
@@ -675,9 +677,20 @@ function addon.DashboardAccordionBuild_Init(f, p)
                 end
                 clear()
             end
-            if widget and widget.Refresh then widget:Refresh() end
-            RefreshLinkedTargets(opt.refreshIds)
-            if addon.OptionsData_NotifyMainAddon then addon.OptionsData_NotifyMainAddon() end
+            local function after()
+                if widget and widget.Refresh then widget:Refresh() end
+                RefreshLinkedTargets(opt.refreshIds)
+                if addon.OptionsData_NotifyMainAddon then addon.OptionsData_NotifyMainAddon() end
+            end
+            after()
+            -- A setter that writes on the next frame (C_Timer.After(0)) lands after the clear
+            -- above: clear once more then, so the profile ends with nothing stored.
+            if C_Timer and C_Timer.After then
+                C_Timer.After(0, function()
+                    clear()
+                    after()
+                end)
+            end
         end
 
         for _, opt in ipairs(options) do
@@ -736,6 +749,10 @@ function addon.DashboardAccordionBuild_Init(f, p)
                 s = function(...)
                     innerSet(...)
                     if markUpdate then markUpdate() end
+                    -- A few setters write on the next frame (C_Timer.After(0)); look again then.
+                    if C_Timer and C_Timer.After then
+                        C_Timer.After(0, function() if markUpdate then markUpdate() end end)
+                    end
                 end
             end
 
@@ -863,6 +880,9 @@ function addon.DashboardAccordionBuild_Init(f, p)
                                     ps = function(v)
                                         innerSet(v)
                                         if markUpdate then markUpdate() end
+                                        if C_Timer and C_Timer.After then
+                                            C_Timer.After(0, function() if markUpdate then markUpdate() end end)
+                                        end
                                     end
                                 end
                                 -- A copy: the module's part table may be shared, so it is never written.

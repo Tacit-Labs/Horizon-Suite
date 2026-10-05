@@ -363,6 +363,114 @@ function assemble(capsOff) {
         end
       end
     end
+    -- Round trip: for every markable row with a default, write the value the row shows at
+    -- defaults back through its own setter (into an empty store), and the row must not read as
+    -- changed. This catches a default stored in a different form from what the row writes
+    -- (a number default for a row that saves a string). C_Timer.After callbacks run at once.
+    -- Rows whose getter or setter needs an addon function the harness lacks are skipped.
+    local roundFail, roundSkipped, roundRun = {}, 0, 0
+    if OM and OD and addon.OptionIsChanged then
+      local STORE = {}
+      local saved = { GetDB = rawget(addon, "GetDB"), OGet = rawget(addon, "OptionsData_GetDB"),
+        OSet = rawget(addon, "OptionsData_SetDB"), SetDB = rawget(addon, "SetDB"),
+        GOGet = rawget(_G, "OptionsData_GetDB"), GOSet = rawget(_G, "OptionsData_SetDB"),
+        Timer = rawget(_G, "C_Timer") }
+      local missingBefore = {}
+      for k in pairs(MISSING) do missingBefore[k] = true end
+      local function get(k, d) local v = STORE[k]; if v == nil then return d end; return v end
+      local function put(k, v) STORE[k] = v end
+      rawset(addon, "GetDB", get); rawset(addon, "OptionsData_GetDB", get)
+      rawset(addon, "OptionsData_SetDB", put); rawset(addon, "SetDB", put)
+      _G.OptionsData_GetDB, _G.OptionsData_SetDB = get, put
+      local timers = {}
+      _G.C_Timer = { After = function(_, fn) timers[#timers + 1] = fn end }
+      local function drain()
+        local n = 0
+        while #timers > 0 and n < 50 do
+          local fn = table.remove(timers, 1)
+          fn()
+          n = n + 1
+        end
+      end
+      local function stored(k) return STORE[k] end
+      -- One key's getter and setter, as the card builder resolves them.
+      local function pair(r, key, default, isColor)
+        local g, st = r.get, r.set
+        if not g then
+          if isColor then
+            g = function()
+              local t = get(key, nil)
+              if type(t) == "table" and t[1] then return t[1], t[2], t[3], t[4] or 1 end
+              if type(default) == "table" then return default[1], default[2], default[3], default[4] end
+              return 1, 1, 1, 1
+            end
+          else
+            g = function() return get(key, default) end
+          end
+        end
+        if not st then
+          if isColor then
+            st = function(a, b, c, d) local t = { a, b, c }; if r.hasAlpha then t[4] = d end; put(key, t) end
+          else
+            st = function(v) put(key, v) end
+          end
+        end
+        return g, st
+      end
+      for _, cat in ipairs(addon.OptionCategories) do
+        local ok, opts = pcall(function()
+          if type(cat.options) == "function" then return cat.options() end
+          return cat.options
+        end)
+        local mk = cat.moduleKey or "axis"
+        for _, r in ipairs(ok and opts or {}) do
+          local resolvable = type(r) == "table" and OM(r)
+          if resolvable then
+            if r.type == "fontRow" then
+              for _, part in pairs(r.parts or {}) do
+                if type(part) == "table" and part.dbKey and OD(part.dbKey, part) == nil then resolvable = false end
+              end
+            else
+              resolvable = OD(r.dbKey, r) ~= nil
+            end
+          end
+          if resolvable then
+            for k in pairs(STORE) do STORE[k] = nil end
+            timers = {}
+            local okRun = pcall(function()
+              if r.type == "fontRow" then
+                for _, slot in ipairs(addon.FONT_ROW_PARTS) do
+                  local part = r.parts[slot]
+                  if part and part.dbKey then
+                    local g, st = pair(part, part.dbKey, part.default, false)
+                    st(g())
+                  end
+                end
+              elseif r.type == "color" then
+                local g, st = pair(r, r.dbKey, r.default, true)
+                st(g())
+              else
+                local g, st = pair(r, r.dbKey, r.default, false)
+                st(g())
+              end
+              drain()
+            end)
+            if not okRun then
+              roundSkipped = roundSkipped + 1
+            else
+              roundRun = roundRun + 1
+              if addon.OptionIsChanged(r, stored) then
+                roundFail[#roundFail + 1] = mk .. " › " .. tostring(r.dbKey)
+              end
+            end
+          end
+        end
+      end
+      rawset(addon, "GetDB", saved.GetDB); rawset(addon, "OptionsData_GetDB", saved.OGet)
+      rawset(addon, "OptionsData_SetDB", saved.OSet); rawset(addon, "SetDB", saved.SetDB)
+      _G.OptionsData_GetDB, _G.OptionsData_SetDB, _G.C_Timer = saved.GOGet, saved.GOSet, saved.Timer
+      for k in pairs(MISSING) do if not missingBefore[k] then MISSING[k] = nil end end
+    end
     local coverage = {}
     for mk, c in pairs(cover) do coverage[#coverage + 1] = q(mk .. " " .. c.ok .. "/" .. c.n) end
     table.sort(coverage)
@@ -390,6 +498,9 @@ function assemble(capsOff) {
       '"coverage":' .. "[" .. table.concat(coverage, ",") .. "]",
       '"unresolved":' .. list(unresolved),
       '"mismatched":' .. list(mismatched),
+      '"roundFail":' .. list(roundFail),
+      '"roundRun":' .. roundRun,
+      '"roundSkipped":' .. roundSkipped,
     }, ",") .. "}"
   `, 'collect');
   return JSON.parse(json);
@@ -424,6 +535,11 @@ function common(label, r) {
   // A dependent row reads as nested only when it sits under its parent, or under another of
   // that parent's dependents, with nothing unrelated in between.
   check(label + ': every dependent row sits under its parent', r.misplaced.length === 0, r.misplaced.join('; '));
+  // Writing a row's shown default back through its own setter must not mark it changed.
+  check(label + ': a row set to its shown default is not marked changed',
+    r.roundRun > 0 && r.roundFail.length === 0, r.roundFail.join(', ') || ('ran ' + r.roundRun));
+  console.log('  (' + label + ' changed-marker round trip: ' + r.roundRun + ' rows checked, '
+    + r.roundSkipped + ' skipped for unstubbed addon functions)');
   if (r.missing.length) console.log('  (' + label + ' read unstubbed addon fields: ' + r.missing.join(', ') + ')');
 }
 

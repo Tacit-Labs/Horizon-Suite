@@ -411,7 +411,14 @@ local function KeyChanged(key, row, getStored, isColor)
     local def = OptionDefault(key, row)
     if def == nil then return false end
     local stored = getStored(key)
-    if stored ~= nil then return not ValuesEqual(stored, def) end
+    if stored ~= nil then
+        -- A row that reads several stored forms as one value (legacy numbers for an outline
+        -- choice, say) gives `normalize`, and both sides are compared as the row shows them.
+        if type(row) == "table" and type(row.normalize) == "function" then
+            stored, def = row.normalize(stored), row.normalize(def)
+        end
+        return not ValuesEqual(stored, def)
+    end
     if not isColor or type(def) ~= "table" then return false end
     local dc = ColorChannels(def)
     for i, suffix in ipairs(SPLIT_SUFFIXES) do
@@ -437,7 +444,8 @@ local function OptionStoredValue(key)
 end
 
 --- Whether a row's setting is changed from its default in the active profile. A font row is
---- changed when any of its parts is. A row with no default found is never changed.
+--- changed when any of its parts is. A row with no default found is never changed. A row or
+--- part may carry normalize(value) -> shown value, used on both sides of the comparison.
 --- @param row table
 --- @param getStored function|nil  key -> stored value; default OptionStoredValue
 --- @return boolean
