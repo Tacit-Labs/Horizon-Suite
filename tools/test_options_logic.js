@@ -1266,6 +1266,48 @@ run(`
     local unk = { type = "toggle", dbKey = "nope" }
     STORE.nope = true
     check("changed: no default, no marker", OC(unk, get) == false)
+
+    -- A default kept in code: the row's getter is asked what it shows with the key cleared.
+    local oldGetDB = H.GetDB
+    H.GetDB = function(k, d) local v = STORE[k]; if v == nil then return d end return v end
+    local cv = { type = "dropdown", dbKey = "codeVis", get = function()
+      local v = H.GetDB("codeVis", nil)
+      if v == nil then return "show" end     -- the default lives in the getter, like GetCombatVisibility
+      return v
+    end }
+    check("code default: nothing stored", OC(cv, get) == false)
+    STORE.codeVis = "show"
+    check("code default: stored at the getter's default", OC(cv, get) == false)
+    STORE.codeVis = "hide"
+    check("code default: a different choice is changed", OC(cv, get) == true)
+    check("code default: the key's real value is back after asking", H.GetDB("codeVis") == "hide")
+    check("code default: stored-is-default false while changed",
+      H.OptionStoredIsDefault("codeVis", cv, get) == false)
+    STORE.codeVis = "show"
+    check("code default: stored-is-default true at the default",
+      H.OptionStoredIsDefault("codeVis", cv, get) == true)
+    STORE.codeVis = nil
+    local pct = { type = "slider", dbKey = "codePct", get = function() return (H.GetDB("codePct", 1)) * 100 end }
+    STORE.codePct = 1
+    check("code default: compared in the row's own units", OC(pct, get) == false)
+    STORE.codePct = 0.8
+    check("code default: a changed scale", OC(pct, get) == true)
+    STORE.codePct = nil
+    local multi = { type = "color", dbKey = "codeCol", get = function()
+      local c = H.GetDB("codeCol", nil) or { 1, 0.5, 0 }
+      return c[1], c[2], c[3]
+    end }
+    STORE.codeCol = { 1, 0.5, 0 }
+    check("code default: a colour getter's several results", OC(multi, get) == false)
+    STORE.codeCol = { 1, 0.4, 0 }
+    check("code default: a changed colour from a getter", OC(multi, get) == true)
+    STORE.codeCol = nil
+    local boom = { type = "toggle", dbKey = "codeBoom", get = function() error("no") end }
+    STORE.codeBoom = true
+    check("code default: an erroring getter gives no marker", OC(boom, get) == false)
+    check("code default: GetDB restored after an erroring getter", H.GetDB("codeBoom") == true)
+    STORE.codeBoom = nil
+    H.GetDB = oldGetDB
     check("changed: an unmarkable row never is", OC({ type = "button", dbKey = "focusOn" }, function() return false end) == false)
 
     local col = { type = "color", dbKey = "focusColor" }

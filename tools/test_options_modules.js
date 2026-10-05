@@ -324,7 +324,15 @@ function assemble(capsOff) {
     -- (addon.OptionMarkable) and how many of them resolve a default (addon.OptionDefault; a
     -- font row only when every part does). Rows without one never show a marker.
     local cover, unresolved, mismatched = {}, {}, {}
-    local OM, OD = addon.OptionMarkable, addon.OptionDefault
+    local OM, OD0 = addon.OptionMarkable, addon.OptionDefault
+    -- A key has a default when a row or table gives one, or when its getter can be asked what
+    -- it shows with the key cleared (a default kept in code); OD reports either as non-nil.
+    local OD = OD0 and function(key, row)
+      local v = OD0(key, row)
+      if v ~= nil then return v end
+      if type(row) == "table" and type(row.get) == "function" then return true end
+      return nil
+    end
     if OM and OD then
       for _, cat in ipairs(addon.OptionCategories) do
         local ok, opts = pcall(function()

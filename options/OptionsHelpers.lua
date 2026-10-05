@@ -405,11 +405,61 @@ local function ValuesEqual(a, b)
     return a == b
 end
 
+-- What a row's getter shows when nothing is stored for key: its getter is called with
+-- addon.GetDB answering `default` for that one key, so a default kept in code (a getter's
+-- fallback, a helper such as GetCombatVisibility) is found in the row's own units. Returns a
+-- packed table of the getter's results, or nil when the row has no getter or it errors. A
+-- getter that captured GetDB at load ignores the mask; it then shows its stored value both
+-- ways and reads as unchanged, which is the safe side.
+local function ShownWithKeyCleared(row, key)
+    if type(row) ~= "table" or type(row.get) ~= "function" then return nil end
+    local real = addon.GetDB
+    if type(real) ~= "function" then return nil end
+    addon.GetDB = function(k, d)
+        if k == key then return d end
+        return real(k, d)
+    end
+    local res = { pcall(row.get) }
+    addon.GetDB = real
+    if not res[1] then return nil end
+    table.remove(res, 1)
+    return res
+end
+
+local function ShownNow(row)
+    local res = { pcall(row.get) }
+    if not res[1] then return nil end
+    table.remove(res, 1)
+    return res
+end
+
+--- For a row with no default in a table: whether its stored value shows the same as its
+--- code default. Nil when that can't be worked out (no getter, or the getter errors).
+--- @param row table  The row or font-row part whose dbKey is key
+--- @param key string
+--- @return boolean|nil
+local function ShownMatchesCodeDefault(row, key)
+    local def = ShownWithKeyCleared(row, key)
+    if not def then return nil end
+    local now = ShownNow(row)
+    if not now then return nil end
+    if #now ~= #def then return false end
+    for i = 1, #def do
+        if not ValuesEqual(now[i], def[i]) then return false end
+    end
+    return true
+end
+
 -- One saved key against its default. A colour row stored as split <key>R/G/B/A keys is changed
--- when any stored part differs from the matching part of the default.
+-- when any stored part differs from the matching part of the default. With no default in a
+-- table, a row whose getter can be asked (ShownMatchesCodeDefault) is compared as it shows.
 local function KeyChanged(key, row, getStored, isColor)
     local def = OptionDefault(key, row)
-    if def == nil then return false end
+    if def == nil then
+        if getStored(key) == nil then return false end
+        local same = ShownMatchesCodeDefault(row, key)
+        return same == false
+    end
     local stored = getStored(key)
     if stored ~= nil then
         -- A row that reads several stored forms as one value (legacy numbers for an outline
@@ -441,9 +491,11 @@ end
 --- @return boolean
 local function OptionStoredIsDefault(key, row, getStored)
     local def = OptionDefault(key, row)
-    if def == nil then return false end
     local stored = getStored(key)
     if stored == nil then return false end
+    if def == nil then
+        return ShownMatchesCodeDefault(row, key) == true
+    end
     if type(row) == "table" and type(row.normalize) == "function" then
         stored, def = row.normalize(stored), row.normalize(def)
     end
