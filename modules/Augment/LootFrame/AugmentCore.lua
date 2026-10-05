@@ -1145,14 +1145,13 @@ function Augment.HookNativeEditMode()
             end
             editModePanel:Show()
         end
+        -- Overlay only: a sample toast sitting under the overlay text gets in
+        -- the way while the player lays out the rest of the UI. Shift-click on
+        -- the overlay previews on request.
         if showOverlay then
             editOverlay:EnableMouse(true)
             editOverlay:Show()
             Frame:Show()
-            Augment.ShowToast({
-                kind = "item", icon = 135349, text = "Ashkandur, Fall of the Brotherhood",
-                r = 0.64, g = 0.21, b = 0.93, br = 0.77, bg = 0.25, bb = 1.0, quality = 4,
-            })
         end
     end, "HorizonSuiteAugment")
     EventRegistry:RegisterCallback("EditMode.Exit", function()
