@@ -156,7 +156,7 @@ local categories = {
         desc = L["INSIGHT_CATEGORY_TRP3_DESC"],
         moduleKey = "insight",
         options = {
-            { type = "section", name = L["INSIGHT_CATEGORY_TRP3"], headerToggle = { dbKey = "insightTRP3Enabled", default = true }, dbKey = "insightTRP3Section", page = "players", card = "trp3", visibleWhen = TRP3Installed },
+            { type = "section", name = L["INSIGHT_CATEGORY_TRP3"], desc = L["INSIGHT_CATEGORY_TRP3_DESC"], headerToggle = { dbKey = "insightTRP3Enabled", default = true }, dbKey = "insightTRP3Section", page = "players", card = "trp3", visibleWhen = TRP3Installed },
             Toggle(L["INSIGHT_TRP3_TITLE"], L["INSIGHT_TRP3_TITLE_DESC"], "insightTRP3Title", true),
             { type = "toggle", name = L["INSIGHT_TRP3_NAME"],             desc = L["INSIGHT_TRP3_NAME_DESC"],                                   dbKey = "insightTRP3RPName",       get = function() return getDB("insightTRP3RPName",       true)  end, set = function(v) setDB("insightTRP3RPName",       v) end, refreshIds = { "insightTRP3Section" } },
             { type = "toggle", name = L["INSIGHT_TRP3_CHARACTER_ICON"],      desc = L["INSIGHT_TRP3_CHARACTER_ICON_DESC"],                          dbKey = "insightTRP3Icon",         get = function() return getDB("insightTRP3Icon",         true)  end, set = function(v) setDB("insightTRP3Icon",         v) end, parent = "insightTRP3RPName" },

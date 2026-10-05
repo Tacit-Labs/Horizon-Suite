@@ -26,8 +26,8 @@ function addon.DashboardAccordionBuild_Init(f, p)
     local detailScroll       = p.detailScroll
     local detailView         = p.detailView
 
-    local function CreateAccordionCard(parent, title, headerToggleCfg)
-        return addon.Dashboard_CreateAccordionCard(parent, title, headerToggleCfg, accordionCardParams)
+    local function CreateAccordionCard(parent, title, headerToggleCfg, desc)
+        return addon.Dashboard_CreateAccordionCard(parent, title, headerToggleCfg, accordionCardParams, desc)
     end
 
     -- A subheading inside a card: a small muted label with a faint 1px rule running from the
@@ -187,6 +187,9 @@ function addon.DashboardAccordionBuild_Init(f, p)
             if not card or not card.widgetList then return end
             animateVisibility = animateVisibility == true
             local yOff = 0
+            local WDef = addon.OptionsWidgetsDef or {}
+            local cardPadX = WDef.CardPadding or 18
+            local rowIndent = WDef.RowIndent or 20
             for _, entry in ipairs(card.widgetList) do
                 local visible = true
                 if entry.visibleWhen then
@@ -197,16 +200,16 @@ function addon.DashboardAccordionBuild_Init(f, p)
                     entry.frame:SetAlpha(1)
                     local topGap = entry.isHeader and SUBHEADING_TOP_GAP or 6
                     entry.frame:ClearAllPoints()
-                    local rowX = entry.indent and 50 or 30
+                    local rowX = entry.indent and (cardPadX + rowIndent) or cardPadX
                     entry.frame:SetPoint("TOPLEFT", card.settingsContainer, "TOPLEFT", rowX, -(yOff + topGap))
-                    entry.frame:SetPoint("RIGHT", card.settingsContainer, "RIGHT", -30, 0)
+                    entry.frame:SetPoint("RIGHT", card.settingsContainer, "RIGHT", -cardPadX, 0)
                     local h = entry.frame:GetHeight() or 40
                     if entry.isNote and h < NOTE_MIN_HEIGHT then h = NOTE_MIN_HEIGHT end
                     yOff = yOff + h + topGap
                 end
             end
             card.contentHeight = yOff
-            card.fullHeight = yOff + 80
+            card.fullHeight = yOff + (card.chromeHeight or 80)
             if card.headerToggleInit then
                 card.headerToggleInit()
                 card.headerToggleInit = nil  -- run once
@@ -456,7 +459,7 @@ function addon.DashboardAccordionBuild_Init(f, p)
                     RelayoutCard(currentCard, false)
                 end
 
-                currentCard = CreateAccordionCard(detailContent, opt.name, opt.headerToggle)
+                currentCard = CreateAccordionCard(detailContent, opt.name, opt.headerToggle, opt.desc)
                 currentCard.contentHeight = 0
                 currentCard.optionIds = {}
                 currentCard.widgetList = {}
@@ -1009,7 +1012,7 @@ function addon.DashboardAccordionBuild_Init(f, p)
                         local newHeight = math.max(1, -yOff)
                         cmfContainer:SetHeight(newHeight)
                         currentCard.contentHeight = newHeight
-                        currentCard.fullHeight = newHeight + 80
+                        currentCard.fullHeight = newHeight + (currentCard.chromeHeight or 80)
                         UpdateDetailLayout()
                     end
 
@@ -1251,6 +1254,10 @@ function addon.DashboardAccordionBuild_Init(f, p)
         f._refreshDashboardDetailOptionFonts = function()
             for _, w in pairs(detailOptionFrames) do
                 if w and w.Refresh then w:Refresh() end
+            end
+            -- Card titles and descriptions change width with the dashboard font; refit them.
+            for _, card in ipairs(currentDetailCards) do
+                if card.FitHeader then card.FitHeader() end
             end
         end
     end

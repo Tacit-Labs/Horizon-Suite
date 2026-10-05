@@ -282,6 +282,7 @@ function addon.DashboardDetailView_Init(env)
         local firstPad = (addon.DashboardConstants and addon.DashboardConstants.DETAIL_FIRST_BLOCK_TOP_PAD) or 0
         local yOffset = 0
         local visibleIndex = 0
+        local cardGap = (addon.OptionsWidgetsDef and addon.OptionsWidgetsDef.CardGap) or 14
         for _, card in ipairs(currentDetailCards) do
             if card:IsShown() and (card:GetHeight() or 0) > 0 then
                 visibleIndex = visibleIndex + 1
@@ -289,7 +290,7 @@ function addon.DashboardDetailView_Init(env)
                 local topExtra = (visibleIndex == 1) and firstPad or 0
                 card:SetPoint("TOPLEFT", detailContent, "TOPLEFT", 0, -(yOffset + topExtra))
                 card:SetPoint("RIGHT", detailContent, "RIGHT", 0, 0)
-                yOffset = yOffset + topExtra + card:GetHeight() + 15
+                yOffset = yOffset + topExtra + card:GetHeight() + cardGap
             end
         end
         

@@ -39,15 +39,52 @@ local Def = {
     ThumbColor = { 1, 1, 1, 0.98 },
     WidgetFontFlags = "OUTLINE",
     WidgetTextShadow = false,
+
+    -- Modern dashboard style (Docs/Engineering/2026-10-05-dashboard-modern-style-design.md).
+    -- Colours follow the approved mockup's CSS variables.
+    TextColorMuted = { 0.54, 0.565, 0.627 },        -- descriptions and help (#8a90a0)
+    TextColorFaint = { 0.365, 0.384, 0.447 },       -- the card chevron (#5d6272)
+    CardBg = { 0.09, 0.09, 0.114, 0.96 },           -- card panel (#17171d)
+    CardBgHover = { 0.11, 0.11, 0.137, 0.96 },      -- closed card header under the cursor (#1c1c23)
+    CardRadius = 12,
+    CardGap = 14,                                   -- space between cards
+    CardHeaderPadY = 14,                            -- space above and below the card title
+    CardContentBottom = 12,                         -- space below a card's last row
+    CardDescGap = 12,                               -- title to description
+    RowIndent = 20,                                 -- extra left inset of a dependent row
+    RowDivider = { 0.59, 0.63, 0.75, 0.10 },        -- hairline between rows
+    RowHover = { 1, 1, 1, 0.025 },
+    SegTrackBg = { 0.063, 0.063, 0.082, 0.96 },     -- segmented track (#101015, as InputBg)
+    SegSelectedBg = { 0.11, 0.11, 0.137, 1 },       -- raised selected segment (#1c1c23)
+    SegSelectedRing = { 0.59, 0.63, 0.75, 0.18 },
+    SidebarSelectedBg = { 0.48, 0.58, 0.82, 0.16 }, -- accent at 16%; the class theme swaps the rgb
+    SwitchWidth = 36,
+    SwitchHeight = 20,
 }
 Def.BorderColor = Def.SectionCardBorder
 if addon.StandardFont then
     Def.FontPath = addon.StandardFont
 end
 
+-- The type scale: titles sit two sizes above labels and help two below, so the dashboard
+-- text-size setting (which sets LabelSize) scales all three. A size the caller sets itself wins.
+local TYPE_SCALE_STEP = 2
+local TYPE_SCALE_MIN = 8
+local function DeriveTypeScale(overrides)
+    local label = tonumber(Def.LabelSize) or 13
+    if not (overrides and overrides.TitleSize ~= nil) then
+        Def.TitleSize = label + TYPE_SCALE_STEP
+    end
+    if not (overrides and overrides.HelpSize ~= nil) then
+        Def.HelpSize = math.max(TYPE_SCALE_MIN, label - TYPE_SCALE_STEP)
+    end
+end
+DeriveTypeScale()
+
 function _G.OptionsWidgets_SetDef(overrides)
     if not overrides then return end
     for k, v in pairs(overrides) do Def[k] = v end
+    if overrides.LabelSize ~= nil then DeriveTypeScale(overrides) end
 end
 addon.OptionsWidgetsDef = Def
 
