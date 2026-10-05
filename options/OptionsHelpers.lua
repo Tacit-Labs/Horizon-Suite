@@ -97,13 +97,13 @@ local FONT_ROW_PARTS = { "family", "size", "outline" }
 
 -- One row that sets a text element's font, size and outline. Each part keeps its own saved
 -- key, getter and setter; a part without a getter or setter reads and writes its key. The
--- row's dbKey is its primary key (family, else size), which the assembler, search and More
+-- row's dbKey is its primary key (family, else size), which the assembler and search
 -- key on. The assembler also resolves a `parent` that names any part key.
 -- @param name string|function
 -- @param desc string|function|nil
 -- @param parts table  { family?, size?, outline? }; each { dbKey, default?, get?, set?, refreshIds?, ... }.
 --   family: options, displayFn. size: min, max, step. outline: kind ("dropdown" or "toggle"), options.
--- @param opts table|nil  Merged into the row (advanced, parent, parentIs, keywords, visibleWhen, ...)
+-- @param opts table|nil  Merged into the row (parent, parentIs, keywords, visibleWhen, ...)
 -- @return table
 local function FontRow(name, desc, parts, opts)
     local own = {}

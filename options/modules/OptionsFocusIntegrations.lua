@@ -16,6 +16,14 @@ local Color   = addon.Color
 
 local function setDB(k, v) addon.OptionsData_SetDB(k, v) end
 
+--- Name for one of an integration's cards after its first, e.g. "RareScanner: Alerts".
+--- @param integration string  Localised integration name
+--- @param topic string  Localised card topic
+--- @return string
+local function SubCard(integration, topic)
+    return integration .. ": " .. topic
+end
+
 -- ============================================================================
 -- SHARED
 -- ============================================================================
@@ -143,7 +151,7 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
         -- ----------------------------------------------------------------
         -- RareScanner — card hidden when companion bridge is absent.
         -- ----------------------------------------------------------------
-        Section(L["FOCUS_INTEGRATION_RARESCANNER"], { visibleWhen = RareScannerIntegrationLoaded, page = "integrations" }),
+        Section(L["FOCUS_INTEGRATION_RARESCANNER"], { visibleWhen = RareScannerIntegrationLoaded, page = "integrations", card = "rareScanner" }),
         { type = "header", name = L["FOCUS_INTEGRATION_RARESCANNER_COMPANION"] },
 
         Toggle(
@@ -198,7 +206,6 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             false,
             {
                 id          = "rs_sectionTitleRares",
-                advanced    = true,
                 disabled    = RSDisabled,
                 visibleWhen = RSSubVisible,
                 set         = function(v)
@@ -256,6 +263,7 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             }
         ),
 
+        Section(SubCard(L["FOCUS_INTEGRATION_RARESCANNER"], L["FOCUS_INTEGRATION_CARD_MAP"]), { visibleWhen = RareScannerIntegrationLoaded, page = "integrations", card = "rsMap", subheading = L["FOCUS_INTEGRATION_SUB_WAYPOINTS"] }),
         Toggle(
             L["FOCUS_INTEGRATION_RARE_SHOW_COORDS"],
             L["FOCUS_INTEGRATION_RARE_SHOW_COORDS_DESC"],
@@ -280,7 +288,6 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             true,
             {
                 id          = "rs_coordWaypoint",
-                advanced    = true,
                 disabled    = RSDisabled,
                 visibleWhen = function()
                     return RSSubVisible() and addon.GetDB("rs_showCoords", true)
@@ -300,7 +307,6 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             false,
             {
                 id          = "rs_useTomTom",
-                advanced    = true,
                 disabled    = RSTomTomDisabled,
                 visibleWhen = RSTomTomVisible,
                 tooltip     = TomTomNotInstalledTooltip,
@@ -315,13 +321,13 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             false,
             {
                 id          = "rs_autoWaypoint",
-                advanced    = true,
                 disabled    = RSDisabled,
                 visibleWhen = RSSubVisible,
                 set         = function(v) setDB("rs_autoWaypoint", v) end,
             }
         ),
 
+        Section(L["FOCUS_INTEGRATION_RARESCANNER"], { visibleWhen = RareScannerIntegrationLoaded, page = "integrations", card = "rareScanner" }),
         Toggle(
             L["FOCUS_INTEGRATION_RARE_SHOW_SEEN_AGO"],
             L["FOCUS_INTEGRATION_RARE_SHOW_SEEN_AGO_DESC"],
@@ -329,7 +335,6 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             true,
             {
                 id          = "rs_showSeenAgo",
-                advanced    = true,
                 disabled    = RSDisabled,
                 visibleWhen = RSSubVisible,
                 set         = function(v)
@@ -339,6 +344,7 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             }
         ),
 
+        Section(L["FOCUS_INTEGRATION_SUB_PORTRAIT"], { visibleWhen = RareScannerIntegrationLoaded, page = "integrations", card = "rsMap" }),
         Toggle(
             L["FOCUS_INTEGRATION_RARE_SHOW_PORTRAIT"],
             L["FOCUS_INTEGRATION_RARE_SHOW_PORTRAIT_DESC"],
@@ -346,7 +352,6 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             true,
             {
                 id          = "rs_showPortrait",
-                advanced    = true,
                 disabled    = RSDisabled,
                 visibleWhen = RSSubVisible,
                 refreshIds  = { "rs_modelPosition", "rs_modelSize", "rs_modelOffsetX" },
@@ -362,7 +367,6 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             name        = L["FOCUS_INTEGRATION_RARE_MODEL_POSITION"],
             desc        = L["FOCUS_INTEGRATION_RARE_MODEL_POSITION_DESC"],
             dbKey       = "rs_modelPosition",
-            advanced    = true,
             disabled    = RSDisabled,
             visibleWhen = function() return RSSubVisible() and addon.GetDB("rs_showPortrait", true) end,
             options     = function()
@@ -381,7 +385,6 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             "rs_modelSize", 32, 128, 64,
             {
                 id          = "rs_modelSize",
-                advanced    = true,
                 disabled    = RSDisabled,
                 visibleWhen = function() return RSSubVisible() and addon.GetDB("rs_showPortrait", true) end,
                 set         = function(v) setDB("rs_modelSize", v); addon.ScheduleRefresh() end,
@@ -394,7 +397,6 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             "rs_modelOffsetX", -100, 100, 0,
             {
                 id          = "rs_modelOffsetX",
-                advanced    = true,
                 disabled    = RSDisabled,
                 visibleWhen = function() return RSSubVisible() and addon.GetDB("rs_showPortrait", true) end,
                 set         = function(v) setDB("rs_modelOffsetX", v); addon.ScheduleRefresh() end,
@@ -408,7 +410,6 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             true,
             {
                 id          = "rs_showVignetteIcon",
-                advanced    = true,
                 disabled    = RSDisabled,
                 visibleWhen = RSSubVisible,
                 set         = function(v)
@@ -418,6 +419,7 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             }
         ),
 
+        Section(L["FOCUS_INTEGRATION_SUB_LOOT"], { visibleWhen = RareScannerIntegrationLoaded, page = "integrations", card = "rareScanner" }),
         Toggle(
             L["FOCUS_INTEGRATION_RARESCANNER_SHOW_LOOT"],
             L["FOCUS_INTEGRATION_RARESCANNER_SHOW_LOOT_DESC"],
@@ -440,7 +442,6 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             name        = L["FOCUS_INTEGRATION_RARESCANNER_MIN_LOOT_QUALITY"],
             desc        = L["FOCUS_INTEGRATION_RARESCANNER_MIN_LOOT_QUALITY_DESC"],
             dbKey       = "rs_minLootQuality",
-            advanced    = true,
             disabled    = RSDisabled,
             visibleWhen = RSLootSubVisible,
             options     = function()
@@ -467,7 +468,6 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             3, 8, 6,
             {
                 id          = "rs_lootPerRow",
-                advanced    = true,
                 disabled    = RSDisabled,
                 visibleWhen = RSLootSubVisible,
                 set         = function(v)
@@ -477,6 +477,7 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             }
         ),
 
+        Section(SubCard(L["FOCUS_INTEGRATION_RARESCANNER"], L["FOCUS_INTEGRATION_CARD_ALERTS"]), { visibleWhen = RareScannerIntegrationLoaded, page = "integrations", card = "rsAlerts" }),
         Color(
             L["FOCUS_INTEGRATION_RARE_COLOR"],
             L["FOCUS_INTEGRATION_RARE_COLOR_DESC"],
@@ -484,7 +485,6 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             { 0.20, 0.85, 0.75 },
             {
                 id          = "rsColor",
-                advanced    = true,
                 disabled    = RSDisabled,
                 visibleWhen = RSSubVisible,
                 get         = function()
@@ -506,7 +506,6 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             false,
             {
                 id          = "rs_clickToTarget",
-                advanced    = true,
                 disabled    = RSDisabled,
                 visibleWhen = RSSubVisible,
                 set         = function(v) setDB("rs_clickToTarget", v) end,
@@ -520,7 +519,6 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             8, 24, 14,
             {
                 id       = "rs_navArrowSize",
-                advanced    = true,
                 disabled = RSDisabled,
                 set      = function(v)
                     setDB("rareNavArrowSize", v)
@@ -536,7 +534,6 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             1, 30, 5,
             {
                 id       = "rs_killFadeDelay",
-                advanced    = true,
                 disabled = RSDisabled,
                 set      = function(v) setDB("rs_killFadeDelay", v) end,
             }
@@ -551,7 +548,6 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             end,
             {
                 disabled    = RSDisabled,
-                advanced    = true,
                 visibleWhen = RSEnabled,
             }
         ),
@@ -559,7 +555,7 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
         -- ----------------------------------------------------------------
         -- SilverDragon — card hidden when companion bridge is absent.
         -- ----------------------------------------------------------------
-        Section(L["FOCUS_INTEGRATION_SILVERDRAGON"], { visibleWhen = SilverDragonIntegrationLoaded, page = "integrations" }),
+        Section(L["FOCUS_INTEGRATION_SILVERDRAGON"], { visibleWhen = SilverDragonIntegrationLoaded, page = "integrations", card = "silverDragon" }),
         { type = "header", name = L["FOCUS_INTEGRATION_SILVERDRAGON_COMPANION"] },
 
         Toggle(
@@ -608,7 +604,6 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             false,
             {
                 id          = "sd_sectionTitleRares",
-                advanced    = true,
                 disabled    = SDDisabled,
                 visibleWhen = SDSubVisible,
                 set         = function(v)
@@ -618,6 +613,7 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             }
         ),
 
+        Section(SubCard(L["FOCUS_INTEGRATION_SILVERDRAGON"], L["FOCUS_INTEGRATION_CARD_MAP"]), { visibleWhen = SilverDragonIntegrationLoaded, page = "integrations", card = "sdMap", subheading = L["FOCUS_INTEGRATION_SUB_WAYPOINTS"] }),
         Toggle(
             L["FOCUS_INTEGRATION_RARE_SHOW_COORDS"],
             L["FOCUS_INTEGRATION_RARE_SHOW_COORDS_DESC"],
@@ -642,7 +638,6 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             true,
             {
                 id          = "sd_coordWaypoint",
-                advanced    = true,
                 disabled    = SDDisabled,
                 visibleWhen = function()
                     return SDSubVisible() and addon.GetDB("sd_showCoords", true)
@@ -662,7 +657,6 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             false,
             {
                 id          = "sd_useTomTom",
-                advanced    = true,
                 disabled    = SDTomTomDisabled,
                 visibleWhen = SDTomTomVisible,
                 tooltip     = TomTomNotInstalledTooltip,
@@ -677,13 +671,13 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             false,
             {
                 id          = "sd_autoWaypoint",
-                advanced    = true,
                 disabled    = SDDisabled,
                 visibleWhen = SDSubVisible,
                 set         = function(v) setDB("sd_autoWaypoint", v) end,
             }
         ),
 
+        Section(L["FOCUS_INTEGRATION_SILVERDRAGON"], { visibleWhen = SilverDragonIntegrationLoaded, page = "integrations", card = "silverDragon" }),
         Toggle(
             L["FOCUS_INTEGRATION_RARE_SHOW_SEEN_AGO"],
             L["FOCUS_INTEGRATION_RARE_SHOW_SEEN_AGO_DESC"],
@@ -691,7 +685,6 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             true,
             {
                 id          = "sd_showSeenAgo",
-                advanced    = true,
                 disabled    = SDDisabled,
                 visibleWhen = SDSubVisible,
                 set         = function(v)
@@ -701,6 +694,7 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             }
         ),
 
+        Section(L["FOCUS_INTEGRATION_SUB_PORTRAIT"], { visibleWhen = SilverDragonIntegrationLoaded, page = "integrations", card = "sdMap" }),
         Toggle(
             L["FOCUS_INTEGRATION_RARE_SHOW_PORTRAIT"],
             L["FOCUS_INTEGRATION_RARE_SHOW_PORTRAIT_DESC"],
@@ -708,7 +702,6 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             true,
             {
                 id          = "sd_showPortrait",
-                advanced    = true,
                 disabled    = SDDisabled,
                 visibleWhen = SDSubVisible,
                 refreshIds  = { "sd_modelPosition", "sd_modelSize", "sd_modelOffsetX" },
@@ -724,7 +717,6 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             name        = L["FOCUS_INTEGRATION_RARE_MODEL_POSITION"],
             desc        = L["FOCUS_INTEGRATION_RARE_MODEL_POSITION_DESC"],
             dbKey       = "sd_modelPosition",
-            advanced    = true,
             disabled    = SDDisabled,
             visibleWhen = function() return SDSubVisible() and addon.GetDB("sd_showPortrait", true) end,
             options     = function()
@@ -743,7 +735,6 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             "sd_modelSize", 32, 128, 64,
             {
                 id          = "sd_modelSize",
-                advanced    = true,
                 disabled    = SDDisabled,
                 visibleWhen = function() return SDSubVisible() and addon.GetDB("sd_showPortrait", true) end,
                 set         = function(v) setDB("sd_modelSize", v); addon.ScheduleRefresh() end,
@@ -756,7 +747,6 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             "sd_modelOffsetX", -100, 100, 0,
             {
                 id          = "sd_modelOffsetX",
-                advanced    = true,
                 disabled    = SDDisabled,
                 visibleWhen = function() return SDSubVisible() and addon.GetDB("sd_showPortrait", true) end,
                 set         = function(v) setDB("sd_modelOffsetX", v); addon.ScheduleRefresh() end,
@@ -770,7 +760,6 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             true,
             {
                 id          = "sd_showVignetteIcon",
-                advanced    = true,
                 disabled    = SDDisabled,
                 visibleWhen = SDSubVisible,
                 set         = function(v)
@@ -780,6 +769,7 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             }
         ),
 
+        Section(L["FOCUS_INTEGRATION_SILVERDRAGON"], { visibleWhen = SilverDragonIntegrationLoaded, page = "integrations", card = "silverDragon", subheading = false }),
         Toggle(
             L["FOCUS_INTEGRATION_SILVERDRAGON_SHOW_RARES"],
             L["FOCUS_INTEGRATION_SILVERDRAGON_SHOW_RARES_DESC"],
@@ -812,6 +802,7 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             }
         ),
 
+        Section(SubCard(L["FOCUS_INTEGRATION_SILVERDRAGON"], L["FOCUS_INTEGRATION_CARD_ALERTS"]), { visibleWhen = SilverDragonIntegrationLoaded, page = "integrations", card = "sdAlerts" }),
         Color(
             L["FOCUS_INTEGRATION_RARE_COLOR"],
             L["FOCUS_INTEGRATION_RARE_COLOR_DESC"],
@@ -819,7 +810,6 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             { 0.78, 0.87, 1.00 },
             {
                 id          = "sdColor",
-                advanced    = true,
                 disabled    = SDDisabled,
                 visibleWhen = SDSubVisible,
                 get         = function()
@@ -841,7 +831,6 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             false,
             {
                 id          = "sd_clickToTarget",
-                advanced    = true,
                 disabled    = SDDisabled,
                 visibleWhen = SDSubVisible,
                 set         = function(v) setDB("sd_clickToTarget", v) end,
@@ -855,7 +844,6 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             8, 24, 14,
             {
                 id       = "sd_navArrowSize",
-                advanced    = true,
                 disabled = SDDisabled,
                 set      = function(v)
                     setDB("rareNavArrowSize", v)
@@ -871,7 +859,6 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             1, 30, 5,
             {
                 id       = "sd_killFadeDelay",
-                advanced    = true,
                 disabled = SDDisabled,
                 set      = function(v) setDB("sd_killFadeDelay", v) end,
             }
@@ -887,7 +874,6 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             end,
             {
                 disabled    = SDDisabled,
-                advanced    = true,
                 visibleWhen = SDEnabled,
             }
         ),

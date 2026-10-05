@@ -30,6 +30,66 @@ function addon.DashboardAccordionBuild_Init(f, p)
         return addon.Dashboard_CreateAccordionCard(parent, title, headerToggleCfg, accordionCardParams)
     end
 
+    -- A subheading inside a card: a small muted label with a faint 1px rule running from the
+    -- label to the row's right edge. It sits SUBHEADING_TOP_GAP below the row above, for about
+    -- 22px in all, and takes the same left inset as the rows (DoInstantRelayout anchors it).
+    local SUBHEADING_HEIGHT = 14
+    local SUBHEADING_TOP_GAP = 8
+    local SUBHEADING_RULE_GAP = 8
+    local SUBHEADING_RULE_MIN = 16
+    local function CreateSubheading(parent, name)
+        local WDef = addon.OptionsWidgetsDef or {}
+        local tc = WDef.TextColorSection or { 0.58, 0.64, 0.74 }
+        local rc = WDef.DividerColor or { 0.35, 0.4, 0.5, 0.25 }
+        if type(name) == "function" then name = name() end
+        local row = CreateFrame("Frame", nil, parent)
+        row:SetHeight(SUBHEADING_HEIGHT)
+        local label = MakeText(row, tostring(name or ""), (WDef.SectionSize or 11), tc[1], tc[2], tc[3], "LEFT")
+        label:SetPoint("LEFT", row, "LEFT", 0, 0)
+        if label.SetWordWrap then label:SetWordWrap(false) end
+        if label.SetNonSpaceWrap then label:SetNonSpaceWrap(false) end
+        if label.SetMaxLines then label:SetMaxLines(1) end
+        local rule
+        if row.CreateTexture then
+            rule = row:CreateTexture(nil, "ARTWORK")
+            rule:SetHeight(1)
+            rule:SetPoint("LEFT", label, "RIGHT", SUBHEADING_RULE_GAP, 0)
+            rule:SetPoint("RIGHT", row, "RIGHT", 0, 0)
+            rule:SetColorTexture(rc[1], rc[2], rc[3], rc[4] or 0.25)
+            row._rule = rule
+        end
+        -- Keep the label inside the row (truncated when it is too long), and show the rule only
+        -- while it has room to the label's right. Re-run whenever the row's size or the
+        -- dashboard font changes its width.
+        local function Fit()
+            local rowW = row:GetWidth() or 0
+            if rowW <= 0 then return end
+            local textW = (label.GetUnboundedStringWidth and label:GetUnboundedStringWidth()) or label:GetStringWidth() or 0
+            local maxW = math.max(1, rowW - SUBHEADING_RULE_GAP - SUBHEADING_RULE_MIN)
+            local w = math.min(math.ceil(textW), maxW)
+            -- Width 0 lets a label that fits size itself, so a later font change still shows it whole.
+            label:SetWidth(textW > maxW and maxW or 0)
+            if rule then rule:SetShown(rowW - w - SUBHEADING_RULE_GAP >= SUBHEADING_RULE_MIN) end
+        end
+        row:SetScript("OnSizeChanged", Fit)
+        row:SetScript("OnShow", Fit)
+        row.label = label
+        return row
+    end
+
+    -- A header row a module writes itself is a note, often a full sentence: muted text that
+    -- wraps across the row, at least NOTE_MIN_HEIGHT tall. Only the assembler's subheadings
+    -- (opt._subheading) use CreateSubheading.
+    local NOTE_MIN_HEIGHT = 20
+    local function CreateNote(parent, text)
+        local WDef = addon.OptionsWidgetsDef or {}
+        local tc = WDef.TextColorSection or { 0.58, 0.64, 0.74 }
+        if type(text) == "function" then text = text() end
+        local note = MakeText(parent, tostring(text or ""), (WDef.SectionSize or 11), tc[1], tc[2], tc[3], "LEFT")
+        if note.SetWordWrap then note:SetWordWrap(true) end
+        return note
+    end
+
     f.BuildAccordionDetail = function(moduleSubName, options)
         local currentCard = nil
         local detailOptionFrames = {}
@@ -132,17 +192,16 @@ function addon.DashboardAccordionBuild_Init(f, p)
                 if entry.visibleWhen then
                     visible = entry.visibleWhen()
                 end
-                if visible and entry.frame._repaint then entry.frame._repaint() end
                 entry.frame:SetShown(visible)
                 if visible then
                     entry.frame:SetAlpha(1)
-                    local topGap = entry.isHeader and 18 or 6
+                    local topGap = entry.isHeader and SUBHEADING_TOP_GAP or 6
                     entry.frame:ClearAllPoints()
                     local rowX = entry.indent and 50 or 30
                     entry.frame:SetPoint("TOPLEFT", card.settingsContainer, "TOPLEFT", rowX, -(yOff + topGap))
                     entry.frame:SetPoint("RIGHT", card.settingsContainer, "RIGHT", -30, 0)
                     local h = entry.frame:GetHeight() or 40
-                    if entry.isHeader and h < 20 then h = 20 end
+                    if entry.isNote and h < NOTE_MIN_HEIGHT then h = NOTE_MIN_HEIGHT end
                     yOff = yOff + h + topGap
                 end
             end
@@ -421,7 +480,7 @@ function addon.DashboardAccordionBuild_Init(f, p)
 
                 -- Store the option identifier to track its parent card (for search-jump).
                 -- moduleReloadPrompt is excluded from search results, so skip it here.
-                local optId = opt.type ~= "moduleReloadPrompt" and opt.type ~= "moreToggle" and (
+                local optId = opt.type ~= "moduleReloadPrompt" and (
                     opt.dbKey
                     or (opt.type == "presencePreview" and "presencePreview")
                     or (opt.type == "talkingHeadPreview" and "talkingHeadPreview")
@@ -562,31 +621,12 @@ function addon.DashboardAccordionBuild_Init(f, p)
                         end
                     end
                     detailOptionFrames[optId] = widget
-                elseif opt.type == "moreToggle" then
-                    local cardRef, cardId, count, getCount = currentCard, opt.cardId, opt.count, opt.getCount
-                    local Assemble = addon.OptionsAssemble
-                    local row = CreateFrame("Button", nil, currentCard.settingsContainer)
-                    row:SetHeight(24)
-                    local label = MakeText(row, "", 12, 0.44, 0.63, 0.94, "LEFT")
-                    label:SetPoint("LEFT", row, "LEFT", 0, 0)
-                    local function Paint()
-                        local open = Assemble and Assemble.IsMoreOpen(cardId)
-                        local n = getCount and getCount() or count or 0
-                        label:SetText(open and L["DASH_LESS"] or L["DASH_MORE"]:format(n))
-                    end
-                    Paint()
-                    row.Refresh = Paint
-                    -- Relayout repaints the count, since the rows it counts change with their parents.
-                    row._repaint = Paint
-                    row:SetScript("OnClick", function()
-                        if not Assemble then return end
-                        Assemble.SetMoreOpen(cardId, not Assemble.IsMoreOpen(cardId))
-                        Paint()
-                        RelayoutCard(cardRef, true)
-                    end)
-                    widget = row
                 elseif opt.type == "header" then
-                    widget = _G.OptionsWidgets_CreateSectionHeader(currentCard.settingsContainer, opt.name)
+                    if opt._subheading then
+                        widget = CreateSubheading(currentCard.settingsContainer, opt.name)
+                    else
+                        widget = CreateNote(currentCard.settingsContainer, opt.name)
+                    end
                 elseif opt.type == "button" then
                     local onClick = opt.onClick
                     if opt.refreshIds and #opt.refreshIds > 0 then
@@ -1125,13 +1165,8 @@ function addon.DashboardAccordionBuild_Init(f, p)
                     widget:Show()
                     widget._parentCard = currentCard
 
-                    local isHeader = opt.type == "header"
-                    if isHeader then
-                        if widget.SetJustifyH then widget:SetJustifyH("LEFT") end
-                        if widget.SetTextColor then
-                            widget:SetTextColor(0.58, 0.64, 0.74, 1)
-                        end
-                    end
+                    local isHeader = opt.type == "header" and opt._subheading
+                    local isNote = opt.type == "header" and not opt._subheading
 
                     -- Dependent rows sit indented under their parent with a thin accent line.
                     if opt.indent and widget.CreateTexture and not widget._indentBar then
@@ -1147,6 +1182,7 @@ function addon.DashboardAccordionBuild_Init(f, p)
                     tinsert(currentCard.widgetList, {
                         frame = widget,
                         isHeader = isHeader,
+                        isNote = isNote,
                         indent = opt.indent,
                         visibleWhen = (opt.type == "moduleReloadPrompt" and function() return addon._moduleReloadRecommended end) or opt.visibleWhen,
                     })

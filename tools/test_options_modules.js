@@ -179,7 +179,7 @@ function assemble(capsOff) {
         columns[#columns + 1] = tostring(cat.key) .. " (builder failed: " .. tostring(opts) .. ")"
       else
         -- Each card as "<name>#<settings>", where settings counts rows that are not the
-        -- card header, a More row, or the zero-height talkingHeadPreview proxy (marked "+proxy").
+        -- card header, a subheading, or the zero-height talkingHeadPreview proxy (marked "+proxy").
         local shape, cur = {}, nil
         for _, r in ipairs(opts or {}) do
           if type(r) == "table" and r.type == "columns" then columns[#columns + 1] = tostring(cat.key) end
@@ -191,7 +191,7 @@ function assemble(capsOff) {
             shape[#shape + 1] = cur
           elseif type(r) == "table" and cur and r.type == "talkingHeadPreview" then
             cur.proxy = true
-          elseif type(r) == "table" and cur and r.type ~= "moreToggle" then
+          elseif type(r) == "table" and cur and r.type ~= "header" then
             cur.n = cur.n + 1
           end
         end
@@ -212,12 +212,52 @@ function assemble(capsOff) {
       -- The alert sounds card is hidden until the feature ships, so none of its rows may be results.
       if type(o.dbKey) == "string" and o.dbKey:find("^alertsSound") then hiddenHits[#hiddenHits + 1] = o.dbKey end
     end
-    -- Layout dump for --dump: one block per card with everyday/advanced counts.
-    local dump = {}
+    -- Layout dump for --dump: one block per card, counted as visibleAtDefaults/total. A row is
+    -- visible at defaults when its condition (its own and its parent chain's) passes with the
+    -- harness's default settings. Subheadings print as "── name ──" and are not counted.
+    -- Rows still carrying the retired advanced field are listed in the advanced list.
+    local dump, advanced, oversized, misplaced = {}, {}, {}, {}
     local function rowName(r)
       local n = r.name or r.searchName or r.labelText or r.type
       if type(n) == "function" then local ok, v = pcall(n); n = ok and v or r.type end
       return tostring(n)
+    end
+    -- The keys a row answers to as a parent: its dbKey or id, and a font row's part keys.
+    local function keysOf(r)
+      local ks = {}
+      if r.dbKey then ks[#ks + 1] = r.dbKey end
+      if r.id then ks[#ks + 1] = r.id end
+      if r.type == "fontRow" and type(r.parts) == "table" then
+        for _, p in pairs(r.parts) do if type(p) == "table" and p.dbKey then ks[#ks + 1] = p.dbKey end end
+      end
+      return ks
+    end
+    -- A child row whose parent is in its card must sit after the parent, with only the parent's
+    -- other descendants (or headers) between them, so it reads as nested under that parent.
+    local function checkNesting(where, rows)
+      local at = {}
+      for i, r in ipairs(rows) do for _, k in ipairs(keysOf(r)) do if at[k] == nil then at[k] = i end end end
+      local function descends(r, p)
+        local seen = 0
+        while r and r.parent and seen < 20 do
+          if r.parent == p then return true end
+          local j = at[r.parent]
+          r = j and rows[j] or nil
+          seen = seen + 1
+        end
+        return false
+      end
+      for i, r in ipairs(rows) do
+        local j = r.parent and at[r.parent]
+        if j then
+          local ok = j < i
+          for k = j + 1, i - 1 do
+            local m = rows[k]
+            if ok and m.type ~= "header" and not descends(m, r.parent) then ok = false end
+          end
+          if not ok then misplaced[#misplaced + 1] = where .. " › " .. rowName(r) .. " (parent: " .. tostring(r.parent) .. ")" end
+        end
+      end
     end
     for _, cat in ipairs(addon.OptionCategories) do
       local ok, opts = pcall(function()
@@ -226,18 +266,30 @@ function assemble(capsOff) {
       end)
       if ok and opts then
         local mk, pk = cat.moduleKey or "axis", cat.pageKey or cat.key
-        local head, lines, ev, adv
+        local head, title, lines, shown, total, cardRows
         local function flush()
-          if head then dump[#dump + 1] = mk .. " › " .. pk .. " › " .. head .. "  (" .. ev .. "/" .. adv .. ")"
+          if head then checkNesting(mk .. " › " .. pk .. " › " .. head, cardRows) end
+          if head and total > 12 then oversized[#oversized + 1] = mk .. " › " .. pk .. " › " .. head .. " (" .. total .. ")" end
+          -- The card's display name goes between «» so the JS side can resolve it through enUS.
+          if head then dump[#dump + 1] = mk .. " › " .. pk .. " › " .. head .. "  «" .. title .. "»  (" .. shown .. "/" .. total .. ")"
             for _, l in ipairs(lines) do dump[#dump + 1] = l end end
         end
         for _, r in ipairs(opts) do
           if type(r) == "table" and r.type == "section" then
             flush()
-            head, lines, ev, adv = tostring(r.card or rowName(r)), {}, 0, 0
-          elseif type(r) == "table" and head and r.type ~= "moreToggle" then
-            if r.advanced then adv = adv + 1 else ev = ev + 1 end
-            lines[#lines + 1] = "  " .. (r.advanced and "[adv] " or "") .. (r.parent and "↳ " or "") .. rowName(r)
+            head, title, lines, shown, total, cardRows = tostring(r.card or rowName(r)), rowName(r), {}, 0, 0, {}
+          elseif type(r) == "table" and head and r.type == "header" then
+            cardRows[#cardRows + 1] = r
+            -- Assembler subheadings print as rules; a header a module wrote itself is a note.
+            lines[#lines + 1] = r._subheading and ("  ── " .. rowName(r) .. " ──") or ("  (note) " .. rowName(r))
+          elseif type(r) == "table" and head then
+            cardRows[#cardRows + 1] = r
+            total = total + 1
+            local okV, vis = true, true
+            if type(r.visibleWhen) == "function" then okV, vis = pcall(r.visibleWhen) end
+            if okV and vis then shown = shown + 1 end
+            if r.advanced then advanced[#advanced + 1] = mk .. " › " .. pk .. " › " .. head .. " › " .. rowName(r) end
+            lines[#lines + 1] = "  " .. (r.parent and "↳ " or "") .. rowName(r)
               .. (r.parent and ("  (parent: " .. tostring(r.parent) .. ")") or "")
             -- A font row lists its parts: "[font: family=<key>, size=<key>, outline=<key> (toggle)]".
             if r.type == "fontRow" and type(r.parts) == "table" then
@@ -272,6 +324,9 @@ function assemble(capsOff) {
       '"pages":{' .. table.concat(mods, ",") .. "}",
       '"missing":' .. list(missing),
       '"dump":' .. list(dump),
+      '"advanced":' .. list(advanced),
+      '"oversized":' .. list(oversized),
+      '"misplaced":' .. list(misplaced),
     }, ",") .. "}"
   `, 'collect');
   return JSON.parse(json);
@@ -299,6 +354,13 @@ function common(label, r) {
     th.join(', '));
   check(label + ': Talking Head keeps its preview proxy', th.some(c => c.endsWith('+proxy')), th.join(', '));
   if (label === 'Retail') console.log('  (Retail augment:talkingHead cards: ' + th.join(', ') + ')');
+  // Every setting shows once its card is open: no row keeps the retired advanced field, and no
+  // card holds more than 12 rows (headers excluded, a font row counts as one).
+  check(label + ': no row carries the retired advanced field', r.advanced.length === 0, r.advanced.join(', '));
+  check(label + ': no card holds more than 12 rows', r.oversized.length === 0, r.oversized.join(', '));
+  // A dependent row reads as nested only when it sits under its parent, or under another of
+  // that parent's dependents, with nothing unrelated in between.
+  check(label + ': every dependent row sits under its parent', r.misplaced.length === 0, r.misplaced.join('; '));
   if (r.missing.length) console.log('  (' + label + ' read unstubbed addon fields: ' + r.missing.join(', ') + ')');
 }
 
@@ -306,7 +368,13 @@ function common(label, r) {
 {
   const r = assemble([]);
   common('Retail', r);
-  if (process.argv.includes('--dump')) console.log(r.dump.join('\n'));
+  if (process.argv.includes('--dump')) {
+    // Card display names resolve through enUS; a name with no enUS string prints as it is.
+    const enUS = {};
+    const src = fs.readFileSync(path.join(REPO, 'locales/horizon/enUS.lua'), 'utf8');
+    for (const m of src.matchAll(/^L\["([^"]+)"\]\s*=\s*"((?:[^"\\]|\\.)*)"/gm)) enUS[m[1]] = m[2];
+    console.log(r.dump.map(l => l.replace(/«([^»]*)»/, (_, k) => '"' + (enUS[k] !== undefined ? enUS[k] : k) + '"')).join('\n'));
+  }
   for (const [mk, want] of Object.entries(EXPECTED)) {
     const got = r.pages[mk] || [];
     check('Retail: ' + mk + ' pages', JSON.stringify(got) === JSON.stringify(want), got.join(', '));

@@ -114,7 +114,7 @@ end
 -- Row types that are layout, not settings, and never appear as results.
 -- talkingHeadPreview is a zero-height refresh proxy; the preview itself is pinned above the page.
 local NOT_SEARCHABLE = {
-    section = true, header = true, moduleReloadPrompt = true, moreToggle = true, talkingHeadPreview = true,
+    section = true, header = true, moduleReloadPrompt = true, talkingHeadPreview = true,
 }
 
 local function ResolveText(v)

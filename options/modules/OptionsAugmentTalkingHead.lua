@@ -102,7 +102,6 @@ local category = {
             refreshIds = { "talkingHeadPreview" },
           },
         }, { keywords = { L["TALKING_HEAD_NAME_SIZE"], L["TALKING_HEAD_NAME_OUTLINE"] } }),
-        Section(L["TALKING_HEAD_DIALOGUE_FONT"], { page = "talkingHead" }),
         FontRow(L["TALKING_HEAD_DIALOGUE_FONT"], L["TALKING_HEAD_DIALOGUE_FONT_DESC"], {
           family = {
             dbKey = "talkingHeadTextFontPath", searchable = true,
@@ -128,6 +127,7 @@ local category = {
             refreshIds = { "talkingHeadPreview" },
           },
         }, { keywords = { L["TALKING_HEAD_DIALOGUE_SIZE"], L["TALKING_HEAD_DIALOGUE_OUTLINE"] } }),
+        Section(L["TALKING_HEAD_FRAME"], { page = "talkingHead" }),
         { type = "toggle",
           name = L["TALKING_HEAD_SHOW_PORTRAIT"], desc = L["TALKING_HEAD_SHOW_PORTRAIT_DESC"],
           dbKey = "talkingHeadShowPortrait",
@@ -142,9 +142,7 @@ local category = {
           set = function(v) setDB("talkingHeadShowPortraitBorder", v); updateTalkingHead() end,
           refreshIds = { "talkingHeadPreview" },
           parent = "talkingHeadShowPortrait",
-          advanced = true,
         },
-        Section(L["TALKING_HEAD_FRAME"], { page = "talkingHead" }),
         { type = "toggle",
           name = L["TALKING_HEAD_SHOW_BG"], desc = L["TALKING_HEAD_SHOW_BG_DESC"],
           dbKey = "talkingHeadBackground",
