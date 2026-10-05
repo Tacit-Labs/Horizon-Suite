@@ -232,16 +232,47 @@ local function LootLeftOver()
     return false
 end
 
--- Under Blizzard's gamepad UI the window runs its own auto-loot flow (it slides
--- rows out and refocuses when bags are full), and opening it from addon code
--- taints its gamepad navigation (#468). Leave the window to Blizzard there.
+-- Under Blizzard's gamepad UI, opening the window from addon code taints its
+-- gamepad navigation (#468), so RevealHeldLoot must never run there. Holding
+-- the window back is still safe: it only takes an event off the window. So in
+-- gamepad mode, hold it back only when the loot should fit in the bags, and
+-- otherwise let Blizzard open it and run its own full-bags refocus.
 local function GamepadUI()
     return addon.Platform and addon.Platform.IsGamepadUI() or false
+end
+
+-- Set when held loot left items behind in gamepad mode, so the next loot
+-- opens Blizzard's window rather than holding it back again.
+local showNextLoot = false
+
+local function LootFitsInBags()
+    local need = 0
+    for slot = 1, (GetNumLootItems() or 0) do
+        if LootSlotHasItem(slot) and GetLootSlotType(slot) == Enum.LootSlotType.Item then
+            need = need + 1
+        end
+    end
+    if need == 0 then return true end
+    local free = 0
+    for bag = 0, NUM_BAG_SLOTS do
+        local n, family = C_Container.GetContainerNumFreeSlots(bag)
+        -- Only general bags: a profession bag takes only its own kind of item.
+        if family == 0 then free = free + (n or 0) end
+    end
+    return free >= need
 end
 
 -- Open the held-back window if auto-loot left anything behind.
 local function RevealHeldLoot()
     if not (lootOpen and lootHeld) or not LootLeftOver() then return end
+    if GamepadUI() then
+        -- Refused despite the bag check (a unique item already owned, say).
+        -- Close the loot so the next try opens Blizzard's window.
+        lootHeld = false
+        showNextLoot = true
+        CloseLoot()
+        return
+    end
     local frame = _G.LootFrame
     local onEvent = frame and frame:GetScript("OnEvent")
     if not onEvent then return end
@@ -254,14 +285,19 @@ end
 
 handlers.LOOT_READY = function(autoLoot)
     -- The second LOOT_READY of a loot arrives after LOOT_OPENED; ignore it.
-    if lootOpen or GamepadUI() then return end
-    SetLootWindowOpens(not autoLoot)
+    if lootOpen then return end
+    local hold = autoLoot
+    if hold and GamepadUI() then
+        hold = not showNextLoot and LootFitsInBags()
+        showNextLoot = false
+    end
+    SetLootWindowOpens(not hold)
 end
 
 handlers.LOOT_OPENED = function(autoLoot, acquiredFromItem)
     lootOpen = true
     local frame = _G.LootFrame
-    lootHeld = autoLoot and not GamepadUI() and frame and not frame:IsEventRegistered("LOOT_OPENED") or false
+    lootHeld = autoLoot and frame and not frame:IsEventRegistered("LOOT_OPENED") or false
     if not lootHeld then return end
     heldFromItem = acquiredFromItem
     autoLootToken = autoLootToken + 1
