@@ -97,8 +97,8 @@ local FONT_ROW_PARTS = { "family", "size", "outline" }
 
 -- One row that sets a text element's font, size and outline. Each part keeps its own saved
 -- key, getter and setter; a part without a getter or setter reads and writes its key. The
--- row's dbKey is its primary key (family, else size), which the assembler and search
--- key on. The assembler also resolves a `parent` that names any part key.
+-- row's dbKey is its primary key (family, else size, else outline), which the assembler and
+-- search key on. The assembler also resolves a `parent` that names any part key.
 -- @param name string|function
 -- @param desc string|function|nil
 -- @param parts table  { family?, size?, outline? }; each { dbKey, default?, get?, set?, refreshIds?, ... }.
@@ -156,6 +156,14 @@ local function FontRowLayout(width, has)
     return { wrapped = wrapped and true or false, familyW = familyW, lines = lines }
 end
 
+-- Decimal places a step shows (0.1 gives 1, 0.05 gives 2); 0 for a step of 1 or more.
+local function StepDecimals(step)
+    if step >= 1 then return 0 end
+    local s = tostring(step)
+    local dot = s:find("%.")
+    return dot and (#s - dot) or 0
+end
+
 --- Step or clamp a font size the way the old slider did: snap to the step, then clamp.
 --- @param value number|string  Current or typed value
 --- @param delta number  -1, 0 or 1 (0 for a typed value)
@@ -173,10 +181,7 @@ local function FontRowStepSize(value, delta, min, max, step, fallback)
     v = math.floor(v / step + 0.5) * step
     v = math.max(min, math.min(max, v))
     if step < 1 then
-        local s = tostring(step)
-        local dot = s:find("%.")
-        local decimals = dot and (#s - dot) or 0
-        v = tonumber(string.format("%." .. decimals .. "f", v))
+        v = tonumber(string.format("%." .. StepDecimals(step) .. "f", v))
     end
     return v
 end
@@ -189,10 +194,7 @@ local function FontRowFormatSize(value, step)
     step = tonumber(step) or 1
     local v = tonumber(value) or 0
     if step > 0 and step < 1 then
-        local s = tostring(step)
-        local dot = s:find("%.")
-        local decimals = dot and (#s - dot) or 0
-        return string.format("%." .. decimals .. "f", v)
+        return string.format("%." .. StepDecimals(step) .. "f", v)
     end
     return tostring(math.floor(v + 0.5))
 end
@@ -405,6 +407,14 @@ local function ValuesEqual(a, b)
     return a == b
 end
 
+-- What a row's getter shows now: a packed table of its results, or nil when it errors.
+local function ShownNow(row)
+    local res = { pcall(row.get) }
+    if not res[1] then return nil end
+    table.remove(res, 1)
+    return res
+end
+
 -- What a row's getter shows when nothing is stored for key: its getter is called with
 -- addon.GetDB answering `default` for that one key, so a default kept in code (a getter's
 -- fallback, a helper such as GetCombatVisibility) is found in the row's own units. Returns a
@@ -419,17 +429,8 @@ local function ShownWithKeyCleared(row, key)
         if k == key then return d end
         return real(k, d)
     end
-    local res = { pcall(row.get) }
+    local res = ShownNow(row)
     addon.GetDB = real
-    if not res[1] then return nil end
-    table.remove(res, 1)
-    return res
-end
-
-local function ShownNow(row)
-    local res = { pcall(row.get) }
-    if not res[1] then return nil end
-    table.remove(res, 1)
     return res
 end
 

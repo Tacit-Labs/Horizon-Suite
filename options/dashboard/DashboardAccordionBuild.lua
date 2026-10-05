@@ -727,6 +727,14 @@ function addon.DashboardAccordionBuild_Init(f, p)
                     if markUpdate then markUpdate() end
                 end)
             end
+            -- A setter that also updates the marker now and looks again next frame.
+            local function withMark(setFn)
+                return function(...)
+                    setFn(...)
+                    if markUpdate then markUpdate() end
+                    markRecheck()
+                end
+            end
             -- Resolve get/set fallbacks if missing
             local g = opt.get
             local s = opt.set
@@ -771,14 +779,7 @@ function addon.DashboardAccordionBuild_Init(f, p)
                 end
             end
 
-            if markable and s then
-                local innerSet = s
-                s = function(...)
-                    innerSet(...)
-                    if markUpdate then markUpdate() end
-                    if markRecheck then markRecheck() end
-                end
-            end
+            if markable and s then s = withMark(s) end
 
             if opt.type == "section" then
                 -- Finalize previous card if any (relayout to apply visibility)
@@ -899,14 +900,7 @@ function addon.DashboardAccordionBuild_Init(f, p)
                                         RefreshLinkedTargets(ids, rowKey)
                                     end
                                 end
-                                if markable then
-                                    local innerSet = ps
-                                    ps = function(v)
-                                        innerSet(v)
-                                        if markUpdate then markUpdate() end
-                                        if markRecheck then markRecheck() end
-                                    end
-                                end
+                                if markable then ps = withMark(ps) end
                                 -- A copy: the module's part table may be shared, so it is never written.
                                 local p = {}
                                 for k, v in pairs(part) do p[k] = v end
