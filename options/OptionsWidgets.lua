@@ -79,6 +79,12 @@ local Def = {
     RowStaggerCap = 0.25,                           -- seconds: the whole card-opening sequence, at most
     RowRise = 6,                                    -- px a row rises into place as a card opens
 
+    -- Changed-from-default markers (AttachChangedMarker). The dot is the accent colour.
+    ChangedDotSize = 6,
+    ChangedDotX = 9,                                -- dot centre, left of the label (in the card padding)
+    ChangedResetSize = 12,                          -- the hover reset arrow
+    ChangedResetGap = 4,                            -- label text to the reset arrow
+
     -- Card header geometry (DashboardAccordionCard.lua).
     TitleLineFactor = 1.35,                         -- title line height as a multiple of TitleSize
     CardHeaderSwitchGap = 10,                       -- header switch to chevron
@@ -679,6 +685,7 @@ local function CreateRowText(row, labelText, description, rightInsetFn)
     row:SetHeight(EstimatedRowHeight(hasDesc))
     row._rowPadded = true
     row._desc = desc
+    row._rowLabel = label   -- AttachChangedMarker places its dot and reset arrow from it
 
     local lastW = -1
     local function Fit(force)
@@ -704,6 +711,107 @@ local function CreateRowText(row, labelText, description, rightInsetFn)
 
     return { label = label, desc = desc, hasDesc = hasDesc, Fit = Fit }
 end
+
+--- The changed-from-default marker on a settings row (row._rowLabel, set by CreateRowText and the
+--- font row). A small accent dot sits in the left gutter, centred on the label's first line,
+--- inside the card padding, so it never moves the label. While a changed row is hovered (and not
+--- disabled), a small reset arrow shows just right of the label's text; clicking it runs onReset.
+--- The caller decides what is changed and calls marker.SetChanged after every refresh.
+--- @param row Frame
+--- @param onReset function
+--- @param isDisabled function|nil
+--- @return table|nil  { SetChanged(changed), IsChanged() }; nil when the row has no label
+local function AttachChangedMarker(row, onReset, isDisabled)
+    local label = row and row._rowLabel
+    if not label then return nil end
+    if row._changedMarker then return row._changedMarker end
+
+    local dot = MakeDot(row, Def.ChangedDotSize, "OVERLAY")
+    dot:Hide()
+
+    local reset = CreateFrame("Button", nil, row)
+    reset:SetSize(Def.ChangedResetSize, Def.ChangedResetSize)
+    reset:SetFrameLevel(row:GetFrameLevel() + 10)
+    reset:Hide()
+    local vis = CreatePressVisual(reset)
+    AttachPress(reset, vis)
+    local icon = vis:CreateTexture(nil, "OVERLAY")
+    icon:SetAllPoints(vis)
+    icon:SetTexture("Interface\\Buttons\\UI-RefreshButton")
+    if icon.SetDesaturated then icon:SetDesaturated(true) end   -- so the muted and hover tints read true
+
+    local changed = false
+    local function disabled() return isDisabled and isDisabled() == true end
+    local function tintIcon(hot)
+        local c = hot and Def.TextColorHighlight or Def.TextColorMuted
+        icon:SetVertexColor(c[1], c[2], c[3], 1)
+    end
+
+    -- Read the label each time: the dashboard text size and the row's width move it.
+    local function place()
+        local midY = -(Def.LabelSize * Def.LineHeightFactor) / 2
+        dot:SetSize(Def.ChangedDotSize, Def.ChangedDotSize)
+        dot:ClearAllPoints()
+        dot:SetPoint("CENTER", label, "TOPLEFT", -Def.ChangedDotX, midY)
+        local ac = Def.AccentColor
+        dot:SetVertexColor(ac[1], ac[2], ac[3], 1)
+        local textW = label:GetStringWidth() or 0
+        local boxW = label:GetWidth() or 0
+        if boxW > 0 and textW > boxW then textW = boxW end
+        reset:ClearAllPoints()
+        reset:SetPoint("LEFT", label, "TOPLEFT", math.ceil(textW) + Def.ChangedResetGap, midY)
+    end
+
+    local function showReset()
+        if not changed or disabled() then return end
+        place()
+        tintIcon(false)
+        reset:Show()
+    end
+
+    row:HookScript("OnEnter", showReset)
+    -- The row's OnLeave also fires when the cursor moves onto one of its controls, so the arrow
+    -- hides only once the cursor has left the whole row (checked while the arrow shows).
+    reset:SetScript("OnUpdate", function(self)
+        if not row:IsMouseOver() then self:Hide() end
+    end)
+    reset:SetScript("OnEnter", function(self)
+        tintIcon(true)
+        -- Entering a child counts as leaving the row: keep the row's hover band lit.
+        if row._rowHover then row._rowHover:Show() end
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText((L and L["DASH_RESET_TO_DEFAULT"]) or "Reset to default", 1, 1, 1, 1, true)
+        GameTooltip:Show()
+    end)
+    reset:SetScript("OnLeave", function()
+        tintIcon(false)
+        GameTooltip:Hide()
+        if row._rowHover and not row:IsMouseOver() then row._rowHover:Hide() end
+    end)
+    reset:SetScript("OnClick", function()
+        if not changed or disabled() then return end
+        GameTooltip:Hide()
+        if onReset then onReset() end
+    end)
+
+    local marker = {}
+    --- @param isChanged boolean
+    function marker.SetChanged(isChanged)
+        changed = isChanged and true or false
+        dot:SetShown(changed)
+        if changed then
+            place()
+            if reset:IsShown() and disabled() then reset:Hide() end
+        else
+            reset:Hide()
+        end
+    end
+    function marker.IsChanged() return changed end
+    row._changedMarker = marker
+    return marker
+end
+_G.OptionsWidgets_AttachChangedMarker = AttachChangedMarker
+addon.OptionsWidgets_AttachChangedMarker = AttachChangedMarker
 
 -- A switch pill: a rounded TrackOff track, a rounded TrackOn fill that grows (and fades in)
 -- from the left as it turns on, and a round white thumb. pill:SetPosition(t) paints it at t
@@ -2258,6 +2366,7 @@ function _G.OptionsWidgets_CreateFontRow(parent, labelText, description, parts, 
     local desc, hasDesc = CreateRowDesc(row, description)
     desc:SetPoint("TOPLEFT", label, "BOTTOMLEFT", 0, -Def.RowDescGap)
     row._desc = desc
+    row._rowLabel = label   -- AttachChangedMarker places its dot and reset arrow from it
     row:SetHeight(math.max(M.lineH, EstimatedRowHeight(hasDesc)))
 
     local function rowDisabled()

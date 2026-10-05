@@ -74,7 +74,7 @@ end
 
 local function Toggle(name, desc, dbKey, default, opts)
     return merge({
-        type = "toggle", name = name, desc = desc, dbKey = dbKey,
+        type = "toggle", name = name, desc = desc, dbKey = dbKey, default = default,
         get = function() return getDB(dbKey, default) end,
         set = function(v) setDB(dbKey, v) end,
     }, opts)
@@ -82,7 +82,7 @@ end
 
 local function Slider(name, desc, dbKey, min, max, default, opts)
     return merge({
-        type = "slider", name = name, desc = desc, dbKey = dbKey,
+        type = "slider", name = name, desc = desc, dbKey = dbKey, default = default,
         min = min, max = max,
         get = function() return getDB(dbKey, default) end,
         set = function(v) setDB(dbKey, v) end,
@@ -309,6 +309,169 @@ local function SegmentedFits(labelWidths, available, padding)
     local space = tonumber(available)
     return (n > 0 and space ~= nil and space > 0 and width <= space) and true or false, width
 end
+
+-- ---------------------------------------------------------------------------
+-- Changed-from-default markers (Docs/Engineering/2026-10-05-dashboard-premium-polish-design.md,
+-- item 4). A row is changed when the active profile stores a value for its key and that value
+-- differs from the row's default. The helpers are pure: the stored-value reader is injected,
+-- and the live one (OptionStoredValue) reads the profile with no default fallback.
+-- ---------------------------------------------------------------------------
+
+-- Module defaults tables, searched in this order; Axis (suite-wide keys) comes last, as the
+-- key-ownership rule in OptionsData.lua reads them. TALKING_HEAD_DEFAULTS is an alias of
+-- AUGMENT_DEFAULTS today and is listed in case that changes.
+local DEFAULT_TABLES = {
+    "FOCUS_DEFAULTS", "VISTA_DEFAULTS", "INSIGHT_DEFAULTS", "PRESENCE_DEFAULTS", "ECHO_DEFAULTS",
+    "AUGMENT_DEFAULTS", "TALKING_HEAD_DEFAULTS", "ESSENCE_DEFAULTS", "AXIS_DEFAULTS",
+}
+local SPLIT_SUFFIXES = { "R", "G", "B", "A" }
+local COLOR_FIELDS = { r = 1, g = 2, b = 3, a = 4 }
+local NUMBER_TOLERANCE = 0.001   -- a colour channel step is about 0.004; slider steps are coarser
+
+-- Row types that carry a changed marker. Buttons, notes, subheadings, previews, lists and the
+-- colour matrices are left out.
+local MARKABLE_TYPES = { toggle = true, binary = true, slider = true, dropdown = true, color = true, fontRow = true }
+
+local function TableDefault(key)
+    for _, name in ipairs(DEFAULT_TABLES) do
+        local t = rawget(addon, name)
+        if type(t) == "table" then
+            local v = t[key]
+            if v ~= nil then return v end
+        end
+    end
+    return nil
+end
+
+--- The default for a saved key: the row's own default when it has one (a helper set it, or a
+--- font-row part carries it), else the first module defaults table that holds the key, else a
+--- colour assembled from split <key>R/G/B(/A) defaults. Nil when none is found.
+--- @param key string
+--- @param row table|nil  The row, or a font-row part, whose dbKey is key
+--- @return any
+local function OptionDefault(key, row)
+    if type(key) ~= "string" then return nil end
+    if type(row) == "table" and row.default ~= nil and (row.dbKey == nil or row.dbKey == key) then
+        return row.default
+    end
+    local v = TableDefault(key)
+    if v ~= nil then return v end
+    local r, g, b = TableDefault(key .. "R"), TableDefault(key .. "G"), TableDefault(key .. "B")
+    if r ~= nil and g ~= nil and b ~= nil then
+        return { r, g, b, TableDefault(key .. "A") }
+    end
+    return nil
+end
+
+--- Whether a row can carry a changed marker: a settings row of a markable type with a saved key.
+--- Keys starting with "_" are pseudo-keys (the Profiles page) and are never marked.
+--- @param row table
+--- @return boolean
+local function OptionMarkable(row)
+    if type(row) ~= "table" or not MARKABLE_TYPES[row.type] then return false end
+    local key = row.dbKey
+    return type(key) == "string" and key ~= "" and key:sub(1, 1) ~= "_"
+end
+
+-- A colour's channels in 1..4 order, whether it uses array or r/g/b/a fields.
+local function ColorChannels(t)
+    local out = {}
+    for k, v in pairs(t) do
+        local i = COLOR_FIELDS[k] or k
+        out[i] = v
+    end
+    return out
+end
+
+local function ValuesEqual(a, b)
+    if type(a) == "number" and type(b) == "number" then
+        return math.abs(a - b) <= NUMBER_TOLERANCE
+    end
+    if type(a) == "table" and type(b) == "table" then
+        local ca, cb = ColorChannels(a), ColorChannels(b)
+        -- A colour saved without alpha is opaque.
+        if type(ca[1]) == "number" and type(cb[1]) == "number" then
+            if ca[4] == nil then ca[4] = 1 end
+            if cb[4] == nil then cb[4] = 1 end
+        end
+        for k, v in pairs(ca) do
+            if not ValuesEqual(v, cb[k]) then return false end
+        end
+        for k in pairs(cb) do
+            if ca[k] == nil then return false end
+        end
+        return true
+    end
+    return a == b
+end
+
+-- One saved key against its default. A colour row stored as split <key>R/G/B/A keys is changed
+-- when any stored part differs from the matching part of the default.
+local function KeyChanged(key, row, getStored, isColor)
+    local def = OptionDefault(key, row)
+    if def == nil then return false end
+    local stored = getStored(key)
+    if stored ~= nil then return not ValuesEqual(stored, def) end
+    if not isColor or type(def) ~= "table" then return false end
+    local dc = ColorChannels(def)
+    for i, suffix in ipairs(SPLIT_SUFFIXES) do
+        local part = getStored(key .. suffix)
+        if part ~= nil then
+            local want = dc[i]
+            if want == nil and i == 4 then want = 1 end
+            if want == nil or not ValuesEqual(part, want) then return true end
+        end
+    end
+    return false
+end
+
+--- The value the active profile stores for key, with no default fallback (nil when unset).
+--- @param key string
+--- @return any
+local function OptionStoredValue(key)
+    if type(key) ~= "string" then return nil end
+    if addon.DATABASE and not _G[addon.DATABASE] then return nil end
+    local profile = addon.GetActiveProfile and addon.GetActiveProfile()
+    if type(profile) ~= "table" then return nil end
+    return profile[key]
+end
+
+--- Whether a row's setting is changed from its default in the active profile. A font row is
+--- changed when any of its parts is. A row with no default found is never changed.
+--- @param row table
+--- @param getStored function|nil  key -> stored value; default OptionStoredValue
+--- @return boolean
+local function OptionIsChanged(row, getStored)
+    if not OptionMarkable(row) then return false end
+    getStored = getStored or OptionStoredValue
+    if row.type == "fontRow" then
+        for _, slot in ipairs(FONT_ROW_PARTS) do
+            local part = type(row.parts) == "table" and row.parts[slot]
+            if type(part) == "table" and type(part.dbKey) == "string"
+                and KeyChanged(part.dbKey, part, getStored, false) then
+                return true
+            end
+        end
+        return false
+    end
+    return KeyChanged(row.dbKey, row, getStored, row.type == "color")
+end
+
+--- The split <key>R/G/B/A keys a colour row saves through, when the defaults tables know them.
+--- @param key string
+--- @return table  Key names (empty when the colour is saved as one table)
+local function OptionSplitColorKeys(key)
+    local out = {}
+    if type(key) ~= "string" or TableDefault(key .. "R") == nil then return out end
+    for _, suffix in ipairs(SPLIT_SUFFIXES) do out[#out + 1] = key .. suffix end
+    return out
+end
+
+addon.OptionDefault                    = OptionDefault
+addon.OptionMarkable                   = OptionMarkable
+addon.OptionIsChanged                  = OptionIsChanged
+addon.OptionStoredValue                = OptionStoredValue
+addon.OptionSplitColorKeys             = OptionSplitColorKeys
 
 addon.CardRowSpacing                   = CardRowSpacing
 addon.SettingsRowHeight                = SettingsRowHeight

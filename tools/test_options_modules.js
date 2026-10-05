@@ -320,6 +320,53 @@ function assemble(capsOff) {
         flush()
       end
     end
+    -- Changed-marker coverage for --dump: per module, the rows that can carry a marker
+    -- (addon.OptionMarkable) and how many of them resolve a default (addon.OptionDefault; a
+    -- font row only when every part does). Rows without one never show a marker.
+    local cover, unresolved, mismatched = {}, {}, {}
+    local OM, OD = addon.OptionMarkable, addon.OptionDefault
+    if OM and OD then
+      for _, cat in ipairs(addon.OptionCategories) do
+        local ok, opts = pcall(function()
+          if type(cat.options) == "function" then return cat.options() end
+          return cat.options
+        end)
+        local mk = cat.moduleKey or "axis"
+        for _, r in ipairs(ok and opts or {}) do
+          if type(r) == "table" and OM(r) then
+            local c = cover[mk] or { n = 0, ok = 0 }
+            cover[mk] = c
+            c.n = c.n + 1
+            local good = true
+            if r.type == "fontRow" then
+              for _, part in pairs(r.parts or {}) do
+                if type(part) == "table" and part.dbKey and OD(part.dbKey, part) == nil then good = false end
+              end
+            else
+              good = OD(r.dbKey, r) ~= nil
+            end
+            if good then c.ok = c.ok + 1 else unresolved[#unresolved + 1] = mk .. " › " .. tostring(r.dbKey) end
+            -- A row default that disagrees with its module table: the row shows one default and
+            -- the stored value is judged against it, so a mismatch is worth a look.
+            if r.type ~= "fontRow" and r.default ~= nil and type(r.default) ~= "table" then
+              local td
+              for _, name in ipairs({ "FOCUS_DEFAULTS", "VISTA_DEFAULTS", "INSIGHT_DEFAULTS", "PRESENCE_DEFAULTS",
+                  "ECHO_DEFAULTS", "AUGMENT_DEFAULTS", "ESSENCE_DEFAULTS", "AXIS_DEFAULTS" }) do
+                local t = rawget(addon, name)
+                if td == nil and type(t) == "table" then td = t[r.dbKey] end
+              end
+              if td ~= nil and td ~= r.default then
+                mismatched[#mismatched + 1] = mk .. " › " .. tostring(r.dbKey) .. " (row " .. tostring(r.default) .. ", table " .. tostring(td) .. ")"
+              end
+            end
+          end
+        end
+      end
+    end
+    local coverage = {}
+    for mk, c in pairs(cover) do coverage[#coverage + 1] = q(mk .. " " .. c.ok .. "/" .. c.n) end
+    table.sort(coverage)
+    table.sort(unresolved)
     local mods = {}
     for mk, keys in pairs(pages) do mods[#mods + 1] = q(mk) .. ":" .. list(keys) end
     local missing = {}
@@ -340,6 +387,9 @@ function assemble(capsOff) {
       '"advanced":' .. list(advanced),
       '"oversized":' .. list(oversized),
       '"misplaced":' .. list(misplaced),
+      '"coverage":' .. "[" .. table.concat(coverage, ",") .. "]",
+      '"unresolved":' .. list(unresolved),
+      '"mismatched":' .. list(mismatched),
     }, ",") .. "}"
   `, 'collect');
   return JSON.parse(json);
@@ -392,6 +442,12 @@ function common(label, r) {
     for (const mk of r.segRows || []) segCounts[mk] = (segCounts[mk] || 0) + 1;
     console.log('[seg] rows by module: ' + (Object.entries(segCounts).map(([k, v]) => k + ' ' + v).join(', ') || 'none')
       + ' (total ' + (r.segRows || []).length + ')');
+    // Changed-marker coverage: markable rows that resolve a default, per module.
+    console.log('Changed-marker coverage (rows with a default / markable rows): '
+      + ((r.coverage || []).map(c => c.replace(/ (\d+)\/(\d+)$/, (_, a, b) => ' ' + a + '/' + b
+        + ' (' + Math.round(100 * a / b) + '%)')).join(', ') || 'none'));
+    if ((r.unresolved || []).length) console.log('  no default: ' + r.unresolved.join(', '));
+    if ((r.mismatched || []).length) console.log('  row default differs from its table: ' + r.mismatched.join(', '));
   }
   for (const [mk, want] of Object.entries(EXPECTED)) {
     const got = r.pages[mk] || [];

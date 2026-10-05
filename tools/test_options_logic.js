@@ -1205,6 +1205,133 @@ run(`
   end
 `, 'row-stagger');
 
+// --- Changed-from-default markers: where a default comes from, and what counts as changed ---
+run(`
+  local H = HorizonSuite
+  local OD, OC, OM = H.OptionDefault, H.OptionIsChanged, H.OptionMarkable
+  check("OptionDefault exists", type(OD) == "function", type(OD))
+  check("OptionIsChanged exists", type(OC) == "function", type(OC))
+  check("OptionMarkable exists", type(OM) == "function", type(OM))
+  check("OptionStoredValue exists", type(H.OptionStoredValue) == "function", type(H.OptionStoredValue))
+  if type(OD) == "function" and type(OC) == "function" and type(OM) == "function" then
+    H.FOCUS_DEFAULTS = { focusSize = 12, focusOn = true, focusColor = { 0.2, 0.4, 0.6 },
+      bgColorR = 0.1, bgColorG = 0.2, bgColorB = 0.3, bgColorA = 0.8,
+      fontFam = "__global__", fontSz = 12, fontOut = "OUTLINE", shared = "focus" }
+    H.AXIS_DEFAULTS = { axisMode = "a", shared = "axis" }
+    H.AUGMENT_DEFAULTS = { augOnly = 5 }
+    local STORE = {}
+    local get = function(k) return STORE[k] end
+
+    -- Where the default comes from.
+    check("default: the row's own default wins", OD("focusSize", { dbKey = "focusSize", default = 20 }) == 20)
+    check("default: a false row default is a default", OD("focusOn", { dbKey = "focusOn", default = false }) == false)
+    check("default: else the module table", OD("focusSize", { dbKey = "focusSize" }) == 12)
+    check("default: no row needed", OD("axisMode") == "a")
+    check("default: a module table before Axis", OD("shared") == "focus")
+    check("default: the augment table", OD("augOnly") == 5)
+    check("default: unknown key is nil", OD("nope") == nil)
+    check("default: a non-string key is nil", OD(nil) == nil and OD(5) == nil)
+    local split = OD("bgColor", { type = "color", dbKey = "bgColor" })
+    check("default: split R/G/B/A keys make a colour", type(split) == "table" and split[1] == 0.1
+      and split[2] == 0.2 and split[3] == 0.3 and split[4] == 0.8, split)
+    check("default: a lone R key is no colour", OD("loneColor") == nil)
+
+    -- Which rows can carry a marker.
+    check("markable: toggle with a key", OM({ type = "toggle", dbKey = "focusOn" }))
+    check("markable: slider, dropdown, colour, font row", OM({ type = "slider", dbKey = "a" })
+      and OM({ type = "dropdown", dbKey = "a" }) and OM({ type = "color", dbKey = "a" })
+      and OM({ type = "fontRow", dbKey = "a", parts = {} }))
+    check("not markable: no dbKey", not OM({ type = "toggle" }))
+    check("not markable: buttons, notes, previews, lists",
+      not OM({ type = "button", dbKey = "a" }) and not OM({ type = "header", dbKey = "a" })
+      and not OM({ type = "presencePreview", dbKey = "a" }) and not OM({ type = "reorderList", dbKey = "a" })
+      and not OM({ type = "blacklistGrid", dbKey = "a" }) and not OM({ type = "colorMatrix", dbKey = "a" })
+      and not OM({ type = "colorMatrixFull", dbKey = "a" }) and not OM({ type = "section", dbKey = "a" }))
+    check("not markable: Profiles page rows", not OM({ type = "dropdown", dbKey = "_profiles_current" }))
+
+    -- What counts as changed.
+    local tog = { type = "toggle", dbKey = "focusOn" }
+    check("changed: stored nil is not changed", OC(tog, get) == false)
+    STORE.focusOn = true
+    check("changed: stored equal to the default is not changed", OC(tog, get) == false)
+    STORE.focusOn = false
+    check("changed: stored false against a true default", OC(tog, get) == true)
+    local sl = { type = "slider", dbKey = "focusSize" }
+    STORE.focusSize = 12.00001
+    check("changed: numbers within tolerance are not changed", OC(sl, get) == false)
+    STORE.focusSize = 12.5
+    check("changed: a number past tolerance", OC(sl, get) == true)
+    STORE.focusSize = "12"
+    check("changed: a string against a number default", OC(sl, get) == true)
+    local unk = { type = "toggle", dbKey = "nope" }
+    STORE.nope = true
+    check("changed: no default, no marker", OC(unk, get) == false)
+    check("changed: an unmarkable row never is", OC({ type = "button", dbKey = "focusOn" }, function() return false end) == false)
+
+    local col = { type = "color", dbKey = "focusColor" }
+    STORE.focusColor = { 0.2, 0.4, 0.6 }
+    check("colour: equal field by field", OC(col, get) == false)
+    STORE.focusColor = { 0.2, 0.4, 0.61 }
+    check("colour: one field differs", OC(col, get) == true)
+    STORE.focusColor = { r = 0.2, g = 0.4, b = 0.6 }
+    check("colour: r/g/b fields match 1/2/3", OC(col, get) == false)
+    STORE.focusColor = { 0.2, 0.4, 0.6, 1 }
+    check("colour: an opaque alpha matches no alpha", OC(col, get) == false)
+    STORE.focusColor = { 0.2, 0.4, 0.6, 0.5 }
+    check("colour: a real alpha differs", OC(col, get) == true)
+    STORE.focusColor = nil
+
+    local sc = { type = "color", dbKey = "bgColor", hasAlpha = true }
+    check("split colour: nothing stored", OC(sc, get) == false)
+    STORE.bgColorR, STORE.bgColorG, STORE.bgColorB = 0.1, 0.2, 0.3
+    check("split colour: stored at the defaults", OC(sc, get) == false)
+    STORE.bgColorG = 0.9
+    check("split colour: one part changed", OC(sc, get) == true)
+    STORE.bgColorG = 0.2
+    STORE.bgColorA = 0.5
+    check("split colour: alpha changed", OC(sc, get) == true)
+    STORE.bgColorR, STORE.bgColorG, STORE.bgColorB, STORE.bgColorA = nil, nil, nil, nil
+    local scRow = { type = "color", dbKey = "bgColor", default = { 0.1, 0.2, 0.3 } }
+    STORE.bgColorR = 0.5
+    check("split colour: the row's default table is used", OC(scRow, get) == true)
+    STORE.bgColorR = nil
+
+    local fr = { type = "fontRow", dbKey = "fontFam", parts = {
+      family = { dbKey = "fontFam" }, size = { dbKey = "fontSz", default = 14 }, outline = { dbKey = "fontOut" } } }
+    check("font row: nothing stored", OC(fr, get) == false)
+    STORE.fontFam = "__global__"
+    STORE.fontSz = 14
+    check("font row: parts at their defaults (a part's own default wins)", OC(fr, get) == false)
+    STORE.fontOut = ""
+    check("font row: changed when one part is", OC(fr, get) == true)
+    STORE.fontOut = nil
+    STORE.fontSz = 12
+    check("font row: the size part against its own default", OC(fr, get) == true)
+
+    -- Split colour keys a reset must clear.
+    local sk = H.OptionSplitColorKeys and H.OptionSplitColorKeys("bgColor") or {}
+    check("split keys: R/G/B/A of a split colour", table.concat(sk, ",") == "bgColorR,bgColorG,bgColorB,bgColorA",
+      table.concat(sk, ","))
+    check("split keys: none for a table colour", #(H.OptionSplitColorKeys and H.OptionSplitColorKeys("focusColor") or { 1 }) == 0)
+
+    -- The helpers put their default on the row, so the row's default is the one it shows.
+    check("Toggle carries its default", H.Toggle("n", "d", "focusOn", false).default == false)
+    check("Slider carries its default", H.Slider("n", "d", "focusSize", 1, 30, 14).default == 14)
+    check("Color carries its default", type(H.Color("n", "d", "focusColor", { 1, 1, 1 }).default) == "table")
+
+    -- The live reader: the active profile's value, with no default fallback.
+    local oldGAP = H.GetActiveProfile
+    H.GetActiveProfile = function() return { focusOn = false } end
+    check("stored: reads the active profile", H.OptionStoredValue("focusOn") == false)
+    check("stored: unset is nil, not the default", H.OptionStoredValue("focusSize") == nil)
+    check("live getter: a stored false against a true default is changed", OC(tog) == true)
+    H.GetActiveProfile = oldGAP
+
+    STORE = {}
+    H.FOCUS_DEFAULTS, H.AXIS_DEFAULTS, H.AUGMENT_DEFAULTS = nil, nil, nil
+  end
+`, 'changed-markers');
+
 // --- Summary -----------------------------------------------------------------------
 run(`
   REAL_PRINT(PASS .. " passed, " .. FAIL .. " failed")

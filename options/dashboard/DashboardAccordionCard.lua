@@ -89,6 +89,15 @@ function addon.Dashboard_CreateAccordionCard(parent, title, headerToggleCfg, p, 
     if lbl.SetWordWrap then lbl:SetWordWrap(false) end
     if lbl.SetMaxLines then lbl:SetMaxLines(1) end
 
+    -- "N changed": a muted count of the card's rows changed from their default, after the title
+    -- and ahead of the description. Hidden at 0; DashboardAccordionBuild calls SetChangedCount.
+    local changedFs = MakeText(card, "", helpBase, mutedColor[1], mutedColor[2], mutedColor[3], "LEFT")
+    changedFs:SetPoint("LEFT", lbl, "RIGHT", descGap, 0)
+    if changedFs.SetWordWrap then changedFs:SetWordWrap(false) end
+    if changedFs.SetMaxLines then changedFs:SetMaxLines(1) end
+    changedFs:Hide()
+    local changedCount = 0
+
     -- Optional muted description on the title's line.
     if type(desc) == "function" then desc = desc() end
     local descFs
@@ -101,6 +110,7 @@ function addon.Dashboard_CreateAccordionCard(parent, title, headerToggleCfg, p, 
     end
     card.titleText = lbl
     card.descText = descFs
+    card.changedText = changedFs
 
     -- Chevron at the right: two thin bars, "v" when open and ">" when closed.
     local chevron = CreateFrame("Frame", nil, card)
@@ -226,16 +236,28 @@ function addon.Dashboard_CreateAccordionCard(parent, title, headerToggleCfg, p, 
         if not force and math.abs(w - lastFitW) < 0.5 then return end
         lastFitW = w
         local avail = math.max(1, w - pad - rightReserve - descGap)
+        -- The changed count is short and comes first: it keeps its width and the title gives way.
+        local countW = 0
+        if changedCount > 0 then
+            changedFs:SetWidth(0)
+            countW = math.ceil(TextWidth(changedFs)) + descGap
+        end
+        local titleAvail = math.max(1, avail - countW)
         local titleW = TextWidth(lbl)
-        if titleW > avail then
-            lbl:SetWidth(avail)
+        changedFs:SetShown(changedCount > 0)
+        if descFs then
+            descFs:ClearAllPoints()
+            descFs:SetPoint("LEFT", changedCount > 0 and changedFs or lbl, "RIGHT", descGap, 0)
+        end
+        if titleW > titleAvail then
+            lbl:SetWidth(titleAvail)
             if descFs then descFs:Hide() end
             return
         end
         -- Width 0 lets a title that fits size itself, so a later font change still shows it whole.
         lbl:SetWidth(0)
         if descFs then
-            local room = avail - math.ceil(titleW) - descGap
+            local room = avail - math.ceil(titleW) - countW - descGap
             if room < WDef.CardDescMinWidth then
                 descFs:Hide()
             else
@@ -245,6 +267,21 @@ function addon.Dashboard_CreateAccordionCard(parent, title, headerToggleCfg, p, 
         end
     end
     card.FitHeader = function() FitHeader(true) end
+
+    --- Show "N changed" after the title (hidden at 0) and refit the header.
+    --- @param n number
+    function card.SetChangedCount(n)
+        n = math.max(0, math.floor(tonumber(n) or 0))
+        if n == changedCount then return end
+        changedCount = n
+        if n > 0 then
+            local fmt = (addon.L and addon.L["DASH_N_CHANGED"]) or "%d changed"
+            changedFs:SetText(string.format(fmt, n))
+        else
+            changedFs:SetText("")
+        end
+        FitHeader(true)
+    end
     if card.HookScript then
         card:HookScript("OnSizeChanged", function() FitHeader(false) end)
     end

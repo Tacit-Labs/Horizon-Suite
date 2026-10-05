@@ -306,6 +306,19 @@ function addon.DashboardAccordionBuild_Init(f, p)
             card.StopRowStagger = function() FinishRowStagger(card) end
         end
 
+        -- "N changed" in the card header: the rows shown in the card whose marker is lit
+        -- (frame._hsChanged, set by the row's marker update below). Runs after every marker
+        -- update and every relayout, so a row a condition hides drops out of the count.
+        local function UpdateCardChangedCount(card)
+            if not (card and card.SetChangedCount and card.widgetList) then return end
+            local n = 0
+            for _, entry in ipairs(card.widgetList) do
+                local fr = entry.frame
+                if fr and fr._hsChanged and fr:IsShown() then n = n + 1 end
+            end
+            card.SetChangedCount(n)
+        end
+
         -- Restack the card's visible entries. Spacing and hairlines come from
         -- addon.CardRowSpacing, decided from the visible order each time, so a row that hides
         -- or shows moves the hairlines with it. restackOnly positions the entries and works out
@@ -368,6 +381,7 @@ function addon.DashboardAccordionBuild_Init(f, p)
             end
             card.contentHeight = yOff
             card.fullHeight = yOff + card.chromeHeight
+            UpdateCardChangedCount(card)
             card._inRelayout = nil
             -- A row that changed height while this pass read the heights: stack once more.
             if card._relayoutPending then
@@ -618,7 +632,61 @@ function addon.DashboardAccordionBuild_Init(f, p)
             RelayoutCard(card, false)
         end
 
+        -- Reset a changed row to its default (the reset arrow). The stored value is cleared
+        -- first, so the row's own getter reads the default in the units its setter takes (some
+        -- rows show 0-100 for a 0-1 value); the row's setter then runs with it, so the module's
+        -- apply code sees exactly what a player choosing the default would cause; then the
+        -- stored value is cleared again, so the setting follows the default from now on. A
+        -- colour takes its default straight from the row or the defaults tables, and split
+        -- R/G/B/A keys are cleared with it. A font row resets every part.
+        local function ResetRowToDefault(opt, g, s, fontParts, widget)
+            local SetDB = addon.SetDB
+            if not SetDB then return end
+            if opt.type == "fontRow" then
+                for _, slot in ipairs(addon.FONT_ROW_PARTS or { "family", "size", "outline" }) do
+                    local part = fontParts and fontParts[slot]
+                    if part and part.dbKey and part.get and part.set then
+                        SetDB(part.dbKey, nil)
+                        part.set(part.get())
+                        SetDB(part.dbKey, nil)
+                    end
+                end
+            else
+                local keys = { opt.dbKey }
+                if opt.type == "color" and addon.OptionSplitColorKeys then
+                    for _, k in ipairs(addon.OptionSplitColorKeys(opt.dbKey)) do keys[#keys + 1] = k end
+                end
+                local function clear() for _, k in ipairs(keys) do SetDB(k, nil) end end
+                clear()
+                if s then
+                    if opt.type == "color" then
+                        local def = addon.OptionDefault and addon.OptionDefault(opt.dbKey, opt)
+                        if type(def) == "table" then
+                            s(def[1] or def.r or 1, def[2] or def.g or 1, def[3] or def.b or 1, def[4] or def.a or 1)
+                        elseif g then
+                            s(g())
+                        end
+                    else
+                        -- A row with no getter of its own reads nil once cleared: use the default.
+                        local v = g and g()
+                        if v == nil and addon.OptionDefault then v = addon.OptionDefault(opt.dbKey, opt) end
+                        if v ~= nil then s(v) end
+                    end
+                end
+                clear()
+            end
+            if widget and widget.Refresh then widget:Refresh() end
+            RefreshLinkedTargets(opt.refreshIds)
+            if addon.OptionsData_NotifyMainAddon then addon.OptionsData_NotifyMainAddon() end
+        end
+
         for _, opt in ipairs(options) do
+            -- Changed-from-default marker (addon.OptionMarkable rows). markUpdate is set once the
+            -- row's marker exists; the setters below call it, so a player's change updates the dot
+            -- and the card count even when the row does not Refresh itself.
+            local markable = addon.OptionMarkable and addon.OptionMarkable(opt) or false
+            local markUpdate
+            local fontParts
             -- Resolve get/set fallbacks if missing
             local g = opt.get
             local s = opt.set
@@ -660,6 +728,14 @@ function addon.DashboardAccordionBuild_Init(f, p)
                         origSet(v)
                         RefreshLinkedTargets(opt.refreshIds, skipKey)
                     end
+                end
+            end
+
+            if markable and s then
+                local innerSet = s
+                s = function(...)
+                    innerSet(...)
+                    if markUpdate then markUpdate() end
                 end
             end
 
@@ -782,6 +858,13 @@ function addon.DashboardAccordionBuild_Init(f, p)
                                         RefreshLinkedTargets(ids, rowKey)
                                     end
                                 end
+                                if markable then
+                                    local innerSet = ps
+                                    ps = function(v)
+                                        innerSet(v)
+                                        if markUpdate then markUpdate() end
+                                    end
+                                end
                                 -- A copy: the module's part table may be shared, so it is never written.
                                 local p = {}
                                 for k, v in pairs(part) do p[k] = v end
@@ -791,6 +874,7 @@ function addon.DashboardAccordionBuild_Init(f, p)
                             end
                         end
                     end
+                    fontParts = parts
                     local rowDisabled = opt.disabled
                     if type(rowDisabled) ~= "function" then
                         local always = rowDisabled == true
@@ -1448,6 +1532,37 @@ function addon.DashboardAccordionBuild_Init(f, p)
                         visibleWhen = (opt.type == "moduleReloadPrompt" and function() return addon._moduleReloadRecommended end) or opt.visibleWhen,
                     })
 
+                    -- The changed marker: a dot in the gutter and a reset arrow on hover
+                    -- (OptionsWidgets AttachChangedMarker). It updates after every Refresh of the
+                    -- row and every set, and keeps the card's "N changed" in step.
+                    if markable and widget._rowLabel and _G.OptionsWidgets_AttachChangedMarker
+                        and addon.OptionIsChanged then
+                        local cardRef, rowWidget, rowG, rowS, rowParts = currentCard, widget, g, s, fontParts
+                        local function disabledNow()
+                            local d = opt.disabled
+                            if type(d) == "function" then return d() == true end
+                            return d == true
+                        end
+                        local marker = _G.OptionsWidgets_AttachChangedMarker(widget, function()
+                            ResetRowToDefault(opt, rowG, rowS, rowParts, rowWidget)
+                        end, disabledNow)
+                        if marker then
+                            markUpdate = function()
+                                local changed = addon.OptionIsChanged(opt) and true or false
+                                marker.SetChanged(changed)
+                                rowWidget._hsChanged = changed
+                                UpdateCardChangedCount(cardRef)
+                            end
+                            rowWidget._hsMarkUpdate = markUpdate
+                            local origRefresh = widget.Refresh
+                            widget.Refresh = function(self, ...)
+                                if origRefresh then origRefresh(self, ...) end
+                                markUpdate()
+                            end
+                            markUpdate()
+                        end
+                    end
+
                     if opt.visibleWhen and type(opt.visibleWhen) == "function" and widget.Refresh then
                         local origRefresh = widget.Refresh
                         local cardRef = currentCard
@@ -1504,6 +1619,11 @@ function addon.DashboardAccordionBuild_Init(f, p)
                 detailContent:SetWidth(newW)
             end
             for _, card in ipairs(currentDetailCards) do
+                -- A profile switch (OnActiveProfileChangedDeferred -> Dashboard_Refresh) lands
+                -- here: re-read every marker before the relayout recounts the card.
+                for _, entry in ipairs(card.widgetList or {}) do
+                    if entry.frame and entry.frame._hsMarkUpdate then entry.frame._hsMarkUpdate() end
+                end
                 RelayoutCard(card)
             end
             UpdateDetailLayout()
