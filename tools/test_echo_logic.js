@@ -4575,14 +4575,21 @@ run(`
   check("officer toggle hidden with history off", keys.echoSaveOfficer.visibleWhen() == false, "shown")
   A.OptionsData_SetDB("echoSaveHistory", nil)
   local combat = keys.echoCombatLog
-  check("combat log choice shown by default, with hiding on", combat and combat.visibleWhen
-      and combat.visibleWhen() == true, "hidden")
+  check("combat log choice always shown", combat and combat.visibleWhen == nil, "conditional")
+  local routeSection, combatSection
+  for _, opt in ipairs(cat.options) do
+    if opt.type == "section" then routeSection = opt.name end
+    if opt == combat then combatSection = routeSection; break end
+  end
+  check("combat log choice sits with the chat routes", combatSection == A.L["ECHO_SECTION_ROUTES"], tostring(combatSection))
   A.OptionsData_SetDB("echoHideBlizzardChat", false)
-  check("combat log choice hidden while Blizzard chat shows", combat and combat.visibleWhen
-      and combat.visibleWhen() == false, "shown")
-  A.OptionsData_SetDB("echoHideBlizzardChat", true)
-  check("combat log choice shown while hiding", combat and combat.visibleWhen
-      and combat.visibleWhen() == true, "hidden")
+  check("combat log stays in Blizzard's tab by default while Blizzard chat shows", combat.get() == "blizzard", tostring(combat.get()))
+  A.OptionsData_SetDB("echoKeepCombatLog", false)
+  check("the old keep-the-combat-log setting only applied while hiding", combat.get() == "blizzard", tostring(combat.get()))
+  A.OptionsData_SetDB("echoKeepCombatLog", nil)
+  A.OptionsData_SetDB("echoCombatLog", "echo")
+  check("a combat log choice holds while Blizzard chat shows", combat.get() == "echo", tostring(combat.get()))
+  A.OptionsData_SetDB("echoCombatLog", nil)
   A.OptionsData_SetDB("echoHideBlizzardChat", nil)
   local combatValues = {}
   for _, o in ipairs(combat and combat.options or {}) do combatValues[#combatValues + 1] = o[2] end
@@ -9614,6 +9621,137 @@ run(`
   CombatLogQuickButtonFrame_Custom = nil
   S.Reset()
 `, 'echo-combat-log');
+
+// --- Combat log with Blizzard's chat shown ------------------------------------------------
+run(`
+  local A, Echo = HorizonSuite, HorizonSuite.Echo
+  local S, HC, CL = Echo.Store, Echo.HideChat, Echo.CombatLog
+  local saved = { hook = hooksecurefunc, frames = CHAT_FRAMES, create = CreateFrame, getDB = A.GetDB,
+    setDB = A.SetDB, defaults = A.ECHO_DEFAULTS, combat = InCombatLockdown, after = C_Timer.After,
+    util = C_EventUtils, cvar = C_CVar, logged = IsLoggedIn, refresh = A.Dashboard_Refresh,
+    flag = A._moduleReloadRecommended, group = ChatTypeGroup }
+  ChatTypeGroup = {}
+  local db = {}
+  A.GetDB = function(k, d) if db[k] ~= nil then return db[k] end return d end
+  A.SetDB = function(k, v) db[k] = v end
+  A.ECHO_DEFAULTS = { echoHideBlizzardChat = false, echoCombatLog = "echo", echoDockInput = true, echoAllView = true }
+  hooksecurefunc = function(t, name, fn)
+    if type(t) == "string" then
+      local orig = _G[t]
+      _G[t] = function(...) local r = orig(...); name(...); return r end
+      return
+    end
+    local orig = t[name]
+    t[name] = function(...) orig(...); fn(...) end
+  end
+  CreateFrame = function(...)
+    local f = STUB_CREATE_FRAME(...)
+    f.events = {}
+    f.RegisterEvent = function(self, e) self.events[e] = true end
+    f.UnregisterEvent = function(self, e) self.events[e] = nil end
+    f.UnregisterAllEvents = function(self) self.events = {} end
+    f.SetParent = function(self, p) self.parent = p end
+    f.GetParent = function(self) return self.parent end
+    return f
+  end
+  local function Reparentable(t)
+    t.parent = UIParent
+    function t:SetParent(p) self.parent = p end
+    function t:GetParent() return self.parent end
+    return t
+  end
+  local function Window(name)
+    local w = Reparentable({ name = name, shown = false, points = {},
+      events = { CHAT_MSG_SAY = true, UPDATE_CHAT_COLOR = true } })
+    function w:RegisterEvent(e) self.events[e] = true end
+    function w:UnregisterEvent(e) self.events[e] = nil end
+    function w:UnregisterAllEvents() self.events = {} end
+    function w:ClearAllPoints() self.points = {} end
+    function w:SetPoint(...) self.points[#self.points + 1] = { ... } end
+    function w:SetAllPoints(t) self.points = { { "ALL", t } } end
+    function w:Show() self.shown = true end
+    function w:Hide() self.shown = false end
+    function w:IsShown() return self.shown end
+    function w:SetFrameStrata(v) self.strata = v end
+    function w:SetFrameLevel(v) self.level = v end
+    _G[name] = w
+    local tab = Reparentable({})
+    _G[name .. "Tab"] = tab
+    return w, tab
+  end
+  CHAT_FRAMES = { "ChatFrame1", "ChatFrame2" }
+  C_EventUtils = { IsEventValid = function() return true end }
+  local cvars = { whisperMode = "inline" }
+  C_CVar = { GetCVar = function(n) return cvars[n] end, SetCVar = function(n, v) cvars[n] = v end }
+  local inCombat = false
+  InCombatLockdown = function() return inCombat end
+  local timers = {}
+  C_Timer.After = function(_, fn) timers[#timers + 1] = fn end
+  local function RunTimers() local t = timers; timers = {}; for _, fn in ipairs(t) do fn() end end
+  IsLoggedIn = function() return true end
+  A.Dashboard_Refresh = function() end
+  local function Fresh()
+    HC.Disable()
+    HC._reset()
+    S.Reset()
+    timers = {}
+    A._moduleReloadRecommended = nil
+    local cf1, tab1 = Window("ChatFrame1")
+    local cf2, tab2 = Window("ChatFrame2")
+    cf2.ScrollBar = { GetWidth = function() return 16 end }
+    cf2.buttonFrame = Reparentable({})
+    HC.Enable()
+    return cf1, tab1, cf2, tab2
+  end
+
+  -- Left in Blizzard's tab: nothing moves, nothing is even scheduled.
+  local cf1, tab1, cf2, tab2 = Fresh()
+  check("shown: an unset combat log stays in Blizzard's tab", CL.Mode() == "blizzard", CL.Mode())
+  HC.Refresh()
+  check("shown: nothing to schedule", #timers == 0, #timers)
+  check("shown: the combat log is left alone", cf2.parent == UIParent and tab2.parent == UIParent, tostring(cf2.parent))
+
+  -- Echo only: the combat log moves into Echo; the other windows stay.
+  db.echoCombatLog = "echo"
+  cf1, tab1, cf2, tab2 = Fresh()
+  inCombat = true
+  HC.Refresh()
+  RunTimers()
+  check("shown: not in combat", not CL.IsHosted(), "hosted in combat")
+  inCombat = false
+  HC._frame().scripts.OnEvent(HC._frame(), "PLAYER_REGEN_ENABLED")
+  check("shown: after combat, the combat log moves into Echo", CL.IsHosted() and cf2.parent == CL._host(), tostring(cf2.parent))
+  check("shown: its tile opens", S.Get(CL.KEY) ~= nil and S.Get(CL.KEY).open == true, "no tile")
+  check("shown: the main window stays", cf1.parent == UIParent and tab1.parent == UIParent, tostring(cf1.parent))
+  check("shown: Blizzard's chat doesn't count as hidden", HC.IsApplied() == false, "applied")
+  db.echoAllView = false
+  check("shown: the All view keeps its own setting", Echo.FeedEnabled("all") == false, "forced on")
+  db.echoAllView = nil
+  db.echoCombatLog = "blizzard"
+  HC.Refresh()
+  check("shown: moving it back out asks for a reload", A._moduleReloadRecommended == true, tostring(A._moduleReloadRecommended))
+
+  -- Hidden: the combat log and its tab go; the other windows stay.
+  db.echoCombatLog = "hide"
+  cf1, tab1, cf2, tab2 = Fresh()
+  HC.Refresh()
+  RunTimers()
+  check("shown: a hidden combat log goes with its tab", cf2.parent ~= UIParent and tab2.parent == cf2.parent, tostring(cf2.parent))
+  check("shown: and only it", cf1.parent == UIParent and tab1.parent == UIParent, tostring(cf1.parent))
+  check("shown: hiding the combat log alone isn't hiding chat", HC.IsApplied() == false, "applied")
+  HC.Disable()
+  check("shown: disabling asks for a reload to bring it back", A._moduleReloadRecommended == true, tostring(A._moduleReloadRecommended))
+
+  db.echoCombatLog = nil
+  HC._reset()
+  hooksecurefunc, CHAT_FRAMES, CreateFrame = saved.hook, saved.frames, saved.create
+  A.GetDB, A.SetDB, A.ECHO_DEFAULTS = saved.getDB, saved.setDB, saved.defaults
+  InCombatLockdown, C_Timer.After, C_EventUtils, C_CVar = saved.combat, saved.after, saved.util, saved.cvar
+  IsLoggedIn, ChatTypeGroup = saved.logged, saved.group
+  A.Dashboard_Refresh, A._moduleReloadRecommended = saved.refresh, saved.flag
+  for _, name in ipairs({ "ChatFrame1", "ChatFrame2" }) do _G[name], _G[name .. "Tab"] = nil, nil end
+  S.Reset()
+`, 'echo-combat-log-shown');
 
 // --- Every feed kind has its English labels -----------------------------------------------
 // The harness's L returns the key itself, so a missing string never shows up in a check

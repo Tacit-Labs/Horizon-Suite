@@ -73,6 +73,7 @@ local kept = setmetatable({}, { __mode = "k" })     -- hidden window -> { event 
 local hookedTabs = setmetatable({}, { __mode = "k" })
 local hookedWindows = setmetatable({}, { __mode = "k" })
 local combatLogHidden = false
+local applied = false     -- Blizzard's chat windows (not just the combat log) are hidden
 local handledButtons = setmetatable({}, { __mode = "k" })  -- chat buttons already moved
 local whispersSet = false  -- whisperMode has been set this apply-session
 local boxParent           -- the input line's parent before Echo moved it onto UIParent
@@ -141,12 +142,13 @@ local function Silence(window, isMain)
     end
 end
 
+-- @return boolean  the window exists
 local function HideWindow(name)
     local window = _G[name]
-    if type(window) ~= "table" then return end
+    if type(window) ~= "table" then return false end
     local parent = HiddenParent()
     -- Already handled: its events and tab are Echo's already, and its hooks stay.
-    if hidden[window] and (type(window.GetParent) ~= "function" or window:GetParent() == parent) then return end
+    if hidden[window] and (type(window.GetParent) ~= "function" or window:GetParent() == parent) then return true end
     hidden[window] = true
     window:SetParent(parent)
     local tab = _G[name .. "Tab"]
@@ -160,6 +162,7 @@ local function HideWindow(name)
     end
     Silence(window, name == "ChatFrame1")
     if name == HideChat.COMBAT_LOG then combatLogHidden = true end
+    return true
 end
 
 -- Once per apply-session: a whisperMode the player changes while hiding is on is kept.
@@ -229,22 +232,37 @@ local function On()
     return Echo.Setting("echoHideBlizzardChat") == true
 end
 
---- True once any window has been hidden this session.
+--- True once Blizzard's chat windows have been hidden this session. Hiding only the combat
+-- log (HideChat.ApplyCombatLog) doesn't count.
 function HideChat.IsApplied()
-    return next(hidden) ~= nil
+    return applied
+end
+
+--- With Blizzard's chat shown, the combat log still follows echoCombatLog: "echo" moves it
+-- into Echo, "hide" hides it and its tab, "blizzard" leaves it. Callers keep it out of
+-- combat. Safe to call again.
+function HideChat.ApplyCombatLog()
+    local CombatLog = Echo.CombatLog
+    if not CombatLog then return end
+    local mode = CombatLog.Mode()
+    if mode == "hide" and not CombatLog.IsHosted() then
+        HideWindow(HideChat.COMBAT_LOG)
+    elseif mode == "echo" and not combatLogHidden then
+        CombatLog.Host()
+    end
 end
 
 --- Hide the windows, their events and the buttons now. Callers keep it out of combat.
 -- Safe to call again: only what isn't handled yet is touched.
 function HideChat.Apply()
-    local first = not HideChat.IsApplied()
+    local first = not applied
     local CombatLog = Echo.CombatLog
     local combatMode = CombatLog and CombatLog.Mode() or "blizzard"
     local names = _G.CHAT_FRAMES
     if type(names) == "table" then
         for _, name in ipairs(names) do
             if name ~= HideChat.COMBAT_LOG then
-                HideWindow(name)
+                if HideWindow(name) then applied = true end
             elseif combatMode == "hide" and not CombatLog.IsHosted() then
                 HideWindow(name)
             elseif combatMode == "echo" and not combatLogHidden then
@@ -279,14 +297,21 @@ function HideChat.Apply()
     if Echo.All and Echo.All.SyncEvents then Echo.All.SyncEvents() end
 end
 
+local function CombatMode()
+    return Echo.CombatLog and Echo.CombatLog.Mode() or "blizzard"
+end
+
 -- The frame after it was asked for: still wanted, and out of combat, else after combat.
+-- With hiding off, only the combat log has anything to apply.
 local function TryApply()
-    if not active or not On() then return end
+    if not active then return end
+    local on = On()
+    if not on and CombatMode() == "blizzard" then return end
     if type(InCombatLockdown) == "function" and InCombatLockdown() then
         frame:RegisterEvent("PLAYER_REGEN_ENABLED")
         return
     end
-    HideChat.Apply()
+    if on then HideChat.Apply() else HideChat.ApplyCombatLog() end
 end
 
 local function Schedule()
@@ -308,11 +333,12 @@ local function OnEvent(_, event)
     if event == "PLAYER_ENTERING_WORLD" then
         worldReady = true
         frame:UnregisterEvent("PLAYER_ENTERING_WORLD")
+        -- Another character hid chat and set whisperMode inline account-wide.
         if On() then
             Schedule()
         else
-            -- Another character hid chat and set whisperMode inline account-wide.
             HideChat.RestoreWhisperMode()
+            if CombatMode() ~= "blizzard" then Schedule() end
         end
     elseif event == "PLAYER_REGEN_ENABLED" then
         frame:UnregisterEvent("PLAYER_REGEN_ENABLED")
@@ -325,23 +351,27 @@ end
 -- every settings change, before docking is applied.
 function HideChat.Refresh()
     if not active then return end
+    -- A combat log already hidden or moved into Echo can't go anywhere else live.
+    local CombatLog = Echo.CombatLog
+    local combatMode = CombatMode()
+    if (combatLogHidden and combatMode ~= "hide")
+        or (CombatLog and CombatLog.IsHosted() and combatMode ~= "echo") then
+        HideChat.AskReload()
+    end
     if On() then
         -- The hidden main window takes the undocked input line's home with it.
         if Echo.Setting("echoDockInput") == false and type(addon.SetDB) == "function" then
             addon.SetDB("echoDockInput", true)
         end
-        -- A combat log already hidden or moved into Echo can't go anywhere else live.
-        local CombatLog = Echo.CombatLog
-        local combatMode = CombatLog and CombatLog.Mode() or "blizzard"
-        if (combatLogHidden and combatMode ~= "hide")
-            or (CombatLog and CombatLog.IsHosted() and combatMode ~= "echo") then
-            HideChat.AskReload()
-        end
         if worldReady then Schedule() end
         return
     end
     -- Before the world is loaded, PLAYER_ENTERING_WORLD does this, with CVars in place.
-    if worldReady then HideChat.RestoreWhisperMode() end
+    if worldReady then
+        HideChat.RestoreWhisperMode()
+        -- The combat log follows its own setting.
+        if combatMode ~= "blizzard" then Schedule() end
+    end
     if HideChat.IsApplied() then HideChat.AskReload() end
 end
 
@@ -372,7 +402,8 @@ function HideChat.Disable()
     if frame then frame:UnregisterAllEvents() end
     HideChat.RestoreWhisperMode()
     HideChat.RestoreBoxParent()
-    if HideChat.IsApplied() then HideChat.AskReload() end
+    local hosted = Echo.CombatLog and Echo.CombatLog.IsHosted()
+    if HideChat.IsApplied() or combatLogHidden or hosted then HideChat.AskReload() end
 end
 
 -- Test and debug handles. _reset forgets what was hidden, as a reload would.
@@ -381,6 +412,7 @@ function HideChat._reset()
     for k in pairs(hidden) do hidden[k] = nil end
     for k in pairs(kept) do kept[k] = nil end
     for k in pairs(handledButtons) do handledButtons[k] = nil end
-    combatLogHidden, whispersSet, boxParent, warnedTypes = false, false, nil, false
+    combatLogHidden, whispersSet, boxParent, warnedTypes, applied = false, false, nil, false, false
+    pending = false
     if Echo.CombatLog and Echo.CombatLog._reset then Echo.CombatLog._reset() end
 end

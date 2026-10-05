@@ -40,9 +40,9 @@ local WHISPER_SOUND_OPTIONS = {
 }
 
 local COMBAT_LOG_OPTIONS = {
-    { L["ECHO_COMBAT_LOG_ECHO"],     "echo"     },
-    { L["ECHO_COMBAT_LOG_BLIZZARD"], "blizzard" },
-    { L["ECHO_COMBAT_LOG_HIDE"],     "hide"     },
+    { L["ECHO_ROUTE_ECHO"],      "echo"     },
+    { L["ECHO_ROUTE_BLIZZARD"],  "blizzard" },
+    { L["ECHO_COMBAT_LOG_HIDE"], "hide"     },
 }
 
 local TIER_OPTIONS = {
@@ -169,6 +169,15 @@ local options = {
     RouteDropdown("officer",  L["ECHO_KIND_OFFICER"]),
     RouteDropdown("channel",  L["ECHO_KIND_CHANNEL"]),
     RouteDropdown("nearby",   L["ECHO_NEARBY"]),
+    -- The combat log is one window: it can't show in both places, so it has its own choices.
+    { type = "dropdown", name = L["ECHO_COMBAT_LOG"], desc = L["ECHO_COMBAT_LOG_DESC"], dbKey = "echoCombatLog",
+      options = COMBAT_LOG_OPTIONS, preserveOrder = true,
+      get = function()
+          local E = Echo()
+          if E and E.CombatLog then return E.CombatLog.Mode(getDB) end
+          return getDB("echoCombatLog", D.echoCombatLog)
+      end,
+      set = function(v) setDB("echoCombatLog", v) end },
 
     Section(L["ECHO_SECTION_TIERS"]),
     TierDropdown("whisper",  L["ECHO_KIND_WHISPER"]),
@@ -361,15 +370,6 @@ local tail = {
       get = function() return getDB("echoEnterOpens", D.echoEnterOpens) end,
       set = function(v) setDB("echoEnterOpens", v) end },
     Toggle(L["ECHO_HIDE_CHAT"], L["ECHO_HIDE_CHAT_DESC"], "echoHideBlizzardChat", D.echoHideBlizzardChat),
-    { type = "dropdown", name = L["ECHO_COMBAT_LOG"], desc = L["ECHO_COMBAT_LOG_DESC"], dbKey = "echoCombatLog",
-      options = COMBAT_LOG_OPTIONS, preserveOrder = true,
-      visibleWhen = function() return getDB("echoHideBlizzardChat", D.echoHideBlizzardChat) == true end,
-      get = function()
-          local E = Echo()
-          if E and E.CombatLog then return E.CombatLog.Mode(getDB) end
-          return getDB("echoCombatLog", D.echoCombatLog)
-      end,
-      set = function(v) setDB("echoCombatLog", v) end },
     ReloadPrompt({ hintText = L["ECHO_HIDE_CHAT_RELOAD"] }),
 
     Section(L["ECHO_SECTION_CARD"]),
