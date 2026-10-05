@@ -1322,8 +1322,12 @@ function addon.DashboardAccordionBuild_Init(f, p)
                         bar:SetWidth(WDef.RowIndentBarW)
                         bar:SetPoint("TOPLEFT", widget, "TOPLEFT", barX, -barInsetY)
                         bar:SetPoint("BOTTOMLEFT", widget, "BOTTOMLEFT", barX, barInsetY)
-                        local ar, ag, ab = accordionCardParams.GetAccentColor()
-                        bar:SetColorTexture(ar, ag, ab, WDef.RowIndentBarAlpha)
+                        -- The accent follows the class theme (Def.AccentColor); ApplyDashboardClassColor
+                        -- recolours the lines already built through dashAccentRefs.indentBars.
+                        local ac = WDef.AccentColor
+                        bar:SetColorTexture(ac[1], ac[2], ac[3], WDef.RowIndentBarAlpha)
+                        local refs = accordionCardParams.dashAccentRefs
+                        if refs and refs.indentBars then tinsert(refs.indentBars, bar) end
                         widget._indentBar = bar
                     end
 

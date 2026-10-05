@@ -275,6 +275,7 @@ function addon.DashboardDetailView_Init(env)
         wipe(currentDetailCards)
         wipe(dashAccentRefs.cardAccents)
         wipe(dashAccentRefs.cardDividers)
+        wipe(dashAccentRefs.indentBars)
     end
 
     -- Helper: Update Detail Layout
@@ -485,8 +486,7 @@ function addon.DashboardDetailView_Init(env)
                 hi:Hide()
 
                 b:SetScript("OnEnter", function()
-                    local har, hag, hab = GetAccentColor()
-                    hi:SetColorTexture(har, hag, hab, 0.08)
+                    hi:SetColorTexture(1, 1, 1, 0.08) -- neutral; the accent is kept for on/selected states
                     hi:Show()
                     b.label:SetTextColor(1, 1, 1)
                     if b.descLine then b.descLine:SetTextColor(0.62, 0.66, 0.74) end
@@ -744,16 +744,16 @@ function addon.DashboardDetailView_Init(env)
         divider:SetHeight(1)
         divider:SetPoint("BOTTOMLEFT", 20, 0)
         divider:SetPoint("BOTTOMRIGHT", -20, 0)
-        local cdr, cdg, cdb = GetAccentColor()
-        divider:SetColorTexture(cdr, cdg, cdb, 0.2)
-        tinsert(dashAccentRefs.subcatDividers, divider)
+        -- Neutral hairline: the accent is kept for what is on or selected, so this tile's
+        -- divider is not registered in dashAccentRefs and ignores the class theme.
+        local rd = addon.OptionsWidgetsDef and addon.OptionsWidgetsDef.RowDivider or { 0.59, 0.63, 0.75, 0.10 }
+        divider:SetColorTexture(rd[1], rd[2], rd[3], rd[4])
 
         local accent = tile:CreateTexture(nil, "ARTWORK")
         accent:SetSize(3, 24)
         accent:SetPoint("TOPLEFT", 20, -18)
-        local ar, ag, ab = GetAccentColor()
-        accent:SetColorTexture(ar, ag, ab, 1)
-        tinsert(dashAccentRefs.subcatAccents, accent)
+        local tm = addon.OptionsWidgetsDef and addon.OptionsWidgetsDef.TextColorMuted or { 0.54, 0.565, 0.627 }
+        accent:SetColorTexture(tm[1], tm[2], tm[3], 0.6) -- neutral marker, not in dashAccentRefs
 
         -- Label (x matches accordion title inset)
         local lbl = MakeText(tile, name, 18, 0.9, 0.9, 0.95, "LEFT")
@@ -831,9 +831,8 @@ function addon.DashboardDetailView_Init(env)
         divider:SetHeight(1)
         divider:SetPoint("BOTTOMLEFT", 0, 0)
         divider:SetPoint("BOTTOMRIGHT", 0, 0)
-        local cdr, cdg, cdb = GetAccentColor()
-        divider:SetColorTexture(cdr, cdg, cdb, 0.15)
-        tinsert(dashAccentRefs.cardDividers, divider)
+        local rd = addon.OptionsWidgetsDef and addon.OptionsWidgetsDef.RowDivider or { 0.59, 0.63, 0.75, 0.10 }
+        divider:SetColorTexture(rd[1], rd[2], rd[3], rd[4]) -- neutral; not in dashAccentRefs
 
         local iconTex = card:CreateTexture(nil, "ARTWORK")
         iconTex:SetSize(ICON_SIZE, ICON_SIZE)

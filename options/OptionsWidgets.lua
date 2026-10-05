@@ -23,7 +23,7 @@ local Def = {
     FontPath = (addon.GetDefaultFontPath and addon.GetDefaultFontPath()) or "Fonts\\FRIZQT__.TTF",
     HeaderSize = addon.HEADER_SIZE or 16,
     TextColorNormal = { 1, 1, 1 },
-    TextColorHighlight = { 0.72, 0.8, 0.95, 1 },
+    TextColorHighlight = { 0.92, 0.93, 0.96, 1 },   -- neutral hover text; the accent is kept for on/selected states
     TextColorLabel = { 0.84, 0.84, 0.88 },
     TextColorSection = { 0.58, 0.64, 0.74 },
     TextColorTitleBar = { 0.9, 0.92, 0.96, 1 },
@@ -64,6 +64,7 @@ local Def = {
     SegRadius = 6,                                  -- a segment's corners (the track uses ControlRadius)
     SegFitShare = 0.5,                              -- segments must fit in this share of the row's width
     SegDisabledAlpha = 0.45,
+    FocusRing = { 0.59, 0.63, 0.75, 0.35 },         -- neutral ring on a focused input (was the accent)
     SidebarSelectedBg = { 0.48, 0.58, 0.82, 0.16 }, -- accent at 16%; the class theme swaps the rgb
     SwitchWidth = 36,
     SwitchHeight = 20,
@@ -142,6 +143,20 @@ function _G.OptionsWidgets_SetDef(overrides)
     if overrides.LabelSize ~= nil then DeriveTypeScale(overrides) end
 end
 addon.OptionsWidgetsDef = Def
+
+-- Default accent when the Axis class theme is off (the original AccentColor/TrackOn rgb).
+local ACCENT_DEFAULT = { 0.48, 0.58, 0.82 }
+
+-- Point the accent tokens (AccentColor, TrackOn, SidebarSelectedBg) at the class colour when the
+-- Axis class theme is on, else at the default. Widgets pick the new colour up the next time they
+-- paint (a switch or slider on its next Refresh, the sidebar on its next selection).
+function addon.ApplyOptionsClassColor()
+    local cc = addon.GetOptionsClassColor and addon.GetOptionsClassColor()
+    local c = cc or ACCENT_DEFAULT
+    Def.AccentColor = { c[1], c[2], c[3], 0.9 }
+    Def.TrackOn = { c[1], c[2], c[3], 0.85 }
+    Def.SidebarSelectedBg = { c[1], c[2], c[3], 0.16 }
+end
 
 -- Class color lookup: returns {r, g, b} for player class, nil if unavailable.
 local function GetClassColorRaw()
@@ -724,7 +739,7 @@ function _G.OptionsWidgets_CreateSlider(parent, labelText, description, get, set
     end)
     edit:SetScript("OnEditFocusGained", function()
         if disabledFn and disabledFn() == true then edit:ClearFocus(); return end
-        PaintToken(paintEditRing, Def.AccentColor)
+        PaintToken(paintEditRing, Def.FocusRing)
     end)
     edit:SetScript("OnEditFocusLost", function()
         paintEditRing(0, 0, 0, 0)
@@ -1695,7 +1710,7 @@ function _G.OptionsWidgets_CreateSizeStepper(parent, get, set, minVal, maxVal, s
 
     edit:SetScript("OnEditFocusGained", function()
         if isDisabled() then edit:ClearFocus(); return end
-        setEditBorderColor(Def.AccentColor)
+        setEditBorderColor(Def.FocusRing)
         edit:HighlightText()
     end)
     edit:SetScript("OnEditFocusLost", function()
@@ -2274,7 +2289,7 @@ function _G.OptionsWidgets_CreateSearchInput(parent, onTextChanged, placeholder)
         edit.placeholder = ph
         edit:SetScript("OnEditFocusGained", function()
             if ph then ph:Hide() end
-            setBorderColor(Def.AccentColor)
+            setBorderColor(Def.FocusRing)
             if row.clearBtn then row.clearBtn:SetShown(edit:GetText() ~= "") end
         end)
         edit:SetScript("OnEditFocusLost", function()
@@ -2284,7 +2299,7 @@ function _G.OptionsWidgets_CreateSearchInput(parent, onTextChanged, placeholder)
         end)
     else
         edit:SetScript("OnEditFocusGained", function()
-            setBorderColor(Def.AccentColor)
+            setBorderColor(Def.FocusRing)
             if row.clearBtn then row.clearBtn:SetShown(edit:GetText() ~= "") end
         end)
         edit:SetScript("OnEditFocusLost", function()
@@ -2425,7 +2440,7 @@ function _G.OptionsWidgets_CreateSectionHeader(parent, text, sectionKey, getColl
         SetHeaderCollapsedAnchors(hdr, chevron, hdrLabel, getFn(sk), cw, lw, parent)
 
         -- Text glow on hover instead of full-card highlight
-        local glowColor = Def.AccentColor
+        local glowColor = { 0, 0, 0 } -- neutral drop shadow; the accent is kept for on/selected states
         hdr:SetScript("OnEnter", function()
             SetTextColor(chevron, Def.TextColorHighlight)
             SetTextColor(hdrLabel, Def.TextColorHighlight)
@@ -2566,7 +2581,7 @@ function _G.OptionsWidgets_CreateReorderList(parent, anchor, opt, scrollFrameRef
         if state.insertionLine then return state.insertionLine end
         local line = container:CreateTexture(nil, "OVERLAY")
         line:SetHeight(3)
-        line:SetColorTexture(Def.AccentColor[1], Def.AccentColor[2], Def.AccentColor[3], 1)
+        line:SetColorTexture(Def.TextColorHighlight[1], Def.TextColorHighlight[2], Def.TextColorHighlight[3], 1)
         state.insertionLine = line
         return line
     end
@@ -2854,7 +2869,7 @@ function _G.OptionsWidgets_CreateEditBox(parent, labelText, get, set, opts)
     end
 
     -- The ring shows only while the box has focus; hooked so the handlers above keep running.
-    edit:HookScript("OnEditFocusGained", function() PaintToken(paintWrapRing, Def.AccentColor) end)
+    edit:HookScript("OnEditFocusGained", function() PaintToken(paintWrapRing, Def.FocusRing) end)
     edit:HookScript("OnEditFocusLost", function() paintWrapRing(0, 0, 0, 0) end)
 
     if opts.storeRef and type(opts.storeRef) == "string" then

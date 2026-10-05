@@ -178,6 +178,9 @@ function addon.Dashboard_BuildMainFrame()
                 return 0.2, 0.8, 0.9 -- Default sleek cyan
             end
 
+            -- Widget accent tokens (switch, slider, sidebar selection) follow the class theme from the start.
+            if addon.ApplyOptionsClassColor then addon.ApplyOptionsClassColor() end
+
             -- Track static accent elements for live class-colour refresh
             local dashAccentRefs = {
                 sidebarBars = {},
@@ -186,6 +189,7 @@ function addon.Dashboard_BuildMainFrame()
                 homeTileDividers = {},
                 cardAccents = {},
                 cardDividers = {},
+                indentBars = {},
                 dashboardAxisRails = {},
                 patchNotesSectionLabels = {},
                 patchNotesBullets = {},
@@ -237,7 +241,14 @@ function addon.Dashboard_BuildMainFrame()
             end
 
             addon.ApplyDashboardClassColor = function()
+                -- Point the widget accent tokens (switch, slider, sidebar selection) at the class
+                -- colour first; everything below then reads the same colour.
+                if addon.ApplyOptionsClassColor then addon.ApplyOptionsClassColor() end
                 local ar, ag, ab = GetAccentColor()
+                local indentAlpha = (addon.OptionsWidgetsDef and addon.OptionsWidgetsDef.RowIndentBarAlpha) or 0.3
+                for _, bar in ipairs(dashAccentRefs.indentBars) do
+                    if bar.SetColorTexture then bar:SetColorTexture(ar, ag, ab, indentAlpha) end
+                end
                 for _, bar in ipairs(dashAccentRefs.sidebarBars) do
                     if bar.SetColorTexture then bar:SetColorTexture(ar, ag, ab, 1) end
                 end
@@ -267,8 +278,8 @@ function addon.Dashboard_BuildMainFrame()
                     if div.SetColorTexture then div:SetColorTexture(ar, ag, ab, 0.2) end
                 end
                 if dashSession.activeSidebarBtn then
-                    dashSession.activeSidebarBtn.btnBg:SetColorTexture(ar * 0.15, ag * 0.15, ab * 0.15, DASHBOARD_CHILD_PANEL_ALPHA)
-                    dashSession.activeSidebarBtn.accentBar:SetColorTexture(ar, ag, ab, 1)
+                    local sel = (addon.OptionsWidgetsDef and addon.OptionsWidgetsDef.SidebarSelectedBg) or { ar, ag, ab, 0.16 }
+                    dashSession.activeSidebarBtn.btnBg:SetColorTexture(sel[1], sel[2], sel[3], sel[4])
                 end
                 if dashAccentRefs.sidebarDivider then
                     dashAccentRefs.sidebarDivider:SetColorTexture(ar, ag, ab, 0.4)
@@ -638,10 +649,10 @@ function addon.Dashboard_BuildMainFrame()
                 insets = { left = 3, right = 3, top = 3, bottom = 3 },
             })
             searchModuleFilterMenu:SetBackdropColor(0.08, 0.08, 0.09, DASHBOARD_CHILD_PANEL_ALPHA)
-            local fmbr, fmbg, fmbb = GetAccentColor()
-            searchModuleFilterMenu:SetBackdropBorderColor(fmbr, fmbg, fmbb, 0.5)
+            -- Neutral border: the accent is kept for what is on or selected.
+            local fmb = (addon.OptionsWidgetsDef and addon.OptionsWidgetsDef.FocusRing) or { 0.59, 0.63, 0.75, 0.3 }
+            searchModuleFilterMenu:SetBackdropBorderColor(fmb[1], fmb[2], fmb[3], fmb[4])
             searchModuleFilterMenu:Hide()
-            dashAccentRefs.searchFilterDropBorder = searchModuleFilterMenu
 
             local searchModuleFilterCatch = CreateFrame("Button", nil, f)
             searchModuleFilterCatch:SetAllPoints(f)
@@ -702,8 +713,7 @@ function addon.Dashboard_BuildMainFrame()
                         rl:SetPoint("LEFT", 8, 0)
                         rl:SetPoint("RIGHT", -8, 0)
                         row:SetScript("OnEnter", function()
-                            local har, hag, hab = GetAccentColor()
-                            hi:SetColorTexture(har, hag, hab, 0.1)
+                            hi:SetColorTexture(1, 1, 1, 0.08) -- neutral hover
                             hi:Show()
                         end)
                         row:SetScript("OnLeave", function()
@@ -752,9 +762,9 @@ function addon.Dashboard_BuildMainFrame()
             end)
 
             local function UpdateSearchBarBorderFocused(focused)
-                local ar, ag, ab = GetAccentColor()
                 if focused then
-                    searchBarShell:SetBackdropBorderColor(ar, ag, ab, 0.95)
+                    local fr = (addon.OptionsWidgetsDef and addon.OptionsWidgetsDef.FocusRing) or { 0.59, 0.63, 0.75, 0.3 }
+                    searchBarShell:SetBackdropBorderColor(fr[1], fr[2], fr[3], 0.6)
                     sbIcon:SetVertexColor(0.85, 0.88, 0.92, 1)
                 else
                     searchBarShell:SetBackdropBorderColor(SCardBd[1], SCardBd[2], SCardBd[3], SCardBd[4])
@@ -805,9 +815,8 @@ function addon.Dashboard_BuildMainFrame()
                 insets = { left = 3, right = 3, top = 3, bottom = 3 }
             })
             searchDropdown:SetBackdropColor(0.08, 0.08, 0.09, DASHBOARD_CHILD_PANEL_ALPHA)
-            local sdar, sdag, sdab = GetAccentColor()
-            searchDropdown:SetBackdropBorderColor(sdar, sdag, sdab, 0.5)
-            dashAccentRefs.searchDropBorder = searchDropdown
+            local sdb = (addon.OptionsWidgetsDef and addon.OptionsWidgetsDef.FocusRing) or { 0.59, 0.63, 0.75, 0.3 }
+            searchDropdown:SetBackdropBorderColor(sdb[1], sdb[2], sdb[3], sdb[4])
             searchDropdown:Hide()
 
             local searchDropdownScroll = CreateFrame("ScrollFrame", nil, searchDropdown)
@@ -911,10 +920,9 @@ function addon.Dashboard_BuildMainFrame()
             detailTitleUnderline:SetHeight(1)
             detailTitleUnderline:SetPoint("TOPLEFT", detailTitle, "BOTTOMLEFT", 0, -6)
             detailTitleUnderline:SetWidth(math.max(1, viewWidth - 80))
-            local arU, agU, abU = GetAccentColor()
-            detailTitleUnderline:SetColorTexture(arU, agU, abU, 0.35)
+            local ulc = (addon.OptionsWidgetsDef and addon.OptionsWidgetsDef.RowDivider) or { 0.59, 0.63, 0.75, 0.10 }
+            detailTitleUnderline:SetColorTexture(ulc[1], ulc[2], ulc[3], ulc[4]) -- neutral hairline
             detailTitleUnderline:Hide()
-            dashAccentRefs.underline = detailTitleUnderline
 
             -- Patch Notes only: full changelog link (top-right of frame, aligned with title row).
             local PN_CHANGELOG_URL = "https://github.com/Tacit-Labs/Horizon-Suite/blob/main/CHANGELOG.md"
@@ -1874,9 +1882,7 @@ function addon.Dashboard_BuildMainFrame()
                         yOff = yOff + headerH
                         header.groupKey = mk
                         g.header = header
-                        local headerBtnBg = header:CreateTexture(nil, "BACKGROUND")
-                        headerBtnBg:SetAllPoints()
-                        headerBtnBg:SetColorTexture(0, 0, 0, 0)
+                        local headerBtnBg = sb.MakeSelectionFill(header, 8)
                         header.btnBg = headerBtnBg
                         local headerAccent = header:CreateTexture(nil, "ARTWORK")
                         headerAccent:SetSize(3, 22)
@@ -1902,7 +1908,7 @@ function addon.Dashboard_BuildMainFrame()
                         end
                         addon.Dashboard_RegisterTypographyFontString(typoRefs, chevron, 11, nil, true)
                         chevron:SetPoint("LEFT", header, "LEFT", 8, 0)
-                        chevron:SetTextColor(0.55, 0.55, 0.65, 1)
+                        chevron:SetTextColor(sb.sidebarMuted[1], sb.sidebarMuted[2], sb.sidebarMuted[3], 1)
                         header.chevron = chevron
                         local headerLabel = header:CreateFontString(nil, "OVERLAY")
                         do
@@ -1925,7 +1931,7 @@ function addon.Dashboard_BuildMainFrame()
                         -- naturally centered in the taller header frame.
                         headerLabel:SetPoint("LEFT", chevron, "RIGHT", 4, 0)
                         headerLabel:SetJustifyH("LEFT")
-                        headerLabel:SetTextColor(0.55, 0.55, 0.65, 1)
+                        headerLabel:SetTextColor(sb.sidebarMuted[1], sb.sidebarMuted[2], sb.sidebarMuted[3], 1)
                         if PREVIEW_MODULE_KEYS[mk] then
                             headerLabelText = headerLabelText .. " |cff228b22(Preview)|r"
                         end
@@ -1989,7 +1995,7 @@ function addon.Dashboard_BuildMainFrame()
                         end)
                         header:SetScript("OnEnter", function()
                             if header ~= dashSession.activeSidebarBtn then
-                                headerBtnBg:SetColorTexture(0.1, 0.1, 0.12, DASHBOARD_CHILD_PANEL_ALPHA)
+                                headerBtnBg:SetColorTexture(1, 1, 1, 0.05)
                                 headerLabel:SetTextColor(0.8, 0.8, 0.85, 1)
                                 chevron:SetTextColor(0.8, 0.8, 0.85, 1)
                             end
@@ -1997,8 +2003,8 @@ function addon.Dashboard_BuildMainFrame()
                         header:SetScript("OnLeave", function()
                             if header ~= dashSession.activeSidebarBtn then
                                 headerBtnBg:SetColorTexture(0, 0, 0, 0)
-                                headerLabel:SetTextColor(0.55, 0.55, 0.65, 1)
-                                chevron:SetTextColor(0.55, 0.55, 0.65, 1)
+                                headerLabel:SetTextColor(sb.sidebarMuted[1], sb.sidebarMuted[2], sb.sidebarMuted[3], 1)
+                                chevron:SetTextColor(sb.sidebarMuted[1], sb.sidebarMuted[2], sb.sidebarMuted[3], 1)
                             end
                         end)
                         chevron:SetText(GetGroupCollapsed(mk) and "+" or "-")
