@@ -177,6 +177,7 @@ local categories = {
                 name = L["DASHBOARD_TYPO_OUTLINE"],
                 desc = L["DASHBOARD_TYPO_OUTLINE_DESC"],
                 dbKey = "dashboardTextOutline",
+                advanced = true,
                 options = OUTLINE_OPTIONS,
                 preserveOrder = true,
                 get = function()
@@ -199,6 +200,7 @@ local categories = {
                 name = L["DASHBOARD_TYPO_SHADOW"],
                 desc = L["DASHBOARD_TYPO_SHADOW_DESC"],
                 dbKey = "dashboardTextShadow",
+                advanced = true,
                 get = function()
                     local v = getDB("dashboardTextShadow", false)
                     if type(v) == "number" then return v > 0 end
@@ -212,6 +214,7 @@ local categories = {
                 name = L["DASHBOARD_TYPO_HEADING_COLOUR"],
                 desc = L["DASHBOARD_TYPO_HEADING_COLOUR_DESC"],
                 dbKey = "dashboardHeadingColor",
+                advanced = true,
                 options = {
                     { L["DASHBOARD_TYPO_HEADING_COLOUR_WHITE"], "white" },
                     { L["DASHBOARD_TYPO_HEADING_COLOUR_CYAN"],  "cyan"  },
@@ -276,16 +279,17 @@ local categories = {
                     setDB("dashboardShowClassIcon", v)
                     setDB("dashboardBackgroundClassOverride", v)
                 end,
-                refreshIds = { "_classColorAll", "classColorDashboard", "dashboardShowClassIcon", "dashboardClassIconSource", "dashboardBackgroundClassOverride" },
+                refreshIds = { "_classColorAll" },
             }
             opts[#opts + 1] = {
                 type = "toggle",
                 name = L["AXIS_DASHBOARD_CLASS_COLOURS"],
                 desc = L["AXIS_CLASS_COLOURS_DESC"],
                 dbKey = "classColorDashboard",
+                advanced = true,
                 get = function() return getDB("classColorDashboard", false) end,
                 set = function(v) setDB("classColorDashboard", v) end,
-                visibleWhen = isDashboardClassThemeOn,
+                parent = "dashboardClassTheme",
                 refreshIds = { "_classColorAll" },
             }
             opts[#opts + 1] = {
@@ -293,10 +297,10 @@ local categories = {
                 name = L["AXIS_DASHBOARD_CLASS_ICON"],
                 desc = L["AXIS_DASHBOARD_CLASS_ICON_DESC"],
                 dbKey = "dashboardShowClassIcon",
+                advanced = true,
                 get = function() return getDB("dashboardShowClassIcon", false) end,
                 set = function(v) setDB("dashboardShowClassIcon", v) end,
-                visibleWhen = isDashboardClassThemeOn,
-                refreshIds = { "dashboardShowClassIcon", "dashboardClassIconSource" },
+                parent = "dashboardClassTheme",
             }
             opts[#opts + 1] = {
                 type = "dropdown",
@@ -304,6 +308,7 @@ local categories = {
                 desc = L["DASH_CLASS_ICONS_RONDOMEDIA"],
                 tooltip = L["AXIS_CLASS_ICON_SOURCES_TOOLTIP"],
                 dbKey = "dashboardClassIconSource",
+                advanced = true,
                 options = {
                     { L["AXIS_CUSTOM_CLASS_ICONS_LABEL"], "custom" },
                     { L["AXIS_DEFAULT"], "default" },
@@ -311,26 +316,26 @@ local categories = {
                 },
                 get = function() return getDB("dashboardClassIconSource", "custom") end,
                 set = function(v) setDB("dashboardClassIconSource", v) end,
-                visibleWhen = function() return isDashboardClassThemeOn() and getDB("dashboardShowClassIcon", false) end,
-                refreshIds = { "dashboardShowClassIcon" },
+                parent = "dashboardShowClassIcon",
             }
             opts[#opts + 1] = {
                 type = "toggle",
                 name = L["AXIS_DASHBOARD_BG_CLASS_OVERRIDE"],
                 desc = L["AXIS_DASHBOARD_BG_CLASS_OVERRIDE_DESC"],
                 dbKey = "dashboardBackgroundClassOverride",
+                advanced = true,
                 get = function() return getDB("dashboardBackgroundClassOverride", false) end,
                 set = function(v) setDB("dashboardBackgroundClassOverride", v) end,
-                visibleWhen = isDashboardClassThemeOn,
+                parent = "dashboardClassTheme",
                 refreshIds = { "dashboardBackgroundTheme" },
             }
-            opts[#opts + 1] = { type = "toggle", name = BM and BM("focus"), desc = L["FOCUS_CLASS_COLOURS_DESC"], dbKey = "classColorFocus", get = function() return getDB("classColorFocus", false) end, set = function(v) setDB("classColorFocus", v) end, refreshIds = { "_classColorAll" } }
-            opts[#opts + 1] = { type = "toggle", name = BM and BM("presence"), desc = L["PRESENCE_CLASS_COLOURS_DESC"], dbKey = "classColorPresence", get = function() return getDB("classColorPresence", false) end, set = function(v) setDB("classColorPresence", v) end, refreshIds = { "_classColorAll" } }
-            opts[#opts + 1] = { type = "toggle", name = BM and BM("vista"), desc = L["VISTA_CLASS_COLOURS_DESC"], dbKey = "classColorVista", get = function() return getDB("classColorVista", false) end, set = function(v) setDB("classColorVista", v) end, refreshIds = { "_classColorAll" } }
-            opts[#opts + 1] = { type = "toggle", name = BM and BM("insight"), desc = L["INSIGHT_CLASS_COLOURS_DESC"], dbKey = "classColorInsight", get = function() return getDB("classColorInsight", false) end, set = function(v) setDB("classColorInsight", v) end, refreshIds = { "_classColorAll" } }
-            opts[#opts + 1] = { type = "toggle", name = BM and BM("augment"), desc = L["AUGMENT_CLASS_COLOURS_DESC"], dbKey = "classColorAugment", get = function() return getDB("classColorAugment", false) end, set = function(v) setDB("classColorAugment", v) end, refreshIds = { "_classColorAll" } }
-            opts[#opts + 1] = { type = "toggle", name = BM and BM("essence"), desc = L["ESSENCE_CLASS_COLOURS_DESC"], dbKey = "classColorEssence", get = function() return getDB("classColorEssence", false) end, set = function(v) setDB("classColorEssence", v) end, refreshIds = { "_classColorAll" } }
-            opts[#opts + 1] = { type = "toggle", name = BM and BM("echo"), desc = L["ECHO_CLASS_COLOURS_DESC"], dbKey = "classColorEcho", get = function() return getDB("classColorEcho", false) end, set = function(v) setDB("classColorEcho", v) end, refreshIds = { "_classColorAll" } }
+            opts[#opts + 1] = { type = "toggle", name = BM and BM("focus"), desc = L["FOCUS_CLASS_COLOURS_DESC"], dbKey = "classColorFocus", advanced = true, get = function() return getDB("classColorFocus", false) end, set = function(v) setDB("classColorFocus", v) end, refreshIds = { "_classColorAll" } }
+            opts[#opts + 1] = { type = "toggle", name = BM and BM("presence"), desc = L["PRESENCE_CLASS_COLOURS_DESC"], dbKey = "classColorPresence", advanced = true, get = function() return getDB("classColorPresence", false) end, set = function(v) setDB("classColorPresence", v) end, refreshIds = { "_classColorAll" } }
+            opts[#opts + 1] = { type = "toggle", name = BM and BM("vista"), desc = L["VISTA_CLASS_COLOURS_DESC"], dbKey = "classColorVista", advanced = true, get = function() return getDB("classColorVista", false) end, set = function(v) setDB("classColorVista", v) end, refreshIds = { "_classColorAll" } }
+            opts[#opts + 1] = { type = "toggle", name = BM and BM("insight"), desc = L["INSIGHT_CLASS_COLOURS_DESC"], dbKey = "classColorInsight", advanced = true, get = function() return getDB("classColorInsight", false) end, set = function(v) setDB("classColorInsight", v) end, refreshIds = { "_classColorAll" } }
+            opts[#opts + 1] = { type = "toggle", name = BM and BM("augment"), desc = L["AUGMENT_CLASS_COLOURS_DESC"], dbKey = "classColorAugment", advanced = true, get = function() return getDB("classColorAugment", false) end, set = function(v) setDB("classColorAugment", v) end, refreshIds = { "_classColorAll" } }
+            opts[#opts + 1] = { type = "toggle", name = BM and BM("essence"), desc = L["ESSENCE_CLASS_COLOURS_DESC"], dbKey = "classColorEssence", advanced = true, get = function() return getDB("classColorEssence", false) end, set = function(v) setDB("classColorEssence", v) end, refreshIds = { "_classColorAll" } }
+            opts[#opts + 1] = { type = "toggle", name = BM and BM("echo"), desc = L["ECHO_CLASS_COLOURS_DESC"], dbKey = "classColorEcho", advanced = true, get = function() return getDB("classColorEcho", false) end, set = function(v) setDB("classColorEcho", v) end, refreshIds = { "_classColorAll" } }
             opts[#opts + 1] = { type = "section", name = L["AXIS_GLOBAL_FONT_SECTION"], page = "look", card = "text" }
             local isGlobalFontOn = function() return getDB("useGlobalFont", D and D.useGlobalFont or false) end
             opts[#opts + 1] = {
@@ -340,7 +345,6 @@ local categories = {
                 dbKey = "useGlobalFont",
                 get = isGlobalFontOn,
                 set = function(v) setDB("useGlobalFont", v) end,
-                refreshIds = { "globalOverrideFontPath" },
             }
             opts[#opts + 1] = {
                 type = "dropdown",
@@ -348,7 +352,7 @@ local categories = {
                 desc = L["AXIS_GLOBAL_FONT_PICKER_DESC"],
                 dbKey = "globalOverrideFontPath",
                 searchable = true,
-                disabled = function() return not isGlobalFontOn() end,
+                parent = "useGlobalFont",
                 options = function()
                     if addon.RefreshFontList then addon.RefreshFontList() end
                     local list = (addon.GetFontList and addon.GetFontList()) or {}
@@ -391,8 +395,13 @@ local categories = {
                 end)
             end
             local function isPerModule() return getDB("perModuleScaling", false) end
+            opts[#opts + 1] = { type = "toggle", name = L["AXIS_PER_MODULE_SCALING"], desc = L["SEPARATE_SCALE_SLIDER_PER_MODULE"], dbKey = "perModuleScaling", tooltip = L["AXIS_OVERRIDES_GLOBAL_SCALE_INDIVIDUAL_SLIDERS_F"], get = function() return isPerModule() end, set = function(v)
+                setDB("perModuleScaling", v)
+                debouncedRefresh("perModule", refreshAllScaling)
+            end,
+            }
             opts[#opts + 1] = { type = "slider", name = L["AXIS_GLOBAL_UI_SCALE"], desc = L["SCALE_UI_ELEMENTS"], dbKey = "globalUIScale_pct", min = 50, max = 200, tooltip = L["AXIS_DOESN_T_CHANGE_YOUR_CONFIGURED_VALUES"],
-                disabled = isPerModule,
+                parent = "perModuleScaling", parentIs = false,
                 get = function()
                     return math.floor((tonumber(getDB("globalUIScale", 1)) or 1) * 100 + 0.5)
                 end, set = function(v)
@@ -400,14 +409,8 @@ local categories = {
                     setDB("globalUIScale", scale)
                     debouncedRefresh("global", refreshAllScaling)
                 end }
-            opts[#opts + 1] = { type = "toggle", name = L["AXIS_PER_MODULE_SCALING"], desc = L["SEPARATE_SCALE_SLIDER_PER_MODULE"], dbKey = "perModuleScaling", tooltip = L["AXIS_OVERRIDES_GLOBAL_SCALE_INDIVIDUAL_SLIDERS_F"], get = function() return isPerModule() end, set = function(v)
-                setDB("perModuleScaling", v)
-                debouncedRefresh("perModule", refreshAllScaling)
-            end,
-            refreshIds = { "globalUIScale_pct", "focusUIScale_pct", "presenceUIScale_pct", "vistaUIScale_pct", "insightUIScale_pct", "augmentUIScale_pct" },
-            }
             opts[#opts + 1] = { type = "slider", name = L["FOCUS_SCALE"], desc = L["AXIS_SCALE_FOCUS_OBJECTIVE_TRACKER"], dbKey = "focusUIScale_pct", min = 50, max = 200,
-                visibleWhen = isPerModule,
+                parent = "perModuleScaling",
                 get = function()
                     return math.floor((tonumber(getDB("focusUIScale", 1)) or 1) * 100 + 0.5)
                 end, set = function(v)
@@ -415,7 +418,7 @@ local categories = {
                     debouncedRefresh("focus", refreshAllScaling)
                 end }
             opts[#opts + 1] = { type = "slider", name = L["PRESENCE_SCALE"], desc = L["AXIS_SCALE_PRESENCE_CINEMATIC_TEXT"], dbKey = "presenceUIScale_pct", min = 50, max = 200,
-                visibleWhen = isPerModule,
+                parent = "perModuleScaling",
                 get = function()
                     return math.floor((tonumber(getDB("presenceUIScale", 1)) or 1) * 100 + 0.5)
                 end, set = function(v)
@@ -425,7 +428,7 @@ local categories = {
                     end)
                 end }
             opts[#opts + 1] = { type = "slider", name = L["VISTA_SCALE"], desc = L["AXIS_SCALE_VISTA_MINIMAP_MODULE"], dbKey = "vistaUIScale_pct", min = 50, max = 200,
-                visibleWhen = isPerModule,
+                parent = "perModuleScaling",
                 get = function()
                     return math.floor((tonumber(getDB("vistaUIScale", 1)) or 1) * 100 + 0.5)
                 end, set = function(v)
@@ -435,14 +438,14 @@ local categories = {
                     end)
                 end }
             opts[#opts + 1] = { type = "slider", name = L["INSIGHT_SCALE"], desc = L["AXIS_SCALE_INSIGHT_TOOLTIP_MODULE"], dbKey = "insightUIScale_pct", min = 50, max = 200,
-                visibleWhen = isPerModule,
+                parent = "perModuleScaling",
                 get = function()
                     return math.floor((tonumber(getDB("insightUIScale", 1)) or 1) * 100 + 0.5)
                 end, set = function(v)
                     setDB("insightUIScale", math.max(50, math.min(200, v)) / 100)
                 end }
             opts[#opts + 1] = { type = "slider", name = L["AUGMENT_SCALE"], desc = L["AXIS_SCALE_AUGMENT_LOOT_TOAST_MODULE"], dbKey = "augmentUIScale_pct", min = 50, max = 200,
-                visibleWhen = isPerModule,
+                parent = "perModuleScaling",
                 get = function()
                     return math.floor((tonumber(getDB("augmentUIScale", 1)) or 1) * 100 + 0.5)
                 end, set = function(v)

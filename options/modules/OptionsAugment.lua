@@ -31,10 +31,10 @@ local function toastStyleOptions()
     return TS and TS.StyleOptions(L) or {}
 end
 
--- The border rows depend on the Style dropdown above them: they show only
+-- The border rows hang off the Style dropdown above them: they show only
 -- while the loot toasts use a style that takes them (Framed).
-local function lootFramed()
-    local def = TS and TS.Get(getDB("augmentToastStyle", D.augmentToastStyle))
+local function lootStyleHasBorder(style)
+    local def = TS and TS.Get(style)
     return def and def.border or false
 end
 
@@ -80,6 +80,7 @@ local categories = {
                             set = function(v) setDB("augmentToastOpacity", clamp(v, "augmentToastOpacity")) end,
                         },
                         { type = "slider", name = L["AUGMENT_MAX_VISIBLE"], desc = L["AUGMENT_MAX_VISIBLE_DESC"], dbKey = "augmentMaxVisible",
+                            advanced = true,
                             min = LIM.augmentMaxVisible.min, max = LIM.augmentMaxVisible.max, step = 1,
                             get = function() return getSlider("augmentMaxVisible") end,
                             set = function(v) setDB("augmentMaxVisible", clamp(v, "augmentMaxVisible")) end,
@@ -90,11 +91,13 @@ local categories = {
                             set = function(v) setDB("augmentUIScale", clamp(v, "augmentUIScale")) end,
                         },
                         { type = "slider", name = L["AUGMENT_ICON_SIZE"], desc = L["AUGMENT_ICON_SIZE_DESC"], dbKey = "augmentIconSize",
+                            advanced = true,
                             min = LIM.augmentIconSize.min, max = LIM.augmentIconSize.max, step = 1,
                             get = function() return getSlider("augmentIconSize") end,
                             set = function(v) setDB("augmentIconSize", clamp(v, "augmentIconSize")) end,
                         },
                         { type = "slider", name = L["AUGMENT_ICON_GAP"], desc = L["AUGMENT_ICON_GAP_DESC"], dbKey = "augmentIconGap",
+                            advanced = true,
                             min = LIM.augmentIconGap.min, max = LIM.augmentIconGap.max, step = 1,
                             get = function() return getSlider("augmentIconGap") end,
                             set = function(v) setDB("augmentIconGap", clamp(v, "augmentIconGap")) end,
@@ -102,6 +105,7 @@ local categories = {
                         { type = "dropdown",
                             name = L["AUGMENT_ICON_SIDE"], desc = L["AUGMENT_ICON_SIDE_DESC"],
                             dbKey = "augmentIconSide",
+                            advanced = true,
                             options = {
                                 { L["AUGMENT_LAYOUT_LEFT"],  "left"  },
                                 { L["AUGMENT_LAYOUT_RIGHT"], "right" },
@@ -113,6 +117,7 @@ local categories = {
                         { type = "dropdown",
                             name = L["AUGMENT_SLIDE_SIDE"], desc = L["AUGMENT_SLIDE_SIDE_DESC"],
                             dbKey = "augmentSlideSide",
+                            advanced = true,
                             options = {
                                 { L["AUGMENT_LAYOUT_LEFT"],  "left"  },
                                 { L["AUGMENT_LAYOUT_RIGHT"], "right" },
@@ -124,6 +129,7 @@ local categories = {
                         { type = "dropdown",
                             name = L["AUGMENT_GROW_DIRECTION"], desc = L["AUGMENT_GROW_DIRECTION_DESC"],
                             dbKey = "augmentGrowDirection",
+                            advanced = true,
                             options = {
                                 { L["AUGMENT_LAYOUT_UP"],   "up"   },
                                 { L["AUGMENT_LAYOUT_DOWN"], "down" },
@@ -145,7 +151,6 @@ local categories = {
                                 if addon.ApplyLootRollOptions then addon.ApplyLootRollOptions() end
                             end,
                             preserveOrder = true,
-                            refreshIds = { "augmentFramedBorderShape", "augmentFramedBorderSize" },
                         },
                         -- Framed border rows. Alerts and loot rolls drawn in Framed
                         -- use them too, so each setter also repaints roll frames.
@@ -162,8 +167,9 @@ local categories = {
                                 if addon.ApplyLootRollOptions then addon.ApplyLootRollOptions() end
                             end,
                             preserveOrder = true,
-                            visibleWhen = lootFramed,
-                            refreshIds = { "augmentFramedBorderSize" },
+                            parent = "augmentToastStyle",
+                            parentIs = lootStyleHasBorder,
+                            advanced = true,
                         },
                         { type = "slider",
                             name = L["AUGMENT_FRAMED_BORDER_SIZE"], desc = L["AUGMENT_FRAMED_BORDER_SIZE_DESC"],
@@ -175,10 +181,9 @@ local categories = {
                                 if addon.ApplyLootRollOptions then addon.ApplyLootRollOptions() end
                             end,
                             -- Only the square edge takes a thickness; see ToastStyles.
-                            visibleWhen = function()
-                                return lootFramed()
-                                    and getDB("augmentFramedBorderShape", D.augmentFramedBorderShape) == "square"
-                            end,
+                            parent = "augmentFramedBorderShape",
+                            parentIs = "square",
+                            advanced = true,
                         },
                         { type = "dropdown",
                             name = L["AUGMENT_FONT"],
@@ -199,22 +204,23 @@ local categories = {
                         { type = "dropdown",
                             name = L["AUGMENT_TEXT_OUTLINE_TYPE"], desc = L["AUGMENT_TEXT_OUTLINE_TYPE_DESC"],
                             dbKey = "augmentTextOutlineType",
+                            advanced = true,
                             options = addon.OUTLINE_OPTIONS,
                             get = function() return getDB("augmentTextOutlineType", D.augmentTextOutlineType) end,
                             set = function(v) setDB("augmentTextOutlineType", v) end,
                         },
-                        Toggle(L["AUGMENT_SUPPRESS_BLIZZARD"], L["AUGMENT_SUPPRESS_BLIZZARD_DESC"], "augmentSuppressBlizzard", D.augmentSuppressBlizzard),
+                        Toggle(L["AUGMENT_SUPPRESS_BLIZZARD"], L["AUGMENT_SUPPRESS_BLIZZARD_DESC"], "augmentSuppressBlizzard", D.augmentSuppressBlizzard, { advanced = true }),
                         Button(L["AUGMENT_LOOT_WINDOW_RESET_POSITION"], L["AUGMENT_LOOT_WINDOW_RESET_POSITION_DESC"], function()
                             local Y = addon.Augment
                             if Y and Y.ClearLootWindowPosition then Y.ClearLootWindowPosition() end
-                        end),
+                        end, { advanced = true }),
                     },
                 },
                 right = {
                     title = L["AUGMENT_TOAST_TYPES"],
                     options = {
-                        Toggle(L["AUGMENT_SHOW_ITEMS"],        L["AUGMENT_SHOW_ITEMS_DESC"],        "augmentShowItems",       D.augmentShowItems,       { refreshIds = { "augmentMinQuality", "augmentShowPushedItems" } }),
-                        Toggle(L["AUGMENT_SHOW_PUSHED_ITEMS"], L["AUGMENT_SHOW_PUSHED_ITEMS_DESC"], "augmentShowPushedItems", D.augmentShowPushedItems, { disabled = function() return getDB("augmentShowItems", D.augmentShowItems) == false end }),
+                        Toggle(L["AUGMENT_SHOW_ITEMS"],        L["AUGMENT_SHOW_ITEMS_DESC"],        "augmentShowItems",       D.augmentShowItems),
+                        Toggle(L["AUGMENT_SHOW_PUSHED_ITEMS"], L["AUGMENT_SHOW_PUSHED_ITEMS_DESC"], "augmentShowPushedItems", D.augmentShowPushedItems, { parent = "augmentShowItems", advanced = true }),
                         Toggle(L["AUGMENT_SHOW_MONEY"],    L["AUGMENT_SHOW_MONEY_DESC"],    "augmentShowMoney",    D.augmentShowMoney),
                         Toggle(L["AUGMENT_SHOW_CURRENCY"], L["AUGMENT_SHOW_CURRENCY_DESC"], "augmentShowCurrency", D.augmentShowCurrency),
                         Toggle(L["AUGMENT_SHOW_REP"],      L["AUGMENT_SHOW_REP_DESC"],      "augmentShowRep",      D.augmentShowRep),
@@ -229,8 +235,8 @@ local categories = {
                     options = {
                         { type = "section", name = L["AUGMENT_STACKING_SECTION"] },
                         Toggle(L["AUGMENT_STACK_DUPLICATES"],        L["AUGMENT_STACK_DUPLICATES_DESC"],        "augmentStackDuplicates",      D.augmentStackDuplicates),
-                        Toggle(L["AUGMENT_STACK_COUNT_BEFORE_NAME"], L["AUGMENT_STACK_COUNT_BEFORE_NAME_DESC"], "augmentStackCountBeforeName", D.augmentStackCountBeforeName),
-                        Toggle(L["AUGMENT_CONDENSE_JUNK"],           L["AUGMENT_CONDENSE_JUNK_DESC"],           "augmentCondenseJunk",         D.augmentCondenseJunk,    { disabled = function() return getDB("augmentShowItems", D.augmentShowItems) == false end }),
+                        Toggle(L["AUGMENT_STACK_COUNT_BEFORE_NAME"], L["AUGMENT_STACK_COUNT_BEFORE_NAME_DESC"], "augmentStackCountBeforeName", D.augmentStackCountBeforeName, { advanced = true }),
+                        Toggle(L["AUGMENT_CONDENSE_JUNK"],           L["AUGMENT_CONDENSE_JUNK_DESC"],           "augmentCondenseJunk",         D.augmentCondenseJunk,    { parent = "augmentShowItems" }),
                         { type = "dropdown", name = L["AUGMENT_MIN_QUALITY"], desc = L["AUGMENT_MIN_QUALITY_DESC"], dbKey = "augmentMinQuality",
                             options = function()
                                 return {
@@ -244,7 +250,7 @@ local categories = {
                             end,
                             get = function() return tonumber(getDB("augmentMinQuality", D.augmentMinQuality)) or D.augmentMinQuality end,
                             set = function(v) setDB("augmentMinQuality", v) end,
-                            disabled = function() return getDB("augmentShowItems", D.augmentShowItems) == false end,
+                            parent = "augmentShowItems",
                         },
                     },
                 },
@@ -270,28 +276,32 @@ local categories = {
                             end,
                         },
                         { type = "slider", name = L["AUGMENT_HOLD_LEGENDARY"], desc = L["AUGMENT_HOLD_LEGENDARY_DESC"], dbKey = "augmentHoldLegendary",
+                            advanced = true,
                             min = LIM.augmentHoldLegendary.min, max = LIM.augmentHoldLegendary.max, step = 0.5,
                             get = function() return getSlider("augmentHoldLegendary") end,
                             set = function(v) setDB("augmentHoldLegendary", clamp(v, "augmentHoldLegendary")) end,
-                            disabled = function() return getDB("augmentShowItems", D.augmentShowItems) == false end,
+                            parent = "augmentShowItems",
                         },
                         { type = "slider", name = L["AUGMENT_HOLD_MONEY"],    desc = L["AUGMENT_HOLD_MONEY_DESC"],    dbKey = "augmentHoldMoney",
+                            advanced = true,
                             min = LIM.augmentHoldMoney.min, max = LIM.augmentHoldMoney.max, step = 0.5,
                             get = function() return getSlider("augmentHoldMoney") end,
                             set = function(v) setDB("augmentHoldMoney", clamp(v, "augmentHoldMoney")) end,
-                            disabled = function() return getDB("augmentShowMoney", D.augmentShowMoney) == false end,
+                            parent = "augmentShowMoney",
                         },
                         { type = "slider", name = L["AUGMENT_HOLD_CURRENCY"], desc = L["AUGMENT_HOLD_CURRENCY_DESC"], dbKey = "augmentHoldCurrency",
+                            advanced = true,
                             min = LIM.augmentHoldCurrency.min, max = LIM.augmentHoldCurrency.max, step = 0.5,
                             get = function() return getSlider("augmentHoldCurrency") end,
                             set = function(v) setDB("augmentHoldCurrency", clamp(v, "augmentHoldCurrency")) end,
-                            disabled = function() return getDB("augmentShowCurrency", D.augmentShowCurrency) == false end,
+                            parent = "augmentShowCurrency",
                         },
                         { type = "slider", name = L["AUGMENT_HOLD_REP"],      desc = L["AUGMENT_HOLD_REP_DESC"],      dbKey = "augmentHoldRep",
+                            advanced = true,
                             min = LIM.augmentHoldRep.min, max = LIM.augmentHoldRep.max, step = 0.5,
                             get = function() return getSlider("augmentHoldRep") end,
                             set = function(v) setDB("augmentHoldRep", clamp(v, "augmentHoldRep")) end,
-                            disabled = function() return getDB("augmentShowRep", D.augmentShowRep) == false end,
+                            parent = "augmentShowRep",
                         },
                     },
                 },
@@ -301,6 +311,7 @@ local categories = {
             Section(L["AUGMENT_SOUNDS"], { page = "loot" }),
             Toggle(L["AUGMENT_SOUND_ENABLED"], L["AUGMENT_SOUND_ENABLED_DESC"], "augmentSoundEnabled", D.augmentSoundEnabled),
             { type = "dropdown", name = L["AUGMENT_SOUND_CHANNEL"], desc = L["AUGMENT_SOUND_CHANNEL_DESC"], dbKey = "augmentSoundChannel",
+                advanced = true,
                 options = {
                     { L["AUGMENT_SOUND_CH_SFX"],      "SFX"      },
                     { L["AUGMENT_SOUND_CH_MASTER"],   "Master"   },
@@ -310,12 +321,12 @@ local categories = {
                 },
                 get = function() return getDB("augmentSoundChannel", D.augmentSoundChannel) end,
                 set = function(v) setDB("augmentSoundChannel", v) end,
-                visibleWhen = function() return getDB("augmentSoundEnabled", D.augmentSoundEnabled) ~= false end,
+                parent = "augmentSoundEnabled",
             },
-            Toggle(L["AUGMENT_SOUND_ITEMS"],    L["AUGMENT_SOUND_ITEMS_DESC"],    "augmentSoundItems",    D.augmentSoundItems,    { visibleWhen = function() return getDB("augmentSoundEnabled", D.augmentSoundEnabled) ~= false end }),
-            Toggle(L["AUGMENT_SOUND_MONEY"],    L["AUGMENT_SOUND_MONEY_DESC"],    "augmentSoundMoney",    D.augmentSoundMoney,    { visibleWhen = function() return getDB("augmentSoundEnabled", D.augmentSoundEnabled) ~= false end }),
-            Toggle(L["AUGMENT_SOUND_CURRENCY"], L["AUGMENT_SOUND_CURRENCY_DESC"], "augmentSoundCurrency", D.augmentSoundCurrency, { visibleWhen = function() return getDB("augmentSoundEnabled", D.augmentSoundEnabled) ~= false end }),
-            Toggle(L["AUGMENT_SOUND_REP"],      L["AUGMENT_SOUND_REP_DESC"],      "augmentSoundRep",      D.augmentSoundRep,      { visibleWhen = function() return getDB("augmentSoundEnabled", D.augmentSoundEnabled) ~= false end }),
+            Toggle(L["AUGMENT_SOUND_ITEMS"],    L["AUGMENT_SOUND_ITEMS_DESC"],    "augmentSoundItems",    D.augmentSoundItems,    { parent = "augmentSoundEnabled" }),
+            Toggle(L["AUGMENT_SOUND_MONEY"],    L["AUGMENT_SOUND_MONEY_DESC"],    "augmentSoundMoney",    D.augmentSoundMoney,    { parent = "augmentSoundEnabled" }),
+            Toggle(L["AUGMENT_SOUND_CURRENCY"], L["AUGMENT_SOUND_CURRENCY_DESC"], "augmentSoundCurrency", D.augmentSoundCurrency, { parent = "augmentSoundEnabled" }),
+            Toggle(L["AUGMENT_SOUND_REP"],      L["AUGMENT_SOUND_REP_DESC"],      "augmentSoundRep",      D.augmentSoundRep,      { parent = "augmentSoundEnabled" }),
 
         },
     },
@@ -361,8 +372,6 @@ local categories = {
             if v then V.Enable() else V.Disable() end
         end,
         options = function()
-            local function sellerDisabled() return not getDB("autoSellerEnabled", D.autoSellerEnabled) end
-            local function repairDisabled() return not getDB("autoRepairEnabled", D.autoRepairEnabled) end
             local verbosityOptions = {
                 { L["AUGMENT_VENDOR_VERBOSITY_SILENT"],  "none"    },
                 { L["AUGMENT_VENDOR_VERBOSITY_SUMMARY"], "summary" },
@@ -370,10 +379,10 @@ local categories = {
             return {
                 Section(L["AUGMENT_VENDOR_SELLER_SECTION"], { page = "vendor" }),
                 Toggle(L["AUGMENT_VENDOR_SELLER_ENABLE"],        L["AUGMENT_VENDOR_SELLER_ENABLE_DESC"],        "autoSellerEnabled",  D.autoSellerEnabled),
-                Toggle(L["AUGMENT_VENDOR_SELLER_GREY"],          L["AUGMENT_VENDOR_SELLER_GREY_DESC"],          "autoSellerGrey",     D.autoSellerGrey,     { disabled = sellerDisabled }),
-                Toggle(L["AUGMENT_VENDOR_SELLER_UNUSABLE"],      L["AUGMENT_VENDOR_SELLER_UNUSABLE_DESC"],      "autoSellerUnusable",  D.autoSellerUnusable,  { disabled = sellerDisabled }),
-                Toggle(L["AUGMENT_VENDOR_SELLER_NONOPTIMAL"],    L["AUGMENT_VENDOR_SELLER_NONOPTIMAL_DESC"],    "autoSellerNonOptimal", D.autoSellerNonOptimal, { disabled = sellerDisabled }),
-                Toggle(L["AUGMENT_VENDOR_SELLER_LOW_LEVEL"],     L["AUGMENT_VENDOR_SELLER_LOW_LEVEL_DESC"],     "autoSellerLowLevel",  D.autoSellerLowLevel,  { disabled = sellerDisabled, refreshIds = { "autoSellerLowLevelThreshold" } }),
+                Toggle(L["AUGMENT_VENDOR_SELLER_GREY"],          L["AUGMENT_VENDOR_SELLER_GREY_DESC"],          "autoSellerGrey",     D.autoSellerGrey,     { parent = "autoSellerEnabled" }),
+                Toggle(L["AUGMENT_VENDOR_SELLER_UNUSABLE"],      L["AUGMENT_VENDOR_SELLER_UNUSABLE_DESC"],      "autoSellerUnusable",  D.autoSellerUnusable,  { parent = "autoSellerEnabled" }),
+                Toggle(L["AUGMENT_VENDOR_SELLER_NONOPTIMAL"],    L["AUGMENT_VENDOR_SELLER_NONOPTIMAL_DESC"],    "autoSellerNonOptimal", D.autoSellerNonOptimal, { parent = "autoSellerEnabled" }),
+                Toggle(L["AUGMENT_VENDOR_SELLER_LOW_LEVEL"],     L["AUGMENT_VENDOR_SELLER_LOW_LEVEL_DESC"],     "autoSellerLowLevel",  D.autoSellerLowLevel,  { parent = "autoSellerEnabled" }),
                 { type = "slider",
                     name     = L["AUGMENT_VENDOR_SELLER_LOW_LEVEL_THRESHOLD"],
                     desc     = L["AUGMENT_VENDOR_SELLER_LOW_LEVEL_THRESHOLD_DESC"],
@@ -381,15 +390,16 @@ local categories = {
                     min = LIM.autoSellerLowLevelThreshold.min, max = LIM.autoSellerLowLevelThreshold.max, step = 1,
                     get = function() return getSlider("autoSellerLowLevelThreshold") end,
                     set = function(v) setDB("autoSellerLowLevelThreshold", clamp(v, "autoSellerLowLevelThreshold")) end,
-                    disabled = function() return sellerDisabled() or not getDB("autoSellerLowLevel", D.autoSellerLowLevel) end,
+                    parent = "autoSellerLowLevel",
                 },
-                Toggle(L["AUGMENT_VENDOR_SELLER_FORTUNE_CARDS"], L["AUGMENT_VENDOR_SELLER_FORTUNE_CARDS_DESC"], "autoSellerFortuneCards", D.autoSellerFortuneCards, { disabled = sellerDisabled }),
-                Toggle(L["AUGMENT_VENDOR_SELLER_LEGION_RELICS"], L["AUGMENT_VENDOR_SELLER_LEGION_RELICS_DESC"], "autoSellerLegionRelics",  D.autoSellerLegionRelics,  { disabled = sellerDisabled }),
+                Toggle(L["AUGMENT_VENDOR_SELLER_FORTUNE_CARDS"], L["AUGMENT_VENDOR_SELLER_FORTUNE_CARDS_DESC"], "autoSellerFortuneCards", D.autoSellerFortuneCards, { parent = "autoSellerEnabled", advanced = true }),
+                Toggle(L["AUGMENT_VENDOR_SELLER_LEGION_RELICS"], L["AUGMENT_VENDOR_SELLER_LEGION_RELICS_DESC"], "autoSellerLegionRelics",  D.autoSellerLegionRelics,  { parent = "autoSellerEnabled", advanced = true }),
                 { type = "dropdown",
                     name     = L["AUGMENT_VENDOR_VERBOSITY"],
                     desc     = L["AUGMENT_VENDOR_VERBOSITY_DESC"],
                     dbKey    = "autoSellerVerbosity",
-                    disabled = sellerDisabled,
+                    parent = "autoSellerEnabled",
+                    advanced = true,
                     options  = verbosityOptions,
                     get = function() return getDB("autoSellerVerbosity", D.autoSellerVerbosity) end,
                     set = function(v) setDB("autoSellerVerbosity", v) end,
@@ -397,12 +407,13 @@ local categories = {
 
                 Section(L["AUGMENT_VENDOR_REPAIR_SECTION"], { page = "vendor" }),
                 Toggle(L["AUGMENT_VENDOR_REPAIR_ENABLE"],     L["AUGMENT_VENDOR_REPAIR_ENABLE_DESC"],     "autoRepairEnabled",  D.autoRepairEnabled),
-                Toggle(L["AUGMENT_VENDOR_REPAIR_GUILDBANK"],  L["AUGMENT_VENDOR_REPAIR_GUILDBANK_DESC"],  "autoRepairGuildBank", D.autoRepairGuildBank, { disabled = repairDisabled }),
+                Toggle(L["AUGMENT_VENDOR_REPAIR_GUILDBANK"],  L["AUGMENT_VENDOR_REPAIR_GUILDBANK_DESC"],  "autoRepairGuildBank", D.autoRepairGuildBank, { parent = "autoRepairEnabled" }),
                 { type = "dropdown",
                     name     = L["AUGMENT_VENDOR_VERBOSITY"],
                     desc     = L["AUGMENT_VENDOR_VERBOSITY_DESC"],
                     dbKey    = "autoRepairVerbosity",
-                    disabled = repairDisabled,
+                    parent = "autoRepairEnabled",
+                    advanced = true,
                     options  = verbosityOptions,
                     get = function() return getDB("autoRepairVerbosity", D.autoRepairVerbosity) end,
                     set = function(v) setDB("autoRepairVerbosity", v) end,

@@ -229,6 +229,13 @@ end
 -- ---------------------------------------------------------------------------
 
 local function ParentMatches(parentRow, row)
+    -- A hidden parent counts as unmatched, so a chain collapses from the top down. The
+    -- parent's visibleWhen is read now, so it is the final wrapped function when the
+    -- parent has a parent of its own.
+    if parentRow.visibleWhen and not parentRow.visibleWhen() then return false end
+    -- A revealed parent passes its visibleWhen while its own parent is unmatched, so the
+    -- chain is checked too; otherwise a grandchild shows enabled under a greyed parent.
+    if parentRow._parentMatch and not parentRow._parentMatch() then return false end
     local v
     if parentRow.get then
         v = parentRow.get()
@@ -252,14 +259,52 @@ local function IsTrue(fnOrBool)
     return fnOrBool == true
 end
 
+-- A row's condition for counting as card content: its own condition and its parent's, but
+-- not the More gate. BuildPage stores the pre-More condition of an advanced row in
+-- `contentWhen` (`true` when it has none); any other row is judged by its visibleWhen.
+local function ContentCondition(r)
+    if r.contentWhen ~= nil then return r.contentWhen end
+    return r.visibleWhen
+end
+
 -- Rows are copies made by BuildPage, so wiring them here never touches a module's tables.
-local function ExpandParents(rows, moduleKey, pageKey)
+-- cardOf maps each row to its card id; a child is indented only under a parent in its card.
+local function ExpandParents(rows, moduleKey, pageKey, cardOf)
     local byKey = {}
     for _, r in ipairs(rows) do
         if r.dbKey and r.type ~= "section" then byKey[r.dbKey] = r end
     end
+    -- A chain that revisits a key is a cycle: warn once per cycle and leave its rows unwired.
+    local cyclic, warnedCycle = {}, {}
     for _, r in ipairs(rows) do
-        if r.parent then
+        if r.parent and r.dbKey and r.type ~= "section" then
+            local path, order, cur = {}, {}, r
+            while cur and cur.parent do
+                if path[cur.dbKey] then
+                    local members, minKey = {}, cur.dbKey
+                    local on = false
+                    for _, k in ipairs(order) do
+                        if k == cur.dbKey then on = true end
+                        if on then
+                            members[#members + 1] = k
+                            if k < minKey then minKey = k end
+                        end
+                    end
+                    for _, k in ipairs(members) do cyclic[k] = true end
+                    if not warnedCycle[minKey] then
+                        warnedCycle[minKey] = true
+                        Warn(("%s › %s: parent cycle between %s"):format(moduleKey, pageKey, table.concat(members, ", ")))
+                    end
+                    break
+                end
+                path[cur.dbKey] = true
+                order[#order + 1] = cur.dbKey
+                cur = byKey[cur.parent]
+            end
+        end
+    end
+    for _, r in ipairs(rows) do
+        if r.parent and not (r.dbKey and cyclic[r.dbKey]) then
             local p = byKey[r.parent]
             if not p then
                 Warn(("%s › %s: '%s' depends on '%s', which is not on this page"):format(moduleKey, pageKey, Label(r), tostring(r.parent)))
@@ -267,10 +312,16 @@ local function ExpandParents(rows, moduleKey, pageKey)
                 Warn(("%s › %s: '%s' has a parent but no dbKey"):format(moduleKey, pageKey, Label(r)))
             else
                 local child, ownVisible, ownDisabled = r, r.visibleWhen, r.disabled
+                local ownContent = ContentCondition(r)
                 local function match() return ParentMatches(p, child) end
-                r.indent = true
+                r._parentMatch = match
+                if cardOf and cardOf[r] == cardOf[p] then r.indent = true end
                 r.visibleWhen = function()
                     if ownVisible and not ownVisible() then return false end
+                    return match() or Assemble.IsRevealed(child)
+                end
+                r.contentWhen = function()
+                    if type(ownContent) == "function" and not ownContent() then return false end
                     return match() or Assemble.IsRevealed(child)
                 end
                 r.disabled = function()
@@ -293,6 +344,69 @@ local function ExpandParents(rows, moduleKey, pageKey)
             end
         end
     end
+    -- A parent refreshes every descendant, not just its direct children, so a change
+    -- re-evaluates the whole chain beneath it.
+    local kids = {}
+    for _, r in ipairs(rows) do
+        if r.parent and r.dbKey and not cyclic[r.dbKey] and byKey[r.parent] then
+            local list = kids[r.parent] or {}
+            list[#list + 1] = r.dbKey
+            kids[r.parent] = list
+        end
+    end
+    for _, r in ipairs(rows) do
+        if r.dbKey and kids[r.dbKey] then
+            local ids, have = {}, {}
+            for _, id in ipairs(r.refreshIds or {}) do
+                if not have[id] then have[id] = true; ids[#ids + 1] = id end
+            end
+            local stack, seen, i = { r.dbKey }, { [r.dbKey] = true }, 1
+            while i <= #stack do
+                for _, k in ipairs(kids[stack[i]] or {}) do
+                    if not seen[k] then
+                        seen[k] = true
+                        stack[#stack + 1] = k
+                        if not have[k] then
+                            have[k] = true
+                            ids[#ids + 1] = k
+                        end
+                    end
+                end
+                i = i + 1
+            end
+            r.refreshIds = ids
+        end
+    end
+end
+
+-- Rows that never count as a card's content.
+local NOT_CONTENT = { section = true, header = true, moreToggle = true, talkingHeadPreview = true }
+
+-- A card whose rows would all be hidden hides itself, ANDed with its section's own
+-- condition. A header-switch card keeps its title, since the switch is its content. Rows are
+-- judged without the More gate, so a card holding only advanced rows can still be opened.
+-- A card whose rows are all unconditional is left alone. The dashboard re-reads this when any
+-- conditional row in the card is refreshed, which a parent's refreshIds already trigger.
+local function HideWhenEmpty(header, rows)
+    -- The card's own condition, before the content rule joins it. Search skips cards it hides.
+    header.cardWhen = header.visibleWhen
+    if header.headerToggle then return end
+    local conds, always = {}, false
+    for _, r in ipairs(rows) do
+        if not NOT_CONTENT[r.type] then
+            local c = ContentCondition(r)
+            if c == nil or c == true then always = true
+            elseif type(c) == "function" then conds[#conds + 1] = c end
+        end
+    end
+    if always or #conds == 0 then return end
+    local function hasContent()
+        for _, c in ipairs(conds) do
+            if c() then return true end
+        end
+        return false
+    end
+    header.visibleWhen = Both(header.visibleWhen, hasContent)
 end
 
 -- ---------------------------------------------------------------------------
@@ -341,7 +455,7 @@ function Assemble.BuildPage(moduleKey, pageKey, chunks)
         return seen[a] < seen[b]
     end)
 
-    local out = {}
+    local out, cardOf, cardList = {}, {}, {}
     for _, key in ipairs(order) do
         local card = cards[key]
         local cardId = moduleKey .. ":" .. pageKey .. ":" .. key
@@ -360,33 +474,70 @@ function Assemble.BuildPage(moduleKey, pageKey, chunks)
             header.name = def.cardNames[key]
         end
         out[#out + 1] = header
+        local members = {}
+        cardList[#cardList + 1] = { header = header, rows = members }
 
         local normal, advanced = {}, {}
         for _, chunk in ipairs(card.chunks) do
             for _, row in ipairs(chunk.rows) do
-                local r = Copy(row)
-                -- A merged card has one header, so each section's own condition moves onto its rows.
-                if merged and chunk.section.visibleWhen then
-                    r.visibleWhen = Both(chunk.section.visibleWhen, r.visibleWhen)
+                -- Rows the client cannot use are dropped here, so More counts, card auto-hide
+                -- and parent wiring never see them.
+                if HasCapability(row.requires) then
+                    local r = Copy(row)
+                    -- A merged card has one header, so each section's own condition moves onto its rows.
+                    if merged and chunk.section.visibleWhen then
+                        r.visibleWhen = Both(chunk.section.visibleWhen, r.visibleWhen)
+                    end
+                    if r.advanced then advanced[#advanced + 1] = r else normal[#normal + 1] = r end
                 end
-                if r.advanced then advanced[#advanced + 1] = r else normal[#normal + 1] = r end
             end
         end
-        for _, r in ipairs(normal) do out[#out + 1] = r end
+        for _, r in ipairs(normal) do
+            out[#out + 1] = r
+            members[#members + 1] = r
+            cardOf[r] = cardId
+        end
         if #advanced > 0 then
-            out[#out + 1] = { type = "moreToggle", cardId = cardId, count = #advanced }
+            -- count is the static total; getCount and visibleWhen follow the advanced rows
+            -- that could show now. contentWhen is read at call time because ExpandParents
+            -- rewrites it after this. The count treats this card's More as open, because an
+            -- advanced child reads its advanced parent's visibleWhen, which carries the More gate.
+            local function countOpen()
+                local n = 0
+                for _, r in ipairs(advanced) do
+                    if IsTrue(r.contentWhen) then n = n + 1 end
+                end
+                return n
+            end
+            local function showable()
+                local prev = Assemble._countingCard
+                Assemble._countingCard = cardId
+                local ok, n = pcall(countOpen)
+                Assemble._countingCard = prev
+                if not ok then error(n, 0) end
+                return n
+            end
+            out[#out + 1] = {
+                type = "moreToggle", cardId = cardId, count = #advanced, getCount = showable,
+                visibleWhen = function() return showable() > 0 end,
+            }
             for _, r in ipairs(advanced) do
                 local own = r.visibleWhen
+                r.contentWhen = own or true
+                members[#members + 1] = r
+                cardOf[r] = cardId
                 r.visibleWhen = function()
                     if own and not own() then return false end
-                    return Assemble.IsMoreOpen(cardId) or Assemble.IsRevealed(r)
+                    return Assemble._countingCard == cardId or Assemble.IsMoreOpen(cardId)
+                        or Assemble.IsRevealed(r)
                 end
                 out[#out + 1] = r
             end
         end
     end
 
-    ExpandParents(out, moduleKey, pageKey)
+    ExpandParents(out, moduleKey, pageKey, cardOf)
+    for _, c in ipairs(cardList) do HideWhenEmpty(c.header, c.rows) end
     return out
 end
 

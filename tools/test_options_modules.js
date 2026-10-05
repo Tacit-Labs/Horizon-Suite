@@ -201,7 +201,7 @@ function assemble(capsOff) {
       end
     end
     -- Search results with no name to show (the dashboard shows name, searchName or labelText).
-    local blank = {}
+    local blank, hiddenHits = {}, {}
     local okIdx, idx = pcall(OptionsData_BuildSearchIndex)
     if not okIdx then blank[1] = "index failed: " .. tostring(idx) end
     for _, e in ipairs(okIdx and idx or {}) do
@@ -209,6 +209,40 @@ function assemble(capsOff) {
       local n = o.name or o.searchName or o.labelText
       if type(n) == "function" then n = n() end
       if not n or n == "" then blank[#blank + 1] = tostring(e.categoryKey) .. " › " .. tostring(o.type) end
+      -- The alert sounds card is hidden until the feature ships, so none of its rows may be results.
+      if type(o.dbKey) == "string" and o.dbKey:find("^alertsSound") then hiddenHits[#hiddenHits + 1] = o.dbKey end
+    end
+    -- Layout dump for --dump: one block per card with everyday/advanced counts.
+    local dump = {}
+    local function rowName(r)
+      local n = r.name or r.searchName or r.labelText or r.type
+      if type(n) == "function" then local ok, v = pcall(n); n = ok and v or r.type end
+      return tostring(n)
+    end
+    for _, cat in ipairs(addon.OptionCategories) do
+      local ok, opts = pcall(function()
+        if type(cat.options) == "function" then return cat.options() end
+        return cat.options
+      end)
+      if ok and opts then
+        local mk, pk = cat.moduleKey or "axis", cat.pageKey or cat.key
+        local head, lines, ev, adv
+        local function flush()
+          if head then dump[#dump + 1] = mk .. " › " .. pk .. " › " .. head .. "  (" .. ev .. "/" .. adv .. ")"
+            for _, l in ipairs(lines) do dump[#dump + 1] = l end end
+        end
+        for _, r in ipairs(opts) do
+          if type(r) == "table" and r.type == "section" then
+            flush()
+            head, lines, ev, adv = tostring(r.card or rowName(r)), {}, 0, 0
+          elseif type(r) == "table" and head and r.type ~= "moreToggle" then
+            if r.advanced then adv = adv + 1 else ev = ev + 1 end
+            lines[#lines + 1] = "  " .. (r.advanced and "[adv] " or "") .. (r.parent and "↳ " or "") .. rowName(r)
+              .. (r.parent and ("  (parent: " .. tostring(r.parent) .. ")") or "")
+          end
+        end
+        flush()
+      end
     end
     local mods = {}
     for mk, keys in pairs(pages) do mods[#mods + 1] = q(mk) .. ":" .. list(keys) end
@@ -221,9 +255,11 @@ function assemble(capsOff) {
       '"columns":' .. list(columns),
       '"survivors":' .. list(survivors),
       '"blank":' .. list(blank),
+      '"hiddenHits":' .. list(hiddenHits),
       '"cards":{' .. table.concat(cards, ",") .. "}",
       '"pages":{' .. table.concat(mods, ",") .. "}",
       '"missing":' .. list(missing),
+      '"dump":' .. list(dump),
     }, ",") .. "}"
   `, 'collect');
   return JSON.parse(json);
@@ -238,6 +274,8 @@ function common(label, r) {
   check(label + ': no row survives whose capability is absent', r.survivors.length === 0,
     r.survivors.join(', '));
   check(label + ': every search result has a name', r.blank.length === 0, r.blank.join(', '));
+  check(label + ': search skips rows in a card hidden by its own condition', r.hiddenHits.length === 0,
+    r.hiddenHits.join(', '));
   // A card holding nothing but the zero-height preview proxy looks empty on screen.
   const empty = [];
   for (const [key, list] of Object.entries(r.cards)) {
@@ -256,6 +294,7 @@ function common(label, r) {
 {
   const r = assemble([]);
   common('Retail', r);
+  if (process.argv.includes('--dump')) console.log(r.dump.join('\n'));
   for (const [mk, want] of Object.entries(EXPECTED)) {
     const got = r.pages[mk] || [];
     check('Retail: ' + mk + ' pages', JSON.stringify(got) === JSON.stringify(want), got.join(', '));

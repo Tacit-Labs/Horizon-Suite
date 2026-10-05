@@ -368,6 +368,55 @@ run(`
   check("source rows untouched", src.options[3].visibleWhen == nil and src.options[2].refreshIds == nil, "mutated")
 `, 'dependent-rows');
 
+// --- Chained parents ------------------------------------------------------------------
+run(`
+  local A = HorizonSuite.OptionsAssemble
+  RESET()
+  DB_VALUES = { a = true, b = true, hid = true, kid = true, rv = true }
+  local src = { key = "L", moduleKey = "focus", options = {
+    SEC("Size", { page = "layout", card = "size" }),
+    ROW("a"),
+    ROW("b", { parent = "a" }),
+    ROW("c", { parent = "b" }),
+    ROW("hid", { visibleWhen = function() return false end }),
+    ROW("kid", { parent = "hid" }),
+    ROW("rv", { visibleWhen = function() return false end }),
+    ROW("rvKid", { parent = "rv" }),
+    ROW("x", { parent = "y" }),
+    ROW("y", { parent = "x" }),
+  } }
+  local out = A.Run({ src })
+  local by = {}
+  for _, r in ipairs(OPTS(out[1])) do if r.dbKey then by[r.dbKey] = r end end
+  check("chain shows when every link matches", by.c.visibleWhen() == true, "false")
+  DB_VALUES.a = false
+  check("grandchild hides when the grandparent is off", by.c.visibleWhen() == false, "true")
+  check("grandchild disabled when the grandparent is off", by.c.disabled() == true, "false")
+  DB_VALUES.a = true
+  check("grandchild shows again", by.c.visibleWhen() == true, "false")
+  check("root refreshes every descendant", table.concat(by.a.refreshIds or {}, ",") == "b,c", table.concat(by.a.refreshIds or {}, ","))
+  check("middle refreshes its child", table.concat(by.b.refreshIds or {}, ",") == "c", table.concat(by.b.refreshIds or {}, ","))
+  check("cycle warns", WARNED("cycle"), "no warning")
+  local n = 0
+  for _, w in ipairs(A.warnings) do if w:find("cycle") then n = n + 1 end end
+  check("cycle warns once", n == 1, n)
+  check("cycle rows stay unwired", by.x.visibleWhen == nil and by.y.visibleWhen == nil, "wired")
+  check("hidden parent hides its child despite a match", by.kid.visibleWhen() == false, "true")
+  A.revealId = "rvKid"
+  check("revealed child shows under a hidden parent", by.rvKid.visibleWhen() == true, "false")
+  A.revealId = nil
+  DB_VALUES.a = false
+  A.revealId = "b"
+  check("revealed middle of an off chain still shows", by.b.visibleWhen() == true, "false")
+  check("revealed middle of an off chain is disabled", by.b.disabled() == true, "false")
+  check("grandchild under a revealed, unmatched middle is disabled", by.c.disabled() == true, "false")
+  check("grandchild under a revealed, unmatched middle hides", by.c.visibleWhen() == false, "true")
+  A.revealId = "c"
+  check("revealed grandchild of an off chain shows", by.c.visibleWhen() == true, "false")
+  A.revealId = nil
+  DB_VALUES.a = true
+`, 'chained-parents');
+
 // --- Get-less parent ---------------------------------------------------------------------
 run(`
   local A = HorizonSuite.OptionsAssemble
@@ -410,6 +459,158 @@ run(`
   check("search reveal shows an advanced row", adv1.visibleWhen() == true, "false")
   A.revealId = nil
 `, 'more-fold');
+
+// --- More row tracks what it can show ------------------------------------------------------
+run(`
+  local A = HorizonSuite.OptionsAssemble
+  RESET()
+  DB_VALUES = { vis = false, own = true }
+  HorizonSuite.Platform.caps.gone = false
+  local out = A.Run({ { key = "L", moduleKey = "focus", options = {
+    SEC("Size", { page = "layout", card = "size" }),
+    ROW("vis"),
+    ROW("visKid", { parent = "vis", advanced = true }),
+    SEC("Where", { page = "layout", card = "position" }),
+    ROW("lock"),
+    ROW("p1", { advanced = true }),
+    ROW("p2", { advanced = true, requires = "gone" }),
+    ROW("p3", { advanced = true, visibleWhen = function() return DB_VALUES.own end }),
+  } } })
+  local rows = OPTS(out[1])
+  HorizonSuite.Platform.caps.gone = nil
+  local mores, by, cur = {}, {}, nil
+  for _, r in ipairs(rows) do
+    if r.type == "section" then cur = r.card end
+    if r.type == "moreToggle" then mores[cur] = r end
+    if r.dbKey and r.type ~= "section" then by[r.dbKey] = r end
+  end
+  local function moreShows(card)
+    local m = mores[card]
+    return m ~= nil and (not m.visibleWhen or m.visibleWhen()) and true or false
+  end
+  local function moreCount(card)
+    local m = mores[card]
+    if not m then return nil end
+    if m.getCount then return m.getCount() end
+    return m.count
+  end
+  check("More row hides when its only advanced row waits on an off parent", moreShows("size") == false, "shown")
+  check("More count is 0 while that parent is off", moreCount("size") == 0, moreCount("size"))
+  DB_VALUES.vis = true
+  check("More row shows once the parent is on", moreShows("size") == true, "hidden")
+  check("More count follows the parent", moreCount("size") == 1, moreCount("size"))
+  DB_VALUES.vis = false
+  A.revealId = "visKid"
+  check("a revealed advanced row keeps the More row", moreShows("size") == true, "hidden")
+  A.revealId = nil
+  check("row with an absent capability is dropped", by.p2 == nil, "present")
+  check("More count skips an absent capability", moreCount("position") == 2, moreCount("position"))
+  check("static count skips an absent capability", mores.position ~= nil and mores.position.count == 2, mores.position and mores.position.count)
+  DB_VALUES.own = false
+  check("More count skips a row whose own condition fails", moreCount("position") == 1, moreCount("position"))
+`, 'more-count');
+
+// --- More count with an advanced parent ----------------------------------------------------
+run(`
+  local A = HorizonSuite.OptionsAssemble
+  RESET()
+  DB_VALUES = { ev = true, ap = true, ak = true }
+  local out = A.Run({ { key = "L", moduleKey = "focus", options = {
+    SEC("Size", { page = "layout", card = "size" }),
+    ROW("ev"),
+    ROW("ap", { advanced = true }),
+    ROW("ak", { parent = "ap", advanced = true }),
+  } } })
+  local more, ak
+  for _, r in ipairs(OPTS(out[1])) do
+    if r.type == "moreToggle" then more = r end
+    if r.dbKey == "ak" then ak = r end
+  end
+  check("advanced child of an advanced parent counts while More is closed", more.getCount() == 2, more.getCount())
+  check("More row shows with an advanced chain", more.visibleWhen() == true, "hidden")
+  check("counting leaves the More gate closed", A._countingCard == nil and ak.visibleWhen() == false, tostring(A._countingCard))
+  A.SetMoreOpen("focus:layout:size", true)
+  check("advanced chain count is the same with More open", more.getCount() == 2, more.getCount())
+  A.SetMoreOpen("focus:layout:size", false)
+  DB_VALUES.ap = false
+  check("advanced child of an off advanced parent drops out", more.getCount() == 1, more.getCount())
+  DB_VALUES = { ev = true, ap = false, ak = true }
+  local out2 = A.Run({ { key = "L", moduleKey = "focus", options = {
+    SEC("Size", { page = "layout", card = "size" }),
+    ROW("ev"),
+    ROW("ap", { parent = "ev", advanced = true }),
+    ROW("ak", { parent = "ap", advanced = true }),
+  } } })
+  local more2
+  for _, r in ipairs(OPTS(out2[1])) do if r.type == "moreToggle" then more2 = r end end
+  check("More row stays when only the advanced chain could show", more2.visibleWhen() == true and more2.getCount() == 1, more2.getCount())
+`, 'more-count-advanced-parent');
+
+// --- Cards with nothing to show -------------------------------------------------------
+run(`
+  local A = HorizonSuite.OptionsAssemble
+  RESET()
+  DB_VALUES = { master = false, sw = false, gate = true }
+  local OWN = true
+  local out = A.Run({ { key = "L", moduleKey = "focus", options = {
+    SEC("Main", { page = "layout", card = "size" }),
+    ROW("master"),
+    ROW("near", { parent = "master" }),
+    SEC("Far", { page = "layout", card = "position" }),
+    ROW("k1", { parent = "master" }),
+    ROW("k2", { parent = "master" }),
+    { type = "talkingHeadPreview" },
+    { type = "header", name = "Group" },
+  } }, { key = "M", moduleKey = "focus", options = {
+    SEC("Switched", { page = "look", card = "text", headerToggle = { dbKey = "sw" } }),
+    ROW("sw"),
+    ROW("gate"),
+    ROW("s1", { parent = "gate", parentIs = false }),
+    SEC("Folded", { page = "look", card = "colours" }),
+    ROW("f1", { parent = "gate", parentIs = false }),
+    ROW("f2", { advanced = true }),
+    SEC("Own", { page = "look", card = "background", visibleWhen = function() return OWN end }),
+    ROW("o1", { parent = "gate" }),
+  } } })
+  local function rowsOf(key)
+    local c = FIND(out, key)
+    return c and OPTS(c) or {}
+  end
+  local hdr, by = {}, {}
+  for _, k in ipairs({ "focus:layout", "focus:look" }) do
+    for _, r in ipairs(rowsOf(k)) do
+      if r.type == "section" then hdr[r.card] = r end
+      if r.dbKey and r.type ~= "section" then by[r.dbKey] = r end
+    end
+  end
+  local function shows(card)
+    local h = hdr[card]
+    return h ~= nil and (not h.visibleWhen or h.visibleWhen()) and true or false
+  end
+  check("card fixture wires every parent", not WARNED("not on this page"), "parent missing")
+  check("card whose rows all wait on an unmatched parent hides", shows("position") == false, "shown")
+  DB_VALUES.master = true
+  check("that card shows once the parent matches", shows("position") == true, "hidden")
+  DB_VALUES.master = false
+  check("card holding the parent stays", shows("size") == true, "hidden")
+  check("header-switch card is never auto-hidden", shows("text") == true, "hidden")
+  check("advanced rows keep a card with hidden everyday rows", shows("colours") == true, "hidden")
+  check("own section condition kept while content shows", shows("background") == true, "hidden")
+  OWN = false
+  check("own section condition still hides the card", shows("background") == false, "shown")
+  OWN = true
+  DB_VALUES.gate = false
+  check("auto rule ANDs with the own condition", shows("background") == false, "shown")
+  DB_VALUES.gate = true
+  A.revealId = "k1"
+  check("a revealed row keeps its card", shows("position") == true, "hidden")
+  A.revealId = nil
+  check("child in the parent's card is indented", by.near.indent == true, tostring(by.near.indent))
+  check("child in another card is not indented", not by.k1.indent, tostring(by.k1.indent))
+  check("cross-card child still hides with its parent", by.k1.visibleWhen() == false, "true")
+  check("cross-card child still gets the hint", by.k1.tooltip() == "Depends on master.", tostring(by.k1.tooltip()))
+  check("parent refreshes cross-card children", table.concat(by.master.refreshIds or {}, ",") == "k1,k2,near", table.concat(by.master.refreshIds or {}, ","))
+`, 'empty-cards');
 
 // --- Search ---------------------------------------------------------------------------
 run(`
