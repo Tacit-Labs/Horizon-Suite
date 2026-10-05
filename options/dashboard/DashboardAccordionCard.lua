@@ -15,9 +15,9 @@
 local addon = _G.HorizonSuite
 if not addon then return end
 
--- Rounded fills and dots come from OptionsWidgets (Echo.Round, with a flat fallback).
+-- Rounded fills come from OptionsWidgets (Echo.Round, with a flat fallback); so does the header
+-- switch (addon.OptionsWidgets_CreatePill), looked up when a card is built.
 local PaintRounded = addon.OptionsWidgets_PaintRounded
-local MakeDot = addon.OptionsWidgets_MakeDot
 
 -- Width of a FontString's text, ignoring any width already set on it.
 local function TextWidth(fs)
@@ -154,89 +154,35 @@ function addon.Dashboard_CreateAccordionCard(parent, title, headerToggleCfg, p, 
         if htDefault == nil then htDefault = true end
 
         local tW = WDef.SwitchWidth
-        local tH = WDef.SwitchHeight
-        local tInset = WDef.SwitchInset
-        local tThumb = tH - 2 * tInset
-        local pillTravel = tW - 2 * tInset - tThumb
 
-        local pillFrame = CreateFrame("Frame", nil, card)
-        pillFrame:SetSize(tW, tH)
+        -- The shared switch pill (OptionsWidgets CreatePill): it slides and fills over
+        -- Def.MotionFast on a click, snaps on an outside refresh, and scales on a press.
+        -- The level is set before its parts are built so they stack above the header button.
+        local pillFrame = addon.OptionsWidgets_CreatePill(card, card:GetFrameLevel() + 6)
         pillFrame:SetPoint("RIGHT", chevron, "LEFT", -WDef.CardHeaderSwitchGap, 0)
-        pillFrame:SetFrameLevel(card:GetFrameLevel() + 6)
         rightReserve = rightReserve + WDef.CardHeaderSwitchGap + tW
-
-        local tOn  = WDef.TrackOn
-        local tOff = WDef.TrackOff
-        local tTh  = WDef.ThumbColor
-
-        -- Track: a rounded pill in TrackOff, with a rounded TrackOn fill that grows from the
-        -- left as the switch turns on, and a round thumb above both.
-        local paintTrack = PaintRounded(pillFrame, tH / 2, "BACKGROUND")
-        paintTrack(tOff[1], tOff[2], tOff[3], tOff[4])
-
-        local fillFrame = CreateFrame("Frame", nil, pillFrame)
-        fillFrame:SetPoint("TOPLEFT", pillFrame, "TOPLEFT", 0, 0)
-        fillFrame:SetPoint("BOTTOMLEFT", pillFrame, "BOTTOMLEFT", 0, 0)
-        fillFrame:SetWidth(tH)
-        fillFrame:SetFrameLevel(pillFrame:GetFrameLevel() + 1)
-        local paintFill = PaintRounded(fillFrame, tH / 2, "BACKGROUND")
-        paintFill(tOn[1], tOn[2], tOn[3], tOn[4])
-
-        local thumbHost = CreateFrame("Frame", nil, pillFrame)
-        thumbHost:SetAllPoints(pillFrame)
-        thumbHost:SetFrameLevel(pillFrame:GetFrameLevel() + 2)
-        local thumb = MakeDot(thumbHost, tThumb, "OVERLAY")
-        thumb:SetVertexColor(tTh[1], tTh[2], tTh[3], tTh[4])
-
-        local pillPos = 0
-        local pillAnimStart, pillAnimFrom, pillAnimTo
-
-        local function UpdatePillVisuals(t)
-            -- Repaint from the live tokens so a class-theme change reaches the switch.
-            local on, off = WDef.TrackOn, WDef.TrackOff
-            paintTrack(off[1], off[2], off[3], off[4])
-            paintFill(on[1], on[2], on[3], on[4])
-            fillFrame:SetWidth(tH + t * (tW - tH))
-            fillFrame:SetAlpha(t)
-            thumb:ClearAllPoints()
-            thumb:SetPoint("CENTER", pillFrame, "LEFT", tInset + tThumb / 2 + t * pillTravel, 0)
-        end
 
         local function GetPillValue()
             return _G.OptionsData_GetDB(htDbKey, htDefault)
         end
 
+        -- Set by a click, consumed by the next paint: only the player's own change slides.
+        local animateNext
         local function RefreshPill()
-            local on = GetPillValue()
-            pillPos = on and 1 or 0
-            UpdatePillVisuals(pillPos)
+            local animate = animateNext
+            animateNext = nil
+            pillFrame:SetOn(GetPillValue() and true or false, animate)
         end
         RefreshPill()
-
-        -- Store handler in a local so re-triggering after nil-clear always works
-        local pillOnUpdate
-        pillOnUpdate = function(self)
-            if not pillAnimStart then return end
-            local t = math.min((GetTime() - pillAnimStart) / 0.12, 1)
-            UpdatePillVisuals(pillAnimFrom + (pillAnimTo - pillAnimFrom) * t)
-            if t >= 1 then
-                pillPos       = pillAnimTo
-                pillAnimStart = nil
-                self:SetScript("OnUpdate", nil)
-            end
-        end
 
         local pillBtn = CreateFrame("Button", nil, card)
         pillBtn:SetAllPoints(pillFrame)
         pillBtn:SetFrameLevel(card:GetFrameLevel() + 7)
         pillBtn:SetScript("OnClick", function()
             local newVal = not GetPillValue()
+            animateNext = true
             _G.OptionsData_SetDB(htDbKey, newVal)
-            -- Animate pill (re-set from stored ref so it works on every click)
-            pillAnimFrom  = pillPos
-            pillAnimTo    = newVal and 1 or 0
-            pillAnimStart = GetTime()
-            pillFrame:SetScript("OnUpdate", pillOnUpdate)
+            RefreshPill()   -- slides; a refresh inside SetDB may already have started it
             -- Expand/collapse card to match toggle state
             ExpandCollapseCard(newVal)
             -- Refresh preview
@@ -244,6 +190,9 @@ function addon.Dashboard_CreateAccordionCard(parent, title, headerToggleCfg, p, 
                 addon.Insight.ApplyInsightOptions()
             end
         end)
+        if addon.OptionsWidgets_AttachPress then
+            addon.OptionsWidgets_AttachPress(pillBtn, pillFrame.body)
+        end
 
         card.headerToggleEnabled = GetPillValue
 

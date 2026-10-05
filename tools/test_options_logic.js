@@ -1057,6 +1057,83 @@ run(`
   OptionsWidgets_SetDef({ LabelSize = 13 })
 `, 'widget-type-scale');
 
+// --- Widget motion: tween maths, the animate-or-snap rule, press and thumb scales -------
+run(`
+  local H = HorizonSuite
+  local D = H.OptionsWidgetsDef
+  check("motion tokens", D.MotionFast == 0.12 and D.MotionPress == 0.06 and D.PressScale == 0.97
+    and D.SliderThumbHoverScale == 1.15,
+    tostring(D.MotionFast) .. "/" .. tostring(D.MotionPress) .. "/" .. tostring(D.PressScale) .. "/" .. tostring(D.SliderThumbHoverScale))
+
+  local Lerp = H.OptionsWidgets_Lerp
+  check("lerp exists", type(Lerp) == "function", type(Lerp))
+  if type(Lerp) == "function" then
+    check("lerp start is exact", Lerp(0.3, 0.7, 0) == 0.3, Lerp(0.3, 0.7, 0))
+    check("lerp end is exact", Lerp(0.1, 0.7, 1) == 0.7, Lerp(0.1, 0.7, 1))
+    check("lerp past the end clamps", Lerp(0, 10, 1.5) == 10 and Lerp(0, 10, -1) == 0)
+    check("lerp middle", Lerp(0, 10, 0.25) == 2.5, Lerp(0, 10, 0.25))
+    check("lerp runs backwards", Lerp(1, 0, 0.25) == 0.75, Lerp(1, 0, 0.25))
+  end
+
+  local A = H.OptionsWidgets_TweenAdvance
+  check("tween advance exists", type(A) == "function", type(A))
+  if type(A) == "function" then
+    local t, e, done = A(0, 0.06, 0.12)
+    check("half way is eased out, not done", t == 0.06 and math.abs(e - 0.75) < 1e-9 and done == false, e)
+    t, e, done = A(0.1, 0.05, 0.12)
+    check("passing the duration is done at exactly 1", e == 1 and done == true, e)
+    t, e, done = A(0, 0.12, 0.12)
+    check("landing on the duration is done", e == 1 and done == true, e)
+    t, e, done = A(0, 0.01, 0)
+    check("no duration finishes at once", e == 1 and done == true, e)
+    t, e, done = A(nil, nil, nil)
+    check("nil inputs finish at once", t == 0 and e == 1 and done == true)
+    t, e, done = A(0.02, -5, 0.12)
+    check("a negative frame time does not run backwards", t == 0.02 and done == false, t)
+    t, e, done = A(0, 0.06, 0.12, function(p) return p end)
+    check("a custom ease is used", e == 0.5, e)
+    -- Monotonic: an eased tween never steps back.
+    local tt, last, mono = 0, 0, true
+    for _ = 1, 20 do
+      local ee
+      tt, ee = A(tt, 0.007, 0.12)
+      if ee < last then mono = false end
+      last = ee
+    end
+    check("eased progress never steps back", mono)
+  end
+
+  local P = H.OptionsWidgets_TweenPlan
+  check("tween plan exists", type(P) == "function", type(P))
+  if type(P) == "function" then
+    check("a click animates", P(true, 0, 1, nil, true) == "animate")
+    check("an outside change snaps", P(nil, 0, 1, nil, true) == "snap")
+    check("a hidden control snaps", P(true, 0, 1, nil, false) == "snap")
+    check("no change snaps (repaints)", P(true, 1, 1, nil, true) == "snap")
+    check("unknown start snaps", P(true, nil, 1, nil, true) == "snap")
+    check("same value mid-tween lets it finish", P(nil, 0.4, 1, 1, true) == "finish")
+    check("a click to the running target also finishes", P(true, 0.4, 1, 1, true) == "finish")
+    check("a different value mid-tween from outside snaps", P(nil, 0.4, 0, 1, true) == "snap")
+    check("a click reversing mid-tween animates from where it is", P(true, 0.4, 0, 1, true) == "animate")
+  end
+
+  local PT = H.OptionsWidgets_PressTarget
+  check("press target exists", type(PT) == "function", type(PT))
+  if type(PT) == "function" then
+    check("held down scales to PressScale", PT(true, false) == 0.97, PT(true, false))
+    check("released returns to 1", PT(false, false) == 1)
+    check("disabled never scales", PT(true, true) == 1)
+  end
+
+  local TS = H.OptionsWidgets_SliderThumbSizeAt
+  check("thumb size helper exists", type(TS) == "function", type(TS))
+  if type(TS) == "function" then
+    check("thumb at rest is its base size", TS(14, 0) == 14, TS(14, 0))
+    check("thumb when active is 1.15x", math.abs(TS(14, 1) - 16.1) < 1e-9, TS(14, 1))
+    check("thumb half way", math.abs(TS(14, 0.5) - 15.05) < 1e-9, TS(14, 0.5))
+  end
+`, 'widget-motion');
+
 // --- Summary -----------------------------------------------------------------------
 run(`
   REAL_PRINT(PASS .. " passed, " .. FAIL .. " failed")
