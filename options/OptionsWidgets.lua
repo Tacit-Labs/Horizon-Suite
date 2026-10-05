@@ -145,7 +145,9 @@ end
 addon.OptionsWidgetsDef = Def
 
 -- Default accent when the Axis class theme is off (the original AccentColor/TrackOn rgb).
+-- Single source: GetAccentColor in DashboardFrame reads it through addon.OptionsAccentDefault.
 local ACCENT_DEFAULT = { 0.48, 0.58, 0.82 }
+addon.OptionsAccentDefault = ACCENT_DEFAULT
 
 -- Point the accent tokens (AccentColor, TrackOn, SidebarSelectedBg) at the class colour when the
 -- Axis class theme is on, else at the default. Widgets pick the new colour up the next time they
@@ -1051,9 +1053,15 @@ local function CreateSegmentedControl(parent, opts, onPick, isDisabled)
     -- follow the dashboard font, so this runs on every layout pass rather than once.
     function track:Fits(available)
         local widths = {}
-        for i, sg in ipairs(segs) do widths[i] = sg.text:GetStringWidth() or 0 end
+        local unmeasured = false
+        for i, sg in ipairs(segs) do
+            widths[i] = sg.text:GetStringWidth() or 0
+            if widths[i] <= 0 then unmeasured = true end
+        end
         local fits, natural = addon.SegmentedFits(widths, available,
             { segPadX = Def.SegPadX, trackPad = Def.SegTrackPad, gap = Def.SegGap })
+        -- A label that measures 0 has no real width yet (font not loaded): stay a dropdown.
+        if unmeasured then fits = false end
         local x = Def.SegTrackPad
         for i, sg in ipairs(segs) do
             local w = math.ceil(widths[i]) + 2 * Def.SegPadX

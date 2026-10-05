@@ -175,7 +175,8 @@ function addon.Dashboard_BuildMainFrame()
                     local cc = addon.GetOptionsClassColor()
                     if cc then return cc[1], cc[2], cc[3] end
                 end
-                return 0.2, 0.8, 0.9 -- Default sleek cyan
+                local d = addon.OptionsAccentDefault or { 0.48, 0.58, 0.82 }
+                return d[1], d[2], d[3] -- same default as Def.AccentColor
             end
 
             -- Widget accent tokens (switch, slider, sidebar selection) follow the class theme from the start.
@@ -245,12 +246,14 @@ function addon.Dashboard_BuildMainFrame()
                 -- colour first; everything below then reads the same colour.
                 if addon.ApplyOptionsClassColor then addon.ApplyOptionsClassColor() end
                 local ar, ag, ab = GetAccentColor()
-                local indentAlpha = (addon.OptionsWidgetsDef and addon.OptionsWidgetsDef.RowIndentBarAlpha) or 0.3
+                local WD = addon.OptionsWidgetsDef
+                local ac = (WD and WD.AccentColor) or { ar, ag, ab }
+                local indentAlpha = (WD and WD.RowIndentBarAlpha) or 0.3
                 for _, bar in ipairs(dashAccentRefs.indentBars) do
-                    if bar.SetColorTexture then bar:SetColorTexture(ar, ag, ab, indentAlpha) end
+                    if bar.SetColorTexture then bar:SetColorTexture(ac[1], ac[2], ac[3], indentAlpha) end
                 end
                 for _, bar in ipairs(dashAccentRefs.sidebarBars) do
-                    if bar.SetColorTexture then bar:SetColorTexture(ar, ag, ab, 1) end
+                    if bar.SetColorTexture then bar:SetColorTexture(ar, ag, ab, 1) end -- Integrations view bars
                 end
                 if dashAccentRefs.underline then
                     dashAccentRefs.underline:SetColorTexture(ar, ag, ab, 0.35)
@@ -1884,14 +1887,6 @@ function addon.Dashboard_BuildMainFrame()
                         g.header = header
                         local headerBtnBg = sb.MakeSelectionFill(header, 8)
                         header.btnBg = headerBtnBg
-                        local headerAccent = header:CreateTexture(nil, "ARTWORK")
-                        headerAccent:SetSize(3, 22)
-                        headerAccent:SetPoint("LEFT", header, "LEFT", 4, 0)
-                        local har, hag, hab = GetAccentColor()
-                        headerAccent:SetColorTexture(har, hag, hab, 1)
-                        headerAccent:Hide()
-                        header.accentBar = headerAccent
-                        tinsert(dashAccentRefs.sidebarBars, headerAccent)
                         local chevron = header:CreateFontString(nil, "OVERLAY")
                         do
                             local hp = addon.Dashboard_ResolveSavedDashboardFontPath(
@@ -2113,7 +2108,7 @@ function addon.Dashboard_BuildMainFrame()
                     -- Module landing (category tiles): highlight the group header, not the first sub-row.
                     if sidebarState.view == "module" and not wantCatIdx and subCategoryView:IsShown() then
                         local g = groups[mk]
-                        if g and g.header and g.header.accentBar then
+                        if g and g.header then
                             activeBtn = g.header
                             picked = true
                         end

@@ -303,15 +303,6 @@ function addon.DashboardSidebar_CreateChrome(p)
         local btnBg = MakeSelectionFill(btn, indentPx > 0 and 6 or 8)
         btn.btnBg = btnBg
 
-        local accentBar = btn:CreateTexture(nil, "ARTWORK")
-        accentBar:SetSize(3, 22)
-        accentBar:SetPoint("LEFT", 4 + indentPx, 0)
-        local sar, sag, sab = GetAccentColor()
-        accentBar:SetColorTexture(sar, sag, sab, 1)
-        accentBar:Hide()
-        btn.accentBar = accentBar
-        tinsert(dashAccentRefs.sidebarBars, accentBar)
-
         if iconName then
             local ic = btn:CreateTexture(nil, "ARTWORK")
             ic:SetSize(16, 16)
@@ -368,15 +359,6 @@ function addon.DashboardSidebar_CreateChrome(p)
 
         local btnBg = MakeSelectionFill(btn, 8)
         btn.btnBg = btnBg
-
-        local accentBar = btn:CreateTexture(nil, "ARTWORK")
-        accentBar:SetSize(3, 22)
-        accentBar:SetPoint("LEFT", 4, 0)
-        local sar, sag, sab = GetAccentColor()
-        accentBar:SetColorTexture(sar, sag, sab, 1)
-        accentBar:Hide()
-        btn.accentBar = accentBar
-        tinsert(dashAccentRefs.sidebarBars, accentBar)
 
         if iconName then
             local ic = btn:CreateTexture(nil, "ARTWORK")
@@ -435,7 +417,6 @@ function addon.DashboardSidebar_CreateChrome(p)
                 prev.label:SetTextColor(MUTED_R, MUTED_G, MUTED_B)
                 if prev.icon then prev.icon:SetVertexColor(MUTED_R, MUTED_G, MUTED_B, 1) end
             end
-            prev.accentBar:Hide()
         end
         dashSession.activeSidebarBtn = btn
         if btn then

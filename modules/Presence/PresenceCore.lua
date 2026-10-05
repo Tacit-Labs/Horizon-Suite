@@ -1993,6 +1993,19 @@ local function ensurePreviewPopout()
     if widgetData and widgetData.frame then
         widgetData.frame:SetPoint("TOPLEFT", content, "TOPLEFT", 0, 0)
         widgetData.frame:SetPoint("TOPRIGHT", content, "TOPRIGHT", 0, 0)
+        -- The preview container grows by max(0, dropdownHeight - 34) over its 260px base; grow
+        -- the popout by the same amount so the preview stays inside its margin.
+        local container = widgetData.frame
+        local prevHook = container.onHeightChanged
+        local function fitPopout()
+            local extra = math.max(0, (container:GetHeight() or 260) - 260)
+            frame:SetHeight(PREVIEW_POPOUT_HEIGHT + extra)
+        end
+        container.onHeightChanged = function()
+            if prevHook then prevHook() end
+            fitPopout()
+        end
+        fitPopout()
     end
 
     function frame:Refresh()

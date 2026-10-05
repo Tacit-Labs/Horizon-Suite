@@ -192,6 +192,10 @@ function addon.Dashboard_CreateAccordionCard(parent, title, headerToggleCfg, p, 
         local pillAnimStart, pillAnimFrom, pillAnimTo
 
         local function UpdatePillVisuals(t)
+            -- Repaint from the live tokens so a class-theme change reaches the switch.
+            local on, off = WDef.TrackOn, WDef.TrackOff
+            paintTrack(off[1], off[2], off[3], off[4])
+            paintFill(on[1], on[2], on[3], on[4])
             fillFrame:SetWidth(tH + t * (tW - tH))
             fillFrame:SetAlpha(t)
             thumb:ClearAllPoints()
