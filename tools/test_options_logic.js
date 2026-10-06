@@ -745,6 +745,59 @@ run(`
   HorizonSuite.OptionCategories = nil
 `, 'search');
 
+// --- Search matching: spelling, synonyms, typos, fillers, module words, phrases -------------
+run(`
+  local A = HorizonSuite.OptionsAssemble
+  RESET()
+  HorizonSuite.OptionCategories = A.Run({
+    { key = "F", moduleKey = "focus", options = {
+      SEC("Look", { page = "look", card = "colours" }),
+      ROW("bgColour", { name = "Background colour" }),
+      ROW("bgOpacity", { name = "Background opacity" }),
+      ROW("iconSide", { name = "Icon side" }),
+      ROW("textSize", { name = "Text size" }),
+      ROW("miniIcon", { name = "Minimap icon" }),
+    } },
+    { key = "I", moduleKey = "insight", options = {
+      SEC("Size", { page = "layout", card = "size" }),
+      ROW("insightScale", { name = "Scale" }),
+    } },
+  })
+  HorizonSuite.OptionsSearch_Invalidate()
+  local by = {}
+  for _, e in ipairs(OptionsData_BuildSearchIndex()) do by[e.optionId] = e end
+  local S = OptionsData_SearchEntryScore
+  check("US spelling finds the UK word", S(by.bgColour, "background color") ~= nil, "nil")
+  check("UK spelling still matches", S(by.bgColour, "colour") ~= nil, "nil")
+  check("a synonym matches", S(by.bgOpacity, "transparency") ~= nil, "nil")
+  check("a synonym ranks below the word itself", S(by.bgOpacity, "transparency") < S(by.bgOpacity, "opacity"), tostring(S(by.bgOpacity, "transparency")))
+  check("one typo still matches", S(by.bgColour, "colur") ~= nil and S(by.bgOpacity, "opactiy") ~= nil, "nil")
+  check("a typo ranks below the word", S(by.bgColour, "colur") < S(by.bgColour, "colour"), "higher")
+  check("short words get no typo match (size is not side)", S(by.iconSide, "size") == nil, tostring(S(by.iconSide, "size")))
+  check("a term inside a longer word matches", S(by.miniIcon, "map") ~= nil, "nil")
+  check("filler words that match nothing are skipped", S(by.miniIcon, "show the minimap icon") ~= nil, "nil")
+  check("all-filler queries match nothing", S(by.miniIcon, "show the") == nil, tostring(S(by.miniIcon, "show the")))
+  check("a real word that matches nothing still fails", S(by.miniIcon, "minimap banana") == nil, "matched")
+  check("module words find the module's rows", S(by.insightScale, "tooltip scale") ~= nil, "nil")
+  check("module words need the module", S(by.textSize, "tooltip scale") == nil, "matched")
+  check("a name holding the whole phrase gets a bonus", S(by.bgOpacity, "background opacity") == 2500, tostring(S(by.bgOpacity, "background opacity")))
+  check("words out of order get no phrase bonus", S(by.bgOpacity, "opacity background") == 2000, tostring(S(by.bgOpacity, "opacity background")))
+  local H = OptionsData_SearchHighlight
+  check("highlight wraps matched words", H("Background colour", "color", "ffffff") == "Background |cffffffffcolour|r", H("Background colour", "color", "ffffff"))
+  check("highlight leaves coded text alone", H("|cffff4040!|r Delete", "delete", "ffffff") == "|cffff4040!|r Delete", "changed")
+  check("highlight skips fillers inside words", H("Only on hover", "on", "ffffff") == "Only |cffffffffon|r hover", H("Only on hover", "on", "ffffff"))
+  local R = HorizonSuite.OptionsSearch_PushRecent
+  local list = R({}, "  Font  ")
+  check("recent search is trimmed", list[1] == "Font", tostring(list[1]))
+  R(list, "scale"); R(list, "font")
+  check("repeat moves to the front without a duplicate", #list == 2 and list[1] == "font" and list[2] == "scale", table.concat(list, ","))
+  R(list, "x")
+  check("one-letter searches are not kept", #list == 2, #list)
+  for i = 1, 10 do R(list, "q" .. i, 6) end
+  check("recent list is capped", #list == 6 and list[1] == "q10", #list .. " " .. tostring(list[1]))
+  HorizonSuite.OptionCategories = nil
+`, 'search-matching');
+
 // --- Subheadings are not search results ---------------------------------------------------
 run(`
   local A = HorizonSuite.OptionsAssemble

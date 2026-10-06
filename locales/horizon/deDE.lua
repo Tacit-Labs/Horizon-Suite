@@ -2814,3 +2814,6 @@ L["FOCUS_COMPLETED_CHECKMARK"]                                = "|TInterface\\\\
 -- L["FOCUS_RUN_RESET_DONE"]                                  = "Dungeon run reset."
 -- L["FOCUS_RUN_RESET_NOT_IN_DUNGEON"]                        = "No dungeon run to reset."
 -- L["DASH_SIDEBAR_OFF_BADGE"]                               = "Off"
+-- L["DASH_SEARCH_RECENT"]                                    = "Recent"
+-- L["DASH_SEARCH_TRY"]                                       = "Try"
+-- L["DASH_SEARCH_SUGGESTIONS"]                               = "font,scale,opacity,minimap,sound,position"

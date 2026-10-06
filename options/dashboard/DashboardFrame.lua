@@ -776,6 +776,14 @@ function addon.Dashboard_BuildMainFrame()
                 searchClearBtn:SetShown(t ~= "")
                 if f.OnSearchTextChanged then f.OnSearchTextChanged(t) end
             end)
+            -- Up and Down pick a result; Enter opens the picked one (or the top one).
+            searchBox:SetScript("OnArrowPressed", function(_, key)
+                if key == "UP" and f.SearchMoveSelection then f.SearchMoveSelection(-1)
+                elseif key == "DOWN" and f.SearchMoveSelection then f.SearchMoveSelection(1) end
+            end)
+            searchBox:SetScript("OnEnterPressed", function(self)
+                if f.SearchSubmit then f.SearchSubmit(self:GetText()) end
+            end)
             searchBox:SetScript("OnEscapePressed", function(self)
                 self:ClearFocus()
                 self:SetText("")
@@ -825,6 +833,7 @@ function addon.Dashboard_BuildMainFrame()
                     local q = searchBox and searchBox:GetText() and searchBox:GetText():trim() or ""
                     if q == "" or #q < 2 then
                         f.searchEmptyHint:Show()
+                        if f.RefreshSearchChips then f.RefreshSearchChips(true) end
                     end
                 end
             end
@@ -1641,6 +1650,7 @@ function addon.Dashboard_BuildMainFrame()
                     f.searchEmptyHint:Show()
                 end
                 if f.DockSearchDropdownForSearchView then f.DockSearchDropdownForSearchView() end
+                if f.RefreshSearchChips then f.RefreshSearchChips(true) end
                 detailTitle:Hide()
                 detailTitleUnderline:Hide()
                 backBtn:Hide()
