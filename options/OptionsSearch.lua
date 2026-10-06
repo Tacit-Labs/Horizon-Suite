@@ -197,7 +197,7 @@ function OptionsData_SearchEntryScore(entry, queryLower)
     if not entry or not queryLower or queryLower == "" then return nil end
     local terms = ParseSearchQueryTerms(queryLower)
     if #terms == 0 then return nil end
-    local total, matched = 0, 0
+    local total, used = 0, {}
     for ti = 1, #terms do
         local term = terms[ti]
         local best = TermScore(entry, term)
@@ -205,14 +205,15 @@ function OptionsData_SearchEntryScore(entry, queryLower)
             if not FILLER[term] then return nil end
         else
             total = total + best
-            matched = matched + 1
+            used[#used + 1] = term
         end
     end
-    if matched == 0 then return nil end
-    if #terms > 1 and entry.searchTokensName then
+    if #used == 0 then return nil end
+    -- The phrase is the terms that matched (skipped fillers left out), and may end mid-word,
+    -- so "show minimap icon" lifts "Minimap icon" and "class colour" lifts "Class colours".
+    if #used > 1 and entry.searchTokensName then
         local name = " " .. table.concat(entry.searchTokensName, " ") .. " "
-        -- The phrase may end mid-word, so "class colour" also lifts "Class colours".
-        if name:find(" " .. table.concat(terms, " "), 1, true) then total = total + 500 end
+        if name:find(" " .. table.concat(used, " "), 1, true) then total = total + 500 end
     end
     return total
 end

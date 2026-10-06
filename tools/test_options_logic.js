@@ -779,6 +779,7 @@ run(`
   check("a typo must keep the first letter", S(by.bgColour, "volour") == nil, "matched")
   check("a synonym in a name scores below the word as a word start", S(by.textSize, "font") == 525, tostring(S(by.textSize, "font")))
   check("filler words that match nothing are skipped", S(by.miniIcon, "show the minimap icon") ~= nil, "nil")
+  check("skipped fillers do not cost the phrase bonus", S(by.miniIcon, "show the minimap icon") == S(by.miniIcon, "minimap icon"), tostring(S(by.miniIcon, "show the minimap icon")))
   check("all-filler queries match nothing", S(by.miniIcon, "show the") == nil, tostring(S(by.miniIcon, "show the")))
   check("a real word that matches nothing still fails", S(by.miniIcon, "minimap banana") == nil, "matched")
   check("module words find the module's rows", S(by.insightScale, "tooltip scale") ~= nil, "nil")
