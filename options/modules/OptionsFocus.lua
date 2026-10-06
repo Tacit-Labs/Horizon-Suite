@@ -24,7 +24,8 @@ local Color                            = addon.Color
 local function FocusClassOn() return addon.GetDB and addon.GetDB("classColorFocus", false) == true end
 local function FocusBrand() return (addon.BrandModule and addon.BrandModule("focus")) or "Focus" end
 local function FocusClassReplaces() return addon.L["DASH_CLASS_THEME_REPLACES"]:format(FocusBrand()) end
-local function FocusClassTint() return addon.L["DASH_CLASS_THEME_TINTS"]:format(FocusBrand()) end
+-- Divider tooltips mention the class colour only while it applies (they keep their opacity).
+local function FocusClassTint() if FocusClassOn() then return addon.L["DASH_CLASS_THEME_TINTS"]:format(FocusBrand()) end end
 local D   = addon.FOCUS_DEFAULTS
 local LIM = addon.FOCUS_LIMITS
 local function clamp(v, key) local lim = LIM[key]; return math.max(lim.min, math.min(lim.max, v)) end

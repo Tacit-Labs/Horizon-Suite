@@ -755,7 +755,7 @@ run(`
   check("migration registers with its id", m and m.id == "20261006", m and m.id)
   local db = { profiles = {
     old = { talkingHeadEnabled = false, talkingHeadCustomise = false,
-            insightHeaderSize = 16, insightPlayerHeaderSize = 13, insightBodySize = 12,
+            insightHeaderSize = 16, insightPlayerHeaderSize = 13, insightBodySize = 12, insightBadgesSize = 4,
             insightShowIlvl = true, insightShowHonorLevel = false, insightMythicScoreMode = "modifier", insightShowMythicScore = true,
             insightBlankSeparator = true, insightTitleMatchNameColor = true },
     fresh = { insightSeparatorMode = "none", insightBlankSeparator = true },
@@ -766,7 +766,8 @@ run(`
   check("old header size fills unset per-tooltip keys", o.insightNpcHeaderSize == 16 and o.insightItemHeaderSize == 16, tostring(o.insightNpcHeaderSize))
   check("a per-tooltip size already set is kept", o.insightPlayerHeaderSize == 13, tostring(o.insightPlayerHeaderSize))
   check("old body size copied", o.insightPlayerBodySize == 12 and o.insightItemBodySize == 12, tostring(o.insightPlayerBodySize))
-  check("old size keys cleared", o.insightHeaderSize == nil and o.insightBodySize == nil, "kept")
+  check("header and body keep their old key for other tooltips", o.insightHeaderSize == 16 and o.insightBodySize == 12, tostring(o.insightHeaderSize))
+  check("tag sizes move, floored as at runtime, and clear", o.insightPlayerBadgesSize == 6 and o.insightBadgesSize == nil, tostring(o.insightPlayerBadgesSize))
   check("show toggles become modes", o.insightItemLevelMode == "force" and o.insightHonorLevelMode == "hide", tostring(o.insightItemLevelMode) .. "/" .. tostring(o.insightHonorLevelMode))
   check("a mode already set is kept", o.insightMythicScoreMode == "modifier", tostring(o.insightMythicScoreMode))
   check("old show keys cleared", o.insightShowIlvl == nil and o.insightShowMythicScore == nil, "kept")

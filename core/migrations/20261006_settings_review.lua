@@ -10,20 +10,23 @@
 -- 2. Insight: old keys still win over the visible settings whenever the newer key is
 --    unset, so a slider could show one size while tooltips used another. Each old value is
 --    copied into its replacement when the replacement is unset, then the old key is cleared.
---    The runtime fallbacks stay for imported old profiles; with the old keys gone they agree
---    with what the settings show.
+--    insightHeaderSize and insightBodySize stay: tooltips with no per-type key (spells and
+--    other plain tooltips) still size from them. Copies use the runtime's floors (8 for
+--    header and body, 6 for the tagged lines). The runtime fallbacks stay for imported old
+--    profiles.
 
 local addon = _G.HorizonSuite
 if not addon or not addon.RegisterMigration then return end
 
--- Old Insight size key -> the per-tooltip keys that replaced it.
+-- Old Insight size key -> the per-tooltip keys that replaced it, the runtime's floor for the
+-- value, and whether the old key is cleared afterwards.
 local SIZE_KEYS = {
-    insightHeaderSize   = { "insightPlayerHeaderSize", "insightNpcHeaderSize", "insightItemHeaderSize" },
-    insightBodySize     = { "insightPlayerBodySize", "insightNpcBodySize", "insightItemBodySize" },
-    insightBadgesSize   = { "insightPlayerBadgesSize" },
-    insightStatsSize    = { "insightPlayerStatsSize" },
-    insightMountSize    = { "insightPlayerMountSize" },
-    insightTransmogSize = { "insightItemTransmogSize" },
+    insightHeaderSize   = { news = { "insightPlayerHeaderSize", "insightNpcHeaderSize", "insightItemHeaderSize" }, floor = 8, keep = true },
+    insightBodySize     = { news = { "insightPlayerBodySize", "insightNpcBodySize", "insightItemBodySize" }, floor = 8, keep = true },
+    insightBadgesSize   = { news = { "insightPlayerBadgesSize" }, floor = 6 },
+    insightStatsSize    = { news = { "insightPlayerStatsSize" }, floor = 6 },
+    insightMountSize    = { news = { "insightPlayerMountSize" }, floor = 6 },
+    insightTransmogSize = { news = { "insightItemTransmogSize" }, floor = 6 },
 }
 
 -- Old show/hide toggle -> the Hide / Show / Modifier dropdown that replaced it.
@@ -43,14 +46,15 @@ addon.RegisterMigration({
                 prof.talkingHeadEnabled = nil
                 prof.talkingHeadCustomise = nil
 
-                for old, news in pairs(SIZE_KEYS) do
+                for old, spec in pairs(SIZE_KEYS) do
                     local v = tonumber(prof[old])
                     if v then
-                        for _, new in ipairs(news) do
+                        v = math.max(spec.floor, v)
+                        for _, new in ipairs(spec.news) do
                             if prof[new] == nil then prof[new] = v end
                         end
                     end
-                    prof[old] = nil
+                    if not spec.keep then prof[old] = nil end
                 end
 
                 for old, new in pairs(MODE_KEYS) do
