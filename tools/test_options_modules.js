@@ -82,7 +82,7 @@ const EXPECTED = {
   axis: ['axis:general', 'axis:layout', 'GlobalToggles', 'Profiles'],
   focus: ['focus:general', 'focus:layout', 'focus:look', 'focus:tracked', 'focus:instances',
     'focus:integrations'],
-  vista: ['vista:general', 'vista:layout', 'vista:look', 'vista:buttons'],
+  vista: ['vista:general', 'vista:layout', 'vista:look', 'vista:text', 'vista:buttons'],
   insight: ['insight:general', 'insight:layout', 'insight:look', 'insight:players',
     'insight:npcsItems'],
   presence: ['presence:general', 'presence:layout', 'presence:look', 'presence:notifications'],
