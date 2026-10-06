@@ -2859,3 +2859,4 @@ L["M_BLOCK_WHENEVER_AN_ACTIVE_KEYSTONE"]                      = "Show the M+ blo
 -- L["FOCUS_PAGE_HEADER"]                                      = "Header & sections"
 -- L["FOCUS_PAGE_MYTHIC_PLUS"]                                 = "Mythic+"
 -- L["FOCUS_CARD_FOCUSED_QUEST"]                               = "Focused quest"
+-- L["FOCUS_ZONE_SIZE_ALSO"]                                   = "Also sizes the scenario stage line and Delve affix names."

@@ -424,7 +424,8 @@ local categories = {
             Color(L["FOCUS_HEADER_COLOUR"], L["FOCUS_COLOUR_OF_OBJECTIVES_HEADER_TEXT"], "headerColor", addon.HEADER_COLOR, { parent = "hideObjectivesHeader", parentIs = false,
                 tooltip = FocusClassReplaces, disabled = FocusClassOn }),
             { type = "toggle", name = L["FOCUS_OPTIONS_BUTTON"], desc = L["FOCUS_OPTIONS_BUTTON_TRACKER_HEADER"], dbKey = "hideOptionsButton", get = function() return not getDB("hideOptionsButton", D.hideOptionsButton) end, set = function(v) setDB("hideOptionsButton", not v) end, parent = "hideObjectivesHeader", parentIs = false },
-            Slider(L["FOCUS_OPTIONS_TEXT_SIZE"], L["FOCUS_OPTIONS_TEXT_FONT_SIZE"], "optionsFontSize", LIM.optionsFontSize.min, LIM.optionsFontSize.max, D.optionsFontSize, { parent = "hideOptionsButton" }),
+            -- Not nested: in minimal mode the Options button still shows on hover.
+            Slider(L["FOCUS_OPTIONS_TEXT_SIZE"], L["FOCUS_OPTIONS_TEXT_FONT_SIZE"], "optionsFontSize", LIM.optionsFontSize.min, LIM.optionsFontSize.max, D.optionsFontSize),
             Section(L["FOCUS_SECTIONS_STRUCTURE"], { page = "header", card = "sections" }),
             Toggle(L["SECTION_HEADERS"], L["FOCUS_CATEGORY_LABELS_ABOVE_GROUP"], "showSectionHeaders", D.showSectionHeaders),
             Slider(L["FOCUS_SECTION_SIZE"], L["FOCUS_SECTION_HEADER_FONT_SIZE"], "sectionFontSize", LIM.sectionFontSize.min, LIM.sectionFontSize.max, D.sectionFontSize, { parent = "showSectionHeaders" }),
@@ -435,7 +436,7 @@ local categories = {
             Color(L["SECTION_DIVIDER_COLOUR"], L["COLOUR_OF_DIVIDER_LINES_BETWEEN_SECTIONS"], "sectionDividerColor", { 0.3, 0.3, 0.35, 0.4 }, { hasAlpha = true, parent = "showSectionDividers", tooltip = FocusClassTint }),
             Section(L["ZONE_LABELS"], { page = "header", card = "zoneLabels" }),
             Toggle(L["ZONE_LABELS"], L["FOCUS_ZONE_NAME_UNDER_QUEST_TITLE"], "showZoneLabels", D.showZoneLabels),
-            Slider(L["FOCUS_ZONE_SIZE"], L["FOCUS_ZONE_LABEL_FONT_SIZE"], "zoneFontSize", LIM.zoneFontSize.min, LIM.zoneFontSize.max, D.zoneFontSize, { parent = "showZoneLabels" }),
+            Slider(L["FOCUS_ZONE_SIZE"], L["FOCUS_ZONE_LABEL_FONT_SIZE"], "zoneFontSize", LIM.zoneFontSize.min, LIM.zoneFontSize.max, D.zoneFontSize, { tooltip = L["FOCUS_ZONE_SIZE_ALSO"] }),
             Section(L["FOCUS_ENTRY_DETAILS"], { page = "tracked", card = "entryDetails" }),
             Toggle(L["ENTRY_NUMBERS"], L["FOCUS_PREFIX_QUEST_TITLES_WITHIN_CATEGORY"], "showCategoryEntryNumbers", D.showCategoryEntryNumbers),
             Section(L["FOCUS_DISPLAY_OBJECTIVES"], { page = "tracked", card = "objectives" }),
