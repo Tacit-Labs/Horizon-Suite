@@ -247,7 +247,7 @@ local categories = {
                 "classColorFocus", "classColorPresence", "classColorAugment", "classColorEcho",
             }
             -- Include "_classColorAll" so the master row Refresh() runs after batch (Axis/Dashboard accordion does not use OptionsPanel allRefreshers).
-            local classColorAllRefreshIds = { "_classColorAll" }
+            local classColorAllRefreshIds = { "_classColorAll", "_dashboardClassTheme" }
             for _, k in ipairs(classColorKeys) do
                 classColorAllRefreshIds[#classColorAllRefreshIds + 1] = k
             end
@@ -271,15 +271,20 @@ local categories = {
                     if addon.OptionsPanel_Refresh then addon.OptionsPanel_Refresh() end
                 end,
             }
-            local function isDashboardClassThemeOn() return getDB("dashboardClassTheme", false) end
+            -- The Dashboard switch is computed, like Global class theme: on while any of its three
+            -- options is on, and setting it writes all three. A "_" key is never saved or marked,
+            -- so it cannot drift from them (Global class theme turns the options on directly).
+            local function isDashboardClassThemeOn()
+                return getDB("classColorDashboard", false) or getDB("dashboardShowClassIcon", false)
+                    or getDB("dashboardBackgroundClassOverride", false)
+            end
             opts[#opts + 1] = {
                 type = "toggle",
                 name = L["AXIS_CLASS_THEME_DASHBOARD"],
                 desc = L["AXIS_CLASS_THEME_DASHBOARD_DESC"],
-                dbKey = "dashboardClassTheme",
+                dbKey = "_dashboardClassTheme",
                 get = isDashboardClassThemeOn,
                 set = function(v)
-                    setDB("dashboardClassTheme", v)
                     setDB("classColorDashboard", v)
                     setDB("dashboardShowClassIcon", v)
                     setDB("dashboardBackgroundClassOverride", v)
@@ -293,8 +298,8 @@ local categories = {
                 dbKey = "classColorDashboard",
                 get = function() return getDB("classColorDashboard", false) end,
                 set = function(v) setDB("classColorDashboard", v) end,
-                parent = "dashboardClassTheme",
-                refreshIds = { "_classColorAll" },
+                parent = "_dashboardClassTheme",
+                refreshIds = { "_classColorAll", "_dashboardClassTheme" },
             }
             opts[#opts + 1] = {
                 type = "toggle",
@@ -303,7 +308,8 @@ local categories = {
                 dbKey = "dashboardShowClassIcon",
                 get = function() return getDB("dashboardShowClassIcon", false) end,
                 set = function(v) setDB("dashboardShowClassIcon", v) end,
-                parent = "dashboardClassTheme",
+                parent = "_dashboardClassTheme",
+                refreshIds = { "_dashboardClassTheme" },
             }
             opts[#opts + 1] = {
                 type = "dropdown",
@@ -327,8 +333,8 @@ local categories = {
                 dbKey = "dashboardBackgroundClassOverride",
                 get = function() return getDB("dashboardBackgroundClassOverride", false) end,
                 set = function(v) setDB("dashboardBackgroundClassOverride", v) end,
-                parent = "dashboardClassTheme",
-                refreshIds = { "dashboardBackgroundTheme" },
+                parent = "_dashboardClassTheme",
+                refreshIds = { "dashboardBackgroundTheme", "_dashboardClassTheme" },
             }
             opts[#opts + 1] = { type = "section", name = L["AXIS_CLASS_THEME_MODULES_SECTION"], page = "look", card = "moduleClassColours", after = "colours" }
             opts[#opts + 1] = { type = "toggle", name = BM and BM("focus"), desc = L["FOCUS_CLASS_COLOURS_DESC"], dbKey = "classColorFocus", get = function() return getDB("classColorFocus", false) end, set = function(v) setDB("classColorFocus", v) end, refreshIds = { "_classColorAll" } }
@@ -446,20 +452,15 @@ local categories = {
                 end, set = function(v)
                     setDB("insightUIScale", math.max(50, math.min(200, v)) / 100)
                 end }
-            opts[#opts + 1] = { type = "slider", name = L["AUGMENT_SCALE"], desc = L["AXIS_SCALE_AUGMENT_LOOT_TOAST_MODULE"], dbKey = "augmentUIScale_pct", min = 50, max = 200,
-                parent = "perModuleScaling",
-                get = function()
-                    return math.floor((tonumber(getDB("augmentUIScale", 1)) or 1) * 100 + 0.5)
-                end, set = function(v)
-                    setDB("augmentUIScale", math.max(50, math.min(200, v)) / 100)
-                    debouncedRefresh("augment", function()
-                        if addon.Augment and addon.Augment.ApplyScale then addon.Augment.ApplyScale() end
-                    end)
-                end }
+            -- No Augment row: Augment's own Toast settings › Scale is the same augmentUIScale, and
+            -- Augment ignores the global and per-module scale.
             -- Standalone: button is on the minimap, not collected by Vista.
+            -- Vista collects the icon only while it manages addon buttons at all, so both its
+            -- toggles must be on for the icon to leave the minimap.
             local function isMinimapStandalone()
                 return not getDB("hideMinimapButton", false)
                     and not (addon.IsModuleEnabled and addon:IsModuleEnabled("vista")
+                             and getDB("vistaHandleAddonButtons", true)
                              and getDB("vistaCollectHorizonMinimapButton", true))
             end
             opts[#opts + 1] = { type = "section", name = L["AXIS_MINIMAP_ICON_SECTION"], page = "general", card = "minimapIcon" }

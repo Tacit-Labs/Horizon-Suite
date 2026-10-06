@@ -257,8 +257,10 @@ end)
 -- RARE BOSS WAYPOINT
 -- ============================================================================
 
--- Set a waypoint for a rare boss entry. TomTom first, then native API.
--- Does NOT open the world map.
+-- Set a waypoint for a native (vignette) rare entry. TomTom first, then native API.
+-- Does NOT open the world map. Named apart from addon.SetRareWaypoint (FocusAggregator.lua),
+-- the RareScanner/SilverDragon helper, which loads later and used to replace this one, so the
+-- tracker's "Rare waypoint" setting never reached TomTom.
 -- @param entry table The rare boss entry from the tracker
 local function SetRareWaypoint(entry)
     if not entry then return end
@@ -305,7 +307,7 @@ local function SetRareWaypoint(entry)
     end
 end
 
-addon.SetRareWaypoint = SetRareWaypoint
+addon.SetNativeRareWaypoint = SetRareWaypoint
 
 -- ============================================================================
 -- RARE BOSS SOUND

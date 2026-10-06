@@ -19,6 +19,11 @@ local Button                   = addon.Button
 local Toggle                   = addon.Toggle
 local FontRow                  = addon.FontRow
 local Color                    = addon.Color
+-- Presence's class colour (Axis › Per-module theme) replaces every title colour while it is on.
+local function PresenceClassOn() return getDB("classColorPresence", false) == true end
+local function PresenceClassReplaces()
+    return L["DASH_CLASS_THEME_REPLACES"]:format((addon.BrandModule and addon.BrandModule("presence")) or "Presence")
+end
 local D   = addon.PRESENCE_DEFAULTS
 local LIM = addon.PRESENCE_LIMITS
 local function clamp(v, key) local lim = LIM[key]; return math.max(lim.min, math.min(lim.max, v)) end
@@ -104,7 +109,7 @@ local categories = {
             { type = "toggle", name = L["QUEST_COMPLETE"],     desc = L["PRESENCE_NOTIFICATION_COMPLETING_A_QUEST"],        dbKey = "presenceQuestComplete",   get = function() local v = getDB("presenceQuestComplete",   nil); if v ~= nil then return v end; return getDB("presenceQuestEvents",  D.presenceQuestEvents) end, set = function(v) setDB("presenceQuestComplete",   v) end },
             { type = "toggle", name = L["WORLD_QUEST_COMPLETE"], desc = L["PRESENCE_NOTIFICATION_COMPLETING_A_WORLD_QUEST"], dbKey = "presenceWorldQuest",     get = function() local v = getDB("presenceWorldQuest",     nil); if v ~= nil then return v end; return getDB("presenceQuestEvents",  D.presenceQuestEvents) end, set = function(v) setDB("presenceWorldQuest",     v) end },
             { type = "toggle", name = L["QUEST_PROGRESS"],    desc = L["PRESENCE_NOTIFICATION_QUEST_OBJECTIVES_UPDATE"],   dbKey = "presenceQuestUpdate",     get = function() local v = getDB("presenceQuestUpdate",     nil); if v ~= nil then return v end; return getDB("presenceQuestEvents",  D.presenceQuestEvents) end, set = function(v) setDB("presenceQuestUpdate",     v) end },
-            Toggle(L["PRESENCE_OBJECTIVE"], L["PRESENCE_QUEST_PROGRESS_HIDE_TITLE"], "presenceHideQuestUpdateTitle", D.presenceHideQuestUpdateTitle),
+            -- "Objective only" (presenceHideQuestUpdateTitle) lives on the Behaviour card as "Hide update title".
             Section(L["PRESENCE_CARD_SCENARIOS"], { page = "notifications" }),
             { type = "toggle", name = L["SCENARIO_START"],    desc = L["PRESENCE_NOTIFICATION_ENTERING_A_SCENARIO_DELVE"],  dbKey = "presenceScenarioStart",   get = function() local v = getDB("presenceScenarioStart",   nil); if v ~= nil then return v end; return getDB("showScenarioEvents", true) end, set = function(v) setDB("presenceScenarioStart",   v) end },
             { type = "toggle", name = L["SCENARIO_PROGRESS"], desc = L["PRESENCE_NOTIFICATION_SCENARIO_DELVE_OBJECTIVES"],  dbKey = "presenceScenarioUpdate",  get = function() local v = getDB("presenceScenarioUpdate",  nil); if v ~= nil then return v end; return getDB("showScenarioEvents", true) end, set = function(v) setDB("presenceScenarioUpdate",  v) end },
@@ -208,14 +213,15 @@ local categories = {
             { type = "slider", name = L["PRESENCE_SMALL_PRIMARY_SIZE"], desc = L["PRESENCE_FONT_SIZE_SMALL_NOTIFICATION_TITLES_QUEST"], dbKey = "presencePrimarySmallSz", min = LIM.presencePrimarySmallSz.min, max = LIM.presencePrimarySmallSz.max, get = function() return math.max(LIM.presencePrimarySmallSz.min, math.min(LIM.presencePrimarySmallSz.max, tonumber(getDB("presencePrimarySmallSz", D.presencePrimarySmallSz)) or D.presencePrimarySmallSz)) end, set = function(v) setDB("presencePrimarySmallSz", clamp(v, "presencePrimarySmallSz")) end, refreshIds = { "presencePreview" } },
             { type = "slider", name = L["PRESENCE_SMALL_SECONDARY_SIZE"], desc = L["PRESENCE_FONT_SIZE_SMALL_NOTIFICATION_SUBTITLES"], dbKey = "presenceSecondarySmallSz", min = LIM.presenceSecondarySmallSz.min, max = LIM.presenceSecondarySmallSz.max, get = function() return math.max(LIM.presenceSecondarySmallSz.min, math.min(LIM.presenceSecondarySmallSz.max, tonumber(getDB("presenceSecondarySmallSz", D.presenceSecondarySmallSz)) or D.presenceSecondarySmallSz)) end, set = function(v) setDB("presenceSecondarySmallSz", clamp(v, "presenceSecondarySmallSz")) end, refreshIds = { "presencePreview" } },
             Section(L["DASH_COLOURS"], { page = "look", card = "colours", subheading = false }),
-            Color(L["PRESENCE_BOSS_EMOTE_COLOUR"], L["PRESENCE_COLOUR_RAID_DUNGEON_BOSS_EMOTE"],             "presenceBossEmoteColor",    addon.PRESENCE_BOSS_EMOTE_COLOR, { refreshIds = { "presencePreview" } }),
+            Color(L["PRESENCE_BOSS_EMOTE_COLOUR"], L["PRESENCE_COLOUR_RAID_DUNGEON_BOSS_EMOTE"],             "presenceBossEmoteColor",    addon.PRESENCE_BOSS_EMOTE_COLOR, { refreshIds = { "presencePreview" }, disabled = PresenceClassOn, tooltip = PresenceClassReplaces }),
             Color(L["PRESENCE_DISCOVERY_LINE_COLOUR"], L["PRESENCE_COLOUR_OF_DISCOVERED_LINE_UNDER_ZONE_TIP"], "presenceDiscoveryColor",  addon.PRESENCE_DISCOVERY_COLOR,  { refreshIds = { "presencePreview" } }),
             Section(L["ZONE_TYPE_COLOURING"], { page = "look", card = "colours" }),
-            Toggle(L["COLOUR_ZONE_TYPE"], L["COLOUR_ZONE_SUBZONE_TITLES_PVP_ZONE"], "presenceZoneTypeColoring", D.presenceZoneTypeColoring, { refreshIds = { "presencePreview" } }),
-            Color(L["FRIENDLY_ZONE_COLOUR"],   L["COLOUR_FRIENDLY_ZONES_GREEN_DEFAULT"],  "presenceZoneColorFriendly",   { 0.1,  1.0,  0.1  }, { refreshIds = { "presencePreview" } }),
-            Color(L["HOSTILE_ZONE_COLOUR"],    L["COLOUR_HOSTILE_ZONES_RED_DEFAULT"],     "presenceZoneColorHostile",    { 1.0,  0.1,  0.1  }, { refreshIds = { "presencePreview" } }),
-            Color(L["CONTESTED_ZONE_COLOUR"],  L["COLOUR_CONTESTED_ZONES_ORANGE_DEFAULT"], "presenceZoneColorContested", { 1.0,  0.7,  0.0  }, { refreshIds = { "presencePreview" } }),
-            Color(L["SANCTUARY_ZONE_COLOUR"],  L["COLOUR_SANCTUARY_ZONES_BLUE_DEFAULT"],  "presenceZoneColorSanctuary",  { 0.41, 0.8,  0.94 }, { refreshIds = { "presencePreview" } }),
+            -- Presence's class colour (Axis › Per-module theme) replaces every title colour while on.
+            Toggle(L["COLOUR_ZONE_TYPE"], L["COLOUR_ZONE_SUBZONE_TITLES_PVP_ZONE"], "presenceZoneTypeColoring", D.presenceZoneTypeColoring, { refreshIds = { "presencePreview" }, disabled = PresenceClassOn, tooltip = PresenceClassReplaces }),
+            Color(L["FRIENDLY_ZONE_COLOUR"],   L["COLOUR_FRIENDLY_ZONES_GREEN_DEFAULT"],  "presenceZoneColorFriendly",   { 0.1,  1.0,  0.1  }, { refreshIds = { "presencePreview" }, disabled = PresenceClassOn, tooltip = PresenceClassReplaces }),
+            Color(L["HOSTILE_ZONE_COLOUR"],    L["COLOUR_HOSTILE_ZONES_RED_DEFAULT"],     "presenceZoneColorHostile",    { 1.0,  0.1,  0.1  }, { refreshIds = { "presencePreview" }, disabled = PresenceClassOn, tooltip = PresenceClassReplaces }),
+            Color(L["CONTESTED_ZONE_COLOUR"],  L["COLOUR_CONTESTED_ZONES_ORANGE_DEFAULT"], "presenceZoneColorContested", { 1.0,  0.7,  0.0  }, { refreshIds = { "presencePreview" }, disabled = PresenceClassOn, tooltip = PresenceClassReplaces }),
+            Color(L["SANCTUARY_ZONE_COLOUR"],  L["COLOUR_SANCTUARY_ZONES_BLUE_DEFAULT"],  "presenceZoneColorSanctuary",  { 0.41, 0.8,  0.94 }, { refreshIds = { "presencePreview" }, disabled = PresenceClassOn, tooltip = PresenceClassReplaces }),
         },
     },
 }

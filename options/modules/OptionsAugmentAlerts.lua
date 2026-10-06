@@ -183,7 +183,8 @@ local category = {
             },
             right = {
                 options = {
-                    -- The card returns when alert sounds ship.
+                    -- The card returns when alert sounds ship (with A.SOUNDS_READY in
+                    -- AugmentAlertsQueue.lua, which keeps them silent until then).
                     { type = "section", name = L["AUGMENT_ALERTS_SOUND"], visibleWhen = function() return false end },
                     { type = "toggle",
                       name = L["AUGMENT_ALERTS_SOUND_ENABLED"], desc = L["AUGMENT_ALERTS_SOUND_ENABLED_DESC"],
