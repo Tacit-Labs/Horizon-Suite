@@ -80,8 +80,8 @@ const FILES = [
 // Each module's page keys, in sidebar order, on a client with every capability.
 const EXPECTED = {
   axis: ['axis:general', 'axis:layout', 'GlobalToggles', 'Profiles'],
-  focus: ['focus:general', 'focus:layout', 'focus:look', 'focus:tracked', 'focus:instances',
-    'focus:integrations'],
+  focus: ['focus:general', 'focus:layout', 'focus:look', 'focus:header', 'focus:tracked', 'focus:instances',
+    'focus:mythicPlus', 'focus:integrations'],
   vista: ['vista:general', 'vista:layout', 'vista:look', 'vista:text', 'vista:buttons'],
   insight: ['insight:general', 'insight:layout', 'insight:look', 'insight:players',
     'insight:npcsItems'],

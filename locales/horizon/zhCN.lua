@@ -2845,3 +2845,6 @@ L["M_BLOCK_WHENEVER_AN_ACTIVE_KEYSTONE"]                      = "Show the M+ blo
 -- L["AUGMENT_SCALE_ALSO_WINDOW"]                              = "Also sizes the loot window."
 -- L["AUGMENT_ALERTS_CARD_GEAR"]                               = "Gear & bags"
 -- L["AUGMENT_ALERTS_CARD_MESSAGES"]                           = "Mail, vault & friends"
+-- L["FOCUS_PAGE_HEADER"]                                      = "Header & sections"
+-- L["FOCUS_PAGE_MYTHIC_PLUS"]                                 = "Mythic+"
+-- L["FOCUS_CARD_FOCUSED_QUEST"]                               = "Focused quest"
