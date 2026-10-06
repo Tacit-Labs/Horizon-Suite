@@ -1,6 +1,8 @@
 ---
 id: axis-settings-refresh
 title: A tidier settings dashboard
+layout: featured
+image: axis-settings-refresh.png
 priority: 500
 from: 2026-10-06
 until: 2026-12-31

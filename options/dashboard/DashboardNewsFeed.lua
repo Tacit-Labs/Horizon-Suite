@@ -10,10 +10,11 @@ addon.DashboardNewsFeed = {
     {
         id = "axis-settings-refresh",
         title = "A tidier settings dashboard",
-        layout = "card",
+        layout = "featured",
         priority = 500,
         fromDate = "2026-10-06",
         untilDate = "2026-12-31",
+        image = "Interface/AddOns/HorizonSuite/media/news/axis-settings-refresh.png",
         button = "Open settings",
         action = { type = "module", moduleKey = "axis" },
         paragraphs = {
