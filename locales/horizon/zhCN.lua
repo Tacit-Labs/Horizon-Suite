@@ -2805,3 +2805,6 @@ L["M_BLOCK_WHENEVER_AN_ACTIVE_KEYSTONE"]                      = "Show the M+ blo
 -- L["INSIGHT_BG_NPCS"]                                   = "NPC background"
 -- L["INSIGHT_BG_ITEMS"]                                  = "Item background"
 -- L["ECHO_TIER_TIP"]                                     = "Loud: dot and pop-up. Count: a number only. Quiet: nothing until you open it. Muted: not counted."
+-- L["DASH_CLASS_THEME_REPLACES"]                             = "Your class colour replaces this while %s is on in Axis › Per-module theme."
+-- L["DASH_CLASS_THEME_TINTS"]                                = "Your class colour replaces this colour while %s is on in Axis › Per-module theme. Opacity still applies."
+-- L["AUGMENT_FRAMED_BORDER_SHARED"]                         = "Shared by loot toasts, alerts, loot rolls and the loot window."

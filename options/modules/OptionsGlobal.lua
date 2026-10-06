@@ -453,16 +453,8 @@ local categories = {
                 end, set = function(v)
                     setDB("insightUIScale", math.max(50, math.min(200, v)) / 100)
                 end }
-            opts[#opts + 1] = { type = "slider", name = L["AUGMENT_SCALE"], desc = L["AXIS_SCALE_AUGMENT_LOOT_TOAST_MODULE"], dbKey = "augmentUIScale_pct", min = 50, max = 200,
-                parent = "perModuleScaling",
-                get = function()
-                    return math.floor((tonumber(getDB("augmentUIScale", 1)) or 1) * 100 + 0.5)
-                end, set = function(v)
-                    setDB("augmentUIScale", math.max(50, math.min(200, v)) / 100)
-                    debouncedRefresh("augment", function()
-                        if addon.Augment and addon.Augment.ApplyScale then addon.Augment.ApplyScale() end
-                    end)
-                end }
+            -- No Augment row: Augment's own Toast settings › Scale is the same augmentUIScale, and
+            -- Augment ignores the global and per-module scale.
             -- Standalone: button is on the minimap, not collected by Vista.
             -- Vista collects the icon only while it manages addon buttons at all, so both its
             -- toggles must be on for the icon to leave the minimap.
