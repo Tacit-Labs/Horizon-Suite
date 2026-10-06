@@ -102,39 +102,43 @@ local function ParseSearchQueryTerms(query)
 end
 
 -- True when a and b differ by one edit: a letter changed, added, dropped, or two neighbours
--- swapped ("colur", "colourr", "clour", "coluor" all reach "colour").
+-- swapped ("colur", "colourr", "clour", "coluor" all reach "colour"). Compares bytes, as this
+-- runs for every word on every keystroke.
+local byte = string.byte
 local function WithinOneEdit(a, b)
     local la, lb = #a, #b
     if a == b then return true end
-    if math.abs(la - lb) > 1 then return false end
+    if la - lb > 1 or lb - la > 1 then return false end
     if la == lb then
         local first
         for i = 1, la do
-            if a:sub(i, i) ~= b:sub(i, i) then
+            if byte(a, i) ~= byte(b, i) then
                 if first then
                     -- A swap of neighbours is one edit; any other second difference is not.
-                    return i == first + 1 and a:sub(first, first) == b:sub(i, i)
-                        and a:sub(i, i) == b:sub(first, first) and a:sub(i + 1) == b:sub(i + 1)
+                    return i == first + 1 and byte(a, first) == byte(b, i)
+                        and byte(a, i) == byte(b, first) and a:sub(i + 1) == b:sub(i + 1)
                 end
                 first = i
             end
         end
         return true
     end
-    if la > lb then a, b, la, lb = b, a, lb, la end
+    if la > lb then a, b, la = b, a, lb end
     -- b is one longer: skipping one letter of b must leave a.
     local i = 1
-    while i <= la and a:sub(i, i) == b:sub(i, i) do i = i + 1 end
+    while i <= la and byte(a, i) == byte(b, i) do i = i + 1 end
     return a:sub(i) == b:sub(i + 1)
 end
 
 -- Best score for one query term against a token list. In falling order: the whole word, the
--- start of a word (term of 2+ letters), the word with one typo (both 5+ letters), and, when
--- inside is set (names and keywords only), the term inside a longer word ("map" in "minimap").
-local function TermScoreAgainstTokens(term, tokens, exactScore, prefixScore, inside)
+-- start of a word (term of 2+ letters), and, when loose is set (names and keywords only), the
+-- word with one typo (both 5+ letters, same first letter, so "border" never reaches "order")
+-- and the term inside a longer word (4+ letters, "imap" in "minimap").
+local function TermScoreAgainstTokens(term, tokens, exactScore, prefixScore, loose)
     local best = 0
     if not tokens then return 0 end
     local n = #term
+    local b1 = byte(term, 1)
     for i = 1, #tokens do
         local w = tokens[i]
         local s = 0
@@ -142,10 +146,10 @@ local function TermScoreAgainstTokens(term, tokens, exactScore, prefixScore, ins
             s = exactScore
         elseif n >= 2 and #w >= n and string.sub(w, 1, n) == term then
             s = prefixScore
-        elseif n >= 5 and #w >= 5 and WithinOneEdit(term, w) then
+        elseif loose and n >= 5 and #w >= 5 and byte(w, 1) == b1 and WithinOneEdit(term, w) then
             s = prefixScore * 0.5
-        elseif inside and n >= 3 and #w > n and string.find(w, term, 2, true) then
-            s = exactScore * 0.4
+        elseif loose and n >= 4 and #w > n and string.find(w, term, 2, true) then
+            s = exactScore * 0.25
         end
         if s > best then best = s end
     end
@@ -168,11 +172,13 @@ local function TermScore(entry, term)
         local s = TermScoreAgainstTokens(term, entry[f[1]], f[2], f[3], f[4])
         if s > best then best = s end
     end
+    -- A synonym counts as whole words only, scored below the term itself as a word start, so
+    -- "font" ranks "Fonts" above "Text shadow" and never reaches "texture".
     local alts = SYNONYMS[term]
     if alts then
         for _, alt in ipairs(alts) do
             for _, f in ipairs(FIELDS) do
-                local s = TermScoreAgainstTokens(alt, entry[f[1]], f[2], f[3], f[4]) * SYNONYM_SHARE
+                local s = TermScoreAgainstTokens(alt, entry[f[1]], f[3] * SYNONYM_SHARE, 0)
                 if s > best then best = s end
             end
         end
@@ -228,7 +234,7 @@ function OptionsData_SearchHighlight(text, queryLower, hex)
             local hit = TermScoreAgainstTokens(term, one, 1, 1, true) > 0
             if not hit and SYNONYMS[term] then
                 for _, alt in ipairs(SYNONYMS[term]) do
-                    if TermScoreAgainstTokens(alt, one, 1, 1, true) > 0 then hit = true break end
+                    if TermScoreAgainstTokens(alt, one, 1, 0) > 0 then hit = true break end
                 end
             end
             if hit and not (FILLER[term] and one[1] ~= term) then

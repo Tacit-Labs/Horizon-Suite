@@ -586,7 +586,9 @@ function addon.DashboardDetailView_Init(env)
             PaintSearchRow(row.btn, false)
             row.btn:SetPoint("TOP", searchDropdownContent, "TOP", 0, -(i - 1) * SEARCH_DROPDOWN_ROW_HEIGHT)
             row.btn:SetScript("OnClick", function()
-                if addon.OptionsSearch_PushRecent then addon.OptionsSearch_PushRecent(RecentSearches(), search.query) end
+                -- Remember the search as typed (search.query is lowercased).
+                local typed = searchBox and searchBox:GetText() or search.query
+                if addon.OptionsSearch_PushRecent then addon.OptionsSearch_PushRecent(RecentSearches(), typed) end
                 NavigateToOption(row.btn.entry)
                 f.HideSearchDropdown()
                 if f.DockSearchDropdownForModule then f.DockSearchDropdownForModule() end
@@ -617,8 +619,11 @@ function addon.DashboardDetailView_Init(env)
     --- list so the picked row stays in view.
     f.SearchMoveSelection = function(delta)
         if search.shown == 0 or not searchDropdown:IsShown() then return end
-        local prev = searchDropdownButtons[search.sel]
-        if prev then prev.btn._picked = nil; PaintSearchRow(prev.btn, false) end
+        -- One lit row: the pick replaces any hover or earlier pick.
+        for j = 1, search.shown do
+            local r = searchDropdownButtons[j]
+            if r then r.btn._picked = nil; PaintSearchRow(r.btn, false) end
+        end
         local i = search.sel + delta
         if search.sel == 0 then i = (delta > 0) and 1 or search.shown end
         i = math.max(1, math.min(search.shown, i))
@@ -639,6 +644,9 @@ function addon.DashboardDetailView_Init(env)
     --- Enter in the search box: search now (skipping the typing delay) and open the picked
     --- result, or the top one.
     f.SearchSubmit = function(text)
+        -- Drop a typing-delay search still waiting, or it would reopen the list after we jump.
+        if search.timer and search.timer.Cancel then search.timer:Cancel() end
+        search.timer, search.pending = nil, nil
         if f.FilterBySearch and (search.query ~= (text or ""):trim():lower() or search.shown == 0) then
             f.FilterBySearch(text)
         end
@@ -647,21 +655,25 @@ function addon.DashboardDetailView_Init(env)
         if row and row.btn:IsShown() then row.btn:Click() end
     end
 
-    local searchDebounceTimer
     f.OnSearchTextChanged = function(text)
-        if searchDebounceTimer and searchDebounceTimer.Cancel then
-            searchDebounceTimer:Cancel()
+        if search.timer and search.timer.Cancel then
+            search.timer:Cancel()
         end
-        searchDebounceTimer = nil
-        
+        search.timer = nil
+        -- The latest text waiting to be searched; Enter clears it, so a late timer does nothing.
+        search.pending = text
+
         local delay = 0.12
+        local function due()
+            search.timer = nil
+            if search.pending ~= text then return end
+            search.pending = nil
+            f.FilterBySearch(text)
+        end
         if C_Timer and C_Timer.NewTimer then
-            searchDebounceTimer = C_Timer.NewTimer(delay, function()
-                searchDebounceTimer = nil
-                f.FilterBySearch(text)
-            end)
+            search.timer = C_Timer.NewTimer(delay, due)
         elseif C_Timer and C_Timer.After then
-            C_Timer.After(delay, function() f.FilterBySearch(text) end)
+            C_Timer.After(delay, due)
         else
             f.FilterBySearch(text)
         end
@@ -806,6 +818,7 @@ function addon.DashboardDetailView_Init(env)
             if #words == 0 then chips:Hide() return end
             chipsTitle:SetText(title)
             -- One centred row; chips that would overflow the width are left out.
+            chips:SetWidth(math.max(200, (searchView:GetWidth() or contentWidth) - 80))
             local maxW = chips:GetWidth() or 400
             local widths, total, n = {}, 0, 0
             for i, w in ipairs(words) do
