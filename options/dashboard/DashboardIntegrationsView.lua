@@ -573,8 +573,7 @@ function addon.DashboardIntegrationsView_Init(env)
     end
 
     -- -----------------------------------------------------------------------
-    -- Sidebar (New!) suffix — mirrors the pattern used by the Patch Notes
-    -- sidebar entry (DASH_WHATS_NEW_UNREAD_SUFFIX). Shows when any integration
+    -- Sidebar New tag, as on the Patch Notes row. Shows when any integration
     -- in the feed has an id that is not yet in db.integrationsSeen.
     -- -----------------------------------------------------------------------
     local function RefreshSidebarBadge()

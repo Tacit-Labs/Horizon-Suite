@@ -1,6 +1,6 @@
 --[[
     Horizon Suite - Patch Notes
-    Version tracking, optional auto-show on login; minimap unread vs sidebar (New!) until sidebar click.
+    Version tracking, optional auto-show on login; minimap unread vs the sidebar New tag until sidebar click.
     The Patch Notes view is built inside options/dashboard/DashboardFrame.lua.
 
     Reopen: /h notes  or the Dashboard Patch Notes button.
@@ -46,7 +46,7 @@ local function SetPatchNotesLastViewedVersion(v)
     db.patchNotesLastViewedVersion = v
 end
 
--- Sidebar "(New!)" + green: cleared only when the user clicks the Patch Notes sidebar row (not /h notes or auto-open).
+-- Sidebar New tag: cleared only when the user clicks the Patch Notes sidebar row (not /h notes or auto-open).
 local function MigrateWhatsNewSidebarAckIfNeeded()
     local db = EnsureRootDB()
     if db.patchNotesWhatsNewSidebarAckedVersion ~= nil then return end

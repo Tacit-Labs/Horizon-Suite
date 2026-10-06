@@ -365,6 +365,8 @@ function addon.DashboardSidebar_CreateChrome(p)
     -- accent; "muted" (Off) is neutral. text nil removes it. A button's label stops short of it.
     local badges = {}
     local function PaintBadge(bd)
+        -- Width follows the text, which a dashboard font change can resize.
+        bd:SetWidth(math.ceil((bd.text:GetStringWidth() or 20) + 12))
         if bd.kind == "muted" then
             bd.paint(1, 1, 1, 0.08)
             bd.text:SetTextColor(MUTED_R, MUTED_G, MUTED_B, 1)
@@ -395,7 +397,6 @@ function addon.DashboardSidebar_CreateChrome(p)
         end
         bd.kind = kind or "accent"
         bd.text:SetText(text)
-        bd:SetWidth(math.ceil((bd.text:GetStringWidth() or 20) + 12))
         PaintBadge(bd)
         bd:Show()
         if lbl and btn._labelRightInset then lbl:SetPoint("RIGHT", bd, "LEFT", -4, 0) end
@@ -511,9 +512,15 @@ function addon.DashboardSidebar_CreateChrome(p)
     -- Called when the class theme changes the accent.
     dashSession.RefreshSidebarSelection = PaintSelection
 
-    -- dy shifts the pill up (positive) from its resting place on btn.
+    -- dy shifts the pill up (positive) from its resting place on btn. With no dy it rests on the
+    -- row, anchored top and bottom, so it follows the row if the row's height changes later.
     local function PlacePill(btn, dy, h)
         selPill:ClearAllPoints()
+        if not dy then
+            selPill:SetPoint("TOPLEFT", btn, "TOPLEFT", 6, -1)
+            selPill:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", -6, 1)
+            return
+        end
         selPill:SetPoint("TOPLEFT", btn, "TOPLEFT", 6, -1 + dy)
         selPill:SetPoint("TOPRIGHT", btn, "TOPRIGHT", -6, -1 + dy)
         selPill:SetHeight(math.max(1, h))
@@ -523,7 +530,7 @@ function addon.DashboardSidebar_CreateChrome(p)
         local h = (btn:GetHeight() or 0) - 2
         if pillTarget == btn and selPill:IsShown() then
             if not pillSliding then
-                PlacePill(btn, 0, h)
+                PlacePill(btn)
                 selPill:SetAlpha(1)
             end
             return
@@ -540,10 +547,13 @@ function addon.DashboardSidebar_CreateChrome(p)
             Tween(selPill, SLIDE_DUR, function(e)
                 PlacePill(btn, Lerp(dy0, 0, e), Lerp(fromH, h, e))
                 selPill:SetAlpha(Lerp(fromA, 1, e))
-            end, function() pillSliding = nil end)
+            end, function()
+                pillSliding = nil
+                PlacePill(btn)
+            end)
         else
             -- Nothing selected in the scroll area before: fade in on the row.
-            PlacePill(btn, 0, h)
+            PlacePill(btn)
             selPill:SetAlpha(0)
             pillSliding = nil
             Tween(selPill, HOVER_DUR, function(e) selPill:SetAlpha(e) end)
@@ -652,12 +662,13 @@ function addon.DashboardSidebar_CreateChrome(p)
     -- Open or close a group's page list by easing its height and fading it, reflowing the
     -- sidebar each frame through relayout. Also stores the state and turns the chevron. A module
     -- that is turned off always stays closed.
-    local function AnimateGroup(g, expand, relayout)
+    -- noStore leaves the saved open/closed state alone (closing a module that was turned off).
+    local function AnimateGroup(g, expand, relayout, noStore)
         local tc = g and g.tabsContainer
         if not tc then return end
         local header = g.header
         if header and header._moduleOff then expand = false end
-        if header and header.groupKey then SetGroupCollapsed(header.groupKey, not expand) end
+        if header and header.groupKey and not noStore then SetGroupCollapsed(header.groupKey, not expand) end
         if header and header.chevron then header.chevron:SetText(expand and "-" or "+") end
         local target = expand and (g.fullHeight or 0) or 0
         local from = tc:GetHeight() or 0

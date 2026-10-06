@@ -1757,8 +1757,8 @@ function addon.Dashboard_BuildMainFrame()
                     if f.ShowIntegrations then f.ShowIntegrations() end
                 end, TAB_ROW_HEIGHT
             )
-            -- Stored so the Integrations view can append " (New!)" when there are
-            -- unseen integration entries (see DashboardIntegrationsView_Init).
+            -- Stored so the Integrations view can restore the label when it sets the
+            -- row's New tag for unseen entries (see DashboardIntegrationsView_Init).
             integrationsSidebarBtn._integrationsBaseText = L["DASH_INTEGRATIONS_TAB"]
             f.integrationsSidebarBtn = integrationsSidebarBtn
 
@@ -1813,6 +1813,9 @@ function addon.Dashboard_BuildMainFrame()
                     end
                 end
                 g.fullHeight = TAB_ROW_HEIGHT * visibleCount
+                -- Settle any open/close animation first, or its next step would overwrite this.
+                if addon.OptionsWidgets_StopTween then addon.OptionsWidgets_StopTween(g.tabsContainer) end
+                g.tabsContainer:SetAlpha(1)
                 g.tabsContainer:SetHeight(collapsed and 0 or g.fullHeight)
                 if g.header and g.header.updateSpacer then g.header.updateSpacer() end
                 if LayoutSidebar then LayoutSidebar() end
@@ -1889,12 +1892,17 @@ function addon.Dashboard_BuildMainFrame()
                         -- grows evenly about it, so both lines stay left-aligned and centred in the
                         -- taller header.
                         headerLabel:SetPoint("LEFT", header, "LEFT", 36, 0)
+                        -- Stop short of the chevron (or the Off tag, which moves this edge).
+                        headerLabel:SetPoint("RIGHT", header, "RIGHT", -32, 0)
+                        header._labelRightInset = -32
                         headerLabel:SetJustifyH("LEFT")
                         headerLabel:SetTextColor(sb.sidebarMuted[1], sb.sidebarMuted[2], sb.sidebarMuted[3], 1)
                         if PREVIEW_MODULE_KEYS[mk] then
                             headerLabelText = headerLabelText .. " |cff228b22(Preview)|r"
                         end
                         headerLabel:SetText(headerLabelText)
+                        -- One line truncates; the subtitle mode keeps its two lines.
+                        headerLabel:SetWordWrap(headerLabelText:find("\n", 1, true) ~= nil)
                         header.headerLabel = headerLabel
                         header.label = headerLabel
 
@@ -2119,7 +2127,8 @@ function addon.Dashboard_BuildMainFrame()
                             row.tabsContainer:SetShown(show)
                             row.spacer:SetShown(show)
                             sb.SetModuleOff(row.header, off)
-                            if off and groups[row.mk] then sb.AnimateGroup(groups[row.mk], false, LayoutSidebar) end
+                            -- Close it without saving that, so a manual-mode open state survives.
+                            if off and groups[row.mk] then sb.AnimateGroup(groups[row.mk], false, LayoutSidebar, true) end
                         end
                         row._visible = show
                     else
@@ -2146,10 +2155,9 @@ function addon.Dashboard_BuildMainFrame()
                     end
                 end
                 lastSidebarRow = prev
-                LayoutSidebar()
-                if C_Timer and C_Timer.After then
-                    C_Timer.After(0, function() LayoutSidebar() end)
-                end
+                -- Re-apply selection, open groups and tints: a module just turned on or off may
+                -- be the one you are in. (ApplySidebarState also reflows.)
+                ApplySidebarState()
             end
 
             f.DashboardRefreshSidebar = RefreshSidebar
