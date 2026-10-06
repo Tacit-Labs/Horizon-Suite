@@ -2837,3 +2837,5 @@ L["M_BLOCK_WHENEVER_AN_ACTIVE_KEYSTONE"]                      = "Show the M+ blo
 -- L["DASH_ROW_SIZE"]                                          = "Size"
 -- L["DASH_ROW_PULSE"]                                         = "Pulse"
 -- L["PRESENCE_CARD_DISCOVERY"]                                = "Discovery line"
+-- L["INSIGHT_TEXT_SIZE"]                                      = "Text size"
+-- L["INSIGHT_COLOUR_BOTH_TYPES"]                              = "Applies to both player and NPC tooltips."
