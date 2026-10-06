@@ -1565,6 +1565,11 @@ function addon.DashboardAccordionBuild_Init(f, p)
                         widget._indentBar = bar
                     end
 
+                    -- Row frame by option id, so a search jump can scroll to the row and flash it.
+                    if optId then
+                        currentCard.rowsById = currentCard.rowsById or {}
+                        currentCard.rowsById[optId] = widget
+                    end
                     tinsert(currentCard.widgetList, {
                         frame = widget,
                         isHeader = isHeader,

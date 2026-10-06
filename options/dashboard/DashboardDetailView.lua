@@ -320,6 +320,44 @@ function addon.DashboardDetailView_Init(env)
         UpdateDetailLayout()
     end
 
+    --- Scroll the settings page so row sits a third of the way down, then flash it in the
+    --- accent: shown at once, held briefly, faded out. The flash frame takes no mouse, so it
+    --- never blocks the row's own controls.
+    f.SearchRevealRow = function(row)
+        if not row or not row:IsVisible() or not detailScroll or not detailContent then return end
+        local rowTop, contentTop = row:GetTop(), detailContent:GetTop()
+        if rowTop and contentTop then
+            local frameH = detailScroll:GetHeight() or 0
+            local maxScroll = math.max(0, (detailContent:GetHeight() or 0) - frameH)
+            detailScroll:SetVerticalScroll(math.max(0, math.min(maxScroll, (contentTop - rowTop) - frameH / 3)))
+        end
+        local fl = row._hsSearchFlash
+        if not fl then
+            local parent = row:GetParent() or row
+            fl = CreateFrame("Frame", nil, parent)
+            fl:SetFrameLevel(math.max(0, row:GetFrameLevel() - 1))
+            fl:SetPoint("TOPLEFT", row, "TOPLEFT", -8, 2)
+            fl:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", 8, -2)
+            fl.paint = addon.OptionsWidgets_PaintRounded and addon.OptionsWidgets_PaintRounded(fl, 6, "BACKGROUND")
+            row._hsSearchFlash = fl
+        end
+        if not fl.paint then return end
+        local c = (addon.OptionsWidgetsDef and addon.OptionsWidgetsDef.AccentColor) or { 0.48, 0.58, 0.82 }
+        local A = 0.22
+        fl.paint(c[1], c[2], c[3], A)
+        fl:SetAlpha(1)
+        fl:Show()
+        local start = addon.OptionsWidgets_StartTween
+        if not start then
+            C_Timer.After(1.2, function() fl:Hide() end)
+            return
+        end
+        -- Hold, then fade: the tween's first part keeps full strength.
+        start(fl, 1.6, function(e)
+            fl:SetAlpha(e < 0.35 and 1 or (1 - (e - 0.35) / 0.65))
+        end, function() fl:Hide() end)
+    end
+
     local function NavigateToOption(entry)
         if not entry then return end
         -- Find the target category
@@ -368,6 +406,11 @@ function addon.DashboardDetailView_Init(env)
                         local maxScroll = math.max(0, detailContent:GetHeight() - frameH)
                         local targetScroll = math.max(0, math.min(maxScroll, math.abs(yOffset or 0) - 20))
                         detailScroll:SetVerticalScroll(targetScroll)
+                        -- Once the card has opened, bring the row itself into view and flash it.
+                        local row = card.rowsById and card.rowsById[entry.optionId]
+                        if row then
+                            C_Timer.After(0.35, function() f.SearchRevealRow(row) end)
+                        end
                         break
                     end
                 end
@@ -451,6 +494,33 @@ function addon.DashboardDetailView_Init(env)
     local SEARCH_DROPDOWN_ROW_HEIGHT = 52
     local detailFn = addon.OptionsData_SearchResultDetailText
 
+    -- Search state shared by the result rows, the keyboard and the empty-page chips.
+    local search = { sel = 0, shown = 0, query = "" }
+
+    -- Matched words light up in the accent, lifted so they read on the dark panel.
+    local function SearchHighlight(text)
+        local hl = addon.OptionsData_SearchHighlight
+        if not hl or search.query == "" then return text end
+        local c = (addon.OptionsWidgetsDef and addon.OptionsWidgetsDef.AccentColor) or { 0.48, 0.58, 0.82 }
+        local function lift(v) return math.floor((v + (1 - v) * 0.45) * 255 + 0.5) end
+        return hl(text, search.query, string.format("%02x%02x%02x", lift(c[1]), lift(c[2]), lift(c[3])))
+    end
+
+    -- A result row lit (hovered, or picked with the arrow keys) or at rest.
+    local function PaintSearchRow(b, lit)
+        b.hi:SetShown(lit)
+        b.label:SetTextColor(lit and 1 or 0.9, lit and 1 or 0.9, lit and 1 or 0.9)
+        b.descLine:SetTextColor(lit and 0.62 or 0.48, lit and 0.66 or 0.52, lit and 0.74 or 0.58)
+    end
+
+    -- Recent searches live in the account-wide saved variables (not the profile).
+    local function RecentSearches()
+        local db = _G[addon.DATABASE]
+        if not db then return {} end
+        db.dashboardRecentSearches = db.dashboardRecentSearches or {}
+        return db.dashboardRecentSearches
+    end
+
     local function ShowSearchResults(matches)
         if not matches or #matches == 0 then
             f.HideSearchDropdown()
@@ -481,20 +551,13 @@ function addon.DashboardDetailView_Init(env)
                 
                 local hi = b:CreateTexture(nil, "BACKGROUND")
                 hi:SetAllPoints(b)
-                hi:SetColorTexture(1, 1, 1, 0.08)
+                hi:SetColorTexture(1, 1, 1, 0.08) -- neutral; the accent is kept for on/selected states
                 hi:Hide()
+                b.hi = hi
 
-                b:SetScript("OnEnter", function()
-                    hi:SetColorTexture(1, 1, 1, 0.08) -- neutral; the accent is kept for on/selected states
-                    hi:Show()
-                    b.label:SetTextColor(1, 1, 1)
-                    if b.descLine then b.descLine:SetTextColor(0.62, 0.66, 0.74) end
-                end)
-                b:SetScript("OnLeave", function()
-                    hi:Hide()
-                    b.label:SetTextColor(0.9, 0.9, 0.9)
-                    if b.descLine then b.descLine:SetTextColor(0.48, 0.52, 0.58) end
-                end)
+                -- Hover lights the row; leaving keeps it lit if the arrow keys picked it.
+                b:SetScript("OnEnter", function() PaintSearchRow(b, true) end)
+                b:SetScript("OnLeave", function() PaintSearchRow(b, b._picked) end)
                 searchDropdownButtons[i] = { btn = b, hi = hi }
             end
             
@@ -515,12 +578,17 @@ function addon.DashboardDetailView_Init(env)
             local optionName = tostring(rawName or "")
             
             row.btn.subLabel:SetText(breadcrumb or "")
-            row.btn.label:SetText(optionName)
+            row.btn.label:SetText(SearchHighlight(optionName))
             local detailText = (detailFn and m.option and detailFn(m.option, 130)) or ""
-            if row.btn.descLine then row.btn.descLine:SetText(detailText) end
+            if row.btn.descLine then row.btn.descLine:SetText(SearchHighlight(detailText)) end
             row.btn.entry = m
+            row.btn._picked = nil
+            PaintSearchRow(row.btn, false)
             row.btn:SetPoint("TOP", searchDropdownContent, "TOP", 0, -(i - 1) * SEARCH_DROPDOWN_ROW_HEIGHT)
             row.btn:SetScript("OnClick", function()
+                -- Remember the search as typed (search.query is lowercased).
+                local typed = searchBox and searchBox:GetText() or search.query
+                if addon.OptionsSearch_PushRecent then addon.OptionsSearch_PushRecent(RecentSearches(), typed) end
                 NavigateToOption(row.btn.entry)
                 f.HideSearchDropdown()
                 if f.DockSearchDropdownForModule then f.DockSearchDropdownForModule() end
@@ -533,6 +601,8 @@ function addon.DashboardDetailView_Init(env)
             if searchDropdownButtons[i] then searchDropdownButtons[i].btn:Hide() end
         end
         
+        search.sel, search.shown = 0, num
+        if f.RefreshSearchChips then f.RefreshSearchChips(false) end
         searchDropdownContent:SetHeight(num * SEARCH_DROPDOWN_ROW_HEIGHT)
         searchDropdownScroll:SetVerticalScroll(0)
         local dw = searchDropdown:GetWidth() or 600
@@ -545,21 +615,65 @@ function addon.DashboardDetailView_Init(env)
         end
     end
 
-    local searchDebounceTimer
-    f.OnSearchTextChanged = function(text)
-        if searchDebounceTimer and searchDebounceTimer.Cancel then
-            searchDebounceTimer:Cancel()
+    --- Move the arrow-key pick through the shown results (delta -1 up, +1 down), scrolling the
+    --- list so the picked row stays in view.
+    f.SearchMoveSelection = function(delta)
+        if search.shown == 0 or not searchDropdown:IsShown() then return end
+        -- One lit row: the pick replaces any hover or earlier pick.
+        for j = 1, search.shown do
+            local r = searchDropdownButtons[j]
+            if r then r.btn._picked = nil; PaintSearchRow(r.btn, false) end
         end
-        searchDebounceTimer = nil
-        
-        local delay = 0.2
+        local i = search.sel + delta
+        if search.sel == 0 then i = (delta > 0) and 1 or search.shown end
+        i = math.max(1, math.min(search.shown, i))
+        search.sel = i
+        local row = searchDropdownButtons[i]
+        row.btn._picked = true
+        PaintSearchRow(row.btn, true)
+        local top = (i - 1) * SEARCH_DROPDOWN_ROW_HEIGHT
+        local viewH = searchDropdownScroll:GetHeight() or 0
+        local cur = searchDropdownScroll:GetVerticalScroll() or 0
+        if top < cur then
+            searchDropdownScroll:SetVerticalScroll(top)
+        elseif top + SEARCH_DROPDOWN_ROW_HEIGHT > cur + viewH then
+            searchDropdownScroll:SetVerticalScroll(math.max(0, top + SEARCH_DROPDOWN_ROW_HEIGHT - viewH))
+        end
+    end
+
+    --- Enter in the search box: search now (skipping the typing delay) and open the picked
+    --- result, or the top one.
+    f.SearchSubmit = function(text)
+        -- Drop a typing-delay search still waiting, or it would reopen the list after we jump.
+        if search.timer and search.timer.Cancel then search.timer:Cancel() end
+        search.timer, search.pending = nil, nil
+        if f.FilterBySearch and (search.query ~= (text or ""):trim():lower() or search.shown == 0) then
+            f.FilterBySearch(text)
+        end
+        if search.shown == 0 or not searchDropdown:IsShown() then return end
+        local row = searchDropdownButtons[(search.sel > 0) and search.sel or 1]
+        if row and row.btn:IsShown() then row.btn:Click() end
+    end
+
+    f.OnSearchTextChanged = function(text)
+        if search.timer and search.timer.Cancel then
+            search.timer:Cancel()
+        end
+        search.timer = nil
+        -- The latest text waiting to be searched; Enter clears it, so a late timer does nothing.
+        search.pending = text
+
+        local delay = 0.12
+        local function due()
+            search.timer = nil
+            if search.pending ~= text then return end
+            search.pending = nil
+            f.FilterBySearch(text)
+        end
         if C_Timer and C_Timer.NewTimer then
-            searchDebounceTimer = C_Timer.NewTimer(delay, function()
-                searchDebounceTimer = nil
-                f.FilterBySearch(text)
-            end)
+            search.timer = C_Timer.NewTimer(delay, due)
         elseif C_Timer and C_Timer.After then
-            C_Timer.After(delay, function() f.FilterBySearch(text) end)
+            C_Timer.After(delay, due)
         else
             f.FilterBySearch(text)
         end
@@ -590,11 +704,14 @@ function addon.DashboardDetailView_Init(env)
     f.FilterBySearch = function(query)
         if f.UpdateSearchModuleFilterLabel then f.UpdateSearchModuleFilterLabel() end
         local searchQuery = query and query:trim():lower() or ""
+        search.query = searchQuery
         if searchQuery == "" or #searchQuery < 2 then
+            search.shown = 0
             f.HideSearchDropdown()
             if searchView and searchView:IsShown() and searchEmptyHint then
                 searchEmptyHint:SetText(L["DASH_SEARCH_EMPTY_HINT"])
                 searchEmptyHint:Show()
+                if f.RefreshSearchChips then f.RefreshSearchChips(true) end
             end
             return
         end
@@ -614,6 +731,9 @@ function addon.DashboardDetailView_Init(env)
             if a.score ~= b.score then
                 return a.score > b.score
             end
+            -- On a tie the shorter name is the more specific match.
+            local na, nb = #(a.entry.searchTokensName or {}), #(b.entry.searchTokensName or {})
+            if na ~= nb then return na < nb end
             return tostring(a.entry.optionId or "") < tostring(b.entry.optionId or "")
         end)
         local matches = {}
@@ -622,6 +742,7 @@ function addon.DashboardDetailView_Init(env)
         end
 
         if #matches == 0 then
+            search.shown = 0
             f.HideSearchDropdown()
             if searchView and searchView:IsShown() and searchEmptyHint then
                 local fk = f.dashboardSearchModuleFilter or "all"
@@ -632,6 +753,8 @@ function addon.DashboardDetailView_Init(env)
                     searchEmptyHint:SetText(L["DASH_SEARCH_NO_RESULTS"])
                 end
                 searchEmptyHint:Show()
+                -- Nothing found: offer the suggestions to start again from.
+                if f.RefreshSearchChips then f.RefreshSearchChips(true, true) end
             end
             return
         end
@@ -640,6 +763,85 @@ function addon.DashboardDetailView_Init(env)
             searchEmptyHint:Hide()
         end
         ShowSearchResults(matches)
+    end
+
+    -- Chips under the Search page's hint: your recent searches, or suggestions to try when there
+    -- are none (and always after a search that found nothing). A chip fills the search box.
+    if searchView and searchEmptyHint then
+        local chips = CreateFrame("Frame", nil, searchView)
+        chips:SetPoint("TOP", searchEmptyHint, "BOTTOM", 0, -16)
+        chips:SetSize(math.max(200, contentWidth - 48), 52)
+        chips:Hide()
+        local chipsTitle = MakeText(chips, "", 11, 0.48, 0.5, 0.56, "CENTER")
+        chipsTitle:SetPoint("TOP", chips, "TOP", 0, 0)
+        local chipButtons = {}
+        local CHIP_H, CHIP_GAP, CHIP_PAD = 24, 8, 12
+
+        local function Chip(i)
+            local c = chipButtons[i]
+            if c then return c end
+            c = CreateFrame("Button", nil, chips)
+            c:SetHeight(CHIP_H)
+            local paint = addon.OptionsWidgets_PaintRounded and addon.OptionsWidgets_PaintRounded(c, CHIP_H / 2, "BACKGROUND")
+            local function fill(a) if paint then paint(1, 1, 1, a) end end
+            fill(0.06)
+            c.text = MakeText(c, "", 11, 0.8, 0.82, 0.88, "CENTER")
+            c.text:SetPoint("CENTER", c, "CENTER", 0, 0)
+            c:SetScript("OnEnter", function() fill(0.12); c.text:SetTextColor(1, 1, 1) end)
+            c:SetScript("OnLeave", function() fill(0.06); c.text:SetTextColor(0.8, 0.82, 0.88) end)
+            c:SetScript("OnClick", function()
+                if not searchBox then return end
+                local w = c.word or ""
+                searchBox:SetText(w)
+                searchBox:SetFocus()
+                searchBox:SetCursorPosition(#w)
+            end)
+            chipButtons[i] = c
+            return c
+        end
+
+        --- @param show boolean
+        --- @param suggestionsOnly boolean|nil  Skip recent searches (after a search found nothing)
+        f.RefreshSearchChips = function(show, suggestionsOnly)
+            if not show or not searchView:IsShown() then chips:Hide() return end
+            local words, title = {}, L["DASH_SEARCH_TRY"]
+            local recent = not suggestionsOnly and RecentSearches() or {}
+            if #recent > 0 then
+                for i = 1, #recent do words[i] = recent[i] end
+                title = L["DASH_SEARCH_RECENT"]
+            else
+                for w in tostring(L["DASH_SEARCH_SUGGESTIONS"] or ""):gmatch("[^,]+") do
+                    w = w:trim()
+                    if w ~= "" then words[#words + 1] = w end
+                end
+            end
+            if #words == 0 then chips:Hide() return end
+            chipsTitle:SetText(title)
+            -- One centred row; chips that would overflow the width are left out.
+            chips:SetWidth(math.max(200, (searchView:GetWidth() or contentWidth) - 80))
+            local maxW = chips:GetWidth() or 400
+            local widths, total, n = {}, 0, 0
+            for i, w in ipairs(words) do
+                local c = Chip(i)
+                c.word = w
+                c.text:SetText(w)
+                local cw = math.ceil((c.text:GetStringWidth() or 40) + CHIP_PAD * 2)
+                local need = total + (n > 0 and CHIP_GAP or 0) + cw
+                if need > maxW then break end
+                n, total, widths[i] = i, need, cw
+            end
+            local x = -total / 2
+            for i = 1, n do
+                local c = chipButtons[i]
+                c:SetWidth(widths[i])
+                c:ClearAllPoints()
+                c:SetPoint("TOPLEFT", chips, "TOP", x, -20)
+                c:Show()
+                x = x + widths[i] + CHIP_GAP
+            end
+            for i = n + 1, #chipButtons do chipButtons[i]:Hide() end
+            chips:Show()
+        end
     end
 
     local currentSubTiles = {}
