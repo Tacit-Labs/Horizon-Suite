@@ -132,17 +132,27 @@ local options = {
       dbKey = "echoKeywords", height = 24,
       get = function() return getDB("echoKeywords", D.echoKeywords) or "" end,
       set = function(v) setDB("echoKeywords", type(v) == "string" and v:gsub("[\r\n]+", ",") or "") end },
+    -- Echo plays its own whisper sound only for whispers it hides from Blizzard's chat
+    -- (EchoFilter). Anywhere else Blizzard's sound plays, so these rows follow "Hide stored
+    -- whispers" (itself shown only while Blizzard's chat is shown) and the card hides with them.
     Section(L["ECHO_SECTION_SOUNDS"], { page = "general", card = "sounds" }),
     { type = "dropdown", name = L["ECHO_WHISPER_SOUND"], desc = L["ECHO_WHISPER_SOUND_DESC"], dbKey = "echoWhisperSound",
-      options = WHISPER_SOUND_OPTIONS, preserveOrder = true,
+      options = WHISPER_SOUND_OPTIONS, preserveOrder = true, parent = "echoHideStoredWhispers",
       get = function() return getDB("echoWhisperSound", D.echoWhisperSound) end,
       set = function(v) setDB("echoWhisperSound", v) end },
-    Button(L["ECHO_SOUND_PREVIEW"], L["ECHO_SOUND_PREVIEW_DESC"], function()
-        local E = Echo()
-        if E and E.Sound then E.Sound.Whisper(false, true) end
-    end),
-    Toggle(L["ECHO_SOUND_IN_COMBAT"], L["ECHO_SOUND_IN_COMBAT_DESC"], "echoSoundInCombat", D.echoSoundInCombat),
-    Toggle(L["ECHO_SOUND_BNET"], L["ECHO_SOUND_BNET_DESC"], "echoSoundBnet", D.echoSoundBnet),
+    (function()
+        local b = Button(L["ECHO_SOUND_PREVIEW"], L["ECHO_SOUND_PREVIEW_DESC"], function()
+            local E = Echo()
+            if E and E.Sound then E.Sound.Whisper(false, true) end
+        end)
+        b.dbKey = "__echoSoundPreview"  -- a row id for the parent link; buttons save nothing
+        b.parent = "echoHideStoredWhispers"
+        return b
+    end)(),
+    Toggle(L["ECHO_SOUND_IN_COMBAT"], L["ECHO_SOUND_IN_COMBAT_DESC"], "echoSoundInCombat", D.echoSoundInCombat,
+        { parent = "echoHideStoredWhispers" }),
+    Toggle(L["ECHO_SOUND_BNET"], L["ECHO_SOUND_BNET_DESC"], "echoSoundBnet", D.echoSoundBnet,
+        { parent = "echoHideStoredWhispers" }),
 
     Section(L["ECHO_SECTION_TIERS"], { page = "feeds" }),
     TierDropdown("whisper",  L["ECHO_KIND_WHISPER"]),
@@ -156,7 +166,10 @@ local options = {
     TierDropdown("nearby",   L["ECHO_NEARBY"]),
 
     Section(L["ECHO_SECTION_FEEDS"], { page = "feeds" }),
-    Toggle(L["ECHO_ALL_VIEW"], L["ECHO_ALL_VIEW_DESC"], "echoAllView", D.echoAllView),
+    -- While Blizzard's chat is hidden the All view is always on (Echo.FeedEnabled). That
+    -- setting is on another page, so this is a condition rather than a parent link.
+    Toggle(L["ECHO_ALL_VIEW"], L["ECHO_ALL_VIEW_DESC"], "echoAllView", D.echoAllView,
+        { visibleWhen = function() return getDB("echoHideBlizzardChat", D.echoHideBlizzardChat) == false end }),
 }
 
 for _, kind in ipairs({ "loot", "progress", "system" }) do
@@ -329,10 +342,6 @@ local tail = {
     end),
 
     Section(L["ECHO_SECTION_BLIZZARD_CHAT"], { page = "general", card = "blizzardChat" }),
-    Toggle(L["ECHO_HIDE_STORED"], L["ECHO_HIDE_STORED_DESC"], "echoHideStoredWhispers", D.echoHideStoredWhispers),
-    Toggle(L["ECHO_DOCK_INPUT"], L["ECHO_DOCK_INPUT_DESC"], "echoDockInput", D.echoDockInput),
-    Toggle(L["ECHO_INPUT_ALWAYS_VISIBLE"], L["ECHO_INPUT_ALWAYS_VISIBLE_DESC"], "echoInputAlwaysVisible", D.echoInputAlwaysVisible,
-        { parent = "echoDockInput", parentIs = function(v) return v ~= false end }),
     Toggle(L["ECHO_HIDE_CHAT"], L["ECHO_HIDE_CHAT_DESC"], "echoHideBlizzardChat", D.echoHideBlizzardChat),
     { type = "dropdown", name = L["ECHO_COMBAT_LOG"], desc = L["ECHO_COMBAT_LOG_DESC"], dbKey = "echoCombatLog",
       options = COMBAT_LOG_OPTIONS, preserveOrder = true,
@@ -343,6 +352,12 @@ local tail = {
           return getDB("echoCombatLog", D.echoCombatLog)
       end,
       set = function(v) setDB("echoCombatLog", v) end },
+    -- No effect while Blizzard's chat is hidden (Echo.ApplyOptions keeps the filter off then).
+    Toggle(L["ECHO_HIDE_STORED"], L["ECHO_HIDE_STORED_DESC"], "echoHideStoredWhispers", D.echoHideStoredWhispers,
+        { parent = "echoHideBlizzardChat", parentIs = function(v) return v == false end }),
+    Toggle(L["ECHO_DOCK_INPUT"], L["ECHO_DOCK_INPUT_DESC"], "echoDockInput", D.echoDockInput),
+    Toggle(L["ECHO_INPUT_ALWAYS_VISIBLE"], L["ECHO_INPUT_ALWAYS_VISIBLE_DESC"], "echoInputAlwaysVisible", D.echoInputAlwaysVisible,
+        { parent = "echoDockInput", parentIs = function(v) return v ~= false end }),
     ReloadPrompt({ hintText = L["ECHO_HIDE_CHAT_RELOAD"] }),
 
     Section(L["ECHO_SECTION_CARD"], { page = "look", card = "card" }),

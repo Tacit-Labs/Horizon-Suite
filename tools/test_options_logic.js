@@ -745,6 +745,36 @@ run(`
   HorizonSuite.OptionCategories = nil
 `, 'search');
 
+// --- Migration 20261006: Talking Head hidden keys and Insight legacy keys --------------------
+run(`
+  HorizonSuite.RegisterMigration = function(m) CAPTURED_MIGRATION = m end
+`, 'migration-stub');
+run(read('core/migrations/20261006_settings_review.lua'), 'migration-20261006');
+run(`
+  local m = CAPTURED_MIGRATION
+  check("migration registers with its id", m and m.id == "20261006", m and m.id)
+  local db = { profiles = {
+    old = { talkingHeadEnabled = false, talkingHeadCustomise = false,
+            insightHeaderSize = 16, insightPlayerHeaderSize = 13, insightBodySize = 12,
+            insightShowIlvl = true, insightShowHonorLevel = false, insightMythicScoreMode = "modifier", insightShowMythicScore = true,
+            insightBlankSeparator = true, insightTitleMatchNameColor = true },
+    fresh = { insightSeparatorMode = "none", insightBlankSeparator = true },
+  } }
+  m.run(db)
+  local o, f = db.profiles.old, db.profiles.fresh
+  check("talking head hidden keys cleared", o.talkingHeadEnabled == nil and o.talkingHeadCustomise == nil, "kept")
+  check("old header size fills unset per-tooltip keys", o.insightNpcHeaderSize == 16 and o.insightItemHeaderSize == 16, tostring(o.insightNpcHeaderSize))
+  check("a per-tooltip size already set is kept", o.insightPlayerHeaderSize == 13, tostring(o.insightPlayerHeaderSize))
+  check("old body size copied", o.insightPlayerBodySize == 12 and o.insightItemBodySize == 12, tostring(o.insightPlayerBodySize))
+  check("old size keys cleared", o.insightHeaderSize == nil and o.insightBodySize == nil, "kept")
+  check("show toggles become modes", o.insightItemLevelMode == "force" and o.insightHonorLevelMode == "hide", tostring(o.insightItemLevelMode) .. "/" .. tostring(o.insightHonorLevelMode))
+  check("a mode already set is kept", o.insightMythicScoreMode == "modifier", tostring(o.insightMythicScoreMode))
+  check("old show keys cleared", o.insightShowIlvl == nil and o.insightShowMythicScore == nil, "kept")
+  check("blank separator becomes the mode", o.insightSeparatorMode == "blank" and o.insightBlankSeparator == nil, tostring(o.insightSeparatorMode))
+  check("title match becomes the mode", o.insightTitleColorMode == "match" and o.insightTitleMatchNameColor == nil, tostring(o.insightTitleColorMode))
+  check("a separator mode already set is kept", f.insightSeparatorMode == "none" and f.insightBlankSeparator == nil, tostring(f.insightSeparatorMode))
+`, 'migration-20261006-checks');
+
 // --- Subheadings are not search results ---------------------------------------------------
 run(`
   local A = HorizonSuite.OptionsAssemble
