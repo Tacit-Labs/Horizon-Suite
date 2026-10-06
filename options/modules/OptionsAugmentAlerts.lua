@@ -79,16 +79,16 @@ local function GetBagThresholdHint()
     end
 
     local maxFree = math.floor(total * (100 - threshold) / 100)
-    return string.format("%s\n\nWith your current bag capacity, this triggers at %d or fewer free slots total.\n\nIf you are already above the threshold when you enable Alerts, it waits until bags dip back below it and fill up again.", L["AUGMENT_ALERTS_BAGS_THRESHOLD_DESC"], maxFree)
+    return string.format("%s\n\nWith your bags now: %d or fewer free slots.", L["AUGMENT_ALERTS_BAGS_THRESHOLD_DESC"], maxFree)
 end
 
 local function GetReminderOptions()
     return {
         { L["AUGMENT_ALERTS_THRESHOLD"], "threshold" },
-        { "1 Minute", "1min" },
-        { "5 Minutes", "5min" },
-        { "10 Minutes", "10min" },
-        { "30 Minutes", "30min" },
+        { "1 min", "1min" },
+        { "5 min", "5min" },
+        { "10 min", "10min" },
+        { "30 min", "30min" },
     }
 end
 

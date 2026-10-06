@@ -61,7 +61,7 @@ local HISTORY_DAYS_OPTIONS = {
 
 local function TierDropdown(kind, label)
     local key = addon.Echo.TierKey(kind)
-    return { type = "dropdown", name = label, desc = L["ECHO_TIER_DESC"], dbKey = key,
+    return { type = "dropdown", name = label, desc = L["ECHO_TIER_DESC"], tooltip = L["ECHO_TIER_TIP"], dbKey = key,
         options = TIER_OPTIONS, preserveOrder = true,
         get = function() return getDB(key, D[key]) end,
         set = function(v) setDB(key, v) end }
