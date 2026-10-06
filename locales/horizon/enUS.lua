@@ -173,6 +173,7 @@ L["VISTA_CARD_PERF_DIFFICULTY_TEXT"]                           = "Performance & 
 L["VISTA_CARD_TIMING_LAYOUT"]                                  = "Timing & layout"
 L["VISTA_CARD_PANEL_BAR_COLOURS"]                              = "Panel & bar colours"
 L["PRESENCE_CARD_ZONES"]                                       = "Zones"
+L["PRESENCE_CARD_DISCOVERY"]                                  = "Discovery line"
 L["PRESENCE_CARD_EVENTS"]                                      = "Events & achievements"
 L["PRESENCE_CARD_QUESTS"]                                      = "Quests"
 L["PRESENCE_CARD_SCENARIOS"]                                   = "Scenarios"
