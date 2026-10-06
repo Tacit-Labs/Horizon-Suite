@@ -290,6 +290,7 @@ L["DASH_INT_CTA_ENABLE"]                                      = "Enable"
 L["DASH_INT_CTA_RELOAD"]                                      = "Reload UI"
 L["DASH_INT_CTA_SETTINGS"]                                    = "Settings"
 L["DASH_INT_NEW_BADGE"]                                       = "New"
+L["DASH_SIDEBAR_OFF_BADGE"]                                  = "Off"
 
 -- Per-integration copy
 L["DASH_INT_ATT_DESC"]                                        = "All The Things tracks every collectible in the game (mounts, pets, transmog, achievements, recipes)."

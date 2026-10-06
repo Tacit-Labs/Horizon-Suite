@@ -266,9 +266,8 @@ function addon.Dashboard_BuildMainFrame()
                 for _, div in ipairs(dashAccentRefs.cardDividers) do
                     if div.SetColorTexture then div:SetColorTexture(ar, ag, ab, 0.2) end
                 end
-                if dashSession.activeSidebarBtn then
-                    local sel = (addon.OptionsWidgetsDef and addon.OptionsWidgetsDef.SidebarSelectedBg) or { ar, ag, ab, 0.16 }
-                    dashSession.activeSidebarBtn.btnBg:SetColorTexture(sel[1], sel[2], sel[3], sel[4])
+                if dashSession.RefreshSidebarSelection then
+                    dashSession.RefreshSidebarSelection()
                 end
                 if dashAccentRefs.sidebarDivider then
                     dashAccentRefs.sidebarDivider:SetColorTexture(ar, ag, ab, 0.4)
@@ -1788,7 +1787,7 @@ function addon.Dashboard_BuildMainFrame()
             f.DashboardApplyGroupSubcats = function(mk)
                 local g = groups[mk]
                 if not g or not g.subButtons or not g.tabsContainer then return end
-                local collapsed = GetGroupCollapsed(mk)
+                local collapsed = GetGroupCollapsed(mk) or (g.header and g.header._moduleOff)
                 local anchor = g.tabsContainer
                 local visibleCount = 0
                 for _, sb in ipairs(g.subButtons) do
@@ -1864,25 +1863,12 @@ function addon.Dashboard_BuildMainFrame()
                         yOff = yOff + headerH
                         header.groupKey = mk
                         g.header = header
-                        local headerBtnBg = sb.MakeSelectionFill(header, 8)
-                        header.btnBg = headerBtnBg
-                        local chevron = header:CreateFontString(nil, "OVERLAY")
-                        do
-                            local hp = addon.Dashboard_ResolveSavedDashboardFontPath(
-                                (addon.GetDB and addon.GetDB("dashboardFontPath", addon.Dashboard_GetDefaultDashboardFontPath())) or addon.Dashboard_GetDefaultDashboardFontPath()
-                            )
-                            local he1 = addon.Dashboard_EffectiveDashboardFontSize(11)
-                            local wf = addon.Dashboard_GetWidgetOutlineFlags and addon.Dashboard_GetWidgetOutlineFlags() or "OUTLINE"
-                            pcall(function()
-                                chevron:SetFont(hp, he1, wf)
-                            end)
-                            if addon.Dashboard_ApplyTextShadow then
-                                addon.Dashboard_ApplyTextShadow(chevron)
-                            end
-                        end
-                        addon.Dashboard_RegisterTypographyFontString(typoRefs, chevron, 11, nil, true)
-                        chevron:SetPoint("LEFT", header, "LEFT", 8, 0)
-                        chevron:SetTextColor(sb.sidebarMuted[1], sb.sidebarMuted[2], sb.sidebarMuted[3], 1)
+                        header.btnBg = sb.MakeSelectionFill(header, 8)
+                        -- Module icon at the left, drawn chevron at the right (it turns as the
+                        -- group opens), label aligned with the Welcome and News labels.
+                        sb.AddRowIcon(header, categoryIcons[(mk:gsub("^%l", string.upper))])
+                        local chevron = sb.CreateChevron(header)
+                        chevron:SetPoint("RIGHT", header, "RIGHT", -16, 0)
                         header.chevron = chevron
                         local headerLabel = header:CreateFontString(nil, "OVERLAY")
                         do
@@ -1899,11 +1885,10 @@ function addon.Dashboard_BuildMainFrame()
                             end
                         end
                         addon.Dashboard_RegisterTypographyFontString(typoRefs, headerLabel, 12, nil, true)
-                        -- Use LEFT anchor (vertically centered to chevron) to match original single-line
-                        -- formatting. With multiline text (\n for subtitle), the fontstring expands
-                        -- symmetrically around the anchor, so both lines remain left-aligned and
-                        -- naturally centered in the taller header frame.
-                        headerLabel:SetPoint("LEFT", chevron, "RIGHT", 4, 0)
+                        -- A LEFT anchor only: with multiline text (\n for subtitle) the fontstring
+                        -- grows evenly about it, so both lines stay left-aligned and centred in the
+                        -- taller header.
+                        headerLabel:SetPoint("LEFT", header, "LEFT", 36, 0)
                         headerLabel:SetJustifyH("LEFT")
                         headerLabel:SetTextColor(sb.sidebarMuted[1], sb.sidebarMuted[2], sb.sidebarMuted[3], 1)
                         if PREVIEW_MODULE_KEYS[mk] then
@@ -1935,17 +1920,25 @@ function addon.Dashboard_BuildMainFrame()
                         lastSidebarRow = spacer
                         yOff = yOff + tabsContainer:GetHeight()
 
-                        local show = ShouldShowModuleOnDashboard(mk)
+                        -- A registered module that is turned off stays in the list, dimmed with an
+                        -- "Off" tag and closed; one this client does not load is left out.
+                        local show = ShouldShowModuleOnDashboard(mk) or (addon.modules and addon.modules[mk] ~= nil)
                         header:SetShown(show)
                         tabsContainer:SetShown(show)
                         spacer:SetShown(show)
+                        sb.SetModuleOff(header, not ShouldShowModuleOnDashboard(mk))
+                        if header._moduleOff then
+                            tabsContainer:SetHeight(0)
+                            UpdateSpacerPosition()
+                        end
                         if not show then lastSidebarRow = prevLastRow end
                         g.row = { type = "group", mk = mk, header = header, tabsContainer = tabsContainer, spacer = spacer, bottom = spacer, offsetFromPrev = 0 }
                         tinsert(sidebarRows, g.row)
 
                         header:SetScript("OnClick", function()
                             local collapseMode = (addon.GetDB and addon.GetDB("sidebarCollapseMode", "auto")) or "auto"
-                            if mk == "axis" then
+                            if mk == "axis" or header._moduleOff then
+                                -- Axis, and a module that is off: the module toggles on Home.
                                 f.ShowDashboard()
                             elseif not GetGroupCollapsed(mk) and (collapseMode == "manual" or sidebarState.activeModuleKey == mk) then
                                 -- If we're inside a sub-category detail, navigate up to the module
@@ -1953,34 +1946,14 @@ function addon.Dashboard_BuildMainFrame()
                                 if sidebarState.view == "category" and sidebarState.activeModuleKey == mk then
                                     f.OpenModule(modName, mk)
                                 else
-                                    SetGroupCollapsed(mk, true)
-                                    if g.tabsContainer then
-                                        g.tabsContainer:SetScript("OnUpdate", nil)
-                                        g.tabsContainer:SetHeight(0)
-                                        SetGroupChildrenShown(g, false)
-                                    end
-                                    if header.chevron then header.chevron:SetText("+") end
-                                    if header.updateSpacer then header.updateSpacer() end
-                                    if LayoutSidebar then LayoutSidebar() end
+                                    sb.AnimateGroup(g, false, LayoutSidebar)
                                 end
                             else
                                 f.OpenModule(modName, mk)
                             end
                         end)
-                        header:SetScript("OnEnter", function()
-                            if header ~= dashSession.activeSidebarBtn then
-                                headerBtnBg:SetColorTexture(1, 1, 1, 0.05)
-                                headerLabel:SetTextColor(0.8, 0.8, 0.85, 1)
-                                chevron:SetTextColor(0.8, 0.8, 0.85, 1)
-                            end
-                        end)
-                        header:SetScript("OnLeave", function()
-                            if header ~= dashSession.activeSidebarBtn then
-                                headerBtnBg:SetColorTexture(0, 0, 0, 0)
-                                headerLabel:SetTextColor(sb.sidebarMuted[1], sb.sidebarMuted[2], sb.sidebarMuted[3], 1)
-                                chevron:SetTextColor(sb.sidebarMuted[1], sb.sidebarMuted[2], sb.sidebarMuted[3], 1)
-                            end
-                        end)
+                        header:SetScript("OnEnter", function() sb.RowHover(header, true) end)
+                        header:SetScript("OnLeave", function() sb.RowHover(header, false) end)
                         chevron:SetText(GetGroupCollapsed(mk) and "+" or "-")
 
                         local containerAnchor = tabsContainer
@@ -1993,7 +1966,7 @@ function addon.Dashboard_BuildMainFrame()
                                     f.OpenModule(modLabel, catMk, true)
                                     local options = type(cat.options) == "function" and cat.options() or cat.options
                                     f.OpenCategoryDetail(modLabel, cat.name, options)
-                                end, 12)
+                                end, 22)
                                 btn:SetPoint("TOPLEFT", containerAnchor, (containerAnchor == tabsContainer) and "TOPLEFT" or "BOTTOMLEFT", 0, 0)
                                 containerAnchor = btn
                                 btn.sidebarModuleKey = catMk
@@ -2042,19 +2015,13 @@ function addon.Dashboard_BuildMainFrame()
                         local isTarget   = targetMk and mk == targetMk
                         local alwaysOpen = collapseMode == "axisPlus" and mk == "axis"
                         if isTarget or alwaysOpen then
-                            SetGroupCollapsed(mk, false)
-                            g.tabsContainer:SetScript("OnUpdate", nil)
-                            g.tabsContainer:SetHeight(g.fullHeight)
-                            SetGroupChildrenShown(g, true)
-                            if g.header and g.header.chevron then g.header.chevron:SetText("-") end
+                            sb.AnimateGroup(g, true, LayoutSidebar)
                         elseif collapseMode ~= "manual" and not GetGroupCollapsed(mk) then
-                            SetGroupCollapsed(mk, true)
-                            g.tabsContainer:SetScript("OnUpdate", nil)
-                            g.tabsContainer:SetHeight(0)
-                            SetGroupChildrenShown(g, false)
-                            if g.header and g.header.chevron then g.header.chevron:SetText("+") end
+                            sb.AnimateGroup(g, false, LayoutSidebar)
                         end
                         if g.header and g.header.updateSpacer then g.header.updateSpacer() end
+                        -- The header of the module you are in reads a step brighter.
+                        if g.header then g.header._current = (mk == targetMk) or nil end
                     end
                 end
                 local activeBtn = f.welcomeSidebarBtn or sidebarButtons[1]
@@ -2110,6 +2077,10 @@ function addon.Dashboard_BuildMainFrame()
                     end
                 end
                 SetActiveSidebarButton(activeBtn)
+                for _, gk in ipairs(groupOrder) do
+                    local gh = groups[gk] and groups[gk].header
+                    if gh and gh ~= activeBtn then sb.TintRow(gh, sb.RestTint(gh)) end
+                end
                 if addon.PatchNotes_RefreshAttentionIndicators then
                     addon.PatchNotes_RefreshAttentionIndicators()
                 end
@@ -2141,9 +2112,14 @@ function addon.Dashboard_BuildMainFrame()
                         if row.frame then
                             row.frame:SetShown(show)
                         elseif row.header then
+                            -- Turned-off modules stay listed, dimmed and closed (see the build).
+                            local off = not show
+                            show = show or (addon.modules and addon.modules[row.mk] ~= nil)
                             row.header:SetShown(show)
                             row.tabsContainer:SetShown(show)
                             row.spacer:SetShown(show)
+                            sb.SetModuleOff(row.header, off)
+                            if off and groups[row.mk] then sb.AnimateGroup(groups[row.mk], false, LayoutSidebar) end
                         end
                         row._visible = show
                     else

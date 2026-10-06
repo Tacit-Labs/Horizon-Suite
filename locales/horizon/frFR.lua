@@ -2812,4 +2812,4 @@ L["M_BLOCK_WHENEVER_AN_ACTIVE_KEYSTONE"]                      = "Show the M+ blo
 -- L["FOCUS_RUN_RESET_TOOLTIP"]                               = "Start this run's time, experience and money over from zero."
 -- L["FOCUS_RUN_RESET_DONE"]                                  = "Dungeon run reset."
 -- L["FOCUS_RUN_RESET_NOT_IN_DUNGEON"]                        = "No dungeon run to reset."
-
+-- L["DASH_SIDEBAR_OFF_BADGE"]                               = "Off"

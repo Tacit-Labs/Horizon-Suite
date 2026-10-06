@@ -595,10 +595,11 @@ function addon.DashboardIntegrationsView_Init(env)
                 end
             end
         end
-        if hasUnseen then
+        btn.label:SetText(base)
+        if addon.DashboardSidebar_SetRowBadge then
+            addon.DashboardSidebar_SetRowBadge(btn, hasUnseen and (L["DASH_INT_NEW_BADGE"] or "New") or nil, "accent")
+        elseif hasUnseen then
             btn.label:SetText(base .. (L["DASH_WHATS_NEW_UNREAD_SUFFIX"] or " (New!)"))
-        else
-            btn.label:SetText(base)
         end
     end
 

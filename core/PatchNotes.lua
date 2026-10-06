@@ -92,7 +92,7 @@ function addon.PatchNotes_MarkWhatsNewSidebarClicked()
     addon.PatchNotes_RefreshAttentionIndicators()
 end
 
--- True while this version should show sidebar (New!) and green until the sidebar row is clicked.
+-- True while this version's notes are unread: the sidebar row shows a New tag until clicked.
 -- @return boolean
 function addon.PatchNotes_HasUnreadSidebarAttention()
     local cur = GetCurrentVersion()
@@ -100,12 +100,10 @@ function addon.PatchNotes_HasUnreadSidebarAttention()
     return GetWhatsNewSidebarAckedVersion() ~= cur
 end
 
--- Sidebar: green when unread; brighter green when that row is selected; idle/white otherwise.
-local WHATSNEW_GREEN_R, WHATSNEW_GREEN_G, WHATSNEW_GREEN_B = 0.32, 0.90, 0.50
-local WHATSNEW_GREEN_ACTIVE_R, WHATSNEW_GREEN_ACTIVE_G, WHATSNEW_GREEN_ACTIVE_B = 0.55, 1, 0.72
+-- Sidebar row colours for Patch Notes: white when selected, brighter on hover, idle otherwise.
+-- Unread notes are shown by the row's "New" tag (PatchNotes_RefreshAttentionIndicators).
 local WHATSNEW_IDLE_R, WHATSNEW_IDLE_G, WHATSNEW_IDLE_B = 0.65, 0.65, 0.70
 
--- Set Patch Notes sidebar label to unread green when applicable; icon uses normal sidebar tints (not green).
 -- @param btn table Sidebar button with _sidebarViewGetter
 -- @param lbl FontString
 -- @param icon Texture|nil
@@ -113,56 +111,19 @@ local WHATSNEW_IDLE_R, WHATSNEW_IDLE_G, WHATSNEW_IDLE_B = 0.65, 0.65, 0.70
 -- @return nil
 function addon.PatchNotes_ApplyWhatsNewSidebarRowStyle(btn, lbl, icon, isHover)
     if not btn or not lbl then return end
-    local sidebarAttention = addon.PatchNotes_HasUnreadSidebarAttention and addon.PatchNotes_HasUnreadSidebarAttention()
     local isWhatsNewRowActive = false
     if btn._sidebarViewGetter then
         isWhatsNewRowActive = (btn._sidebarViewGetter() == "whatsnew")
     end
-    -- Match CreateSidebarButton icon behaviour (green is label-only).
-    local function applySidebarIconVertex()
-        if not icon then return end
-        if isWhatsNewRowActive then
-            icon:SetVertexColor(1, 1, 1, 1)
-        elseif isHover then
-            icon:SetVertexColor(0.9, 0.9, 0.95, 1)
-        else
-            icon:SetVertexColor(0.6, 0.6, 0.65, 1)
-        end
-    end
-    if sidebarAttention then
-        applySidebarIconVertex()
-        if isWhatsNewRowActive then
-            if isHover then
-                lbl:SetTextColor(0.68, 1, 0.80, 1)
-            else
-                lbl:SetTextColor(WHATSNEW_GREEN_ACTIVE_R, WHATSNEW_GREEN_ACTIVE_G, WHATSNEW_GREEN_ACTIVE_B, 1)
-            end
-        else
-            if isHover then
-                lbl:SetTextColor(0.40, 0.96, 0.58, 1)
-            else
-                lbl:SetTextColor(WHATSNEW_GREEN_R, WHATSNEW_GREEN_G, WHATSNEW_GREEN_B, 1)
-            end
-        end
+    if isWhatsNewRowActive then
+        lbl:SetTextColor(1, 1, 1, 1)
+        if icon then icon:SetVertexColor(1, 1, 1, 1) end
+    elseif isHover then
+        lbl:SetTextColor(0.9, 0.9, 0.95, 1)
+        if icon then icon:SetVertexColor(0.9, 0.9, 0.95, 1) end
     else
-        if isWhatsNewRowActive then
-            lbl:SetTextColor(1, 1, 1, 1)
-            if icon then
-                icon:SetVertexColor(1, 1, 1, 1)
-            end
-        else
-            if isHover then
-                lbl:SetTextColor(0.9, 0.9, 0.95, 1)
-                if icon then
-                    icon:SetVertexColor(0.9, 0.9, 0.95, 1)
-                end
-            else
-                lbl:SetTextColor(WHATSNEW_IDLE_R, WHATSNEW_IDLE_G, WHATSNEW_IDLE_B, 1)
-                if icon then
-                    icon:SetVertexColor(0.6, 0.6, 0.65, 1)
-                end
-            end
-        end
+        lbl:SetTextColor(WHATSNEW_IDLE_R, WHATSNEW_IDLE_G, WHATSNEW_IDLE_B, 1)
+        if icon then icon:SetVertexColor(0.6, 0.6, 0.65, 1) end
     end
 end
 
@@ -177,12 +138,13 @@ function addon.PatchNotes_RefreshAttentionIndicators()
     if btn and btn.label then
         local L = addon.L
         local base = btn._whatsNewBaseText or (L and L["DASH_WHATS_NEW"])
-        local suffix = (L and L["DASH_WHATS_NEW_UNREAD_SUFFIX"])
         local sidebarAttention = addon.PatchNotes_HasUnreadSidebarAttention and addon.PatchNotes_HasUnreadSidebarAttention()
-        if sidebarAttention then
-            btn.label:SetText(base .. suffix)
-        else
-            btn.label:SetText(base)
+        btn.label:SetText(base)
+        -- Unread notes show a "New" tag on the row (the sidebar's badge), not a text suffix.
+        if addon.DashboardSidebar_SetRowBadge then
+            addon.DashboardSidebar_SetRowBadge(btn, sidebarAttention and (L and L["DASH_INT_NEW_BADGE"] or "New") or nil, "accent")
+        elseif sidebarAttention then
+            btn.label:SetText(base .. ((L and L["DASH_WHATS_NEW_UNREAD_SUFFIX"]) or ""))
         end
         if addon.PatchNotes_ApplyWhatsNewSidebarRowStyle then
             addon.PatchNotes_ApplyWhatsNewSidebarRowStyle(btn, btn.label, btn.icon, false)

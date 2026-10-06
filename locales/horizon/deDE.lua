@@ -2813,4 +2813,4 @@ L["FOCUS_COMPLETED_CHECKMARK"]                                = "|TInterface\\\\
 -- L["FOCUS_RUN_RESET_TOOLTIP"]                               = "Start this run's time, experience and money over from zero."
 -- L["FOCUS_RUN_RESET_DONE"]                                  = "Dungeon run reset."
 -- L["FOCUS_RUN_RESET_NOT_IN_DUNGEON"]                        = "No dungeon run to reset."
-
+-- L["DASH_SIDEBAR_OFF_BADGE"]                               = "Off"
