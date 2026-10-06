@@ -1576,6 +1576,8 @@ function addon.Dashboard_BuildMainFrame()
                 newsView:SetAlpha(0)
                 newsView:Show()
                 UIFrameFadeIn(newsView, 0.2, 0, 1)
+                -- After Show: the page drew its story badges from what was seen before opening.
+                if addon.News_MarkAllSeen then addon.News_MarkAllSeen() end
                 if head then head:Show() end
                 if headSub then
                     headSub:Show()
@@ -1743,6 +1745,7 @@ function addon.Dashboard_BuildMainFrame()
             end)
             newsBtn:SetPoint("TOPLEFT", welcomeBtn, "BOTTOMLEFT", 0, 0)
             f.newsSidebarBtn = newsBtn
+            if addon.News_RefreshSidebarBadge then addon.News_RefreshSidebarBadge() end
             tinsert(sidebarButtons, newsBtn)
             tinsert(sidebarRows, { type = "news", frame = newsBtn, bottom = newsBtn, offsetFromPrev = 0 })
             lastSidebarRow = newsBtn
