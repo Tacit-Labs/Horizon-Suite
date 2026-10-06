@@ -526,6 +526,9 @@ local function StartTween(frame, dur, onStep, onFinish, onHide)
     end)
 end
 
+addon.OptionsWidgets_StartTween = StartTween
+addon.OptionsWidgets_StopTween = StopTween
+
 --- A frame for a control's visible parts, anchored by its CENTER alone to host's centre and
 --- kept at host's size, so press feedback can scale it about the centre. WoW scales a frame
 --- about its anchor point, so scaling host itself (anchored by RIGHT or TOPLEFT) would shift

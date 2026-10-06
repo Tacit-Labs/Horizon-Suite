@@ -2819,3 +2819,4 @@ L["M_BLOCK_WHENEVER_AN_ACTIVE_KEYSTONE"]                      = "Show the M+ blo
 -- L["DASH_CLASS_THEME_REPLACES"]                             = "Your class colour replaces this while %s is on in Axis › Per-module theme."
 -- L["DASH_CLASS_THEME_TINTS"]                                = "Your class colour replaces this colour while %s is on in Axis › Per-module theme. Opacity still applies."
 -- L["AUGMENT_FRAMED_BORDER_SHARED"]                         = "Shared by loot toasts, alerts, loot rolls and the loot window."
+-- L["DASH_SIDEBAR_OFF_BADGE"]                               = "Off"
