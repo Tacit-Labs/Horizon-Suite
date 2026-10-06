@@ -1,29 +1,31 @@
-# Package name must match TOC so folder name is consistent for installs/updates
-package-as: HorizonSuite
-manual-changelog:
-  filename: CHANGELOG.md
-  markup-type: markdown
-# Exclude CI, config, dev tooling, and marketing media from the packaged addon.
-# BigWigs release.sh does not strip inline # comments on ignore list lines; keep "- path" alone.
-ignore:
-  - .github
-  - .gitignore
-  - .pkgmeta
-  - scripts
-  - tools
+# Package name must match TOC so folder name is consistent for installs/updates
+package-as: HorizonSuite
+
+manual-changelog:
+  filename: CHANGELOG.md
+  markup-type: markdown
+
+# Exclude CI, config, dev tooling, and marketing media from the packaged addon.
+# BigWigs release.sh does not strip inline # comments on ignore list lines; keep "- path" alone.
+ignore:
+  - .github
+  - .gitignore
+  - .pkgmeta
+  - scripts
+  - tools
   - news
-  - Docs/Branding/ColourSchema.md
-  - Docs/Branding/HorizonClassIcons.png
-  - Docs/Branding/CurseForge
-  - Docs/Contributions
-  - Docs/Engineering
-  - notes
-  - "modules/*/notes"
-  - locales/KeyNomenclature.md
-  - locales/blizzard
-  - pipeline.md
-  - .cursor
-  - .claude
-  - .vscode
-  - .release
-  - .gitattributes
+  - Docs/Branding/ColourSchema.md
+  - Docs/Branding/HorizonClassIcons.png
+  - Docs/Branding/CurseForge
+  - Docs/Contributions
+  - Docs/Engineering
+  - notes
+  - "modules/*/notes"
+  - locales/KeyNomenclature.md
+  - locales/blizzard
+  - pipeline.md
+  - .cursor
+  - .claude
+  - .vscode
+  - .release
+  - .gitattributes
