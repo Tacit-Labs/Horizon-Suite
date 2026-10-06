@@ -934,7 +934,8 @@ function addon.DashboardAccordionBuild_Init(f, p)
                         end
                     end
                 elseif opt.type == "color" then
-                    widget = _G.OptionsWidgets_CreateColorSwatch(currentCard.settingsContainer, displayName, opt.desc or "", g, s, opt.hasAlpha, opt.tooltip, opt.liveThrottle)
+                    widget = _G.OptionsWidgets_CreateColorSwatch(currentCard.settingsContainer, displayName, opt.desc or "", g, s, opt.hasAlpha, opt.tooltip, opt.liveThrottle,
+                        type(opt.disabled) == "function" and opt.disabled or nil)
                     if widget and widget.Refresh then detailOptionFrames[optId] = widget end
                 elseif opt.type == "presencePreview" then
                     local previewWidget = addon.Presence and addon.Presence.CreatePreviewWidget and addon.Presence.CreatePreviewWidget(currentCard.settingsContainer, {

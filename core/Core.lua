@@ -1905,10 +1905,20 @@ resizeHandle:SetScript("OnDragStop", function(self)
             contentH = contentH - (blockH + 8)
         end
     end
-    local contentUnscaled = math.max(RESIZE_CONTENT_HEIGHT_MIN, math.min(RESIZE_CONTENT_HEIGHT_MAX, contentH / scale))
-    addon.SetDB("maxContentHeight", contentUnscaled)
-    if not (addon.IsInMythicDungeon and addon.IsInMythicDungeon()) then
-        addon.SetDB("maxContentHeightOverworld", contentUnscaled)
+    if addon.IsStaticBackgroundEnabled and addon.IsStaticBackgroundEnabled() then
+        -- Fixed height: the grip sets the panel's height (GetStaticPanelHeight's range), as
+        -- Max height does nothing in this mode. Only a drag that changed the height counts,
+        -- and never while collapsed, so a width-only drag keeps the saved height.
+        local collapsed = addon.focus and addon.focus.collapsed
+        if not collapsed and math.abs(finalH - (startHeight or finalH)) >= 1 then
+            addon.SetDB("staticPanelHeight", math.max(50, math.min(1500, math.floor(finalH / scale + 0.5))))
+        end
+    else
+        local contentUnscaled = math.max(RESIZE_CONTENT_HEIGHT_MIN, math.min(RESIZE_CONTENT_HEIGHT_MAX, contentH / scale))
+        addon.SetDB("maxContentHeight", contentUnscaled)
+        if not (addon.IsInMythicDungeon and addon.IsInMythicDungeon()) then
+            addon.SetDB("maxContentHeightOverworld", contentUnscaled)
+        end
     end
     -- Reflow content and restore portrait models (invalidate cache so pool
     -- recycling during FullLayout doesn't leave SD/RS models blank).
