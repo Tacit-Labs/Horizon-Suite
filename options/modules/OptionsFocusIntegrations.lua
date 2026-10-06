@@ -845,6 +845,8 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             {
                 id       = "sd_navArrowSize",
                 disabled = SDDisabled,
+                -- One shared key: shown here only when RareScanner's card is not showing it.
+                visibleWhen = function() return not RareScannerIntegrationLoaded() end,
                 set      = function(v)
                     setDB("rareNavArrowSize", v)
                     if addon.ScheduleRefresh then addon.ScheduleRefresh() end

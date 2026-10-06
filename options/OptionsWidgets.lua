@@ -2682,7 +2682,9 @@ function _G.OptionsWidgets_CreateMiniSwatch(parent, labelText, defaultTbl, getTb
 end
 
 -- Simplified Color Swatch for Dashboard (no anchor required, uses get/set functions)
-function _G.OptionsWidgets_CreateColorSwatch(parent, labelText, description, get, set, hasAlpha, tooltip, liveThrottle)
+-- disabledFn (optional): while it returns true the swatch fades and does not open the picker,
+-- e.g. when a module's class colour replaces this colour.
+function _G.OptionsWidgets_CreateColorSwatch(parent, labelText, description, get, set, hasAlpha, tooltip, liveThrottle, disabledFn)
     local row = CreateFrame("Frame", nil, parent)
     local searchText = (labelText or "") .. " " .. (description or "")
     row.searchText = searchText:lower()
@@ -2707,8 +2709,13 @@ function _G.OptionsWidgets_CreateColorSwatch(parent, labelText, description, get
         paintSwatch(r or 1, g or 1, b or 1, a or 1)
     end
 
+    local function isDisabled()
+        return type(disabledFn) == "function" and disabledFn() == true
+    end
+
     swatch:SetScript("OnClick", function()
         if type(get) ~= "function" or type(set) ~= "function" then return end
+        if isDisabled() then return end
         local r, g, b, a = get()
         r, g, b, a = r or 1, g or 1, b or 1, a or 1
         addon.OpenColorPicker({
@@ -2732,6 +2739,8 @@ function _G.OptionsWidgets_CreateColorSwatch(parent, labelText, description, get
 
     function row:Refresh()
         swatch:Refresh()
+        local off = isDisabled()
+        swatch:SetAlpha(off and (Def.SegDisabledAlpha or 0.45) or 1)
         text.Fit(true)
     end
 

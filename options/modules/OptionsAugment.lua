@@ -39,6 +39,16 @@ local function lootStyleHasBorder(style)
     return def and def.border or false
 end
 
+-- The border is shared: alerts and loot rolls drawn in Framed use it too, so the rows also
+-- show while either of those uses a bordered style (a roll style of "__loot__" follows loot).
+local function anyStyleHasBorder(lootStyle)
+    if lootStyleHasBorder(lootStyle) then return true end
+    local alerts = getDB("alertsToastStyle", addon.AUGMENT_DEFAULTS and addon.AUGMENT_DEFAULTS.alertsToastStyle)
+    local roll = getDB("lootRollToastStyle", addon.AUGMENT_DEFAULTS and addon.AUGMENT_DEFAULTS.lootRollToastStyle)
+    if lootStyleHasBorder(alerts) then return true end
+    return roll ~= "__loot__" and lootStyleHasBorder(roll) or false
+end
+
 local function applyLootFrameState()
     if addon.IsModuleEnabled and not addon:IsModuleEnabled("augment") then return end
     local Y = addon.Augment
@@ -107,7 +117,8 @@ local categories = {
                 end,
                 preserveOrder = true,
                 parent = "augmentToastStyle",
-                parentIs = lootStyleHasBorder,
+                parentIs = anyStyleHasBorder,
+                tooltip = L["AUGMENT_FRAMED_BORDER_SHARED"],
             },
             { type = "slider",
                 name = L["AUGMENT_FRAMED_BORDER_SIZE"], desc = L["AUGMENT_FRAMED_BORDER_SIZE_DESC"],
@@ -119,6 +130,7 @@ local categories = {
                     if addon.ApplyLootRollOptions then addon.ApplyLootRollOptions() end
                 end,
                 -- Only the square edge takes a thickness; see ToastStyles.
+                tooltip = L["AUGMENT_FRAMED_BORDER_SHARED"],
                 parent = "augmentFramedBorderShape",
                 parentIs = "square",
             },
@@ -214,7 +226,9 @@ local categories = {
             Section(L["AUGMENT_CARD_ITEMS"], { page = "loot" }),
             Toggle(L["AUGMENT_SHOW_ITEMS"],        L["AUGMENT_SHOW_ITEMS_DESC"],        "augmentShowItems",       D.augmentShowItems),
             Toggle(L["AUGMENT_SHOW_PUSHED_ITEMS"], L["AUGMENT_SHOW_PUSHED_ITEMS_DESC"], "augmentShowPushedItems", D.augmentShowPushedItems, { parent = "augmentShowItems" }),
-            Toggle(L["AUGMENT_CONDENSE_JUNK"],           L["AUGMENT_CONDENSE_JUNK_DESC"],           "augmentCondenseJunk",         D.augmentCondenseJunk,    { parent = "augmentShowItems" }),
+            -- Grey items never reach a toast when Minimum quality is above Poor.
+            Toggle(L["AUGMENT_CONDENSE_JUNK"],           L["AUGMENT_CONDENSE_JUNK_DESC"],           "augmentCondenseJunk",         D.augmentCondenseJunk,    { parent = "augmentShowItems",
+                disabled = function() return (tonumber(getDB("augmentMinQuality", D.augmentMinQuality)) or 0) > 0 end }),
             { type = "dropdown", name = L["AUGMENT_MIN_QUALITY"], desc = L["AUGMENT_MIN_QUALITY_DESC"], dbKey = "augmentMinQuality",
                 options = function()
                     return {
@@ -229,6 +243,7 @@ local categories = {
                 get = function() return tonumber(getDB("augmentMinQuality", D.augmentMinQuality)) or D.augmentMinQuality end,
                 set = function(v) setDB("augmentMinQuality", v) end,
                 parent = "augmentShowItems",
+                refreshIds = { "augmentCondenseJunk", "augmentHoldItem", "augmentHoldEpic" },
             },
             { type = "slider", name = L["AUGMENT_HOLD_LEGENDARY"], desc = L["AUGMENT_HOLD_LEGENDARY_DESC"], dbKey = "augmentHoldLegendary",
                 min = LIM.augmentHoldLegendary.min, max = LIM.augmentHoldLegendary.max, step = 0.5,

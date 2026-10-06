@@ -19,6 +19,13 @@ local Toggle                           = addon.Toggle
 local Slider                           = addon.Slider
 local FontRow                          = addon.FontRow
 local Color                            = addon.Color
+
+-- Focus's class colour (Axis › Per-module theme) replaces some Focus colours while it is on.
+local function FocusClassOn() return addon.GetDB and addon.GetDB("classColorFocus", false) == true end
+local function FocusBrand() return (addon.BrandModule and addon.BrandModule("focus")) or "Focus" end
+local function FocusClassReplaces() return addon.L["DASH_CLASS_THEME_REPLACES"]:format(FocusBrand()) end
+-- Divider tooltips mention the class colour only while it applies (they keep their opacity).
+local function FocusClassTint() if FocusClassOn() then return addon.L["DASH_CLASS_THEME_TINTS"]:format(FocusBrand()) end end
 local D   = addon.FOCUS_DEFAULTS
 local LIM = addon.FOCUS_LIMITS
 local function clamp(v, key) local lim = LIM[key]; return math.max(lim.min, math.min(lim.max, v)) end
@@ -231,9 +238,10 @@ local categories = {
             { type = "toggle", name = L["FOCUS_DYNAMIC_WIDTH"], desc = L["FOCUS_DYNAMIC_WIDTH_DESC"], dbKey = "focusDynamicWidth", get = function() return getDB("focusDynamicWidth", D.focusDynamicWidth) end, set = function(v) setDB("focusDynamicWidth", v); OptionsData_NotifyMainAddon() end, refreshIds = { "lockPosition" } },
             { type = "slider", name = L["FOCUS_PANEL_WIDTH"], desc = L["FOCUS_TRACKER_WIDTH_PIXELS"], dbKey = "panelWidth", min = LIM.panelWidth.min, max = LIM.panelWidth.max, get = function() return getDB("panelWidth", D.panelWidth) end, set = function(v) setDB("panelWidth", clamp(v, "panelWidth")) end, parent = "focusDynamicWidth", parentIs = false },
             { type = "slider", name = L["FOCUS_DYNAMIC_WIDTH_MAX"], desc = L["FOCUS_DYNAMIC_WIDTH_MAX_DESC"], dbKey = "focusDynamicWidthMax", min = LIM.focusDynamicWidthMax.min, max = LIM.focusDynamicWidthMax.max, get = function() return getDB("focusDynamicWidthMax", D.focusDynamicWidthMax) end, set = function(v) setDB("focusDynamicWidthMax", clamp(v, "focusDynamicWidthMax")); OptionsData_NotifyMainAddon() end, parent = "focusDynamicWidth" },
-            { type = "slider", name = L["FOCUS_MAX_CONTENT_HEIGHT"], desc = L["FOCUS_MAX_HEIGHT_OF_SCROLLABLE_LIST_PIXELS"], dbKey = "maxContentHeight", min = LIM.maxContentHeight.min, max = LIM.maxContentHeight.max, get = function() return getDB("maxContentHeight", D.maxContentHeight) end, set = function(v) setDB("maxContentHeight", clamp(v, "maxContentHeight")) end },
             { type = "toggle", name = L["FOCUS_STATIC_BACKGROUND"], desc = L["FOCUS_STATIC_BACKGROUND_DESC"], dbKey = "staticBackgroundEnabled", get = function() return getDB("staticBackgroundEnabled", D.staticBackgroundEnabled) end, set = function(v) setDB("staticBackgroundEnabled", v); if addon.FullLayout then addon.FullLayout() end end },
             { type = "slider", name = L["FOCUS_STATIC_PANEL_HEIGHT"], desc = L["FOCUS_STATIC_PANEL_HEIGHT_DESC"], dbKey = "staticPanelHeight", min = LIM.staticPanelHeight.min, max = LIM.staticPanelHeight.max, get = function() return clamp(tonumber(getDB("staticPanelHeight", D.staticPanelHeight)) or D.staticPanelHeight, "staticPanelHeight") end, set = function(v) setDB("staticPanelHeight", clamp(v, "staticPanelHeight")); if addon.FullLayout then addon.FullLayout() end end, parent = "staticBackgroundEnabled" },
+            -- Max height applies only while the panel grows to fit (Fixed height off).
+            { type = "slider", name = L["FOCUS_MAX_CONTENT_HEIGHT"], desc = L["FOCUS_MAX_HEIGHT_OF_SCROLLABLE_LIST_PIXELS"], dbKey = "maxContentHeight", min = LIM.maxContentHeight.min, max = LIM.maxContentHeight.max, get = function() return getDB("maxContentHeight", D.maxContentHeight) end, set = function(v) setDB("maxContentHeight", clamp(v, "maxContentHeight")) end , parent = "staticBackgroundEnabled", parentIs = false },
             Section(L["FOCUS_SPACING"], { page = "layout", card = "spacing" }),
             { type = "dropdown", name = L["FOCUS_SPACING_PRESET"], dbKey = "compactMode",
                 options = {
@@ -413,15 +421,18 @@ local categories = {
             Toggle(L["QUEST_COUNT"], L["FOCUS_QUEST_COUNT_HEADER"], "showQuestCount", D.showQuestCount, { parent = "hideObjectivesHeader", parentIs = false }),
             { type = "dropdown", name = L["FOCUS_HEADER_COUNT_FORMAT"], desc = L["TRACKED_VS_LOG_COUNT"], dbKey = "headerCountMode", options = { { L["FOCUS_TRACKED_LOG"], "trackedLog" }, { L["FOCUS_LOG_MAX_SLOTS"], "logMax" } }, get = function() return getDB("headerCountMode", D.headerCountMode) end, set = function(v) setDB("headerCountMode", v) end, tooltip = L["TRACKED_LOG_LOG_MAX_TRACKED_EXCLUDES"], parent = "showQuestCount" },
             Toggle(L["HEADER_DIVIDER"], L["FOCUS_LINE_BELOW_HEADER"], "showHeaderDivider", D.showHeaderDivider, { parent = "hideObjectivesHeader", parentIs = false }),
-            Color(L["FOCUS_HEADER_DIVIDER_COLOUR"], L["FOCUS_COLOUR_OF_LINE_BELOW_HEADER"], "headerDividerColor", addon.DIVIDER_COLOR, { hasAlpha = true, parent = "showHeaderDivider" }),
-            Color(L["FOCUS_HEADER_COLOUR"], L["FOCUS_COLOUR_OF_OBJECTIVES_HEADER_TEXT"], "headerColor", addon.HEADER_COLOR, { parent = "hideObjectivesHeader", parentIs = false }),
+            -- Focus's class colour (Axis › Per-module theme) replaces these colours; dividers keep their opacity.
+            Color(L["FOCUS_HEADER_DIVIDER_COLOUR"], L["FOCUS_COLOUR_OF_LINE_BELOW_HEADER"], "headerDividerColor", addon.DIVIDER_COLOR, { hasAlpha = true, parent = "showHeaderDivider", tooltip = FocusClassTint }),
+            Color(L["FOCUS_HEADER_COLOUR"], L["FOCUS_COLOUR_OF_OBJECTIVES_HEADER_TEXT"], "headerColor", addon.HEADER_COLOR, { parent = "hideObjectivesHeader", parentIs = false,
+                tooltip = FocusClassReplaces, disabled = FocusClassOn }),
             { type = "slider", name = L["FOCUS_HEADER_HEIGHT"], desc = L["FOCUS_HEIGHT_OF_HEADER_BAR_PIXELS"], dbKey = "headerHeight", min = LIM.headerHeight.min, max = LIM.headerHeight.max, get = function() return math.max(LIM.headerHeight.min, math.min(LIM.headerHeight.max, tonumber(getDB("headerHeight", addon.HEADER_HEIGHT)) or addon.HEADER_HEIGHT)) end, set = function(v) setDB("headerHeight", clamp(v, "headerHeight")) end, parent = "hideObjectivesHeader", parentIs = false },
             { type = "toggle", name = L["FOCUS_OPTIONS_BUTTON"], desc = L["FOCUS_OPTIONS_BUTTON_TRACKER_HEADER"], dbKey = "hideOptionsButton", get = function() return not getDB("hideOptionsButton", D.hideOptionsButton) end, set = function(v) setDB("hideOptionsButton", not v) end, parent = "hideObjectivesHeader", parentIs = false },
             Section(L["FOCUS_SECTIONS_STRUCTURE"], { page = "look", card = "sections" }),
             Toggle(L["SECTION_HEADERS"], L["FOCUS_CATEGORY_LABELS_ABOVE_GROUP"], "showSectionHeaders", D.showSectionHeaders),
+            -- Needs section headers: with them off a collapsed tracker has nothing to show.
+            Toggle(L["SECTIONS_COLLAPSED"], L["KEEP_SECTION_HEADERS_VISIBLE_COLLAPSED"], "showSectionHeadersWhenCollapsed", D.showSectionHeadersWhenCollapsed, { tooltip = L["FOCUS_CLICK_A_SECTION_HEADER_EXPAND_CATEGORY"], parent = "showSectionHeaders" }),
             Toggle(L["SECTION_DIVIDERS"], L["A_VISUAL_DIVIDER_LINE_BETWEEN_FOCUS"], "showSectionDividers", D.showSectionDividers),
-            Color(L["SECTION_DIVIDER_COLOUR"], L["COLOUR_OF_DIVIDER_LINES_BETWEEN_SECTIONS"], "sectionDividerColor", { 0.3, 0.3, 0.35, 0.4 }, { hasAlpha = true, parent = "showSectionDividers" }),
-            Toggle(L["SECTIONS_COLLAPSED"], L["KEEP_SECTION_HEADERS_VISIBLE_COLLAPSED"], "showSectionHeadersWhenCollapsed", D.showSectionHeadersWhenCollapsed, { tooltip = L["FOCUS_CLICK_A_SECTION_HEADER_EXPAND_CATEGORY"] }),
+            Color(L["SECTION_DIVIDER_COLOUR"], L["COLOUR_OF_DIVIDER_LINES_BETWEEN_SECTIONS"], "sectionDividerColor", { 0.3, 0.3, 0.35, 0.4 }, { hasAlpha = true, parent = "showSectionDividers", tooltip = FocusClassTint }),
             Toggle(L["ZONE_LABELS"], L["FOCUS_ZONE_NAME_UNDER_QUEST_TITLE"], "showZoneLabels", D.showZoneLabels),
             Section(L["FOCUS_ENTRY_DETAILS"], { page = "tracked", card = "entryDetails" }),
             Toggle(L["ENTRY_NUMBERS"], L["FOCUS_PREFIX_QUEST_TITLES_WITHIN_CATEGORY"], "showCategoryEntryNumbers", D.showCategoryEntryNumbers),
