@@ -22,7 +22,9 @@
     message area instead of lines.
     Bubbles are laid out newest-first from the bottom of a clipped area and the wheel
     scrolls by message. Readable text is measured; a secret gets the widest bubble and a
-    fixed three lines, so nothing ever reads a size from a FontString holding a secret.
+    fixed three lines, so nothing ever reads a size from a FontString holding a secret. The
+    height of those three lines is measured on a readable probe in the same font
+    (Card.SecretHeight), since a font's line height is not a fixed share of its size.
     Blizzard: CreateFrame, UISpecialFrames, MenuUtil (through Echo.Menu), InCombatLockdown,
     ChatFrame1EditBox:HasFocus (read only, for the idle close).
 ]]
@@ -53,6 +55,7 @@ Card.SECRET_LINES = 3
 Card.LINE_HEIGHT = 14
 Card.TEXT_SIZE = 11  -- message text; echoCardTextSize
 Card.FEED_TIME_WIDTH = 40
+Card.STAMP_GAP = 4  -- between a conversation bubble and its time beside it (echoShowTimestamps)
 Card.FEED_GAP = 2
 Card.PREFIX_SHARE = 0.4  -- an All line's prefix takes at most this share of the line
 Card.PREFIX_GAP = 4      -- between an All line's prefix and its text
@@ -100,6 +103,11 @@ local activeNotice  -- the shortcut notice the hint shows now, so only its own t
 -- Point the pin strip back at the newest pin.
 local function ResetPinCursor()
     pinIndex = nil
+end
+
+--- Lay the shown card out again (after a font change), so bubbles fit the new glyphs.
+function Card.Relayout()
+    if root and root:IsShown() then Card.Render() end
 end
 
 --- Take the card's width and height from the settings and re-derive the sizes built on
@@ -566,6 +574,28 @@ local function Label(i)
     return fs
 end
 
+-- The height of Card.SECRET_LINES lines of message text, measured on a hidden readable
+-- FontString in the current font and size. Cached until the font or size changes.
+local probe, secretHeight, secretKey
+function Card.SecretHeight()
+    local path = Echo.FontPath()
+    local key = tostring(path) .. ":" .. tostring(Card.TEXT_SIZE)
+    if secretHeight and secretKey == key then return secretHeight end
+    if not probe then
+        probe = UIParent:CreateFontString(nil, "OVERLAY")
+        probe:SetWordWrap(true)
+        probe:Hide()
+    end
+    probe:SetFont(path, Card.TEXT_SIZE, "")
+    probe:SetText(string.rep("Ag\n", Card.SECRET_LINES - 1) .. "Ag")
+    local h = probe:GetStringHeight()
+    if type(h) ~= "number" or h <= 0 then h = 0 end
+    -- Never below the old fixed estimate, so a probe that can't measure changes nothing.
+    secretHeight = math.max(math.ceil(h), Card.SECRET_LINES * (Card.TEXT_SIZE + 3))
+    secretKey = key
+    return secretHeight
+end
+
 -- Size a bubble to its text and return its height. Readable text is measured; a secret
 -- can't be, so it gets the widest bubble and a fixed number of lines. markSide ("left",
 -- "right" or nil) is where a pinned bubble's marker sits: the text keeps clear of it on
@@ -584,7 +614,7 @@ local function SizeBubble(b, text, secret, markSide)
     local width, height
     if secret then
         width = Card.BUBBLE_MAX
-        height = Card.SECRET_LINES * (Card.TEXT_SIZE + 3)
+        height = Card.SecretHeight()
     else
         local measured
         if b.text.GetUnboundedStringWidth then measured = b.text:GetUnboundedStringWidth() end
@@ -634,6 +664,10 @@ local function SizeFeedLine(b, msg, secret, pinned, text)
     local width = Card.WIDTH - Card.PAD * 2
     local left = Card.FEED_TIME_WIDTH + (pinned and (Card.PIN_MARK + 3) or 0)
     left = left + PlacePrefix(b, msg, left, width - left - 4)
+    -- A conversation bubble may have placed the time outside itself; a feed line keeps it
+    -- in its own left column.
+    b.time:ClearAllPoints()
+    b.time:SetPoint("TOPLEFT", b, "TOPLEFT", 2, -3)
     b.time:SetText(Echo.View.FeedTime(msg.time))
     b.time:Show()
     b.pin:ClearAllPoints()
@@ -651,7 +685,7 @@ local function SizeFeedLine(b, msg, secret, pinned, text)
     b.text:SetText(text)
     local height
     if secret then
-        height = Card.SECRET_LINES * (Card.TEXT_SIZE + 3)
+        height = Card.SecretHeight()
     else
         local h = b.text:GetStringHeight()
         if Echo.IsSecret(h) or type(h) ~= "number" or h <= 0 then h = Card.LINE_HEIGHT end
@@ -676,6 +710,23 @@ local function Mark(b, pinned, outgoing)
         b.pin:SetPoint("TOPRIGHT", b, "TOPRIGHT", -Card.PIN_INSET, -Card.PIN_INSET)
     end
     b.pin:Show()
+end
+
+-- Show a conversation bubble's time just outside it, on the side away from its sender's
+-- edge (left of yours, right of theirs), when echoShowTimestamps is on. SizeBubble has
+-- already hidden it, so off needs nothing.
+local function Stamp(b, msg)
+    if not Echo.View.ShowTimes() then return end
+    local stamp = Echo.View.FeedTime(msg.time)
+    if stamp == "" then return end
+    b.time:ClearAllPoints()
+    if msg.outgoing then
+        b.time:SetPoint("BOTTOMRIGHT", b, "BOTTOMLEFT", -Card.STAMP_GAP, 1)
+    else
+        b.time:SetPoint("BOTTOMLEFT", b, "BOTTOMRIGHT", Card.STAMP_GAP, 1)
+    end
+    b.time:SetText(stamp)
+    b.time:Show()
 end
 
 -- Whether message i is the last (most recent) of its consecutive-same-sender run: either
@@ -762,6 +813,7 @@ local function RenderMessages(conv)
             local markSide = pinned and (msg.outgoing and "left" or "right") or nil
             local height = SizeBubble(bubble, msg.text, secret, markSide)
             Mark(bubble, pinned, msg.outgoing)
+            Stamp(bubble, msg)
             bubble:ClearAllPoints()
             local Round = Echo.Round
             local ends = EndsGroup(messages, i)

@@ -200,12 +200,20 @@ handlers.QUEST_TURNED_IN                  = OnBlizzardLootToast
 -- The window animates in, out and per row, so hiding it by alpha still let it
 -- flash. Instead, stop it opening: LOOT_READY says whether the coming loot is
 -- auto-loot before LOOT_OPENED reaches the window, so take LOOT_OPENED off the
--- window for auto-loot and leave Blizzard to open it normally otherwise. If
--- items are still there after AUTOLOOT_REVEAL_DELAY (full bags, a unique item
--- already owned), open the window so no loot is hidden.
-local AUTOLOOT_REVEAL_DELAY = 1
-local lootOpen      = false
-local autoLootToken = 0
+-- window for auto-loot and leave Blizzard to open it normally otherwise.
+--
+-- Auto-loot can leave items behind (full bags, a unique item already owned).
+-- Only those items warrant the window, and they must show at once: a hidden
+-- window made players loot the corpse again and again, and each retry
+-- restarted the wait. The game reports each item it could not take as a UI
+-- error, so open the window on that error if anything is still unlooted. As a
+-- fallback for a refusal that raises no error, open it after
+-- AUTOLOOT_REVEAL_DELAY if items remain.
+local AUTOLOOT_REVEAL_DELAY = 0.5
+local lootOpen        = false
+local lootHeld        = false
+local autoLootToken   = 0
+local heldFromItem    = nil
 
 local function SetLootWindowOpens(opens)
     local frame = _G.LootFrame
@@ -224,37 +232,91 @@ local function LootLeftOver()
     return false
 end
 
--- Under Blizzard's gamepad UI the window runs its own auto-loot flow (it slides
--- rows out and refocuses when bags are full), and opening it from addon code
--- taints its gamepad navigation (#468). Leave the window to Blizzard there.
+-- Under Blizzard's gamepad UI, opening the window from addon code taints its
+-- gamepad navigation (#468), so RevealHeldLoot must never run there. Holding
+-- the window back is still safe: it only takes an event off the window. So in
+-- gamepad mode, hold it back only when the loot should fit in the bags, and
+-- otherwise let Blizzard open it and run its own full-bags refocus.
 local function GamepadUI()
     return addon.Platform and addon.Platform.IsGamepadUI() or false
 end
 
+-- Set when held loot left items behind in gamepad mode, so the next loot
+-- opens Blizzard's window rather than holding it back again.
+local showNextLoot = false
+
+local function LootFitsInBags()
+    local need = 0
+    for slot = 1, (GetNumLootItems() or 0) do
+        if LootSlotHasItem(slot) and GetLootSlotType(slot) == Enum.LootSlotType.Item then
+            need = need + 1
+        end
+    end
+    if need == 0 then return true end
+    local free = 0
+    for bag = 0, NUM_BAG_SLOTS do
+        local n, family = C_Container.GetContainerNumFreeSlots(bag)
+        -- Only general bags: a profession bag takes only its own kind of item.
+        if family == 0 then free = free + (n or 0) end
+    end
+    return free >= need
+end
+
+-- Open the held-back window if auto-loot left anything behind.
+local function RevealHeldLoot()
+    if not (lootOpen and lootHeld) or not LootLeftOver() then return end
+    if GamepadUI() then
+        -- Refused despite the bag check (a unique item already owned, say).
+        -- Close the loot so the next try opens Blizzard's window.
+        lootHeld = false
+        showNextLoot = true
+        CloseLoot()
+        return
+    end
+    local frame = _G.LootFrame
+    local onEvent = frame and frame:GetScript("OnEvent")
+    if not onEvent then return end
+    lootHeld = false
+    autoLootToken = autoLootToken + 1
+    SetLootWindowOpens(true)
+    -- Opened as a manual loot, so the rows stay put rather than sliding out.
+    onEvent(frame, "LOOT_OPENED", false, heldFromItem)
+end
+
 handlers.LOOT_READY = function(autoLoot)
     -- The second LOOT_READY of a loot arrives after LOOT_OPENED; ignore it.
-    if lootOpen or GamepadUI() then return end
-    SetLootWindowOpens(not autoLoot)
+    if lootOpen then return end
+    local hold = autoLoot
+    if hold and GamepadUI() then
+        hold = not showNextLoot and LootFitsInBags()
+        showNextLoot = false
+    end
+    SetLootWindowOpens(not hold)
 end
 
 handlers.LOOT_OPENED = function(autoLoot, acquiredFromItem)
     lootOpen = true
-    if not autoLoot or GamepadUI() then return end
+    local frame = _G.LootFrame
+    lootHeld = autoLoot and frame and not frame:IsEventRegistered("LOOT_OPENED") or false
+    if not lootHeld then return end
+    heldFromItem = acquiredFromItem
     autoLootToken = autoLootToken + 1
     local token = autoLootToken
     C_Timer.After(AUTOLOOT_REVEAL_DELAY, function()
-        if token ~= autoLootToken or not lootOpen or not LootLeftOver() then return end
-        local frame = _G.LootFrame
-        local onEvent = frame and frame:GetScript("OnEvent")
-        if not onEvent then return end
-        SetLootWindowOpens(true)
-        -- Opened as a manual loot, so the rows stay put rather than sliding out.
-        onEvent(frame, "LOOT_OPENED", false, acquiredFromItem)
+        if token == autoLootToken then RevealHeldLoot() end
     end)
+end
+
+-- "Inventory is full", "You can't carry any more of those" and the like.
+-- Wait a frame so slots the game did take have cleared before checking.
+handlers.UI_ERROR_MESSAGE = function()
+    if lootHeld then C_Timer.After(0, RevealHeldLoot) end
 end
 
 handlers.LOOT_CLOSED = function()
     lootOpen = false
+    lootHeld = false
+    heldFromItem = nil
     SetLootWindowOpens(true)
 end
 
@@ -294,6 +356,7 @@ function Y.EnableEvents()
     eventFrame:RegisterEvent("LOOT_READY")
     eventFrame:RegisterEvent("LOOT_OPENED")
     eventFrame:RegisterEvent("LOOT_CLOSED")
+    eventFrame:RegisterEvent("UI_ERROR_MESSAGE")
     eventsRegistered = true
 end
 
@@ -305,6 +368,7 @@ function Y.DisableEvents()
     ClearQueues()
     -- Toasts are off: let Blizzard open the loot window again.
     lootOpen = false
+    lootHeld = false
     SetLootWindowOpens(true)
     eventsRegistered = false
 end

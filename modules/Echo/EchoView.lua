@@ -1115,6 +1115,12 @@ function View.FeedTime(t)
     return (ok and type(stamp) == "string") and stamp or ""
 end
 
+--- Whether conversation lines show their time (echoShowTimestamps). Feed lines always do.
+-- @return boolean
+function View.ShowTimes()
+    return Echo.Setting("echoShowTimestamps") == true
+end
+
 --- A pin's time for its tooltip: "12 Sep 21:04", or "" when there is no time.
 -- @param t number|nil
 -- @return string

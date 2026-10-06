@@ -1336,6 +1336,9 @@ function addon.Dashboard_BuildMainFrame()
                 if addon.Augment and addon.Augment.Alerts and addon.Augment.Alerts.HideAnchorFrame then
                     addon.Augment.Alerts.HideAnchorFrame()
                 end
+                if addon.Presence and addon.Presence.HideAnchorFrame then
+                    addon.Presence.HideAnchorFrame()
+                end
                 if GameTooltip and GameTooltip:IsShown() then
                     GameTooltip:Hide()
                 end

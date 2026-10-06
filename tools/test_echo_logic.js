@@ -3732,6 +3732,60 @@ run(`
   S.Reset()
 `, 'stack-feed-times');
 
+// --- Timestamps on conversations: echoShowTimestamps, off by default -------------------------
+run(`
+  local S, K, C = HorizonSuite.Echo.Store, HorizonSuite.Echo.Stack, HorizonSuite.Echo.Card
+  local savedDefaults, savedGetDB = HorizonSuite.ECHO_DEFAULTS, HorizonSuite.GetDB
+  local db = {}
+  HorizonSuite.ECHO_DEFAULTS = { echoShowTimestamps = false }
+  HorizonSuite.GetDB = function(k, d) if db[k] ~= nil then return db[k] end return d end
+  S.Reset()
+  CreateFrame = STUB_CREATE_FRAME
+  local savedDate = date
+  date = function() return "21:04" end
+  S.Add({ convKey = "w:Brisa-Horizon", text = "hi", sender = "Brisa-Horizon", time = 102 })
+  S.Add({ convKey = "w:Brisa-Horizon", text = "sure", outgoing = true, time = 103 })
+  S.Add({ convKey = "loot", text = "You receive loot: [Cloak].", feed = true, chatType = "LOOT", time = 104 })
+
+  K.Enable()
+  K.Open("w:Brisa-Horizon")
+  local times = K._frames().card.times
+  check("off by default: a stack conversation shows no time", times[1].shown == false, tostring(times[1].shown))
+  db.echoShowTimestamps = true
+  K.Open("w:Brisa-Horizon")
+  check("on: a stack conversation line shows its time", times[1].shown and times[1].text == "21:04", tostring(times[1].text))
+  check("on: a stack conversation keeps its reply box", K._frames().edit.shown ~= false, tostring(K._frames().edit.shown))
+  K.Hide()
+  K.Disable()
+
+  db.echoShowTimestamps = nil
+  C.Enable()
+  local f = C._frames()
+  C.Show("w:Brisa-Horizon")
+  check("off by default: a card bubble shows no time", f.bubbles[1].time.shown == false and f.bubbles[2].time.shown == false, "shown")
+  db.echoShowTimestamps = true
+  C.Show("w:Brisa-Horizon")
+  local mine, theirs = f.bubbles[1], f.bubbles[2]
+  check("on: your bubble shows its time", mine.time.shown and mine.time.text == "21:04", tostring(mine.time.text))
+  check("on: their bubble shows its time", theirs.time.shown and theirs.time.text == "21:04", tostring(theirs.time.text))
+  local mp, tp = mine.time.points[1], theirs.time.points[1]
+  check("your time sits outside your bubble, to its left",
+    mp and mp[1] == "BOTTOMRIGHT" and rawequal(mp[2], mine) and mp[3] == "BOTTOMLEFT", mp and mp[1])
+  check("their time sits outside their bubble, to its right",
+    tp and tp[1] == "BOTTOMLEFT" and rawequal(tp[2], theirs) and tp[3] == "BOTTOMRIGHT", tp and tp[1])
+  -- A bubble reused for a feed line has its time put back inside, at the line's left.
+  C.Show("loot")
+  local fp = f.bubbles[1].time.points[1]
+  check("a reused bubble's time goes back inside for a feed line",
+    f.bubbles[1].time.shown and fp and fp[1] == "TOPLEFT" and rawequal(fp[2], f.bubbles[1]) and fp[3] == "TOPLEFT", fp and fp[1])
+  C.Hide()
+  C.Disable()
+
+  date = savedDate
+  HorizonSuite.ECHO_DEFAULTS, HorizonSuite.GetDB = savedDefaults, savedGetDB
+  S.Reset()
+`, 'conversation-timestamps');
+
 // --- Card: a feed's lines use the space the reply box leaves -------------------------------
 run(`
   local S, C = HorizonSuite.Echo.Store, HorizonSuite.Echo.Card
@@ -8465,6 +8519,27 @@ run(`
   fire("ActivateChat", box)
   fire("UpdateHeader", box)
   check("follow: after deactivate the same target opens again", #shows == before + 1 and C.ShownKey() == "nearby", #shows - before)
+
+  -- echoEnterOpens: what the card opens as the line starts in Say, Yell or Emote.
+  local function opened(chatType)
+    fire("DeactivateChat", box)
+    C.Hide()
+    box.shown, box.focus = true, true
+    box.attrs = { chatType = chatType }
+    fire("ActivateChat", box)
+    fire("UpdateHeader", box)
+    return C.ShownKey()
+  end
+  check("enter: Say opens Nearby by default", opened("SAY") == "nearby", tostring(C.ShownKey()))
+  db.echoEnterOpens = "all"
+  check("enter: set to All, Say opens the All view", opened("SAY") == "all", tostring(C.ShownKey()))
+  check("enter: the All tile is open", S.Get("all") and S.Get("all").open == true, "closed")
+  check("enter: Nearby's mode still follows the line", opened("YELL") == "all" and S.SendModeOf("nearby") == "YELL", S.SendModeOf("nearby"))
+  check("enter: other chat still opens its own card", opened("GUILD") == "guild", tostring(C.ShownKey()))
+  db.echoAllView = false
+  check("enter: with the All view off, Say opens Nearby", opened("SAY") == "nearby", tostring(C.ShownKey()))
+  db.echoAllView, db.echoEnterOpens = nil, nil
+  check("enter: back to Nearby", opened("SAY") == "nearby", tostring(C.ShownKey()))
 
   -- Never while the card is animating a close, and never while docking is off.
   local realClosing = C.IsClosing

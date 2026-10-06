@@ -452,7 +452,7 @@ local categories = {
             { type = "dropdown", name = L["FOCUS_ACTIVE_QUEST_HIGHLIGHT"], desc = L["FOCUS_FOCUSED_QUEST_HIGHLIGHTED"], dbKey = "activeQuestHighlight", options = HIGHLIGHT_OPTIONS, get = getActiveQuestHighlight, set = function(v) setDB("activeQuestHighlight", v) end },
             Section(L["FOCUS_CARD_BUTTONS_TOOLTIPS"], { page = "tracked", card = "buttons" }),
             { type = "toggle", name = L["QUEST_ITEM_BUTTONS"], desc = L["FOCUS_USABLE_QUEST_ITEM_BUTTON_NEXT_QUEST"], dbKey = "showQuestItemButtons", get = function() return getDB("showQuestItemButtons", D.showQuestItemButtons) end, set = function(v) setDB("showQuestItemButtons", v) end },
-            Toggle(L["FOCUS_GROUP_FINDER_BUTTON"], L["FOCUS_GROUP_FINDER_BUTTON_DESC"], "showGroupFinderButton", D.showGroupFinderButton, { isNew = "6.6.0" }),
+            Toggle(L["FOCUS_GROUP_FINDER_BUTTON"], L["FOCUS_GROUP_FINDER_BUTTON_DESC"], "showGroupFinderButton", D.showGroupFinderButton, { isNew = "6.5.1" }),
             { type = "toggle", name = L["FOCUS_TOOLTIPS_HOVER"], desc = L["FOCUS_TOOLTIPS_HOVERING_TRACKER_ENTRIES_ITE"], dbKey = "focusShowTooltipOnHover", get = function() return getDB("focusShowTooltipOnHover", D.focusShowTooltipOnHover) end, set = function(v) setDB("focusShowTooltipOnHover", v) end },
             { type = "toggle", name = L["FOCUS_WOWHEAD_LINK_TOOLTIPS"], desc = L["FOCUS_A_TOOLTIP_SHOWN_ADD_A_LINK"], dbKey = "focusShowWoWheadLink", get = function() return getDB("focusShowWoWheadLink", D.focusShowWoWheadLink) end, set = function(v) setDB("focusShowWoWheadLink", v) end },
             Section(L["FOCUS_PROGRESS_TIMERS"], { page = "tracked", card = "progressBars" }),

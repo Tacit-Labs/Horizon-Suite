@@ -90,6 +90,8 @@ function Echo.ApplyFont()
     if path == appliedPath then return end
     appliedPath = path
     for obj, f in pairs(tracked) do obj:SetFont(path, f.size, f.flags) end
+    -- Bubbles were sized in the old font; lay them out again so the text fits them.
+    if Echo.Card and Echo.Card.Relayout then Echo.Card.Relayout() end
 end
 
 --- Push every setting into the running module.
@@ -127,7 +129,12 @@ function Echo.ApplyOptions()
     if stack and stack:IsShown() and Echo.Stack.Reanchor then Echo.Stack.Reanchor() end
     local card = _G.HorizonSuiteEchoCard
     if card and card:IsShown() and Echo.Card.Reanchor then Echo.Card.Reanchor() end
-    if Echo.Redraw then Echo.Redraw.Mark("tiles") end
+    if Echo.Redraw then
+        Echo.Redraw.Mark("tiles")
+        -- Settings that change what a line shows (echoShowTimestamps) repaint open views.
+        Echo.Redraw.Mark("stack")
+        Echo.Redraw.Mark("card")
+    end
     -- Inert while Blizzard's chat is hidden: ChatFrame1 keeps its whisper events so that
     -- Blizzard's own code sets R's target, which a hidden line would skip.
     local hiding = Echo.HideChat and Echo.HideChat.IsApplied()

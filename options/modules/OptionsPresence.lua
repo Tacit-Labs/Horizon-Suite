@@ -44,6 +44,11 @@ end
 addon.GetPresencePreviewDropdownOptions = GetPresencePreviewDropdownOptions
 
 addon.RegisterModulePages("presence", {
+    -- Position lives on Layout, so its page header carries reset and move (drag the toast).
+    { key = "layout", headerButtons = {
+        reset  = function() if addon.Presence and addon.Presence.ResetPosition then addon.Presence.ResetPosition() end end,
+        anchor = function() if addon.Presence and addon.Presence.ToggleAnchorFrame then addon.Presence.ToggleAnchorFrame() end end,
+    } },
     { key = "look", cardNames = { textSizes = L["FOCUS_FONT_SIZES"] } },
     { key = "notifications", name = L["PRESENCE_NOTIFICATIONS"], desc = L["CHOOSE_WHICH_EVENTS_TRIGGER_SCREEN_ALERTS"] },
 })
@@ -62,6 +67,7 @@ local categories = {
             Toggle(L["PRESENCE_DISCOVERY_LINE"], L["PRESENCE_SHOW_DISCOVERED"], "showPresenceDiscovery", D.showPresenceDiscovery, { refreshIds = { "presencePreview" } }),
             Section(L["DASH_DISPLAY"], { page = "layout", card = "position" }),
             { type = "slider", name = L["PRESENCE_FRAME_VERTICAL_POSITION"], desc = L["PRESENCE_VERTICAL_OFFSET_OF_PRESENCE_FRAME_CENTER"], dbKey = "presenceFrameY", min = LIM.presenceFrameY.min, max = LIM.presenceFrameY.max, get = function() return math.max(LIM.presenceFrameY.min, math.min(LIM.presenceFrameY.max, tonumber(getDB("presenceFrameY", D.presenceFrameY)) or D.presenceFrameY)) end, set = function(v) setDB("presenceFrameY", clamp(v, "presenceFrameY")) end },
+            { type = "slider", name = L["PRESENCE_FRAME_HORIZONTAL_POSITION"], desc = L["PRESENCE_HORIZONTAL_OFFSET_OF_PRESENCE_FRAME_CENTER"], dbKey = "presenceFrameX", min = LIM.presenceFrameX.min, max = LIM.presenceFrameX.max, get = function() return math.max(LIM.presenceFrameX.min, math.min(LIM.presenceFrameX.max, tonumber(getDB("presenceFrameX", D.presenceFrameX)) or D.presenceFrameX)) end, set = function(v) setDB("presenceFrameX", clamp(v, "presenceFrameX")) end },
             Section(L["DASH_DISPLAY"], { page = "layout", card = "size" }),
             { type = "slider", name = L["PRESENCE_FRAME_SCALE"], desc = L["PRESENCE_FRAME_SCALE_TIP"], dbKey = "presenceFrameScale", min = LIM.presenceFrameScale.min, max = LIM.presenceFrameScale.max, step = 0.1, get = function() return math.max(LIM.presenceFrameScale.min, math.min(LIM.presenceFrameScale.max, tonumber(getDB("presenceFrameScale", D.presenceFrameScale)) or D.presenceFrameScale)) end, set = function(v) setDB("presenceFrameScale", clamp(v, "presenceFrameScale")) end },
             Section(L["PRESENCE_ANIMATION"], { page = "look", card = "animation" }),

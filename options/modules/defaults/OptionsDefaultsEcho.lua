@@ -52,6 +52,9 @@ addon.ECHO_DEFAULTS = {
     echoHideStoredWhispers = false,
     echoDockInput          = true,
     echoInputAlwaysVisible = false,
+    -- What the card opens as the docked line starts in Say, Yell or Emote (EchoInput.lua):
+    -- "nearby", or "all" for the All view.
+    echoEnterOpens         = "nearby",
     echoHideBlizzardChat   = true,
     -- Where the combat log goes while Blizzard's chat is hidden (EchoCombatLog.lua):
     -- "echo" (in Echo's card), "blizzard" (its own tab) or "hide". Read through
@@ -62,6 +65,8 @@ addon.ECHO_DEFAULTS = {
     echoCardTextSize       = 11,
     echoFontPath           = "__global__",
     echoAnimateCard        = true,
+    -- A conversation line's time (HH:MM) beside it; feed lines always show theirs.
+    echoShowTimestamps     = false,
     -- Seconds untouched before the card closes itself (EchoCard.lua); 0 keeps it open.
     echoCardIdleClose      = 30,
     -- Chat groups (modules/Echo/EchoGroups.lua). A blank name leaves the group unused;
