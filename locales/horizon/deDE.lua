@@ -2828,3 +2828,5 @@ L["FOCUS_COMPLETED_CHECKMARK"]                                = "|TInterface\\\\
 -- L["DASH_SEARCH_RECENT"]                                    = "Recent"
 -- L["DASH_SEARCH_TRY"]                                       = "Try"
 -- L["DASH_SEARCH_SUGGESTIONS"]                               = "font,scale,opacity,minimap,sound,position"
+-- L["DASH_NEWS_RELEASE_TITLE_X"]                                = "What's new in %s"
+-- L["DASH_NEWS_RELEASE_BUTTON"]                                 = "Patch notes"

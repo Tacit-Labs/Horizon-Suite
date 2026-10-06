@@ -198,6 +198,8 @@ L["DASH_NEWS_CTA_OPEN_PATCH_NOTES"]                           = "Open Patch Note
 L["DASH_NEWS_EDITORIAL_FOOTER_PREFIX"]                        = "Axis • Coming Soon"
 L["DASH_NEWS_EDITORIAL_FOOTER_LINK"]                          = "Patch notes"
 L["DASH_NEWS_CTA_OPEN_GUIDE"]                                 = "Open Quick Start"
+L["DASH_NEWS_RELEASE_TITLE_X"]                                = "What's new in %s"
+L["DASH_NEWS_RELEASE_BUTTON"]                                 = "Patch notes"
 L["DASH_NEWS_FEATURED_TITLE"]                        = "Augment Alerts"
 L["DASH_NEWS_FEATURED_TAGLINE"]                      = [=[Stay on top of the little things without another addon — low durability, bags nearly full, new mail, Great Vault rewards ready, and friends coming online or offline.
 
