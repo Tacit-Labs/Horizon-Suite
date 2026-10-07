@@ -288,6 +288,9 @@ SlashCmdList["HSDASH"] = function(msg)
             if addon.PatchNotes_RefreshAttentionIndicators then
                 addon.PatchNotes_RefreshAttentionIndicators()
             end
+            if addon.News_RefreshSidebarBadge then
+                addon.News_RefreshSidebarBadge()
+            end
         end
     end
 end

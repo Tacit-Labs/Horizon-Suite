@@ -663,6 +663,8 @@ function addon.News_MarkAllSeen()
     local NL = addon.NewsLogic
     if not NL then return end
     local feed = NL.CurrentFeed()
+    -- Snapshot first: the entry path shows News before its frame is shown, so OnShow can't.
+    if newsViewRef and newsViewRef._takeSeenSnapshot then newsViewRef._takeSeenSnapshot(feed) end
     NL.MarkSeen(feed, NL.EnsureSeen(RootDB(), feed))
     addon.News_RefreshSidebarBadge()
     if newsViewRef and newsViewRef:IsShown() and newsViewRef._layoutWelcomeContent then
@@ -779,6 +781,7 @@ function addon.DashboardShowcase_InitNews(env)
         end
         storyEnv.newsSeen = snap
     end
+    newsView._takeSeenSnapshot = TakeSeenSnapshot
 
     local function GetBlock(story, style)
         local b = blocks[story.id]
@@ -896,8 +899,6 @@ function addon.DashboardShowcase_InitNews(env)
     newsView._layoutWelcomeContent = Layout
 
     newsView:SetScript("OnShow", function()
-        -- Badges come from what was seen when the page opened; News_MarkAllSeen runs after.
-        TakeSeenSnapshot(NL and NL.CurrentFeed() or {})
         Layout()
         if C_Timer and C_Timer.After then
             C_Timer.After(0, Layout)
