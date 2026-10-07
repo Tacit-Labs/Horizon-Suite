@@ -18,6 +18,18 @@ local FOOTER_WORDMARK_INTRINSIC_PX = {
     [DASHBOARD_FOOTER_MEDIA .. "CurseForge.tga"] = { w = 728, h = 150, maxVisualH = 22 },
     [DASHBOARD_FOOTER_MEDIA .. "wago.tga"] = { w = 128, h = 29 },
 }
+
+-- Community links, shared by the community footer and the Welcome credits footer.
+-- labelKey names an L[] entry; icon is the footer wordmark.
+addon.DashboardCommunityLinks = {
+    { id = "discord",    labelKey = "NAME_DISCORD",    url = "https://discord.gg/HFzZQcMEJw", icon = DASHBOARD_FOOTER_MEDIA .. "discord.tga" },
+    { id = "kofi",       labelKey = "NAME_KO_FI",      url = "https://ko-fi.com/horizonsuite", icon = DASHBOARD_FOOTER_MEDIA .. "kofi.tga" },
+    { id = "patreon",    labelKey = "NAME_PATREON",    url = "https://patreon.com/HorizonSuite", icon = DASHBOARD_FOOTER_MEDIA .. "patreon.tga" },
+    { id = "github",     labelKey = "NAME_GITHUB",     url = "https://github.com/Tacit-Labs/Horizon-Suite", icon = DASHBOARD_FOOTER_MEDIA .. "github.tga" },
+    { id = "curseforge", labelKey = "NAME_CURSEFORGE", url = "https://www.curseforge.com/projects/1457844", icon = DASHBOARD_FOOTER_MEDIA .. "CurseForge.tga" },
+    { id = "wago",       labelKey = "NAME_WAGO",       url = "https://addons.wago.io/addons/jK8gY56y", icon = DASHBOARD_FOOTER_MEDIA .. "wago.tga" },
+}
+
 -- Footer link row: bright at rest; wordmarks are icon-only (texture includes text). Hover: underline + nudge to white.
 local FOOTER_LINK_IDLE_R, FOOTER_LINK_IDLE_G, FOOTER_LINK_IDLE_B = 0.93, 0.95, 0.98
 local FOOTER_LINK_HOVER_R, FOOTER_LINK_HOVER_G, FOOTER_LINK_HOVER_B = 1, 1, 1
@@ -590,14 +602,10 @@ function addon.Dashboard_CreateCommunityFooter(parent, env)
     local GetAccentColor = env.GetAccentColor
     local MakeText = env.MakeText
 
-    local linkData = {
-        { label = L["NAME_DISCORD"], url = "https://discord.gg/HFzZQcMEJw", icon = DASHBOARD_FOOTER_MEDIA .. "discord.tga" },
-        { label = L["NAME_KO_FI"], url = "https://ko-fi.com/horizonsuite", icon = DASHBOARD_FOOTER_MEDIA .. "kofi.tga" },
-        { label = L["NAME_PATREON"], url = "https://patreon.com/HorizonSuite", icon = DASHBOARD_FOOTER_MEDIA .. "patreon.tga" },
-        { label = L["NAME_GITHUB"], url = "https://github.com/Tacit-Labs/Horizon-Suite", icon = DASHBOARD_FOOTER_MEDIA .. "github.tga" },
-        { label = L["NAME_CURSEFORGE"], url = "https://www.curseforge.com/projects/1457844", icon = DASHBOARD_FOOTER_MEDIA .. "CurseForge.tga" },
-        { label = L["NAME_WAGO"], url = "https://addons.wago.io/addons/jK8gY56y", icon = DASHBOARD_FOOTER_MEDIA .. "wago.tga" },
-    }
+    local linkData = {}
+    for _, link in ipairs(addon.DashboardCommunityLinks) do
+        linkData[#linkData + 1] = { label = L[link.labelKey], url = link.url, icon = link.icon }
+    end
 
     local footerTopRule = parent:CreateTexture(nil, "ARTWORK")
     footerTopRule:SetHeight(1)

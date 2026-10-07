@@ -514,6 +514,8 @@ function addon.DashboardModuleGuide_Init(env)
             dashboardView:Hide()
             welcomeView:Hide()
             patchNotesView:Hide()
+            if env.newsView then env.newsView:Hide() end
+            if env.integrationsView then env.integrationsView:Hide() end
             guideView:SetAlpha(0)
             guideView:Show()
             UIFrameFadeIn(guideView, 0.2, 0, 1)
@@ -534,15 +536,7 @@ function addon.DashboardModuleGuide_Init(env)
             if addon.ApplyDashboardClassColor then addon.ApplyDashboardClassColor() end
         end
     else
-        -- Embedded mode: guide content lives inside the Welcome tab scroll area.
-        -- LayoutWelcomeContent calls this after positioning feed items; returns updated y.
-        addon.DashboardModuleGuide_LayoutEmbedded = function(w, startY, innerPad)
-            innerPad = innerPad or 28
-            local y = layoutGuideHero(w, startY)
-            y = doLayoutAccordionCards(w, innerPad, y)
-            y = y + 8
-            return y
-        end
+        -- Embedded mode (no longer used: Welcome opens the standalone guide instead).
         doLayout = function()
             if welcomeView and welcomeView._layoutWelcomeContent then
                 welcomeView._layoutWelcomeContent()

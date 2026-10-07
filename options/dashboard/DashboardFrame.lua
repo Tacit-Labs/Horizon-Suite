@@ -1476,9 +1476,10 @@ function addon.Dashboard_BuildMainFrame()
                 DASHBOARD_CONTENT_CARD_ALPHA_MULT = DASHBOARD_CONTENT_CARD_ALPHA_MULT,
                 PREVIEW_MODULE_KEYS = PREVIEW_MODULE_KEYS,
                 COMING_SOON_MODULE_KEYS = COMING_SOON_MODULE_KEYS,
-                -- Embedded mode: guide content rendered inside welcomeView scroll
-                guideEmbeddedInWelcome = true,
-                guideScrollContent = welcomeView._scrollContent,
+                newsView = newsView,
+                integrationsView = integrationsView,
+                -- Standalone: the guide builds its own view, opened from the Welcome footer.
+                guideEmbeddedInWelcome = false,
             }
             if addon.DashboardModuleGuide_Init then
                 addon.DashboardModuleGuide_Init(guideEnv)
