@@ -125,38 +125,32 @@ function addon.DashboardModuleGuide_Init(env)
         return text
     end
 
-    local embeddedInWelcome = env.guideEmbeddedInWelcome and true or false
-
     local guideBg, footerObj, footerPanel, guideScroll, content
-    if not embeddedInWelcome then
-        guideBg = guideView:CreateTexture(nil, "BACKGROUND")
-        guideBg:SetPoint("TOPLEFT", 28, dashScrollTopOffset + GUIDE_BG_TOP_NUDGE)
-        guideBg:SetPoint("BOTTOMRIGHT", guideView, "BOTTOMRIGHT", -28, 20)
+    guideBg = guideView:CreateTexture(nil, "BACKGROUND")
+    guideBg:SetPoint("TOPLEFT", 28, dashScrollTopOffset + GUIDE_BG_TOP_NUDGE)
+    guideBg:SetPoint("BOTTOMRIGHT", guideView, "BOTTOMRIGHT", -28, 20)
 
-        -- Footer: fixed below scroll (shared factory with Welcome)
-        footerPanel = CreateFrame("Frame", nil, guideView)
-        footerPanel:SetFrameLevel((guideView:GetFrameLevel() or 0) + 10)
+    -- Footer: fixed below scroll (shared factory with Welcome)
+    footerPanel = CreateFrame("Frame", nil, guideView)
+    footerPanel:SetFrameLevel((guideView:GetFrameLevel() or 0) + 10)
 
-        footerObj = addon.Dashboard_CreateCommunityFooter(footerPanel, {
-            L = L,
-            GetAccentColor = GetAccentColor,
-            MakeText = MakeText,
-            addon = addon,
-        })
-        tinsert(dashAccentRefs.communityFooterTopRules, footerObj.footerTopRule)
+    footerObj = addon.Dashboard_CreateCommunityFooter(footerPanel, {
+        L = L,
+        GetAccentColor = GetAccentColor,
+        MakeText = MakeText,
+        addon = addon,
+    })
+    tinsert(dashAccentRefs.communityFooterTopRules, footerObj.footerTopRule)
 
-        guideScroll = CreateFrame("ScrollFrame", nil, guideView, "UIPanelScrollFrameTemplate")
-        guideScroll:SetFrameLevel((guideView:GetFrameLevel() or 0) + 2)
-        guideScroll.ScrollBar:Hide()
-        guideScroll.ScrollBar:ClearAllPoints()
+    guideScroll = CreateFrame("ScrollFrame", nil, guideView, "UIPanelScrollFrameTemplate")
+    guideScroll:SetFrameLevel((guideView:GetFrameLevel() or 0) + 2)
+    guideScroll.ScrollBar:Hide()
+    guideScroll.ScrollBar:ClearAllPoints()
 
-        content = CreateFrame("Frame", nil, guideScroll)
-        content:SetSize(400, 1)
-        guideScroll:SetScrollChild(content)
-        addon.Dashboard_ApplySmoothScroll(guideScroll, content, 60, true)
-    else
-        content = env.guideScrollContent
-    end
+    content = CreateFrame("Frame", nil, guideScroll)
+    content:SetSize(400, 1)
+    guideScroll:SetScrollChild(content)
+    addon.Dashboard_ApplySmoothScroll(guideScroll, content, 60, true)
 
     local function CreateGuideAccordionCard(parent, titleText, startExpanded, onLayout)
         local card = CreateFrame("Frame", nil, parent)
@@ -300,7 +294,7 @@ function addon.DashboardModuleGuide_Init(env)
     heroThemePrompt:SetWordWrap(true)
     heroThemePrompt:SetSpacing(4)
 
-    local doLayout  -- assigned below; routes to LayoutGuideContent (standalone) or welcomeView re-layout (embedded)
+    local doLayout  -- assigned below; routes to LayoutGuideContent (standalone)
     -- Cards are created before doLayout exists; indirection so accordion clicks always invoke the real layout.
     local accordionLayoutSink = { fn = nil }
     local function RunAccordionLayout()
@@ -457,91 +451,81 @@ function addon.DashboardModuleGuide_Init(env)
         return y
     end
 
-    if not embeddedInWelcome then
-        LayoutGuideContent = function()
-            local rawW = guideBg:GetWidth() or 0
-            local w = math.max(280, rawW - 40)
-            -- Match Patch Notes: footer anchors to full view + same width math so Community & Support block height matches.
-            local viewW = guideView:GetWidth() or 0
-            local wFooter = math.max(280, viewW - 40)
-            local innerPad = 28
+    LayoutGuideContent = function()
+        local rawW = guideBg:GetWidth() or 0
+        local w = math.max(280, rawW - 40)
+        -- Match Patch Notes: footer anchors to full view + same width math so Community & Support block height matches.
+        local viewW = guideView:GetWidth() or 0
+        local wFooter = math.max(280, viewW - 40)
+        local innerPad = 28
 
-            -- Footer layout (shared factory with Welcome)
-            footerObj.layout(wFooter, 0, guideView)
+        -- Footer layout (shared factory with Welcome)
+        footerObj.layout(wFooter, 0, guideView)
 
-            content:SetWidth(w)
-            guideScroll:ClearAllPoints()
-            guideScroll:SetPoint("TOPLEFT", guideBg, "TOPLEFT", SCROLL_TO_BG_INSET, -GUIDE_CONTENT_TOP_PAD)
-            guideScroll:SetPoint("BOTTOMLEFT", footerPanel, "TOPLEFT", 0, SCROLL_ABOVE_FOOTER_GAP)
-            guideScroll:SetPoint("TOPRIGHT", guideBg, "TOPRIGHT", -SCROLL_TO_BG_INSET, -GUIDE_CONTENT_TOP_PAD)
-            guideScroll:SetPoint("BOTTOMRIGHT", footerPanel, "TOPRIGHT", 0, SCROLL_ABOVE_FOOTER_GAP)
+        content:SetWidth(w)
+        guideScroll:ClearAllPoints()
+        guideScroll:SetPoint("TOPLEFT", guideBg, "TOPLEFT", SCROLL_TO_BG_INSET, -GUIDE_CONTENT_TOP_PAD)
+        guideScroll:SetPoint("BOTTOMLEFT", footerPanel, "TOPLEFT", 0, SCROLL_ABOVE_FOOTER_GAP)
+        guideScroll:SetPoint("TOPRIGHT", guideBg, "TOPRIGHT", -SCROLL_TO_BG_INSET, -GUIDE_CONTENT_TOP_PAD)
+        guideScroll:SetPoint("BOTTOMRIGHT", footerPanel, "TOPRIGHT", 0, SCROLL_ABOVE_FOOTER_GAP)
 
-            local y = layoutGuideHero(w, HERO_TOP_PAD)
-            y = doLayoutAccordionCards(w, innerPad, y)
-            y = y + 8
-            content:SetHeight(math.max(y + 8, 1))
+        local y = layoutGuideHero(w, HERO_TOP_PAD)
+        y = doLayoutAccordionCards(w, innerPad, y)
+        y = y + 8
+        content:SetHeight(math.max(y + 8, 1))
 
-            if guideScroll.UpdateScrollChildRect then
-                guideScroll:UpdateScrollChildRect()
-            end
-            local viewH = guideScroll:GetHeight() or 0
-            local contentH = content:GetHeight() or 0
-            local maxScroll = math.max(0, contentH - viewH)
-            local curScroll = guideScroll:GetVerticalScroll() or 0
-            if curScroll > maxScroll then
-                guideScroll:SetVerticalScroll(maxScroll)
-                guideScroll.targetScroll = nil
-            end
+        if guideScroll.UpdateScrollChildRect then
+            guideScroll:UpdateScrollChildRect()
         end
-        doLayout = LayoutGuideContent
-        accordionLayoutSink.fn = doLayout
-
-        guideView:SetScript("OnShow", function()
-            LayoutGuideContent()
-            if C_Timer and C_Timer.After then
-                C_Timer.After(0, LayoutGuideContent)
-            end
-        end)
-        guideView:SetScript("OnSizeChanged", function()
-            if guideView:IsShown() then LayoutGuideContent() end
-        end)
-
-        f.ShowModuleGuide = function()
-            if f.pnChangelogHeaderBtn then f.pnChangelogHeaderBtn:Hide() end
-            HideContextHeader()
-            detailView:Hide()
-            subCategoryView:Hide()
-            dashboardView:Hide()
-            welcomeView:Hide()
-            patchNotesView:Hide()
-            if env.newsView then env.newsView:Hide() end
-            if env.integrationsView then env.integrationsView:Hide() end
-            guideView:SetAlpha(0)
-            guideView:Show()
-            UIFrameFadeIn(guideView, 0.2, 0, 1)
-            if head then head:Show() end
-            if headSub then
-                headSub:Show()
-                headSub:SetText(L["DASH_GUIDE_HEAD_SUB"])
-            end
-            if f.searchView then f.searchView:Hide() end
-            if searchBarShell then searchBarShell:Hide() end
-            if f.HideSearchDropdown then f.HideSearchDropdown() end
-            if f.DockSearchDropdownForModule then f.DockSearchDropdownForModule() end
-            f.currentModuleKey = nil
-            SetSidebarState({ view = "guide", activeModuleKey = CLEAR, activeCategoryIndex = CLEAR })
-            if addon.DashboardPreview and addon.DashboardPreview.SetActiveModuleKey then
-                addon.DashboardPreview.SetActiveModuleKey(nil)
-            end
-            if addon.ApplyDashboardClassColor then addon.ApplyDashboardClassColor() end
+        local viewH = guideScroll:GetHeight() or 0
+        local contentH = content:GetHeight() or 0
+        local maxScroll = math.max(0, contentH - viewH)
+        local curScroll = guideScroll:GetVerticalScroll() or 0
+        if curScroll > maxScroll then
+            guideScroll:SetVerticalScroll(maxScroll)
+            guideScroll.targetScroll = nil
         end
-    else
-        -- Embedded mode (no longer used: Welcome opens the standalone guide instead).
-        doLayout = function()
-            if welcomeView and welcomeView._layoutWelcomeContent then
-                welcomeView._layoutWelcomeContent()
-            end
+    end
+    doLayout = LayoutGuideContent
+    accordionLayoutSink.fn = doLayout
+
+    guideView:SetScript("OnShow", function()
+        LayoutGuideContent()
+        if C_Timer and C_Timer.After then
+            C_Timer.After(0, LayoutGuideContent)
         end
-        accordionLayoutSink.fn = doLayout
+    end)
+    guideView:SetScript("OnSizeChanged", function()
+        if guideView:IsShown() then LayoutGuideContent() end
+    end)
+
+    f.ShowModuleGuide = function()
+        if f.pnChangelogHeaderBtn then f.pnChangelogHeaderBtn:Hide() end
+        HideContextHeader()
+        detailView:Hide()
+        subCategoryView:Hide()
+        dashboardView:Hide()
+        welcomeView:Hide()
+        patchNotesView:Hide()
+        if env.newsView then env.newsView:Hide() end
+        if env.integrationsView then env.integrationsView:Hide() end
+        guideView:SetAlpha(0)
+        guideView:Show()
+        UIFrameFadeIn(guideView, 0.2, 0, 1)
+        if head then head:Show() end
+        if headSub then
+            headSub:Show()
+            headSub:SetText(L["DASH_GUIDE_HEAD_SUB"])
+        end
+        if f.searchView then f.searchView:Hide() end
+        if searchBarShell then searchBarShell:Hide() end
+        if f.HideSearchDropdown then f.HideSearchDropdown() end
+        if f.DockSearchDropdownForModule then f.DockSearchDropdownForModule() end
+        f.currentModuleKey = nil
+        SetSidebarState({ view = "guide", activeModuleKey = CLEAR, activeCategoryIndex = CLEAR })
+        if addon.DashboardPreview and addon.DashboardPreview.SetActiveModuleKey then
+            addon.DashboardPreview.SetActiveModuleKey(nil)
+        end
+        if addon.ApplyDashboardClassColor then addon.ApplyDashboardClassColor() end
     end
 end

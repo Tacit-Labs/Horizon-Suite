@@ -25,7 +25,7 @@ local TILE_GAP = 10
 local TILE_COLS = 4
 local NEWS_H = 100
 local CREDITS_H = 28
--- When the view is shorter than the targets, gaps shrink first, then tiles, then the hero.
+-- When the view is shorter than the targets, gaps shrink first, then the hero, then tiles.
 local GAP_MIN = 10
 local TILE_MIN_H = 112
 local HERO_MIN_H = 150
@@ -376,6 +376,7 @@ local function BuildTile(S, env, parent, key)
     end)
     tile:SetScript("OnHide", function(self)
         self._hover = false
+        if addon.OptionsWidgets_StopTween then addon.OptionsWidgets_StopTween(openHost) end
         openHost:SetAlpha(0)
     end)
 

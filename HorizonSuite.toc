@@ -238,7 +238,6 @@ options/dashboard/DashboardWelcomeFeedData.lua
 options/dashboard/DashboardNewsFeed.lua
 options/dashboard/DashboardNewsLogic.lua
 options/dashboard/DashboardIntegrationsFeedData.lua
-options/dashboard/DashboardWelcomeView.lua
 options/dashboard/DashboardShowcase.lua
 options/dashboard/DashboardWelcomeShowcase.lua
 options/dashboard/DashboardHomeWelcome.lua

@@ -1478,8 +1478,6 @@ function addon.Dashboard_BuildMainFrame()
                 COMING_SOON_MODULE_KEYS = COMING_SOON_MODULE_KEYS,
                 newsView = newsView,
                 integrationsView = integrationsView,
-                -- Standalone: the guide builds its own view, opened from the Welcome footer.
-                guideEmbeddedInWelcome = false,
             }
             if addon.DashboardModuleGuide_Init then
                 addon.DashboardModuleGuide_Init(guideEnv)

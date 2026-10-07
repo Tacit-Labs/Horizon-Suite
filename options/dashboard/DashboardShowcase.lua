@@ -743,7 +743,7 @@ function addon.DashboardShowcase_InitNews(env)
     -- Stories read env.newsSeen; keep the snapshot on a child env, not the shared one.
     local storyEnv = setmetatable({}, { __index = env })
 
-    -- Same frame as DashboardWelcomeView: an anchor texture, a footer panel, a smooth scroll.
+    -- Same frame as the Welcome page: an anchor texture, a footer panel, a smooth scroll.
     local BG_TOP_NUDGE = 50
     local CONTENT_TOP_PAD = 6
     local SCROLL_TO_BG_INSET = 20
