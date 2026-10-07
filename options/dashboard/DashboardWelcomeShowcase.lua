@@ -765,6 +765,8 @@ function addon.DashboardShowcase_InitWelcome(env)
         if sec then sections[#sections + 1] = sec end
     end
 
+    -- The seen snapshot only matters when the installed version has no patch notes.
+    -- Otherwise the strip's top story is the release story, which never shows a New pill.
     local function TakeSeenSnapshot(feed)
         local snap = {}
         if NL then
