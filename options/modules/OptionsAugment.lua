@@ -72,21 +72,36 @@ local categories = {
             applyLootFrameState()
         end,
         options = {
-            -- Parts: loot toasts and the loot window skin switch independently.
-            Section(L["AUGMENT_LOOT_PARTS_SECTION"], { page = "loot" }),
-            Toggle(L["AUGMENT_LOOT_TOASTS_ENABLED"], L["AUGMENT_LOOT_TOASTS_ENABLED_DESC"], "augmentLootToastsEnabled", D.augmentLootToastsEnabled,
-                { set = function(v) setDB("augmentLootToastsEnabled", v); applyLootFrameState() end }),
+            -- The loot window skin and its reset, apart from the toasts (they switch independently).
+            Section(L["AUGMENT_CARD_LOOT_WINDOW"], { page = "loot" }),
             Toggle(L["AUGMENT_LOOT_WINDOW_SKIN_ENABLED"], L["AUGMENT_LOOT_WINDOW_SKIN_ENABLED_DESC"], "augmentLootWindowSkinEnabled", D.augmentLootWindowSkinEnabled,
                 { set = function(v) setDB("augmentLootWindowSkinEnabled", v); applyLootFrameState() end }),
 
             -- Reset sits with the window skin it belongs to.
-            Button(L["AUGMENT_LOOT_WINDOW_RESET_POSITION"], L["AUGMENT_LOOT_WINDOW_RESET_POSITION_DESC"], function()
-                local Y = addon.Augment
-                if Y and Y.ClearLootWindowPosition then Y.ClearLootWindowPosition() end
-            end),
+            (function()
+                local b = Button(L["AUGMENT_LOOT_WINDOW_RESET_POSITION"], L["AUGMENT_LOOT_WINDOW_RESET_POSITION_DESC"], function()
+                    local Y = addon.Augment
+                    if Y and Y.ClearLootWindowPosition then Y.ClearLootWindowPosition() end
+                end)
+                b.dbKey = "__augmentLootWindowReset"  -- a row id for the parent link; buttons save nothing
+                b.parent = "augmentLootWindowSkinEnabled"
+                return b
+            end)(),
 
             -- Toast Settings: look of each toast
+            -- Loot toasts: the switch leads, and every toast row on this page nests under it, so
+            -- the toast cards fold away while toasts are off.
             Section(L["AUGMENT_TOAST_SETTINGS"], { page = "loot" }),
+            Toggle(L["AUGMENT_LOOT_TOASTS_ENABLED"], L["AUGMENT_LOOT_TOASTS_ENABLED_DESC"], "augmentLootToastsEnabled", D.augmentLootToastsEnabled,
+                { set = function(v) setDB("augmentLootToastsEnabled", v); applyLootFrameState() end }),
+            { type = "slider", name = L["AUGMENT_TOAST_OPACITY"], desc = L["AUGMENT_TOAST_OPACITY_DESC"], dbKey = "augmentToastOpacity",
+                parent = "augmentLootToastsEnabled",
+                min = LIM.augmentToastOpacity.min, max = LIM.augmentToastOpacity.max, step = 5,
+                get = function() return getSlider("augmentToastOpacity") end,
+                set = function(v) setDB("augmentToastOpacity", clamp(v, "augmentToastOpacity")) end,
+            },
+            -- Style, border and font also dress the loot window skin (and Framed alerts and rolls),
+            -- and Hide Blizzard toasts must stay reachable, so these are not under the toasts switch.
             { type = "dropdown",
                 name = L["AUGMENT_TOAST_STYLE"], desc = L["AUGMENT_TOAST_STYLE_DESC"],
                 dbKey = "augmentToastStyle",
@@ -159,36 +174,37 @@ local categories = {
                     set = function(v) setDB("augmentTextOutlineType", v) end,
                 },
             }, { keywords = { L["AUGMENT_FONT_SIZE"], L["AUGMENT_TEXT_OUTLINE_TYPE"] } }),
-            { type = "slider", name = L["AUGMENT_TOAST_OPACITY"], desc = L["AUGMENT_TOAST_OPACITY_DESC"], dbKey = "augmentToastOpacity",
-                min = LIM.augmentToastOpacity.min, max = LIM.augmentToastOpacity.max, step = 5,
-                get = function() return getSlider("augmentToastOpacity") end,
-                set = function(v) setDB("augmentToastOpacity", clamp(v, "augmentToastOpacity")) end,
-            },
+            Toggle(L["AUGMENT_SUPPRESS_BLIZZARD"], L["AUGMENT_SUPPRESS_BLIZZARD_DESC"], "augmentSuppressBlizzard", D.augmentSuppressBlizzard),
+            -- Not under the toasts switch: the loot window skin uses this scale too.
             { type = "slider", name = L["AUGMENT_TOAST_SCALE"], desc = L["AUGMENT_TOAST_SCALE_DESC"], dbKey = "augmentUIScale",
+                tooltip = L["AUGMENT_SCALE_ALSO_WINDOW"],
                 min = LIM.augmentUIScale.min, max = LIM.augmentUIScale.max, step = 0.05,
                 get = function() return getSlider("augmentUIScale") end,
                 set = function(v) setDB("augmentUIScale", clamp(v, "augmentUIScale")) end,
             },
-            Toggle(L["AUGMENT_SUPPRESS_BLIZZARD"], L["AUGMENT_SUPPRESS_BLIZZARD_DESC"], "augmentSuppressBlizzard", D.augmentSuppressBlizzard),
 
             -- Layout: how the stack is arranged
             Section(L["PAGE_LAYOUT"], { page = "loot" }),
             { type = "slider", name = L["AUGMENT_MAX_VISIBLE"], desc = L["AUGMENT_MAX_VISIBLE_DESC"], dbKey = "augmentMaxVisible",
+                parent = "augmentLootToastsEnabled",
                 min = LIM.augmentMaxVisible.min, max = LIM.augmentMaxVisible.max, step = 1,
                 get = function() return getSlider("augmentMaxVisible") end,
                 set = function(v) setDB("augmentMaxVisible", clamp(v, "augmentMaxVisible")) end,
             },
             { type = "slider", name = L["AUGMENT_ICON_SIZE"], desc = L["AUGMENT_ICON_SIZE_DESC"], dbKey = "augmentIconSize",
+                parent = "augmentLootToastsEnabled",
                 min = LIM.augmentIconSize.min, max = LIM.augmentIconSize.max, step = 1,
                 get = function() return getSlider("augmentIconSize") end,
                 set = function(v) setDB("augmentIconSize", clamp(v, "augmentIconSize")) end,
             },
             { type = "slider", name = L["AUGMENT_ICON_GAP"], desc = L["AUGMENT_ICON_GAP_DESC"], dbKey = "augmentIconGap",
+                parent = "augmentLootToastsEnabled",
                 min = LIM.augmentIconGap.min, max = LIM.augmentIconGap.max, step = 1,
                 get = function() return getSlider("augmentIconGap") end,
                 set = function(v) setDB("augmentIconGap", clamp(v, "augmentIconGap")) end,
             },
             { type = "dropdown",
+                parent = "augmentLootToastsEnabled",
                 name = L["AUGMENT_ICON_SIDE"], desc = L["AUGMENT_ICON_SIDE_DESC"],
                 dbKey = "augmentIconSide",
                 options = {
@@ -200,6 +216,7 @@ local categories = {
                 preserveOrder = true,
             },
             { type = "dropdown",
+                parent = "augmentLootToastsEnabled",
                 name = L["AUGMENT_SLIDE_SIDE"], desc = L["AUGMENT_SLIDE_SIDE_DESC"],
                 dbKey = "augmentSlideSide",
                 options = {
@@ -211,6 +228,7 @@ local categories = {
                 preserveOrder = true,
             },
             { type = "dropdown",
+                parent = "augmentLootToastsEnabled",
                 name = L["AUGMENT_GROW_DIRECTION"], desc = L["AUGMENT_GROW_DIRECTION_DESC"],
                 dbKey = "augmentGrowDirection",
                 options = {
@@ -224,7 +242,7 @@ local categories = {
 
             -- Item toasts, with the hold times that follow the same switches
             Section(L["AUGMENT_CARD_ITEMS"], { page = "loot" }),
-            Toggle(L["AUGMENT_SHOW_ITEMS"],        L["AUGMENT_SHOW_ITEMS_DESC"],        "augmentShowItems",       D.augmentShowItems),
+            Toggle(L["AUGMENT_SHOW_ITEMS"],        L["AUGMENT_SHOW_ITEMS_DESC"],        "augmentShowItems",       D.augmentShowItems, { parent = "augmentLootToastsEnabled" }),
             Toggle(L["AUGMENT_SHOW_PUSHED_ITEMS"], L["AUGMENT_SHOW_PUSHED_ITEMS_DESC"], "augmentShowPushedItems", D.augmentShowPushedItems, { parent = "augmentShowItems" }),
             -- Grey items never reach a toast when Minimum quality is above Poor.
             Toggle(L["AUGMENT_CONDENSE_JUNK"],           L["AUGMENT_CONDENSE_JUNK_DESC"],           "augmentCondenseJunk",         D.augmentCondenseJunk,    { parent = "augmentShowItems",
@@ -252,6 +270,7 @@ local categories = {
                 parent = "augmentShowItems",
             },
             { type = "slider", name = L["AUGMENT_HOLD_ITEM"],      desc = L["AUGMENT_HOLD_ITEM_DESC"],      dbKey = "augmentHoldItem",
+                parent = "augmentLootToastsEnabled",
                 min = LIM.augmentHoldItem.min, max = LIM.augmentHoldItem.max, step = 0.5,
                 get = function() return getSlider("augmentHoldItem") end,
                 set = function(v) setDB("augmentHoldItem", clamp(v, "augmentHoldItem")) end,
@@ -261,6 +280,7 @@ local categories = {
                 end,
             },
             { type = "slider", name = L["AUGMENT_HOLD_EPIC"],      desc = L["AUGMENT_HOLD_EPIC_DESC"],      dbKey = "augmentHoldEpic",
+                parent = "augmentLootToastsEnabled",
                 min = LIM.augmentHoldEpic.min, max = LIM.augmentHoldEpic.max, step = 0.5,
                 get = function() return getSlider("augmentHoldEpic") end,
                 set = function(v) setDB("augmentHoldEpic", clamp(v, "augmentHoldEpic")) end,
@@ -271,21 +291,21 @@ local categories = {
             },
 
             Section(L["AUGMENT_CARD_OTHER_TOASTS"], { page = "loot" }),
-            Toggle(L["AUGMENT_SHOW_MONEY"],    L["AUGMENT_SHOW_MONEY_DESC"],    "augmentShowMoney",    D.augmentShowMoney),
+            Toggle(L["AUGMENT_SHOW_MONEY"],    L["AUGMENT_SHOW_MONEY_DESC"],    "augmentShowMoney",    D.augmentShowMoney, { parent = "augmentLootToastsEnabled" }),
             { type = "slider", name = L["AUGMENT_HOLD_MONEY"],    desc = L["AUGMENT_HOLD_MONEY_DESC"],    dbKey = "augmentHoldMoney",
                 min = LIM.augmentHoldMoney.min, max = LIM.augmentHoldMoney.max, step = 0.5,
                 get = function() return getSlider("augmentHoldMoney") end,
                 set = function(v) setDB("augmentHoldMoney", clamp(v, "augmentHoldMoney")) end,
                 parent = "augmentShowMoney",
             },
-            Toggle(L["AUGMENT_SHOW_CURRENCY"], L["AUGMENT_SHOW_CURRENCY_DESC"], "augmentShowCurrency", D.augmentShowCurrency),
+            Toggle(L["AUGMENT_SHOW_CURRENCY"], L["AUGMENT_SHOW_CURRENCY_DESC"], "augmentShowCurrency", D.augmentShowCurrency, { parent = "augmentLootToastsEnabled" }),
             { type = "slider", name = L["AUGMENT_HOLD_CURRENCY"], desc = L["AUGMENT_HOLD_CURRENCY_DESC"], dbKey = "augmentHoldCurrency",
                 min = LIM.augmentHoldCurrency.min, max = LIM.augmentHoldCurrency.max, step = 0.5,
                 get = function() return getSlider("augmentHoldCurrency") end,
                 set = function(v) setDB("augmentHoldCurrency", clamp(v, "augmentHoldCurrency")) end,
                 parent = "augmentShowCurrency",
             },
-            Toggle(L["AUGMENT_SHOW_REP"],      L["AUGMENT_SHOW_REP_DESC"],      "augmentShowRep",      D.augmentShowRep),
+            Toggle(L["AUGMENT_SHOW_REP"],      L["AUGMENT_SHOW_REP_DESC"],      "augmentShowRep",      D.augmentShowRep, { parent = "augmentLootToastsEnabled" }),
             { type = "slider", name = L["AUGMENT_HOLD_REP"],      desc = L["AUGMENT_HOLD_REP_DESC"],      dbKey = "augmentHoldRep",
                 min = LIM.augmentHoldRep.min, max = LIM.augmentHoldRep.max, step = 0.5,
                 get = function() return getSlider("augmentHoldRep") end,
@@ -295,12 +315,12 @@ local categories = {
 
             -- Stacking
             Section(L["AUGMENT_STACKING_SECTION"], { page = "loot" }),
-            Toggle(L["AUGMENT_STACK_DUPLICATES"],        L["AUGMENT_STACK_DUPLICATES_DESC"],        "augmentStackDuplicates",      D.augmentStackDuplicates),
-            Toggle(L["AUGMENT_STACK_COUNT_BEFORE_NAME"], L["AUGMENT_STACK_COUNT_BEFORE_NAME_DESC"], "augmentStackCountBeforeName", D.augmentStackCountBeforeName),
+            Toggle(L["AUGMENT_STACK_DUPLICATES"],        L["AUGMENT_STACK_DUPLICATES_DESC"],        "augmentStackDuplicates",      D.augmentStackDuplicates, { parent = "augmentLootToastsEnabled" }),
+            Toggle(L["AUGMENT_STACK_COUNT_BEFORE_NAME"], L["AUGMENT_STACK_COUNT_BEFORE_NAME_DESC"], "augmentStackCountBeforeName", D.augmentStackCountBeforeName, { parent = "augmentLootToastsEnabled" }),
 
             -- Sounds
             Section(L["AUGMENT_SOUNDS"], { page = "loot", desc = L["AUGMENT_SOUNDS_PAGE_DESC"] }),
-            Toggle(L["AUGMENT_SOUND_ENABLED"], L["AUGMENT_SOUND_ENABLED_DESC"], "augmentSoundEnabled", D.augmentSoundEnabled),
+            Toggle(L["AUGMENT_SOUND_ENABLED"], L["AUGMENT_SOUND_ENABLED_DESC"], "augmentSoundEnabled", D.augmentSoundEnabled, { parent = "augmentLootToastsEnabled" }),
             { type = "dropdown", name = L["AUGMENT_SOUND_CHANNEL"], desc = L["AUGMENT_SOUND_CHANNEL_DESC"], dbKey = "augmentSoundChannel",
                 options = {
                     { L["AUGMENT_SOUND_CH_SFX"],      "SFX"      },
