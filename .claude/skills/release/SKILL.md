@@ -370,6 +370,21 @@ Discord were driven by the same run. Do not claim CurseForge or Wago succeeded
 without the run's own log saying so — those steps carry their own API keys and
 fail independently of the packaging.
 
+### Phase 9 — Suggest a news story
+
+After the release is out, offer one closing line: a `/news` story drafted from
+the release's headline features. Pick the one or two biggest `New Features` or
+`Improvements` entries from the section you just shipped and propose a title and
+module tags, for example:
+
+```
+Want a News story for this? Suggested: "Pinned quests stay put" (focus)
+  /news Focus keeps pinned quests visible across zones
+```
+
+**Suggest only.** Do not run `/news`, write a story file or open a PR without
+the director saying yes. A release of pure fixes needs no story; say nothing.
+
 ## Examples
 
 ```

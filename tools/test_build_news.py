@@ -99,6 +99,86 @@ class BuildTests(Base):
         self.assertIn('layout = "featured",', lua)
 
 
+class FormatTests(Base):
+    def test_summary_and_blocks(self):
+        self.story("hello-world.md", GOOD)
+        lua = self.build()
+        self.assertIn('summary = "First paragraph wraps here.",', lua)
+        self.assertIn('{ kind = "p", text = "First paragraph wraps here." },', lua)
+        self.assertIn('{ kind = "p", text = "Second || paragraph \\"quoted\\"." },', lua)
+        self.assertIn("paragraphs = {", lua)
+
+    def test_list_block(self):
+        body = "Intro line.\n\n- one\n-   two\n  wrapped no\n\nAfter.\n"
+        self.story("hello-world.md", GOOD.split("---\nFirst")[0] + "---\n" + body)
+        lua = self.build()
+        # a block with a non-bullet line is a paragraph, not a list
+        self.assertIn('{ kind = "p", text = "- one - two wrapped no" },', lua)
+        body = "Intro line.\n\n- one\n-   two  words\n\nAfter.\n"
+        self.story("hello-world.md", GOOD.split("---\nFirst")[0] + "---\n" + body)
+        lua = self.build()
+        self.assertIn('{ kind = "list", items = { "one", "two words" } },', lua)
+        self.assertIn('{ kind = "p", text = "After." },', lua)
+        # list items are not paragraphs
+        para = lua.split("paragraphs = {")[1]
+        self.assertNotIn("two words", para)
+        self.assertIn('"After."', para)
+
+    def test_bold(self):
+        body = "Has **bold** and **two | pipes**.\n\n- item **b**\n"
+        self.story("hello-world.md", GOOD.split("---\nFirst")[0] + "---\n" + body)
+        lua = self.build()
+        self.assertIn('text = "Has |cffffffffbold|r and |cfffffffftwo || pipes|r." }', lua)
+        self.assertIn('items = { "item |cffffffffb|r" }', lua)
+        self.assertIn('summary = "Has |cffffffffbold|r and', lua)
+
+    def test_literal_color_code_is_neutralised(self):
+        body = "Try |cffff0000red|r here.\n"
+        self.story("hello-world.md", GOOD.split("---\nFirst")[0] + "---\n" + body)
+        self.assertIn("||cffff0000red||r", self.build())
+
+    def test_unbalanced_bold_rejected(self):
+        self.assertRejects(GOOD.replace("First paragraph", "First **paragraph"), "unbalanced")
+
+    def test_must_start_with_paragraph(self):
+        self.assertRejects(GOOD.split("---\nFirst")[0] + "---\n- a\n- b\n\nText.\n", "start with a paragraph")
+
+    def test_button2_pairing(self):
+        self.story("hello-world.md", GOOD.replace("action: module focus", "action: module focus\nbutton2: Guide\naction2: guide"))
+        lua = self.build()
+        self.assertIn('button2 = "Guide",', lua)
+        self.assertIn('action2 = { type = "guide" },', lua)
+
+    def test_button2_without_action2(self):
+        self.assertRejects(GOOD.replace("action: module focus", "action: module focus\nbutton2: Guide"), "button2")
+
+    def test_action2_without_button2(self):
+        self.assertRejects(GOOD.replace("action: module focus", "action: module focus\naction2: guide"), "button2")
+
+    def test_button2_needs_button(self):
+        text = GOOD.replace("button: Open Focus\naction: module focus\n", "button2: Guide\naction2: guide\n")
+        self.assertRejects(text, "needs 'button'")
+
+    def test_bad_action2(self):
+        self.assertRejects(GOOD.replace("action: module focus", "action: module focus\nbutton2: x\naction2: launch"), "unknown action")
+
+    def test_modules(self):
+        self.story("hello-world.md", GOOD.replace("priority: 200", "priority: 200\nmodules: vista, focus"))
+        self.assertIn('modules = { "vista", "focus" },', self.build())
+
+    def test_unknown_module_tag(self):
+        self.assertRejects(GOOD.replace("priority: 200", "modules: vista, meridian"), "unknown module 'meridian'")
+
+    def test_too_many_modules(self):
+        self.assertRejects(GOOD.replace("priority: 200", "modules: vista, focus, axis, echo"), "at most 3")
+
+    def test_duplicate_modules(self):
+        self.assertRejects(GOOD.replace("priority: 200", "modules: vista, vista"), "duplicate module")
+
+    def test_from_required(self):
+        self.assertRejects(GOOD.replace("from: 2026-10-01\n", ""), "missing required field 'from'")
+
+
 class RejectTests(Base):
     def test_missing_front_matter(self):
         self.assertRejects("no front matter\n", "front matter")

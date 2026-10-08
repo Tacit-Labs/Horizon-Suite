@@ -26,11 +26,14 @@ TEXTURE_PREFIX = "Interface/AddOns/HorizonSuite/media/news/"
 
 MODULE_KEYS = {"axis", "focus", "presence", "vista", "insight", "augment", "essence", "echo"}
 FIELDS = {"id", "title", "layout", "priority", "from", "until", "untilVersion",
-          "image", "button", "action"}
+          "image", "button", "action", "button2", "action2", "modules"}
 ID_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 VERSION_RE = re.compile(r"^\d+(\.\d+){0,3}$")
 MAX_TITLE = 60
 MAX_IMAGE = 1024
+MAX_MODULES = 3
+BOLD_OPEN = "|cffffffff"
+BOLD_CLOSE = "|r"
 
 HEADER = """--[[
     Horizon Suite - Dashboard news feed.
@@ -68,8 +71,36 @@ def parse_story(name, text):
             raise StoryError(f"{name}:{n}: duplicate field '{key}'")
         meta[key] = value
     body = text[end + 5:]
-    paragraphs = [" ".join(p.split()) for p in re.split(r"\n\s*\n", body) if p.strip()]
-    return meta, paragraphs
+    return meta, parse_blocks(body)
+
+
+def parse_blocks(body):
+    """Blank-line separated blocks: all lines '- x' make a list, anything else a paragraph."""
+    blocks = []
+    for chunk in re.split(r"\n\s*\n", body):
+        lines = [ln.strip() for ln in chunk.split("\n") if ln.strip()]
+        if not lines:
+            continue
+        if all(ln.startswith("- ") for ln in lines):
+            blocks.append(("list", [" ".join(ln[2:].split()) for ln in lines]))
+        else:
+            blocks.append(("p", " ".join(chunk.split())))
+    return blocks
+
+
+def render_text(name, text):
+    """Escape for WoW (| doubled), then turn **bold** into white colour codes.
+
+    Done in this order so a story can never inject its own escape codes."""
+    parts = text.replace("|", "||").split("**")
+    if len(parts) % 2 == 0:
+        raise StoryError(f"{name}: unbalanced ** in '{text[:40]}'")
+    if any(not parts[i].strip() for i in range(1, len(parts), 2)):
+        raise StoryError(f"{name}: empty bold (**) in '{text[:40]}'")
+    out = []
+    for i, part in enumerate(parts):
+        out.append(part if i % 2 == 0 else BOLD_OPEN + part + BOLD_CLOSE)
+    return "".join(out)
 
 
 def png_size(path):
@@ -106,7 +137,7 @@ def parse_action(name, value):
     raise StoryError(f"{name}: unknown action '{value}' (module <key>, patch_notes, news, guide, url <https://...>)")
 
 
-def validate(name, meta, paragraphs, media_dir):
+def validate(name, meta, blocks, media_dir):
     for req in ("id", "title"):
         if not meta.get(req):
             raise StoryError(f"{name}: missing required field '{req}'")
@@ -126,11 +157,12 @@ def validate(name, meta, paragraphs, media_dir):
     if not re.match(r"^-?\d+$", priority):
         raise StoryError(f"{name}: priority must be a whole number, got '{priority}'")
     story["priority"] = int(priority)
-    if "from" in meta:
-        story["fromDate"] = parse_date(name, "from", meta["from"])
+    if not meta.get("from"):
+        raise StoryError(f"{name}: missing required field 'from'")
+    story["fromDate"] = parse_date(name, "from", meta["from"])
     if "until" in meta:
         story["untilDate"] = parse_date(name, "until", meta["until"])
-    if "fromDate" in story and "untilDate" in story and story["untilDate"] < story["fromDate"]:
+    if "untilDate" in story and story["untilDate"] < story["fromDate"]:
         raise StoryError(f"{name}: 'until' is before 'from'")
     if "untilVersion" in meta:
         if not VERSION_RE.match(meta["untilVersion"]):
@@ -157,10 +189,43 @@ def validate(name, meta, paragraphs, media_dir):
     if "button" in meta:
         story["button"] = meta["button"]
         story["action"] = parse_action(name, meta["action"])
-    if not paragraphs:
+    if ("button2" in meta) != ("action2" in meta):
+        raise StoryError(f"{name}: give both 'button2' and 'action2', or neither")
+    if "button2" in meta:
+        if "button" not in meta:
+            raise StoryError(f"{name}: 'button2' needs 'button' and 'action' first")
+        story["button2"] = meta["button2"]
+        story["action2"] = parse_action(name, meta["action2"])
+    if "modules" in meta:
+        mods = [m.strip() for m in meta["modules"].split(",") if m.strip()]
+        for m in mods:
+            if m not in MODULE_KEYS:
+                raise StoryError(f"{name}: unknown module '{m}' in modules (use one of {', '.join(sorted(MODULE_KEYS))})")
+        if len(mods) != len(set(mods)):
+            raise StoryError(f"{name}: duplicate module in modules")
+        if len(mods) > MAX_MODULES:
+            raise StoryError(f"{name}: at most {MAX_MODULES} modules, got {len(mods)}")
+        if mods:
+            story["modules"] = mods
+    if not blocks:
         raise StoryError(f"{name}: story has no text")
-    story["paragraphs"] = paragraphs
+    if blocks[0][0] != "p":
+        raise StoryError(f"{name}: the story must start with a paragraph (it becomes the summary)")
+    out_blocks = []
+    for kind, content in blocks:
+        if kind == "p":
+            out_blocks.append(("p", render_text(name, content)))
+        else:
+            out_blocks.append(("list", [render_text(name, it) for it in content]))
+    story["summary"] = out_blocks[0][1]
+    story["blocks"] = out_blocks
+    story["paragraphs"] = [c for k, c in out_blocks if k == "p"]
     return story
+
+
+def lua_quote(s):
+    """Quote already WoW-escaped text for Lua (backslash and quote only)."""
+    return '"' + s.replace("\\", "\\\\").replace('"', '\\"') + '"'
 
 
 def lua_str(s):
@@ -180,9 +245,24 @@ def emit(stories):
         if "action" in s:
             parts = ", ".join(f"{k} = {lua_str(v)}" for k, v in s["action"])
             out.append(f"        action = {{ {parts} }},\n")
+        if "button2" in s:
+            out.append(f"        button2 = {lua_str(s['button2'])},\n")
+            parts = ", ".join(f"{k} = {lua_str(v)}" for k, v in s["action2"])
+            out.append(f"        action2 = {{ {parts} }},\n")
+        if "modules" in s:
+            out.append("        modules = { " + ", ".join(lua_str(m) for m in s["modules"]) + " },\n")
+        out.append(f"        summary = {lua_quote(s['summary'])},\n")
+        out.append("        blocks = {\n")
+        for kind, content in s["blocks"]:
+            if kind == "p":
+                out.append(f'            {{ kind = "p", text = {lua_quote(content)} }},\n')
+            else:
+                items = ", ".join(lua_quote(i) for i in content)
+                out.append(f'            {{ kind = "list", items = {{ {items} }} }},\n')
+        out.append("        },\n")
         out.append("        paragraphs = {\n")
         for p in s["paragraphs"]:
-            out.append(f"            {lua_str(p)},\n")
+            out.append(f"            {lua_quote(p)},\n")
         out.append("        },\n    },\n")
     out.append("}\n")
     return "".join(out)
@@ -194,8 +274,8 @@ def build(news_dir, media_dir):
         if os.path.isdir(news_dir) else []
     for name in names:
         with open(os.path.join(news_dir, name), encoding="utf-8") as fh:
-            meta, paragraphs = parse_story(name, fh.read())
-        stories.append(validate(name, meta, paragraphs, media_dir))
+            meta, blocks = parse_story(name, fh.read())
+        stories.append(validate(name, meta, blocks, media_dir))
     return emit(stories)
 
 
