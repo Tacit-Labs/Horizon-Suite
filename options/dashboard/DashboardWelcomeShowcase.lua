@@ -94,17 +94,7 @@ end
 
 -- A filled MakeButton repainted as an outline: ring only, faint fill on hover.
 local function MakeOutline(S, btn)
-    local rounded = addon.OptionsWidgets_PaintRounded ~= nil
-    function btn:PaintAccent()
-        local r, g, b = S.Accent(self._env)
-        local hover = self._hover
-        local fill = rounded and (hover and 0.14 or 0) or (hover and 0.22 or 0.10)
-        self._paint(r, g, b, fill)
-        if self._paintRing then self._paintRing(r, g, b, hover and 0.85 or 0.50) end
-        self._label:SetTextColor(S.Lighten(r, g, b, hover and 0.85 or 0.65))
-    end
-    btn:PaintAccent()
-    return btn
+    return S.MakeOutline(btn)
 end
 
 -- Cap a link button's width so long story titles truncate instead of spilling.
@@ -498,11 +488,10 @@ local function BuildNews(S, env, parent)
     local links = {}
     for i = 1, 2 do
         local btn = S.MakeButton(side, env, "", false)
+        -- A headline opens News on its story.
         btn:SetOnClick(function()
             local s = btn.story
-            if not s then return end
-            local action = (type(s.action) == "table") and s.action or { type = "news" }
-            S.DispatchAction(env.f, action, s.button or s.title)
+            if s then S.OpenStory(env, s) end
         end)
         links[i] = btn
     end

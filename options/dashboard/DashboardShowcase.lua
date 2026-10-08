@@ -45,6 +45,9 @@ local CHIP_H = 20
 local BADGE_H = 15
 local BADGE_INSET = 12
 local BADGE_TITLE_ROOM = 56  -- title width given up so it never runs under the badge
+local TITLE_TO_TAGS = 6
+local MORE_GAP = 16          -- gap between a block's button and its "Read more"
+local HOVER_BORDER_ALPHA = 0.45
 local BODY_R, BODY_G, BODY_B = 0.72, 0.72, 0.76
 local BORDER_ALPHA = 0.08
 local EMPTY_H = 170
@@ -239,8 +242,9 @@ end
 
 --- An accent button. Filled: rounded accent fill with a ring. Not filled: a text link.
 --- Hover handlers sit on the button itself.
+--- @param size number|nil label font size (default 12)
 --- @return Button with :SetLabel(text), :PaintAccent(), and :SetOnClick(fn)
-function Showcase.MakeButton(parent, env, label, filled)
+function Showcase.MakeButton(parent, env, label, filled, size)
     local btn = CreateFrame("Button", nil, parent)
     btn:SetFrameLevel((parent:GetFrameLevel() or 0) + 3)
     btn._env = env
@@ -249,10 +253,10 @@ function Showcase.MakeButton(parent, env, label, filled)
 
     if filled then
         btn._paint, btn._paintRing = Rounded(btn, 6, true)
-        btn._label = MakeText(env, btn, "", 12, 1, 1, 1, "CENTER")
+        btn._label = MakeText(env, btn, "", size or 12, 1, 1, 1, "CENTER")
         btn._label:SetPoint("CENTER", btn, "CENTER", 0, 0)
     else
-        btn._label = MakeText(env, btn, "", 12, 1, 1, 1, "LEFT")
+        btn._label = MakeText(env, btn, "", size or 12, 1, 1, 1, "LEFT")
         btn._label:SetPoint("LEFT", btn, "LEFT", 0, 0)
         local underline = btn:CreateTexture(nil, "OVERLAY")
         underline:SetHeight(1)
@@ -296,6 +300,23 @@ function Showcase.MakeButton(parent, env, label, filled)
 
     RegisterAccent(env, btn)
     btn:SetLabel(label)
+    btn:PaintAccent()
+    return btn
+end
+
+--- Repaint a filled MakeButton as an outline: ring only, faint fill on hover. Without
+--- rounded paint there is no ring, so it keeps a light fill to stay visible.
+--- @return Button the same button
+function Showcase.MakeOutline(btn)
+    local rounded = addon.OptionsWidgets_PaintRounded ~= nil
+    function btn:PaintAccent()
+        local r, g, b = Accent(self._env)
+        local hover = self._hover
+        local fill = rounded and (hover and 0.14 or 0) or (hover and 0.22 or 0.10)
+        self._paint(r, g, b, fill)
+        if self._paintRing then self._paintRing(r, g, b, hover and 0.85 or 0.50) end
+        self._label:SetTextColor(Lighten(r, g, b, hover and 0.85 or 0.65))
+    end
     btn:PaintAccent()
     return btn
 end
@@ -367,14 +388,17 @@ Showcase.BODY_RGB = { BODY_R, BODY_G, BODY_B }
 -- STORIES
 -- ============================================================================
 
-local function StoryParagraphs(story, limit)
-    local out = {}
-    local src = (story and story.paragraphs) or {}
-    for i = 1, #src do
-        if limit and #out >= limit then break end
-        if type(src[i]) == "string" and src[i] ~= "" then out[#out + 1] = src[i] end
+-- The story's short text (summary, else first paragraph) as a one-paragraph list. Full
+-- bodies only show in the story view (DashboardNewsStory.lua).
+local function SummaryParagraphs(story)
+    local text
+    if Showcase.StorySummary then
+        text = Showcase.StorySummary(story)
+    elseif story then
+        text = story.summary or (story.paragraphs and story.paragraphs[1])
     end
-    return out
+    if type(text) == "string" and text ~= "" then return { text } end
+    return {}
 end
 
 local function IsUnseen(env, story)
@@ -459,6 +483,53 @@ local function SetArt(block, path)
     return false
 end
 
+-- The tag line under the title (DashboardNewsStory.lua). @return y below it, unchanged when empty
+local function PlaceTags(block, x, y, width)
+    local tags = block._tags
+    if not tags then return y end
+    local h = tags:Update(block.story, width)
+    if h <= 0 then return y end
+    tags:ClearAllPoints()
+    tags:SetPoint("TOPLEFT", block, "TOPLEFT", x, -(y + TITLE_TO_TAGS))
+    return y + TITLE_TO_TAGS + h
+end
+
+-- "Read more" when opening the story shows more than its summary. @return boolean shown
+local function RefreshMore(block)
+    local more = block._more
+    if more and Showcase.StoryHasMore and Showcase.StoryHasMore(block.story) then
+        more:SetLabel(Loc("DASH_NEWS_READ_MORE", "Read more"))
+        more:PaintAccent()
+        more:Show()
+        return true
+    end
+    if more then more:Hide() end
+    return false
+end
+
+-- The button, then "Read more" beside it, placed in the text flow at y.
+-- @return number y below the row (y unchanged when neither shows)
+local function PlaceActionsInFlow(block, x, y)
+    local btn, more = block._button, block._more
+    local hasBtn = RefreshButton(block)
+    local hasMore = RefreshMore(block)
+    if not (hasBtn or hasMore) then return y end
+    y = y + BODY_TO_BUTTON
+    if hasBtn then
+        btn:ClearAllPoints()
+        btn:SetPoint("TOPLEFT", block, "TOPLEFT", x, -y)
+    end
+    if hasMore then
+        more:ClearAllPoints()
+        if hasBtn then
+            more:SetPoint("LEFT", btn, "RIGHT", MORE_GAP, 0)
+        else
+            more:SetPoint("TOPLEFT", block, "TOPLEFT", x, -y)
+        end
+    end
+    return y + (hasBtn and BUTTON_H or LINK_H)
+end
+
 local LAYOUT = {}
 
 function LAYOUT.hero(block, width)
@@ -484,16 +555,10 @@ function LAYOUT.hero(block, width)
         chip:Hide()
     end
 
-    y = PlaceTitle(block, x, y, textW) + TITLE_TO_BODY
-    y = LayoutParagraphs(block, StoryParagraphs(story, 2), x, y, textW, 12)
-
-    local btn = block._button
-    if RefreshButton(block) then
-        y = y + BODY_TO_BUTTON
-        btn:ClearAllPoints()
-        btn:SetPoint("TOPLEFT", block, "TOPLEFT", x, -y)
-        y = y + BUTTON_H
-    end
+    y = PlaceTitle(block, x, y, textW)
+    y = PlaceTags(block, x, y, textW) + TITLE_TO_BODY
+    y = LayoutParagraphs(block, SummaryParagraphs(story), x, y, textW, 12)
+    y = PlaceActionsInFlow(block, x, y)
     local h = max(HERO_H, floor(y + HERO_PAD_Y + 0.5))
 
     local art = block._art
@@ -516,15 +581,10 @@ function LAYOUT.featured(block, width)
     local textW = width - x - PAD
     local y = PAD - 2
 
-    y = PlaceTitle(block, x, y, textW) + TITLE_TO_BODY
-    y = LayoutParagraphs(block, StoryParagraphs(story), x, y, textW, 12)
-    local btn = block._button
-    if RefreshButton(block) then
-        y = y + BODY_TO_BUTTON
-        btn:ClearAllPoints()
-        btn:SetPoint("TOPLEFT", block, "TOPLEFT", x, -y)
-        y = y + BUTTON_H
-    end
+    y = PlaceTitle(block, x, y, textW)
+    y = PlaceTags(block, x, y, textW) + TITLE_TO_BODY
+    y = LayoutParagraphs(block, SummaryParagraphs(story), x, y, textW, 12)
+    y = PlaceActionsInFlow(block, x, y)
     local h = max(FEATURED_H, floor(y + PAD - 2 + 0.5))
 
     if hasArt then
@@ -552,14 +612,30 @@ function LAYOUT.card(block, width)
     local textW = width - x * 2
     local y = imgH + PAD - 6
 
-    y = PlaceTitle(block, x, y, textW) + TITLE_TO_BODY
-    y = LayoutParagraphs(block, StoryParagraphs(story, 1), x, y, textW, 12)
-    local btn = block._button
-    -- The button sits on the bottom edge, so cards stretched to a shared row height line up.
-    if RefreshButton(block) then
+    y = PlaceTitle(block, x, y, textW)
+    y = PlaceTags(block, x, y, textW) + TITLE_TO_BODY
+    y = LayoutParagraphs(block, SummaryParagraphs(story), x, y, textW, 12)
+
+    -- The action row sits on the bottom edge, so cards stretched to a shared row height
+    -- line up. "Read more" alone keeps the button row's height and centre line.
+    local btn, more = block._button, block._more
+    local hasBtn = RefreshButton(block)
+    local hasMore = RefreshMore(block)
+    local bottom = PAD - 6
+    if hasBtn or hasMore then
         y = y + BODY_TO_BUTTON + BUTTON_H
-        btn:ClearAllPoints()
-        btn:SetPoint("BOTTOMLEFT", block, "BOTTOMLEFT", x, PAD - 6)
+        if hasBtn then
+            btn:ClearAllPoints()
+            btn:SetPoint("BOTTOMLEFT", block, "BOTTOMLEFT", x, bottom)
+        end
+        if hasMore then
+            more:ClearAllPoints()
+            if hasBtn then
+                more:SetPoint("LEFT", btn, "RIGHT", MORE_GAP, 0)
+            else
+                more:SetPoint("BOTTOMLEFT", block, "BOTTOMLEFT", x, bottom + floor((BUTTON_H - LINK_H) / 2))
+            end
+        end
     end
     return floor(y + PAD - 6 + 0.5)
 end
@@ -580,9 +656,9 @@ function LAYOUT.strip(block, width)
 
     block._title:SetWordWrap(false)
     y = PlaceTitle(block, x, y, textW) + 4
-    y = LayoutParagraphs(block, StoryParagraphs(story, 1), x, y, textW, 11, 2)
+    y = LayoutParagraphs(block, SummaryParagraphs(story), x, y, textW, 11, 2)
 
-    -- "Read more" runs the story's action; a story without one opens News.
+    -- "Read more" opens News on this story.
     local btn = block._button
     btn:SetLabel(Loc("DASH_NEWS_READ_MORE", "Read more"))
     btn:PaintAccent()
@@ -594,7 +670,20 @@ function LAYOUT.strip(block, width)
     return floor(max(imgBottom, y + STRIP_PAD) + 0.5)
 end
 
---- Build one story block.
+--- Open a story: in place on the News page (env.openStory), else News opened on it.
+function Showcase.OpenStory(env, story)
+    if type(story) ~= "table" or not story.id then return end
+    if env and env.openStory then
+        env.openStory(story)
+        return
+    end
+    local f = (env and env.f) or _G.HorizonSuiteDashboard
+    if f and f.ShowNews then f.ShowNews(story.id) end
+end
+
+--- Build one story block. The block is a Button: a click anywhere that isn't one of its
+--- own buttons opens the story. Its buttons sit at higher frame levels, so they keep
+--- their clicks; nothing mouse-enabled is layered over them.
 --- @param parent Frame
 --- @param env table dashboard env; env.newsSeen (story id -> true) drives the New badge
 --- @param story table a NewsLogic feed entry
@@ -602,7 +691,7 @@ end
 --- @return Frame block with .story, .style and :Layout(width) -> height
 function Showcase.MakeStory(parent, env, story, style)
     style = LAYOUT[style] and style or "card"
-    local block = Showcase.MakePanel(parent, env)
+    local block = Showcase.MakePanel(parent, env, "Button")
     block._env = env
     block.story = story
     block.style = style
@@ -634,14 +723,37 @@ function Showcase.MakeStory(parent, env, story, style)
     end
 
     block._badge = MakeBadge(block, env)
+    if style ~= "strip" and Showcase.MakeTagLine then
+        block._tags = Showcase.MakeTagLine(block, env)
+    end
     block._button = Showcase.MakeButton(block, env, "", style ~= "strip")
     block._button:SetOnClick(function()
         local s = block.story
         if not s then return end
-        local action = s.action
-        if style == "strip" and type(action) ~= "table" then action = { type = "news" } end
-        Showcase.DispatchAction(env and env.f, action, s.button or s.title)
+        if style == "strip" then
+            Showcase.OpenStory(env, s)
+        else
+            Showcase.DispatchAction(env and env.f, s.action, s.button or s.title)
+        end
     end)
+    if style ~= "strip" then
+        block._more = Showcase.MakeButton(block, env, Loc("DASH_NEWS_READ_MORE", "Read more"), false)
+        block._more:SetOnClick(function() Showcase.OpenStory(env, block.story) end)
+        block._more:Hide()
+    end
+
+    -- Hover: an accent hairline. Child buttons take the hover while the cursor is on them.
+    local function PaintEdges(hover)
+        local r, g, b, a = 1, 1, 1, BORDER_ALPHA
+        if hover then
+            r, g, b = Accent(env)
+            a = HOVER_BORDER_ALPHA
+        end
+        for _, e in ipairs(block._edges) do e:SetColorTexture(r, g, b, a) end
+    end
+    block:SetScript("OnEnter", function() PaintEdges(true) end)
+    block:SetScript("OnLeave", function() PaintEdges(false) end)
+    block:SetScript("OnClick", function(self) Showcase.OpenStory(env, self.story) end)
 
     local layoutFn = LAYOUT[style]
     function block:Layout(width)
@@ -690,6 +802,35 @@ end
 -- ============================================================================
 -- NEWS PAGE
 -- ============================================================================
+
+--- Open News's story view on the story with this id; with no match, show the list.
+--- Call after News is shown (f.ShowNews(storyId) does). @return boolean opened
+function addon.News_OpenStory(storyId)
+    local sv = newsViewRef and newsViewRef._storyView
+    local NL = addon.NewsLogic
+    if not (sv and NL) then return false end
+    local feed = NL.CurrentFeed()
+    for i = 1, #feed do
+        if feed[i].id == storyId then
+            sv:Open(feed[i])
+            return true
+        end
+    end
+    sv:Close()
+    return false
+end
+
+--- Return News to its list. @return boolean true when a story was open
+function addon.News_CloseStory()
+    local sv = newsViewRef and newsViewRef._storyView
+    return sv and sv:Close() or false
+end
+
+--- True while News is on screen with a story open (Escape closes the story first).
+function addon.News_IsStoryOpen()
+    local sv = newsViewRef and newsViewRef._storyView
+    return (sv and sv:IsOpen() and newsViewRef:IsShown()) and true or false
+end
 
 local function MakeEmptyBlock(parent, env)
     local block = Showcase.MakePanel(parent, env)
@@ -798,6 +939,28 @@ function addon.DashboardShowcase_InitNews(env)
     end
     newsView._takeSeenSnapshot = TakeSeenSnapshot
 
+    -- The story view (DashboardNewsStory.lua) lays its own scroll frame over the list's.
+    local Layout
+    local storyView
+    if Showcase.CreateStoryView then
+        storyView = Showcase.CreateStoryView(newsView, storyEnv, scroll, {
+            -- Opening a story marks it seen, and its New pill clears when the list returns.
+            onOpen = function(story)
+                if NL and not story.isRelease then
+                    local seen = NL.EnsureSeen(RootDB(), NL.CurrentFeed())
+                    seen[story.id] = true
+                end
+                if storyEnv.newsSeen then storyEnv.newsSeen[story.id] = true end
+                addon.News_RefreshSidebarBadge()
+            end,
+            onClose = function()
+                if Layout and newsView:IsShown() then Layout() end
+            end,
+        })
+        newsView._storyView = storyView
+        storyEnv.openStory = function(story) storyView:Open(story) end
+    end
+
     local function GetBlock(story, style)
         local b = blocks[story.id]
         if b and b.style ~= style then
@@ -812,7 +975,7 @@ function addon.DashboardShowcase_InitNews(env)
         return b
     end
 
-    local function Layout()
+    Layout = function()
         local w = max(280, (newsBg:GetWidth() or 0) - 40)
         local wFooter = max(280, (newsView:GetWidth() or 0) - 40)
 
@@ -907,6 +1070,11 @@ function addon.DashboardShowcase_InitNews(env)
         if (scroll:GetVerticalScroll() or 0) > maxScroll then
             scroll:SetVerticalScroll(maxScroll)
             scroll.targetScroll = nil
+        end
+
+        if storyView then
+            storyView._width = w
+            if storyView:IsOpen() then storyView:Layout(w) end
         end
     end
 

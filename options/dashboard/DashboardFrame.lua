@@ -1301,6 +1301,11 @@ function addon.Dashboard_BuildMainFrame()
                     pcall(function()
                         self:SetPropagateKeyboardInput(false)
                     end)
+                    -- An open news story closes first; the next Escape closes the dashboard.
+                    if addon.News_IsStoryOpen and addon.News_IsStoryOpen() then
+                        addon.News_CloseStory()
+                        return
+                    end
                     self:Hide()
                 elseif key == "F" and IsControlKeyDown() then
                     pcall(function()
@@ -1558,7 +1563,8 @@ function addon.Dashboard_BuildMainFrame()
                 end
             end
 
-            f.ShowNews = function()
+            -- @param storyId string|nil open News on this story; nil shows the list
+            f.ShowNews = function(storyId)
                 HideContextHeader()
                 detailView:Hide()
                 subCategoryView:Hide()
@@ -1587,6 +1593,12 @@ function addon.Dashboard_BuildMainFrame()
                     addon.DashboardPreview.SetActiveModuleKey(nil)
                 end
                 if addon.ApplyDashboardClassColor then addon.ApplyDashboardClassColor() end
+                -- A story id opens that story; anything else (sidebar, resume) returns to the list.
+                if type(storyId) == "string" and addon.News_OpenStory then
+                    addon.News_OpenStory(storyId)
+                elseif addon.News_CloseStory then
+                    addon.News_CloseStory()
+                end
             end
 
             f.ShowIntegrations = function()
