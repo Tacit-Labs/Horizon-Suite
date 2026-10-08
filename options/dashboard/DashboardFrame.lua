@@ -155,50 +155,44 @@ function addon.Dashboard_BuildMainFrame()
             end
 
             local categoryIcons = {
-                ["Axis"] = "INV_Misc_Wrench_01",
                 ["Profiles"] = "INV_Misc_GroupNeedMore",
-                ["Modules"] = "inv_10_engineering_purchasedparts_color2",
                 ["GlobalToggles"] = "Trade_Engineering",
-                ["Focus"] = "achievement_quests_completed_05",
-                ["Presence"] = "vas_guildnamechange",
-                ["Vista"] = "ability_hunter_pathfinding",
-                ["Insight"] = "ui_profession_inscription",
-                ["Augment"] = "INV_Misc_Coin_01",
-                ["Essence"] = "achievement_character_human_male",
-                ["Echo"] = "Interface\\AddOns\\" .. (addon.ADDON_NAME or "HorizonSuite") .. "\\media\\echo\\echo_icon.tga",
                 ["Meridian"] = "ability_tracking",
-                ["Typography"] = "INV_Misc_Book_09",
-                ["Colors"] = "INV_Misc_Gem_Diamond_01",
                 ["General"] = "INV_Misc_Question_01",
                 ["Core"] = "INV_Misc_Wrench_01",
             }
+            -- Module rows use the shared monoline glyphs (DashboardHomeWelcome.lua), so the
+            -- sidebar, the module hub and the Welcome tiles always show the same icon.
+            for key, path in pairs(addon.DashboardModuleIcons or {}) do
+                categoryIcons[(key:gsub("^%l", string.upper))] = path
+            end
             
             local function GetAccentColor()
                 if addon.GetOptionsClassColor then
                     local cc = addon.GetOptionsClassColor()
                     if cc then return cc[1], cc[2], cc[3] end
                 end
-                return 0.2, 0.8, 0.9 -- Default sleek cyan
+                local d = addon.OptionsAccentDefault or { 0.48, 0.58, 0.82 }
+                return d[1], d[2], d[3] -- same default as Def.AccentColor
             end
+
+            -- Widget accent tokens (switch, slider, sidebar selection) follow the class theme from the start.
+            if addon.ApplyOptionsClassColor then addon.ApplyOptionsClassColor() end
 
             -- Track static accent elements for live class-colour refresh
             local dashAccentRefs = {
                 sidebarBars = {},
-                subcatAccents = {},
-                subcatDividers = {},
                 homeTileDividers = {},
                 cardAccents = {},
                 cardDividers = {},
+                indentBars = {},
                 dashboardAxisRails = {},
                 patchNotesSectionLabels = {},
                 patchNotesBullets = {},
                 patchNotesRules = {},
-                underline = nil,
                 sidebarDivider = nil,
                 logoSep = nil,
                 logoText = nil,
-                searchDropBorder = nil,
-                searchFilterDropBorder = nil,
                 welcomeAccentStrip = nil,
                 guideHeroRail = nil,
                 communityFooterTopRules = {},
@@ -240,18 +234,18 @@ function addon.Dashboard_BuildMainFrame()
             end
 
             addon.ApplyDashboardClassColor = function()
+                -- Point the widget accent tokens (switch, slider, sidebar selection) at the class
+                -- colour first; everything below then reads the same colour.
+                if addon.ApplyOptionsClassColor then addon.ApplyOptionsClassColor() end
                 local ar, ag, ab = GetAccentColor()
+                local WD = addon.OptionsWidgetsDef
+                local ac = (WD and WD.AccentColor) or { ar, ag, ab }
+                local indentAlpha = (WD and WD.RowIndentBarAlpha) or 0.3
+                for _, bar in ipairs(dashAccentRefs.indentBars) do
+                    if bar.SetColorTexture then bar:SetColorTexture(ac[1], ac[2], ac[3], indentAlpha) end
+                end
                 for _, bar in ipairs(dashAccentRefs.sidebarBars) do
-                    if bar.SetColorTexture then bar:SetColorTexture(ar, ag, ab, 1) end
-                end
-                if dashAccentRefs.underline then
-                    dashAccentRefs.underline:SetColorTexture(ar, ag, ab, 0.35)
-                end
-                for _, acc in ipairs(dashAccentRefs.subcatAccents) do
-                    if acc.SetColorTexture then acc:SetColorTexture(ar, ag, ab, 1) end
-                end
-                for _, div in ipairs(dashAccentRefs.subcatDividers) do
-                    if div.SetColorTexture then div:SetColorTexture(ar, ag, ab, 0.2) end
+                    if bar.SetColorTexture then bar:SetColorTexture(ar, ag, ab, 1) end -- Integrations view bars
                 end
                 for _, div in ipairs(dashAccentRefs.homeTileDividers) do
                     if div.SetColorTexture then
@@ -269,9 +263,8 @@ function addon.Dashboard_BuildMainFrame()
                 for _, div in ipairs(dashAccentRefs.cardDividers) do
                     if div.SetColorTexture then div:SetColorTexture(ar, ag, ab, 0.2) end
                 end
-                if dashSession.activeSidebarBtn then
-                    dashSession.activeSidebarBtn.btnBg:SetColorTexture(ar * 0.15, ag * 0.15, ab * 0.15, DASHBOARD_CHILD_PANEL_ALPHA)
-                    dashSession.activeSidebarBtn.accentBar:SetColorTexture(ar, ag, ab, 1)
+                if dashSession.RefreshSidebarSelection then
+                    dashSession.RefreshSidebarSelection()
                 end
                 if dashAccentRefs.sidebarDivider then
                     dashAccentRefs.sidebarDivider:SetColorTexture(ar, ag, ab, 0.4)
@@ -281,12 +274,6 @@ function addon.Dashboard_BuildMainFrame()
                 end
                 if dashAccentRefs.logoText then
                     dashAccentRefs.logoText:SetTextColor(ar, ag, ab)
-                end
-                if dashAccentRefs.searchDropBorder and dashAccentRefs.searchDropBorder.SetBackdropBorderColor then
-                    dashAccentRefs.searchDropBorder:SetBackdropBorderColor(ar, ag, ab, 0.5)
-                end
-                if dashAccentRefs.searchFilterDropBorder and dashAccentRefs.searchFilterDropBorder.SetBackdropBorderColor then
-                    dashAccentRefs.searchFilterDropBorder:SetBackdropBorderColor(ar, ag, ab, 0.5)
                 end
                 if dashAccentRefs.welcomeAccentStrip and dashAccentRefs.welcomeAccentStrip.SetColorTexture then
                     dashAccentRefs.welcomeAccentStrip:SetColorTexture(ar, ag, ab, 0.5)
@@ -496,8 +483,7 @@ function addon.Dashboard_BuildMainFrame()
             local sbIcon = searchBox:CreateTexture(nil, "ARTWORK")
             sbIcon:SetSize(16, 16)
             sbIcon:SetPoint("LEFT", 12, 0)
-            sbIcon:SetTexture("Interface\\Icons\\INV_Misc_Spyglass_03")
-            sbIcon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+            sbIcon:SetTexture(addon.DashboardRowIcons.search)
             sbIcon:SetVertexColor(0.5, 0.52, 0.58, 1)
 
             local searchClearBtn = CreateFrame("Button", nil, searchBarShell)
@@ -641,10 +627,10 @@ function addon.Dashboard_BuildMainFrame()
                 insets = { left = 3, right = 3, top = 3, bottom = 3 },
             })
             searchModuleFilterMenu:SetBackdropColor(0.08, 0.08, 0.09, DASHBOARD_CHILD_PANEL_ALPHA)
-            local fmbr, fmbg, fmbb = GetAccentColor()
-            searchModuleFilterMenu:SetBackdropBorderColor(fmbr, fmbg, fmbb, 0.5)
+            -- Neutral border: the accent is kept for what is on or selected.
+            local fmb = (addon.OptionsWidgetsDef and addon.OptionsWidgetsDef.FocusRing) or { 0.59, 0.63, 0.75, 0.3 }
+            searchModuleFilterMenu:SetBackdropBorderColor(fmb[1], fmb[2], fmb[3], fmb[4])
             searchModuleFilterMenu:Hide()
-            dashAccentRefs.searchFilterDropBorder = searchModuleFilterMenu
 
             local searchModuleFilterCatch = CreateFrame("Button", nil, f)
             searchModuleFilterCatch:SetAllPoints(f)
@@ -705,8 +691,7 @@ function addon.Dashboard_BuildMainFrame()
                         rl:SetPoint("LEFT", 8, 0)
                         rl:SetPoint("RIGHT", -8, 0)
                         row:SetScript("OnEnter", function()
-                            local har, hag, hab = GetAccentColor()
-                            hi:SetColorTexture(har, hag, hab, 0.1)
+                            hi:SetColorTexture(1, 1, 1, 0.08) -- neutral hover
                             hi:Show()
                         end)
                         row:SetScript("OnLeave", function()
@@ -755,9 +740,9 @@ function addon.Dashboard_BuildMainFrame()
             end)
 
             local function UpdateSearchBarBorderFocused(focused)
-                local ar, ag, ab = GetAccentColor()
                 if focused then
-                    searchBarShell:SetBackdropBorderColor(ar, ag, ab, 0.95)
+                    local fr = (addon.OptionsWidgetsDef and addon.OptionsWidgetsDef.FocusRing) or { 0.59, 0.63, 0.75, 0.3 }
+                    searchBarShell:SetBackdropBorderColor(fr[1], fr[2], fr[3], 0.6)
                     sbIcon:SetVertexColor(0.85, 0.88, 0.92, 1)
                 else
                     searchBarShell:SetBackdropBorderColor(SCardBd[1], SCardBd[2], SCardBd[3], SCardBd[4])
@@ -787,6 +772,14 @@ function addon.Dashboard_BuildMainFrame()
                 searchClearBtn:SetShown(t ~= "")
                 if f.OnSearchTextChanged then f.OnSearchTextChanged(t) end
             end)
+            -- Up and Down pick a result; Enter opens the picked one (or the top one).
+            searchBox:SetScript("OnArrowPressed", function(_, key)
+                if key == "UP" and f.SearchMoveSelection then f.SearchMoveSelection(-1)
+                elseif key == "DOWN" and f.SearchMoveSelection then f.SearchMoveSelection(1) end
+            end)
+            searchBox:SetScript("OnEnterPressed", function(self)
+                if f.SearchSubmit then f.SearchSubmit(self:GetText()) end
+            end)
             searchBox:SetScript("OnEscapePressed", function(self)
                 self:ClearFocus()
                 self:SetText("")
@@ -808,9 +801,8 @@ function addon.Dashboard_BuildMainFrame()
                 insets = { left = 3, right = 3, top = 3, bottom = 3 }
             })
             searchDropdown:SetBackdropColor(0.08, 0.08, 0.09, DASHBOARD_CHILD_PANEL_ALPHA)
-            local sdar, sdag, sdab = GetAccentColor()
-            searchDropdown:SetBackdropBorderColor(sdar, sdag, sdab, 0.5)
-            dashAccentRefs.searchDropBorder = searchDropdown
+            local sdb = (addon.OptionsWidgetsDef and addon.OptionsWidgetsDef.FocusRing) or { 0.59, 0.63, 0.75, 0.3 }
+            searchDropdown:SetBackdropBorderColor(sdb[1], sdb[2], sdb[3], sdb[4])
             searchDropdown:Hide()
 
             local searchDropdownScroll = CreateFrame("ScrollFrame", nil, searchDropdown)
@@ -837,6 +829,7 @@ function addon.Dashboard_BuildMainFrame()
                     local q = searchBox and searchBox:GetText() and searchBox:GetText():trim() or ""
                     if q == "" or #q < 2 then
                         f.searchEmptyHint:Show()
+                        if f.RefreshSearchChips then f.RefreshSearchChips(true) end
                     end
                 end
             end
@@ -914,10 +907,9 @@ function addon.Dashboard_BuildMainFrame()
             detailTitleUnderline:SetHeight(1)
             detailTitleUnderline:SetPoint("TOPLEFT", detailTitle, "BOTTOMLEFT", 0, -6)
             detailTitleUnderline:SetWidth(math.max(1, viewWidth - 80))
-            local arU, agU, abU = GetAccentColor()
-            detailTitleUnderline:SetColorTexture(arU, agU, abU, 0.35)
+            local ulc = (addon.OptionsWidgetsDef and addon.OptionsWidgetsDef.RowDivider) or { 0.59, 0.63, 0.75, 0.10 }
+            detailTitleUnderline:SetColorTexture(ulc[1], ulc[2], ulc[3], ulc[4]) -- neutral hairline
             detailTitleUnderline:Hide()
-            dashAccentRefs.underline = detailTitleUnderline
 
             -- Patch Notes only: full changelog link (top-right of frame, aligned with title row).
             local PN_CHANGELOG_URL = "https://github.com/Tacit-Labs/Horizon-Suite/blob/main/CHANGELOG.md"
@@ -1306,6 +1298,17 @@ function addon.Dashboard_BuildMainFrame()
 
             f:SetScript("OnKeyDown", function(self, key)
                 if key == "ESCAPE" then
+                    -- An open news story closes first; the next Escape closes the dashboard.
+                    -- In combat the propagation call is protected, so it is skipped there.
+                    if addon.News_IsStoryOpen and addon.News_IsStoryOpen() then
+                        if not InCombatLockdown() then
+                            pcall(function()
+                                self:SetPropagateKeyboardInput(false)
+                            end)
+                        end
+                        addon.News_CloseStory()
+                        return
+                    end
                     pcall(function()
                         self:SetPropagateKeyboardInput(false)
                     end)
@@ -1324,6 +1327,7 @@ function addon.Dashboard_BuildMainFrame()
 
             C_Timer.After(0, DashboardApplyKeyboardPropagation)
             f:HookScript("OnShow", function()
+                if addon.OptionsSearch_Invalidate then addon.OptionsSearch_Invalidate() end
                 C_Timer.After(0, DashboardApplyKeyboardPropagation)
             end)
             f:HookScript("OnHide", function()
@@ -1360,7 +1364,6 @@ function addon.Dashboard_BuildMainFrame()
                 dashScrollTopOffset = dashScrollTopOffset,
                 dashScrollTopOffsetModule = dashScrollTopOffsetModule,
                 dashAccentRefs = dashAccentRefs,
-                GetAccentColor = GetAccentColor,
                 MakeText = MakeText,
                 OptionCategoryKeyIsAxis = OptionCategoryKeyIsAxis,
                 moduleLabels = moduleLabels,
@@ -1480,9 +1483,8 @@ function addon.Dashboard_BuildMainFrame()
                 DASHBOARD_CONTENT_CARD_ALPHA_MULT = DASHBOARD_CONTENT_CARD_ALPHA_MULT,
                 PREVIEW_MODULE_KEYS = PREVIEW_MODULE_KEYS,
                 COMING_SOON_MODULE_KEYS = COMING_SOON_MODULE_KEYS,
-                -- Embedded mode: guide content rendered inside welcomeView scroll
-                guideEmbeddedInWelcome = true,
-                guideScrollContent = welcomeView._scrollContent,
+                newsView = newsView,
+                integrationsView = integrationsView,
             }
             if addon.DashboardModuleGuide_Init then
                 addon.DashboardModuleGuide_Init(guideEnv)
@@ -1567,7 +1569,8 @@ function addon.Dashboard_BuildMainFrame()
                 end
             end
 
-            f.ShowNews = function()
+            -- @param storyId string|nil open News on this story; nil shows the list
+            f.ShowNews = function(storyId)
                 HideContextHeader()
                 detailView:Hide()
                 subCategoryView:Hide()
@@ -1580,6 +1583,8 @@ function addon.Dashboard_BuildMainFrame()
                 newsView:SetAlpha(0)
                 newsView:Show()
                 UIFrameFadeIn(newsView, 0.2, 0, 1)
+                -- After Show: the page drew its story badges from what was seen before opening.
+                if addon.News_MarkAllSeen then addon.News_MarkAllSeen() end
                 if head then head:Show() end
                 if headSub then
                     headSub:Show()
@@ -1594,6 +1599,12 @@ function addon.Dashboard_BuildMainFrame()
                     addon.DashboardPreview.SetActiveModuleKey(nil)
                 end
                 if addon.ApplyDashboardClassColor then addon.ApplyDashboardClassColor() end
+                -- A story id opens that story; anything else (sidebar, resume) returns to the list.
+                if type(storyId) == "string" and addon.News_OpenStory then
+                    addon.News_OpenStory(storyId)
+                elseif addon.News_CloseStory then
+                    addon.News_CloseStory()
+                end
             end
 
             f.ShowIntegrations = function()
@@ -1657,6 +1668,7 @@ function addon.Dashboard_BuildMainFrame()
                     f.searchEmptyHint:Show()
                 end
                 if f.DockSearchDropdownForSearchView then f.DockSearchDropdownForSearchView() end
+                if f.RefreshSearchChips then f.RefreshSearchChips(true) end
                 detailTitle:Hide()
                 detailTitleUnderline:Hide()
                 backBtn:Hide()
@@ -1718,9 +1730,6 @@ function addon.Dashboard_BuildMainFrame()
 
             local function ShouldShowDashboardSubcategory(mk, cat)
                 if not cat then return false end
-                if mk == "axis" and cat.key == "Modules" then
-                    return false
-                end
                 if cat.hidden and cat.hidden() then return false end
                 return true
             end
@@ -1730,7 +1739,7 @@ function addon.Dashboard_BuildMainFrame()
             local LayoutSidebar
 
             -- Welcome (first row — overview for new and returning users)
-            local welcomeBtn = CreateSidebarButton(sidebarScrollContent, L["DASH_WELCOME_TAB"], "INV_Misc_Book_09", function()
+            local welcomeBtn = CreateSidebarButton(sidebarScrollContent, L["DASH_WELCOME_TAB"], addon.DashboardRowIcons.welcome, function()
                 if f.ShowWelcome then f.ShowWelcome() end
             end)
             welcomeBtn:SetPoint("TOPLEFT", sidebarScrollContent, "TOPLEFT", 0, -SIDEBAR_TOP_PAD)
@@ -1740,15 +1749,13 @@ function addon.Dashboard_BuildMainFrame()
             lastSidebarRow = welcomeBtn
             yOff = SIDEBAR_TOP_PAD + TAB_ROW_HEIGHT
 
-            -- News (Blizzard atlas; same family as Focus campaign quest icon; fallback if atlas fails)
-            local newsBtn = CreateSidebarButton(sidebarScrollContent, L["DASH_NEWS_TAB"], {
-                atlas = "Quest-Campaign-Available",
-                fallback = "INV_Misc_StarFall_Blue",
-            }, function()
+            -- News
+            local newsBtn = CreateSidebarButton(sidebarScrollContent, L["DASH_NEWS_TAB"], addon.DashboardRowIcons.news, function()
                 if f.ShowNews then f.ShowNews() end
             end)
             newsBtn:SetPoint("TOPLEFT", welcomeBtn, "BOTTOMLEFT", 0, 0)
             f.newsSidebarBtn = newsBtn
+            if addon.News_RefreshSidebarBadge then addon.News_RefreshSidebarBadge() end
             tinsert(sidebarButtons, newsBtn)
             tinsert(sidebarRows, { type = "news", frame = newsBtn, bottom = newsBtn, offsetFromPrev = 0 })
             lastSidebarRow = newsBtn
@@ -1759,7 +1766,7 @@ function addon.Dashboard_BuildMainFrame()
             --   y = TAB_ROW_HEIGHT     Integrations
             --   y = TAB_ROW_HEIGHT * 2 Search
             local whatsNewBase = L["DASH_WHATS_NEW"]
-            local whatsNewBtn = CreateBottomPinnedButton(whatsNewBase, "INV_Scroll_05", function()
+            local whatsNewBtn = CreateBottomPinnedButton(whatsNewBase, addon.DashboardRowIcons.patchnotes, function()
                 if addon.PatchNotes_MarkWhatsNewSidebarClicked then
                     addon.PatchNotes_MarkWhatsNewSidebarClicked()
                 end
@@ -1771,17 +1778,17 @@ function addon.Dashboard_BuildMainFrame()
             f.whatsnewSidebarBtn = whatsNewBtn
 
             local integrationsSidebarBtn = CreateBottomPinnedButton(
-                L["DASH_INTEGRATIONS_TAB"], "INV_Misc_Gear_08",
+                L["DASH_INTEGRATIONS_TAB"], addon.DashboardModuleIcons.integrations,
                 function()
                     if f.ShowIntegrations then f.ShowIntegrations() end
                 end, TAB_ROW_HEIGHT
             )
-            -- Stored so the Integrations view can append " (New!)" when there are
-            -- unseen integration entries (see DashboardIntegrationsView_Init).
+            -- Stored so the Integrations view can restore the label when it sets the
+            -- row's New tag for unseen entries (see DashboardIntegrationsView_Init).
             integrationsSidebarBtn._integrationsBaseText = L["DASH_INTEGRATIONS_TAB"]
             f.integrationsSidebarBtn = integrationsSidebarBtn
 
-            local searchSidebarBtn = CreateBottomPinnedButton(L["DASH_SEARCH_TAB"], "INV_Misc_Spyglass_03", function()
+            local searchSidebarBtn = CreateBottomPinnedButton(L["DASH_SEARCH_TAB"], addon.DashboardRowIcons.search, function()
                 if f.ShowSearch then f.ShowSearch() end
             end, TAB_ROW_HEIGHT * 2)
             f.searchSidebarBtn = searchSidebarBtn
@@ -1806,7 +1813,7 @@ function addon.Dashboard_BuildMainFrame()
             f.DashboardApplyGroupSubcats = function(mk)
                 local g = groups[mk]
                 if not g or not g.subButtons or not g.tabsContainer then return end
-                local collapsed = GetGroupCollapsed(mk)
+                local collapsed = GetGroupCollapsed(mk) or (g.header and g.header._moduleOff)
                 local anchor = g.tabsContainer
                 local visibleCount = 0
                 for _, sb in ipairs(g.subButtons) do
@@ -1832,6 +1839,9 @@ function addon.Dashboard_BuildMainFrame()
                     end
                 end
                 g.fullHeight = TAB_ROW_HEIGHT * visibleCount
+                -- Settle any open/close animation first, or its next step would overwrite this.
+                if addon.OptionsWidgets_StopTween then addon.OptionsWidgets_StopTween(g.tabsContainer) end
+                g.tabsContainer:SetAlpha(1)
                 g.tabsContainer:SetHeight(collapsed and 0 or g.fullHeight)
                 if g.header and g.header.updateSpacer then g.header.updateSpacer() end
                 if LayoutSidebar then LayoutSidebar() end
@@ -1882,35 +1892,12 @@ function addon.Dashboard_BuildMainFrame()
                         yOff = yOff + headerH
                         header.groupKey = mk
                         g.header = header
-                        local headerBtnBg = header:CreateTexture(nil, "BACKGROUND")
-                        headerBtnBg:SetAllPoints()
-                        headerBtnBg:SetColorTexture(0, 0, 0, 0)
-                        header.btnBg = headerBtnBg
-                        local headerAccent = header:CreateTexture(nil, "ARTWORK")
-                        headerAccent:SetSize(3, 22)
-                        headerAccent:SetPoint("LEFT", header, "LEFT", 4, 0)
-                        local har, hag, hab = GetAccentColor()
-                        headerAccent:SetColorTexture(har, hag, hab, 1)
-                        headerAccent:Hide()
-                        header.accentBar = headerAccent
-                        tinsert(dashAccentRefs.sidebarBars, headerAccent)
-                        local chevron = header:CreateFontString(nil, "OVERLAY")
-                        do
-                            local hp = addon.Dashboard_ResolveSavedDashboardFontPath(
-                                (addon.GetDB and addon.GetDB("dashboardFontPath", addon.Dashboard_GetDefaultDashboardFontPath())) or addon.Dashboard_GetDefaultDashboardFontPath()
-                            )
-                            local he1 = addon.Dashboard_EffectiveDashboardFontSize(11)
-                            local wf = addon.Dashboard_GetWidgetOutlineFlags and addon.Dashboard_GetWidgetOutlineFlags() or "OUTLINE"
-                            pcall(function()
-                                chevron:SetFont(hp, he1, wf)
-                            end)
-                            if addon.Dashboard_ApplyTextShadow then
-                                addon.Dashboard_ApplyTextShadow(chevron)
-                            end
-                        end
-                        addon.Dashboard_RegisterTypographyFontString(typoRefs, chevron, 11, nil, true)
-                        chevron:SetPoint("LEFT", header, "LEFT", 8, 0)
-                        chevron:SetTextColor(0.55, 0.55, 0.65, 1)
+                        header.btnBg = sb.MakeSelectionFill(header, 8)
+                        -- Module icon at the left, drawn chevron at the right (it turns as the
+                        -- group opens), label aligned with the Welcome and News labels.
+                        sb.AddRowIcon(header, categoryIcons[(mk:gsub("^%l", string.upper))], TILE_MODULE_LABEL_COLORS[mk])
+                        local chevron = sb.CreateChevron(header)
+                        chevron:SetPoint("RIGHT", header, "RIGHT", -16, 0)
                         header.chevron = chevron
                         local headerLabel = header:CreateFontString(nil, "OVERLAY")
                         do
@@ -1927,17 +1914,21 @@ function addon.Dashboard_BuildMainFrame()
                             end
                         end
                         addon.Dashboard_RegisterTypographyFontString(typoRefs, headerLabel, 12, nil, true)
-                        -- Use LEFT anchor (vertically centered to chevron) to match original single-line
-                        -- formatting. With multiline text (\n for subtitle), the fontstring expands
-                        -- symmetrically around the anchor, so both lines remain left-aligned and
-                        -- naturally centered in the taller header frame.
-                        headerLabel:SetPoint("LEFT", chevron, "RIGHT", 4, 0)
+                        -- A LEFT anchor only: with multiline text (\n for subtitle) the fontstring
+                        -- grows evenly about it, so both lines stay left-aligned and centred in the
+                        -- taller header.
+                        headerLabel:SetPoint("LEFT", header, "LEFT", 36, 0)
+                        -- Stop short of the chevron (or the Off tag, which moves this edge).
+                        headerLabel:SetPoint("RIGHT", header, "RIGHT", -32, 0)
+                        header._labelRightInset = -32
                         headerLabel:SetJustifyH("LEFT")
-                        headerLabel:SetTextColor(0.55, 0.55, 0.65, 1)
+                        headerLabel:SetTextColor(sb.sidebarMuted[1], sb.sidebarMuted[2], sb.sidebarMuted[3], 1)
                         if PREVIEW_MODULE_KEYS[mk] then
                             headerLabelText = headerLabelText .. " |cff228b22(Preview)|r"
                         end
                         headerLabel:SetText(headerLabelText)
+                        -- One line truncates; the subtitle mode keeps its two lines.
+                        headerLabel:SetWordWrap(headerLabelText:find("\n", 1, true) ~= nil)
                         header.headerLabel = headerLabel
                         header.label = headerLabel
 
@@ -1963,17 +1954,25 @@ function addon.Dashboard_BuildMainFrame()
                         lastSidebarRow = spacer
                         yOff = yOff + tabsContainer:GetHeight()
 
-                        local show = ShouldShowModuleOnDashboard(mk)
+                        -- A registered module that is turned off stays in the list, dimmed with an
+                        -- "Off" tag and closed; one this client does not load is left out.
+                        local show = ShouldShowModuleOnDashboard(mk) or (addon.modules and addon.modules[mk] ~= nil)
                         header:SetShown(show)
                         tabsContainer:SetShown(show)
                         spacer:SetShown(show)
+                        sb.SetModuleOff(header, not ShouldShowModuleOnDashboard(mk))
+                        if header._moduleOff then
+                            tabsContainer:SetHeight(0)
+                            UpdateSpacerPosition()
+                        end
                         if not show then lastSidebarRow = prevLastRow end
                         g.row = { type = "group", mk = mk, header = header, tabsContainer = tabsContainer, spacer = spacer, bottom = spacer, offsetFromPrev = 0 }
                         tinsert(sidebarRows, g.row)
 
                         header:SetScript("OnClick", function()
                             local collapseMode = (addon.GetDB and addon.GetDB("sidebarCollapseMode", "auto")) or "auto"
-                            if mk == "axis" then
+                            if mk == "axis" or header._moduleOff then
+                                -- Axis, and a module that is off: the module toggles on Home.
                                 f.ShowDashboard()
                             elseif not GetGroupCollapsed(mk) and (collapseMode == "manual" or sidebarState.activeModuleKey == mk) then
                                 -- If we're inside a sub-category detail, navigate up to the module
@@ -1981,34 +1980,14 @@ function addon.Dashboard_BuildMainFrame()
                                 if sidebarState.view == "category" and sidebarState.activeModuleKey == mk then
                                     f.OpenModule(modName, mk)
                                 else
-                                    SetGroupCollapsed(mk, true)
-                                    if g.tabsContainer then
-                                        g.tabsContainer:SetScript("OnUpdate", nil)
-                                        g.tabsContainer:SetHeight(0)
-                                        SetGroupChildrenShown(g, false)
-                                    end
-                                    if header.chevron then header.chevron:SetText("+") end
-                                    if header.updateSpacer then header.updateSpacer() end
-                                    if LayoutSidebar then LayoutSidebar() end
+                                    sb.AnimateGroup(g, false, LayoutSidebar)
                                 end
                             else
                                 f.OpenModule(modName, mk)
                             end
                         end)
-                        header:SetScript("OnEnter", function()
-                            if header ~= dashSession.activeSidebarBtn then
-                                headerBtnBg:SetColorTexture(0.1, 0.1, 0.12, DASHBOARD_CHILD_PANEL_ALPHA)
-                                headerLabel:SetTextColor(0.8, 0.8, 0.85, 1)
-                                chevron:SetTextColor(0.8, 0.8, 0.85, 1)
-                            end
-                        end)
-                        header:SetScript("OnLeave", function()
-                            if header ~= dashSession.activeSidebarBtn then
-                                headerBtnBg:SetColorTexture(0, 0, 0, 0)
-                                headerLabel:SetTextColor(0.55, 0.55, 0.65, 1)
-                                chevron:SetTextColor(0.55, 0.55, 0.65, 1)
-                            end
-                        end)
+                        header:SetScript("OnEnter", function() sb.RowHover(header, true) end)
+                        header:SetScript("OnLeave", function() sb.RowHover(header, false) end)
                         chevron:SetText(GetGroupCollapsed(mk) and "+" or "-")
 
                         local containerAnchor = tabsContainer
@@ -2021,7 +2000,7 @@ function addon.Dashboard_BuildMainFrame()
                                     f.OpenModule(modLabel, catMk, true)
                                     local options = type(cat.options) == "function" and cat.options() or cat.options
                                     f.OpenCategoryDetail(modLabel, cat.name, options)
-                                end, 12)
+                                end, 22)
                                 btn:SetPoint("TOPLEFT", containerAnchor, (containerAnchor == tabsContainer) and "TOPLEFT" or "BOTTOMLEFT", 0, 0)
                                 containerAnchor = btn
                                 btn.sidebarModuleKey = catMk
@@ -2070,19 +2049,13 @@ function addon.Dashboard_BuildMainFrame()
                         local isTarget   = targetMk and mk == targetMk
                         local alwaysOpen = collapseMode == "axisPlus" and mk == "axis"
                         if isTarget or alwaysOpen then
-                            SetGroupCollapsed(mk, false)
-                            g.tabsContainer:SetScript("OnUpdate", nil)
-                            g.tabsContainer:SetHeight(g.fullHeight)
-                            SetGroupChildrenShown(g, true)
-                            if g.header and g.header.chevron then g.header.chevron:SetText("-") end
+                            sb.AnimateGroup(g, true, LayoutSidebar)
                         elseif collapseMode ~= "manual" and not GetGroupCollapsed(mk) then
-                            SetGroupCollapsed(mk, true)
-                            g.tabsContainer:SetScript("OnUpdate", nil)
-                            g.tabsContainer:SetHeight(0)
-                            SetGroupChildrenShown(g, false)
-                            if g.header and g.header.chevron then g.header.chevron:SetText("+") end
+                            sb.AnimateGroup(g, false, LayoutSidebar)
                         end
                         if g.header and g.header.updateSpacer then g.header.updateSpacer() end
+                        -- The header of the module you are in reads a step brighter.
+                        if g.header then g.header._current = (mk == targetMk) or nil end
                     end
                 end
                 local activeBtn = f.welcomeSidebarBtn or sidebarButtons[1]
@@ -2115,7 +2088,7 @@ function addon.Dashboard_BuildMainFrame()
                     -- Module landing (category tiles): highlight the group header, not the first sub-row.
                     if sidebarState.view == "module" and not wantCatIdx and subCategoryView:IsShown() then
                         local g = groups[mk]
-                        if g and g.header and g.header.accentBar then
+                        if g and g.header then
                             activeBtn = g.header
                             picked = true
                         end
@@ -2138,6 +2111,10 @@ function addon.Dashboard_BuildMainFrame()
                     end
                 end
                 SetActiveSidebarButton(activeBtn)
+                for _, gk in ipairs(groupOrder) do
+                    local gh = groups[gk] and groups[gk].header
+                    if gh and gh ~= activeBtn then sb.TintRow(gh, sb.RestTint(gh)) end
+                end
                 if addon.PatchNotes_RefreshAttentionIndicators then
                     addon.PatchNotes_RefreshAttentionIndicators()
                 end
@@ -2169,9 +2146,15 @@ function addon.Dashboard_BuildMainFrame()
                         if row.frame then
                             row.frame:SetShown(show)
                         elseif row.header then
+                            -- Turned-off modules stay listed, dimmed and closed (see the build).
+                            local off = not show
+                            show = show or (addon.modules and addon.modules[row.mk] ~= nil)
                             row.header:SetShown(show)
                             row.tabsContainer:SetShown(show)
                             row.spacer:SetShown(show)
+                            sb.SetModuleOff(row.header, off)
+                            -- Close it without saving that, so a manual-mode open state survives.
+                            if off and groups[row.mk] then sb.AnimateGroup(groups[row.mk], false, LayoutSidebar, true) end
                         end
                         row._visible = show
                     else
@@ -2198,10 +2181,9 @@ function addon.Dashboard_BuildMainFrame()
                     end
                 end
                 lastSidebarRow = prev
-                LayoutSidebar()
-                if C_Timer and C_Timer.After then
-                    C_Timer.After(0, function() LayoutSidebar() end)
-                end
+                -- Re-apply selection, open groups and tints: a module just turned on or off may
+                -- be the one you are in. (ApplySidebarState also reflows.)
+                ApplySidebarState()
             end
 
             f.DashboardRefreshSidebar = RefreshSidebar

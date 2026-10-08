@@ -27,9 +27,14 @@ local function isInCombat()
 end
 A.IsInCombat = isInCombat
 
+-- Alert sounds are not shipped yet: their card is hidden (OptionsAugmentAlerts.lua), so a
+-- saved or imported "on" could not be turned off. Flip this when the card ships.
+A.SOUNDS_READY = false
+
 -- Play the kind's sound, gated by a shared per-kind cooldown so a burst of
 -- the same alert (e.g. several friends logging on at once) doesn't spam audio.
 function A.PlaySoundForKind(kind)
+    if not A.SOUNDS_READY then return end
     local D = addon.AUGMENT_DEFAULTS
     if not A.GetDB("alertsSoundEnabled", D.alertsSoundEnabled) then return end
     if not A.IsSoundEnabledForKind(kind) then return end

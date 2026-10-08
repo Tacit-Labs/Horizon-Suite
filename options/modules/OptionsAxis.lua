@@ -1,6 +1,6 @@
 --[[
     Horizon Suite - Axis - Options categories
-    Self-registers Modules and Profiles into addon.OptionCategories after OptionsData.lua runs.
+    Self-registers Profiles into addon.OptionCategories after OptionsData.lua runs.
     GlobalToggles is owned by OptionsGlobal.lua (inserts at position 2).
 ]]
 local addon = _G.HorizonSuite
@@ -8,37 +8,18 @@ if not addon or not addon.OptionCategories then return end
 
 local L = addon.L
 
+-- Axis pages: Look & Feel keeps GlobalToggles and Profiles keeps Profiles, so
+-- Welcome links and Dashboard_IsAxisCategoryKey keep working. Module toggles live on the Axis home page.
+addon.RegisterModulePages("axis", {
+    { key = "general" },
+    { key = "look", legacyKey = "GlobalToggles", desc = L["AXIS_SUITE_WIDE_CLASS_COLOUR_TINTING_UI"] },
+    { key = "profiles", name = L["PROFILES"], legacyKey = "Profiles", desc = L["MANAGE_SWITCH_BETWEEN_YOUR_ADDON_CONFIGURATIONS"] },
+})
+
 local categories = {
-    {
-        key = "Modules",
-        name = L["MODULES"],
-        moduleKey = nil,
-        options = function()
-            local BM = addon.BrandModule
-            local previewSuffix = " |cff228b22(" .. L["PRESENCE_PREVIEW"] .. ")|r"
-            local previewDescSuffix = "\n\n" .. L["MODULE_PREVIEW_DISCLAIMER"]
-            local function setModuleFromOptions(moduleKey, v)
-                local dash = _G.HorizonSuiteDashboard
-                local defer = dash and dash:IsShown()
-                addon:SetModuleEnabled(moduleKey, v, defer and { deferReload = true } or nil)
-            end
-            return {
-                { type = "section", name = L["MODULE_TOGGLES"] },
-                { type = "toggle", name = BM and BM("focus"),                                    desc = L["DASH_OBJECTIVE_TRACKER_QUESTS_WORLD_QUESTS"], dbKey = "_module_focus",   get = function() return addon:IsModuleEnabled("focus")    end, set = function(v) setModuleFromOptions("focus",    v) end },
-                { type = "toggle", name = BM and BM("presence"),                                 desc = L["DASH_ZONE_TEXT_AND_NOTIFICATIONS"],           dbKey = "_module_presence", get = function() return addon:IsModuleEnabled("presence") end, set = function(v) setModuleFromOptions("presence", v) end },
-                { type = "toggle", name = BM and BM("vista"),                                    desc = L["DASH_MINIMAP_ZONE_TEXT_COORDS_BUTTON"],       dbKey = "_module_vista",    get = function() return addon:IsModuleEnabled("vista")    end, set = function(v) setModuleFromOptions("vista",    v) end },
-                { type = "toggle", name = BM and BM("insight"),                                  desc = L["DASH_TOOLTIPS_CLASS_COLOURS_SPEC_FACTION"],   dbKey = "_module_insight",  get = function() return addon:IsModuleEnabled("insight")  end, set = function(v) setModuleFromOptions("insight",  v) end },
-                { type = "toggle", name = BM and BM("augment") or L["NAME_ADDON_LOOT"], desc = L["DASH_LOOT_TOASTS_ITEMS_MONEY_CURRENCY"], dbKey = "_module_augment", get = function() return addon:IsModuleEnabled("augment") end, set = function(v) setModuleFromOptions("augment", v) end },
-                { type = "toggle", name = (BM and BM("essence") or L["NAME_ADDON_CHARACTER"]) .. previewSuffix, desc = L["DASH_ESSENCE_MODULE_SHORT_DESCRIPTION"] .. previewDescSuffix, dbKey = "_module_essence", get = function() return addon:IsModuleEnabled("essence") end, set = function(v) setModuleFromOptions("essence", v) end },
-                { type = "toggle", name = BM and BM("echo") or L["NAME_ADDON_CHAT"], desc = L["DASH_ECHO_MODULE_SHORT_DESCRIPTION"], dbKey = "_module_echo", get = function() return addon:IsModuleEnabled("echo") end, set = function(v) setModuleFromOptions("echo", v) end },
-                { type = "moduleReloadPrompt" },
-            }
-        end,
-    },
     {
         key = "Profiles",
         name = L["PROFILES"],
-        desc = L["MANAGE_SWITCH_BETWEEN_YOUR_ADDON_CONFIGURATIONS"],
         moduleKey = nil,
         options = function()
             local opts = {}
@@ -55,7 +36,7 @@ local categories = {
             end
 
             -- Section A: Global switch + current profile
-            opts[#opts + 1] = { type = "section", name = L["PROFILES"] }
+            opts[#opts + 1] = { type = "section", name = L["PROFILES"], page = "profiles" }
 
             opts[#opts + 1] = {
                 type = "toggle",
@@ -213,7 +194,7 @@ local categories = {
             }
 
             -- Section B: Per-spec switch + spec dropdowns
-            opts[#opts + 1] = { type = "section", name = L["AXIS_SPEC_PROFILES"] }
+            opts[#opts + 1] = { type = "section", name = L["AXIS_SPEC_PROFILES"], page = "profiles" }
 
             opts[#opts + 1] = {
                 type = "toggle",
@@ -324,7 +305,7 @@ local categories = {
             }
 
             -- Section C: Sharing (export / import)
-            opts[#opts + 1] = { type = "section", name = L["AXIS_SHARING"] }
+            opts[#opts + 1] = { type = "section", name = L["AXIS_SHARING"], page = "profiles" }
 
             opts[#opts + 1] = {
                 type = "dropdown",

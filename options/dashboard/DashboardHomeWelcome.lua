@@ -9,6 +9,33 @@ local addon = _G.HorizonSuite
 
 local tinsert = table.insert
 
+-- A "pure" function, tested by extracting the exact source slice below
+-- (tools/test_echo_logic.js), since this file isn't loaded in the logic harness. A
+-- module icon that already names a full path (it has a backslash, as the Echo tile art
+-- does) is used as-is; anything else resolves under Interface\Icons\ as before.
+-- ECHO_ICON_PATH_HELPER_START
+local function ModuleIconPath(icon)
+    if type(icon) == "string" and icon:find("\\", 1, true) then return icon end
+    return "Interface\\Icons\\" .. (icon or "INV_Misc_Question_01")
+end
+-- ECHO_ICON_PATH_HELPER_END
+
+local addonFolder = (addon and addon.ADDON_NAME) or "HorizonSuite"
+
+-- Module icons: white monoline glyphs (tools/icons/*.svg, rendered by tools/make_module_icons.py)
+-- that each surface tints. The one source for the sidebar, the module hub cards and the Welcome tiles.
+local ICON_DIR = "Interface\\AddOns\\" .. addonFolder .. "\\media\\icons\\"
+addon.DashboardModuleIcons = {}
+for _, key in ipairs({ "focus", "presence", "vista", "insight", "augment", "essence", "echo", "axis", "integrations" }) do
+    addon.DashboardModuleIcons[key] = ICON_DIR .. key .. ".tga"
+end
+-- The same style for the sidebar's other rows and the search box.
+addon.DashboardRowIcons = {}
+for _, key in ipairs({ "welcome", "news", "search", "patchnotes" }) do
+    addon.DashboardRowIcons[key] = ICON_DIR .. key .. ".tga"
+end
+addon.DashboardModuleIconPath = ModuleIconPath
+
 -- @param env table
 -- @return table { RefreshDashboardTiles = function }
 function addon.DashboardHomeWelcome_Init(env)
@@ -50,28 +77,7 @@ function addon.DashboardHomeWelcome_Init(env)
         echo     = { 0.56, 0.64, 0.91 },
     }
 
-    -- A "pure" function, tested by extracting the exact source slice below
-    -- (tools/test_echo_logic.js), since this file isn't loaded in the logic harness. A
-    -- module icon that already names a full path (it has a backslash, as the Echo tile art
-    -- does) is used as-is; anything else resolves under Interface\Icons\ as before.
-    -- ECHO_ICON_PATH_HELPER_START
-    local function ModuleIconPath(icon)
-        if type(icon) == "string" and icon:find("\\", 1, true) then return icon end
-        return "Interface\\Icons\\" .. (icon or "INV_Misc_Question_01")
-    end
-    -- ECHO_ICON_PATH_HELPER_END
-
-    local echoAddonName = (addon and addon.ADDON_NAME) or (envAddon and envAddon.ADDON_NAME) or "HorizonSuite"
-
-    local MODULE_ICONS = {
-        focus    = "achievement_quests_completed_05",
-        presence = "vas_guildnamechange",
-        vista    = "ability_hunter_pathfinding",
-        insight  = "ui_profession_inscription",
-        augment    = "Spell_holy_powerinfusion",
-        essence  = "achievement_character_human_male",
-        echo     = "Interface\\AddOns\\" .. echoAddonName .. "\\media\\echo\\echo_icon.tga",
-    }
+    local MODULE_ICONS = addon.DashboardModuleIcons
 
     local MODULE_DESCS = {
         focus    = L["HOME_MOD_FOCUS_SHORT"],
@@ -217,6 +223,7 @@ function addon.DashboardHomeWelcome_Init(env)
         iconTex:SetSize(ICON_SIZE, ICON_SIZE)
         iconTex:SetPoint("TOPLEFT", card, "TOPLEFT", 18, -topInset)
         iconTex:SetTexture(ModuleIconPath(MODULE_ICONS[moduleKey]))
+        iconTex:SetTexCoord(0, 1, 0, 1)
         card.iconTex = iconTex
 
         local modName = (moduleLabels and moduleLabels[moduleKey]) or (moduleKey:sub(1, 1):upper() .. moduleKey:sub(2))
@@ -349,8 +356,9 @@ function addon.DashboardHomeWelcome_Init(env)
                 accentRail:SetColorTexture(mr, mg, mb, 1)
                 accentGlow:SetColorTexture(mr, mg, mb, hovered and 0.14 or 0.10)
                 toggleWell:SetColorTexture(mr, mg, mb, hovered and 0.09 or 0.06)
+                -- The glyph is white; it takes the module colour while the module is on.
                 if iconTex.SetDesaturated then iconTex:SetDesaturated(false) end
-                iconTex:SetVertexColor(1, 1, 1, hovered and 0.98 or 0.92)
+                iconTex:SetVertexColor(mr, mg, mb, hovered and 1 or 0.92)
                 nameLbl:SetTextColor(mr, mg, mb)
                 descLbl:SetTextColor(0.62, 0.64, 0.69)
                 if previewDisclaimerLbl then
@@ -367,8 +375,8 @@ function addon.DashboardHomeWelcome_Init(env)
                 accentRail:SetColorTexture(mr, mg, mb, 0.30)
                 accentGlow:SetColorTexture(mr, mg, mb, hovered and 0.06 or 0.04)
                 toggleWell:SetColorTexture(mr, mg, mb, hovered and 0.04 or 0.025)
-                if iconTex.SetDesaturated then iconTex:SetDesaturated(true) end
-                iconTex:SetVertexColor(0.50, 0.52, 0.56, 0.72)
+                if iconTex.SetDesaturated then iconTex:SetDesaturated(false) end
+                iconTex:SetVertexColor(0.45, 0.46, 0.50, hovered and 0.85 or 0.72)
                 nameLbl:SetTextColor(0.44, 0.46, 0.50)
                 descLbl:SetTextColor(0.36, 0.38, 0.42)
                 if previewDisclaimerLbl then
@@ -502,18 +510,12 @@ function addon.DashboardHomeWelcome_Init(env)
 
     RefreshHomeToggleCards()
 
-    if envAddon.DashboardWelcomeView_Init then
-        envAddon.DashboardWelcomeView_Init(env)
+    if envAddon.DashboardShowcase_InitWelcome and env.welcomeView then
+        envAddon.DashboardShowcase_InitWelcome(env)
     end
 
-    if envAddon.DashboardWelcomeView_Init and env.newsView then
-        local newsEnv = {}
-        for k, v in pairs(env) do newsEnv[k] = v end
-        newsEnv.targetView      = env.newsView
-        newsEnv.feedData        = envAddon.DashboardNewsFeed
-        newsEnv.targetViewName  = "news"
-        newsEnv.headSubKey      = "DASH_NEWS_HEAD_SUB"
-        envAddon.DashboardWelcomeView_Init(newsEnv)
+    if envAddon.DashboardShowcase_InitNews and env.newsView then
+        envAddon.DashboardShowcase_InitNews(env)
     end
 
     return {

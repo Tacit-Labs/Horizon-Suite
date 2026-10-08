@@ -8,7 +8,7 @@ if not addon then return end
 local L = addon.L
 -- Build detail and subcategory scroll areas; assign f.OpenModule, f.OpenCategoryDetail, f.BuildAccordionDetail.
 -- env fields: f, addon, L, detailView, subCategoryView, contentWidth, dashScrollTopOffset, dashScrollTopOffsetModule, dashAccentRefs,
--- GetAccentColor, MakeText, OptionCategoryKeyIsAxis, moduleLabels, DASHBOARD_CHILD_PANEL_ALPHA,
+-- MakeText, OptionCategoryKeyIsAxis, moduleLabels, DASHBOARD_CHILD_PANEL_ALPHA,
 -- DASHBOARD_CONTENT_CARD_ALPHA_MULT, CLEAR, searchBox, searchDropdown, searchDropdownScroll,
 -- searchDropdownContent, searchDropdownCatch, searchBarShell, searchView, searchEmptyHint,
 -- setSidebarState, crossfadeTo, showDetailHeader, showSubcategoryHeader
@@ -25,7 +25,6 @@ function addon.DashboardDetailView_Init(env)
     local dashScrollTopOffset = env.dashScrollTopOffset
     local dashScrollTopOffsetModule = env.dashScrollTopOffsetModule or env.dashScrollTopOffset
     local dashAccentRefs = env.dashAccentRefs
-    local GetAccentColor = env.GetAccentColor
     local MakeText = env.MakeText
     local OptionCategoryKeyIsAxis = env.OptionCategoryKeyIsAxis
     local moduleLabels = env.moduleLabels
@@ -275,6 +274,7 @@ function addon.DashboardDetailView_Init(env)
         wipe(currentDetailCards)
         wipe(dashAccentRefs.cardAccents)
         wipe(dashAccentRefs.cardDividers)
+        wipe(dashAccentRefs.indentBars)
     end
 
     -- Helper: Update Detail Layout
@@ -282,6 +282,7 @@ function addon.DashboardDetailView_Init(env)
         local firstPad = (addon.DashboardConstants and addon.DashboardConstants.DETAIL_FIRST_BLOCK_TOP_PAD) or 0
         local yOffset = 0
         local visibleIndex = 0
+        local cardGap = (addon.OptionsWidgetsDef and addon.OptionsWidgetsDef.CardGap) or 14
         for _, card in ipairs(currentDetailCards) do
             if card:IsShown() and (card:GetHeight() or 0) > 0 then
                 visibleIndex = visibleIndex + 1
@@ -289,7 +290,7 @@ function addon.DashboardDetailView_Init(env)
                 local topExtra = (visibleIndex == 1) and firstPad or 0
                 card:SetPoint("TOPLEFT", detailContent, "TOPLEFT", 0, -(yOffset + topExtra))
                 card:SetPoint("RIGHT", detailContent, "RIGHT", 0, 0)
-                yOffset = yOffset + topExtra + card:GetHeight() + 15
+                yOffset = yOffset + topExtra + card:GetHeight() + cardGap
             end
         end
         
@@ -319,6 +320,44 @@ function addon.DashboardDetailView_Init(env)
         UpdateDetailLayout()
     end
 
+    --- Scroll the settings page so row sits a third of the way down, then flash it in the
+    --- accent: shown at once, held briefly, faded out. The flash frame takes no mouse, so it
+    --- never blocks the row's own controls.
+    f.SearchRevealRow = function(row)
+        if not row or not row:IsVisible() or not detailScroll or not detailContent then return end
+        local rowTop, contentTop = row:GetTop(), detailContent:GetTop()
+        if rowTop and contentTop then
+            local frameH = detailScroll:GetHeight() or 0
+            local maxScroll = math.max(0, (detailContent:GetHeight() or 0) - frameH)
+            detailScroll:SetVerticalScroll(math.max(0, math.min(maxScroll, (contentTop - rowTop) - frameH / 3)))
+        end
+        local fl = row._hsSearchFlash
+        if not fl then
+            local parent = row:GetParent() or row
+            fl = CreateFrame("Frame", nil, parent)
+            fl:SetFrameLevel(math.max(0, row:GetFrameLevel() - 1))
+            fl:SetPoint("TOPLEFT", row, "TOPLEFT", -8, 2)
+            fl:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", 8, -2)
+            fl.paint = addon.OptionsWidgets_PaintRounded and addon.OptionsWidgets_PaintRounded(fl, 6, "BACKGROUND")
+            row._hsSearchFlash = fl
+        end
+        if not fl.paint then return end
+        local c = (addon.OptionsWidgetsDef and addon.OptionsWidgetsDef.AccentColor) or { 0.48, 0.58, 0.82 }
+        local A = 0.22
+        fl.paint(c[1], c[2], c[3], A)
+        fl:SetAlpha(1)
+        fl:Show()
+        local start = addon.OptionsWidgets_StartTween
+        if not start then
+            C_Timer.After(1.2, function() fl:Hide() end)
+            return
+        end
+        -- Hold, then fade: the tween's first part keeps full strength.
+        start(fl, 1.6, function(e)
+            fl:SetAlpha(e < 0.35 and 1 or (1 - (e - 0.35) / 0.65))
+        end, function() fl:Hide() end)
+    end
+
     local function NavigateToOption(entry)
         if not entry then return end
         -- Find the target category
@@ -331,7 +370,15 @@ function addon.DashboardDetailView_Init(env)
         end
 
         if targetCat then
-            -- Get the effective moduleKey (Profiles/Modules map to "axis")
+            local Assemble = addon.OptionsAssemble
+            if Assemble then
+                Assemble.revealId = entry.optionId
+                Assemble.revealPending = true
+                if entry.cardId then
+                    Assemble.SetCardExpanded(entry.cardId, true)
+                end
+            end
+            -- Axis pages (legacy keys GlobalToggles and Profiles) open under the axis module.
             local effectiveMk = targetCat.moduleKey
             if OptionCategoryKeyIsAxis(targetCat.key) then
                 effectiveMk = "axis"
@@ -344,21 +391,26 @@ function addon.DashboardDetailView_Init(env)
             local options = type(targetCat.options) == "function" and targetCat.options() or targetCat.options
             f.OpenCategoryDetail(modName, entry.categoryName, options, true)
 
-            -- Find and expand the relevant accordion card
-            C_Timer.After(0.1, function()
+            -- Cards are built synchronously; wait one frame so their positions are laid out.
+            C_Timer.After(0, function()
                 for _, card in ipairs(currentDetailCards) do
-                    if card.optionIds and card.optionIds[entry.optionId] then
-                        if not card.expanded then
+                    local hit = (entry.cardId and card.cardId == entry.cardId)
+                        or (card.optionIds and card.optionIds[entry.optionId])
+                    if hit then
+                        if not card.expanded and not (card.headerToggleEnabled and not card.headerToggleEnabled()) then
                             card.expanded = true
                             card.anim:Play()
                         end
-                        
-                        -- Scroll to the card
                         local _, _, _, _, yOffset = card:GetPoint()
                         local frameH = detailScroll:GetHeight() or 0
                         local maxScroll = math.max(0, detailContent:GetHeight() - frameH)
                         local targetScroll = math.max(0, math.min(maxScroll, math.abs(yOffset or 0) - 20))
                         detailScroll:SetVerticalScroll(targetScroll)
+                        -- Once the card has opened, bring the row itself into view and flash it.
+                        local row = card.rowsById and card.rowsById[entry.optionId]
+                        if row then
+                            C_Timer.After(0.35, function() f.SearchRevealRow(row) end)
+                        end
                         break
                     end
                 end
@@ -366,30 +418,13 @@ function addon.DashboardDetailView_Init(env)
         end
     end
 
-    --- Open Axis → Modules detail with the Module Toggles accordion expanded (same as Welcome “Open module toggles” link).
+    --- Open the Axis home page, where the module cards with on/off pills live (same as clicking the AXIS sidebar header).
     --- @return nil
     local function NavigateToModuleToggles()
-        local togglesSection = L["MODULE_TOGGLES"]
-        local modulesName = L["MODULES"]
-        local entryFound
-        local idx = addon.OptionsData_BuildSearchIndex and addon.OptionsData_BuildSearchIndex() or {}
-        for _, e in ipairs(idx) do
-            if e.categoryKey == "Modules" and e.sectionName == togglesSection then
-                entryFound = e
-                break
-            end
-        end
-        if not entryFound then
-            entryFound = {
-                categoryKey = "Modules",
-                categoryName = modulesName,
-                optionId = "_module_focus",
-            }
-        end
-        NavigateToOption(entryFound)
+        f.ShowDashboard()
     end
 
-    --- Open Axis → Global Settings with the Theme accordion expanded (Dashboard background control).
+    --- Open Axis → Look & Feel with the Dashboard card expanded, landing on the background control.
     --- @return nil
     local function NavigateToDashboardBackground()
         local idx = addon.OptionsData_BuildSearchIndex and addon.OptionsData_BuildSearchIndex() or {}
@@ -417,7 +452,7 @@ function addon.DashboardDetailView_Init(env)
         NavigateToOption(entryFound)
     end
 
-    --- Open Axis module category tiles (Profiles, Modules, Global Settings, …).
+    --- Open the Axis module view with its page tiles (General, Layout, Look & Feel, Profiles).
     --- @return nil
     local function NavigateToAxisHome()
         local axisName = moduleLabels["axis"] or "Axis"
@@ -427,7 +462,7 @@ function addon.DashboardDetailView_Init(env)
         f.OpenModule(axisName, "axis", true)
     end
 
-    --- Open Axis → Global Settings with the Class Colours accordion expanded (suite-wide tint toggles).
+    --- Open Axis → Look & Feel with the Class colours card expanded (suite-wide tint toggles).
     --- @return nil
     local function NavigateToClassColourTinting()
         local idx = addon.OptionsData_BuildSearchIndex and addon.OptionsData_BuildSearchIndex() or {}
@@ -459,6 +494,33 @@ function addon.DashboardDetailView_Init(env)
     local SEARCH_DROPDOWN_ROW_HEIGHT = 52
     local detailFn = addon.OptionsData_SearchResultDetailText
 
+    -- Search state shared by the result rows, the keyboard and the empty-page chips.
+    local search = { sel = 0, shown = 0, query = "" }
+
+    -- Matched words light up in the accent, lifted so they read on the dark panel.
+    local function SearchHighlight(text)
+        local hl = addon.OptionsData_SearchHighlight
+        if not hl or search.query == "" then return text end
+        local c = (addon.OptionsWidgetsDef and addon.OptionsWidgetsDef.AccentColor) or { 0.48, 0.58, 0.82 }
+        local function lift(v) return math.floor((v + (1 - v) * 0.45) * 255 + 0.5) end
+        return hl(text, search.query, string.format("%02x%02x%02x", lift(c[1]), lift(c[2]), lift(c[3])))
+    end
+
+    -- A result row lit (hovered, or picked with the arrow keys) or at rest.
+    local function PaintSearchRow(b, lit)
+        b.hi:SetShown(lit)
+        b.label:SetTextColor(lit and 1 or 0.9, lit and 1 or 0.9, lit and 1 or 0.9)
+        b.descLine:SetTextColor(lit and 0.62 or 0.48, lit and 0.66 or 0.52, lit and 0.74 or 0.58)
+    end
+
+    -- Recent searches live in the account-wide saved variables (not the profile).
+    local function RecentSearches()
+        local db = _G[addon.DATABASE]
+        if not db then return {} end
+        db.dashboardRecentSearches = db.dashboardRecentSearches or {}
+        return db.dashboardRecentSearches
+    end
+
     local function ShowSearchResults(matches)
         if not matches or #matches == 0 then
             f.HideSearchDropdown()
@@ -489,21 +551,13 @@ function addon.DashboardDetailView_Init(env)
                 
                 local hi = b:CreateTexture(nil, "BACKGROUND")
                 hi:SetAllPoints(b)
-                hi:SetColorTexture(1, 1, 1, 0.08)
+                hi:SetColorTexture(1, 1, 1, 0.08) -- neutral; the accent is kept for on/selected states
                 hi:Hide()
+                b.hi = hi
 
-                b:SetScript("OnEnter", function()
-                    local har, hag, hab = GetAccentColor()
-                    hi:SetColorTexture(har, hag, hab, 0.08)
-                    hi:Show()
-                    b.label:SetTextColor(1, 1, 1)
-                    if b.descLine then b.descLine:SetTextColor(0.62, 0.66, 0.74) end
-                end)
-                b:SetScript("OnLeave", function()
-                    hi:Hide()
-                    b.label:SetTextColor(0.9, 0.9, 0.9)
-                    if b.descLine then b.descLine:SetTextColor(0.48, 0.52, 0.58) end
-                end)
+                -- Hover lights the row; leaving keeps it lit if the arrow keys picked it.
+                b:SetScript("OnEnter", function() PaintSearchRow(b, true) end)
+                b:SetScript("OnLeave", function() PaintSearchRow(b, b._picked) end)
                 searchDropdownButtons[i] = { btn = b, hi = hi }
             end
             
@@ -516,16 +570,25 @@ function addon.DashboardDetailView_Init(env)
                 breadcrumb = (m.categoryName or "") .. " > " .. (m.sectionName or "")
             end
             
-            local rawName = m.option and (type(m.option.name) == "function" and m.option.name() or m.option.name) or nil
+            local rawName
+            if m.option then
+                local n = m.option.name or m.option.searchName or m.option.labelText
+                rawName = type(n) == "function" and n() or n
+            end
             local optionName = tostring(rawName or "")
             
             row.btn.subLabel:SetText(breadcrumb or "")
-            row.btn.label:SetText(optionName)
+            row.btn.label:SetText(SearchHighlight(optionName))
             local detailText = (detailFn and m.option and detailFn(m.option, 130)) or ""
-            if row.btn.descLine then row.btn.descLine:SetText(detailText) end
+            if row.btn.descLine then row.btn.descLine:SetText(SearchHighlight(detailText)) end
             row.btn.entry = m
+            row.btn._picked = nil
+            PaintSearchRow(row.btn, false)
             row.btn:SetPoint("TOP", searchDropdownContent, "TOP", 0, -(i - 1) * SEARCH_DROPDOWN_ROW_HEIGHT)
             row.btn:SetScript("OnClick", function()
+                -- Remember the search as typed (search.query is lowercased).
+                local typed = searchBox and searchBox:GetText() or search.query
+                if addon.OptionsSearch_PushRecent then addon.OptionsSearch_PushRecent(RecentSearches(), typed) end
                 NavigateToOption(row.btn.entry)
                 f.HideSearchDropdown()
                 if f.DockSearchDropdownForModule then f.DockSearchDropdownForModule() end
@@ -538,6 +601,8 @@ function addon.DashboardDetailView_Init(env)
             if searchDropdownButtons[i] then searchDropdownButtons[i].btn:Hide() end
         end
         
+        search.sel, search.shown = 0, num
+        if f.RefreshSearchChips then f.RefreshSearchChips(false) end
         searchDropdownContent:SetHeight(num * SEARCH_DROPDOWN_ROW_HEIGHT)
         searchDropdownScroll:SetVerticalScroll(0)
         local dw = searchDropdown:GetWidth() or 600
@@ -550,21 +615,65 @@ function addon.DashboardDetailView_Init(env)
         end
     end
 
-    local searchDebounceTimer
-    f.OnSearchTextChanged = function(text)
-        if searchDebounceTimer and searchDebounceTimer.Cancel then
-            searchDebounceTimer:Cancel()
+    --- Move the arrow-key pick through the shown results (delta -1 up, +1 down), scrolling the
+    --- list so the picked row stays in view.
+    f.SearchMoveSelection = function(delta)
+        if search.shown == 0 or not searchDropdown:IsShown() then return end
+        -- One lit row: the pick replaces any hover or earlier pick.
+        for j = 1, search.shown do
+            local r = searchDropdownButtons[j]
+            if r then r.btn._picked = nil; PaintSearchRow(r.btn, false) end
         end
-        searchDebounceTimer = nil
-        
-        local delay = 0.2
+        local i = search.sel + delta
+        if search.sel == 0 then i = (delta > 0) and 1 or search.shown end
+        i = math.max(1, math.min(search.shown, i))
+        search.sel = i
+        local row = searchDropdownButtons[i]
+        row.btn._picked = true
+        PaintSearchRow(row.btn, true)
+        local top = (i - 1) * SEARCH_DROPDOWN_ROW_HEIGHT
+        local viewH = searchDropdownScroll:GetHeight() or 0
+        local cur = searchDropdownScroll:GetVerticalScroll() or 0
+        if top < cur then
+            searchDropdownScroll:SetVerticalScroll(top)
+        elseif top + SEARCH_DROPDOWN_ROW_HEIGHT > cur + viewH then
+            searchDropdownScroll:SetVerticalScroll(math.max(0, top + SEARCH_DROPDOWN_ROW_HEIGHT - viewH))
+        end
+    end
+
+    --- Enter in the search box: search now (skipping the typing delay) and open the picked
+    --- result, or the top one.
+    f.SearchSubmit = function(text)
+        -- Drop a typing-delay search still waiting, or it would reopen the list after we jump.
+        if search.timer and search.timer.Cancel then search.timer:Cancel() end
+        search.timer, search.pending = nil, nil
+        if f.FilterBySearch and (search.query ~= (text or ""):trim():lower() or search.shown == 0) then
+            f.FilterBySearch(text)
+        end
+        if search.shown == 0 or not searchDropdown:IsShown() then return end
+        local row = searchDropdownButtons[(search.sel > 0) and search.sel or 1]
+        if row and row.btn:IsShown() then row.btn:Click() end
+    end
+
+    f.OnSearchTextChanged = function(text)
+        if search.timer and search.timer.Cancel then
+            search.timer:Cancel()
+        end
+        search.timer = nil
+        -- The latest text waiting to be searched; Enter clears it, so a late timer does nothing.
+        search.pending = text
+
+        local delay = 0.12
+        local function due()
+            search.timer = nil
+            if search.pending ~= text then return end
+            search.pending = nil
+            f.FilterBySearch(text)
+        end
         if C_Timer and C_Timer.NewTimer then
-            searchDebounceTimer = C_Timer.NewTimer(delay, function()
-                searchDebounceTimer = nil
-                f.FilterBySearch(text)
-            end)
+            search.timer = C_Timer.NewTimer(delay, due)
         elseif C_Timer and C_Timer.After then
-            C_Timer.After(delay, function() f.FilterBySearch(text) end)
+            C_Timer.After(delay, due)
         else
             f.FilterBySearch(text)
         end
@@ -595,11 +704,14 @@ function addon.DashboardDetailView_Init(env)
     f.FilterBySearch = function(query)
         if f.UpdateSearchModuleFilterLabel then f.UpdateSearchModuleFilterLabel() end
         local searchQuery = query and query:trim():lower() or ""
+        search.query = searchQuery
         if searchQuery == "" or #searchQuery < 2 then
+            search.shown = 0
             f.HideSearchDropdown()
             if searchView and searchView:IsShown() and searchEmptyHint then
                 searchEmptyHint:SetText(L["DASH_SEARCH_EMPTY_HINT"])
                 searchEmptyHint:Show()
+                if f.RefreshSearchChips then f.RefreshSearchChips(true) end
             end
             return
         end
@@ -619,6 +731,9 @@ function addon.DashboardDetailView_Init(env)
             if a.score ~= b.score then
                 return a.score > b.score
             end
+            -- On a tie the shorter name is the more specific match.
+            local na, nb = #(a.entry.searchTokensName or {}), #(b.entry.searchTokensName or {})
+            if na ~= nb then return na < nb end
             return tostring(a.entry.optionId or "") < tostring(b.entry.optionId or "")
         end)
         local matches = {}
@@ -627,6 +742,7 @@ function addon.DashboardDetailView_Init(env)
         end
 
         if #matches == 0 then
+            search.shown = 0
             f.HideSearchDropdown()
             if searchView and searchView:IsShown() and searchEmptyHint then
                 local fk = f.dashboardSearchModuleFilter or "all"
@@ -637,6 +753,8 @@ function addon.DashboardDetailView_Init(env)
                     searchEmptyHint:SetText(L["DASH_SEARCH_NO_RESULTS"])
                 end
                 searchEmptyHint:Show()
+                -- Nothing found: offer the suggestions to start again from.
+                if f.RefreshSearchChips then f.RefreshSearchChips(true, true) end
             end
             return
         end
@@ -647,6 +765,85 @@ function addon.DashboardDetailView_Init(env)
         ShowSearchResults(matches)
     end
 
+    -- Chips under the Search page's hint: your recent searches, or suggestions to try when there
+    -- are none (and always after a search that found nothing). A chip fills the search box.
+    if searchView and searchEmptyHint then
+        local chips = CreateFrame("Frame", nil, searchView)
+        chips:SetPoint("TOP", searchEmptyHint, "BOTTOM", 0, -16)
+        chips:SetSize(math.max(200, contentWidth - 48), 52)
+        chips:Hide()
+        local chipsTitle = MakeText(chips, "", 11, 0.48, 0.5, 0.56, "CENTER")
+        chipsTitle:SetPoint("TOP", chips, "TOP", 0, 0)
+        local chipButtons = {}
+        local CHIP_H, CHIP_GAP, CHIP_PAD = 24, 8, 12
+
+        local function Chip(i)
+            local c = chipButtons[i]
+            if c then return c end
+            c = CreateFrame("Button", nil, chips)
+            c:SetHeight(CHIP_H)
+            local paint = addon.OptionsWidgets_PaintRounded and addon.OptionsWidgets_PaintRounded(c, CHIP_H / 2, "BACKGROUND")
+            local function fill(a) if paint then paint(1, 1, 1, a) end end
+            fill(0.06)
+            c.text = MakeText(c, "", 11, 0.8, 0.82, 0.88, "CENTER")
+            c.text:SetPoint("CENTER", c, "CENTER", 0, 0)
+            c:SetScript("OnEnter", function() fill(0.12); c.text:SetTextColor(1, 1, 1) end)
+            c:SetScript("OnLeave", function() fill(0.06); c.text:SetTextColor(0.8, 0.82, 0.88) end)
+            c:SetScript("OnClick", function()
+                if not searchBox then return end
+                local w = c.word or ""
+                searchBox:SetText(w)
+                searchBox:SetFocus()
+                searchBox:SetCursorPosition(#w)
+            end)
+            chipButtons[i] = c
+            return c
+        end
+
+        --- @param show boolean
+        --- @param suggestionsOnly boolean|nil  Skip recent searches (after a search found nothing)
+        f.RefreshSearchChips = function(show, suggestionsOnly)
+            if not show or not searchView:IsShown() then chips:Hide() return end
+            local words, title = {}, L["DASH_SEARCH_TRY"]
+            local recent = not suggestionsOnly and RecentSearches() or {}
+            if #recent > 0 then
+                for i = 1, #recent do words[i] = recent[i] end
+                title = L["DASH_SEARCH_RECENT"]
+            else
+                for w in tostring(L["DASH_SEARCH_SUGGESTIONS"] or ""):gmatch("[^,]+") do
+                    w = w:trim()
+                    if w ~= "" then words[#words + 1] = w end
+                end
+            end
+            if #words == 0 then chips:Hide() return end
+            chipsTitle:SetText(title)
+            -- One centred row; chips that would overflow the width are left out.
+            chips:SetWidth(math.max(200, (searchView:GetWidth() or contentWidth) - 80))
+            local maxW = chips:GetWidth() or 400
+            local widths, total, n = {}, 0, 0
+            for i, w in ipairs(words) do
+                local c = Chip(i)
+                c.word = w
+                c.text:SetText(w)
+                local cw = math.ceil((c.text:GetStringWidth() or 40) + CHIP_PAD * 2)
+                local need = total + (n > 0 and CHIP_GAP or 0) + cw
+                if need > maxW then break end
+                n, total, widths[i] = i, need, cw
+            end
+            local x = -total / 2
+            for i = 1, n do
+                local c = chipButtons[i]
+                c:SetWidth(widths[i])
+                c:ClearAllPoints()
+                c:SetPoint("TOPLEFT", chips, "TOP", x, -20)
+                c:Show()
+                x = x + widths[i] + CHIP_GAP
+            end
+            for i = n + 1, #chipButtons do chipButtons[i]:Hide() end
+            chips:Show()
+        end
+    end
+
     local currentSubTiles = {}
     local moduleRowWatcher = nil  -- ticker polling for view-width changes on the categories page
 
@@ -655,8 +852,6 @@ function addon.DashboardDetailView_Init(env)
             tile:Hide()
         end
         wipe(currentSubTiles)
-        wipe(dashAccentRefs.subcatAccents)
-        wipe(dashAccentRefs.subcatDividers)
         f._layoutModuleRows = nil
         if moduleRowWatcher then moduleRowWatcher:Cancel() end
         moduleRowWatcher = nil
@@ -673,9 +868,7 @@ function addon.DashboardDetailView_Init(env)
     -- Params bound once; referenced by the CreateAccordionCard wrapper below.
     -- UpdateDetailLayout is defined at the top of this Init; all other fields are from env.
     local accordionCardParams = {
-        GetAccentColor              = GetAccentColor,
         MakeText                    = MakeText,
-        dashAccentRefs              = dashAccentRefs,
         DASHBOARD_CONTENT_CARD_ALPHA_MULT = DASHBOARD_CONTENT_CARD_ALPHA_MULT,
         UpdateDetailLayout          = UpdateDetailLayout,
     }
@@ -748,16 +941,16 @@ function addon.DashboardDetailView_Init(env)
         divider:SetHeight(1)
         divider:SetPoint("BOTTOMLEFT", 20, 0)
         divider:SetPoint("BOTTOMRIGHT", -20, 0)
-        local cdr, cdg, cdb = GetAccentColor()
-        divider:SetColorTexture(cdr, cdg, cdb, 0.2)
-        tinsert(dashAccentRefs.subcatDividers, divider)
+        -- Neutral hairline: the accent is kept for what is on or selected, so this tile's
+        -- divider is not registered in dashAccentRefs and ignores the class theme.
+        local rd = addon.OptionsWidgetsDef and addon.OptionsWidgetsDef.RowDivider or { 0.59, 0.63, 0.75, 0.10 }
+        divider:SetColorTexture(rd[1], rd[2], rd[3], rd[4])
 
         local accent = tile:CreateTexture(nil, "ARTWORK")
         accent:SetSize(3, 24)
         accent:SetPoint("TOPLEFT", 20, -18)
-        local ar, ag, ab = GetAccentColor()
-        accent:SetColorTexture(ar, ag, ab, 1)
-        tinsert(dashAccentRefs.subcatAccents, accent)
+        local tm = addon.OptionsWidgetsDef and addon.OptionsWidgetsDef.TextColorMuted or { 0.54, 0.565, 0.627 }
+        accent:SetColorTexture(tm[1], tm[2], tm[3], 0.6) -- neutral marker, not in dashAccentRefs
 
         -- Label (x matches accordion title inset)
         local lbl = MakeText(tile, name, 18, 0.9, 0.9, 0.95, "LEFT")
@@ -835,9 +1028,8 @@ function addon.DashboardDetailView_Init(env)
         divider:SetHeight(1)
         divider:SetPoint("BOTTOMLEFT", 0, 0)
         divider:SetPoint("BOTTOMRIGHT", 0, 0)
-        local cdr, cdg, cdb = GetAccentColor()
-        divider:SetColorTexture(cdr, cdg, cdb, 0.15)
-        tinsert(dashAccentRefs.cardDividers, divider)
+        local rd = addon.OptionsWidgetsDef and addon.OptionsWidgetsDef.RowDivider or { 0.59, 0.63, 0.75, 0.10 }
+        divider:SetColorTexture(rd[1], rd[2], rd[3], rd[4]) -- neutral; not in dashAccentRefs
 
         local iconTex = card:CreateTexture(nil, "ARTWORK")
         iconTex:SetSize(ICON_SIZE, ICON_SIZE)
@@ -995,15 +1187,35 @@ function addon.DashboardDetailView_Init(env)
 
     local function ShouldShowDashboardSubcategory(moduleKey, cat)
         if not cat then return false end
-        if moduleKey == "axis" and cat.key == "Modules" then
-            return false
-        end
         if cat.hidden and cat.hidden() then return false end
         return true
     end
 
+    -- Fixed header buttons come from the page's `headerButtons` field.
+    local function ApplyPageHeaderButtons(cat)
+        local hb = (cat and cat.headerButtons) or {}
+        local function Wire(btn, fn)
+            if not btn then return end
+            if fn then
+                btn._onClick = fn
+                btn:Show()
+            else
+                btn:Hide()
+            end
+        end
+        Wire(f.detailPreviewBtn, hb.preview)
+        Wire(f.detailResetBtn, hb.reset)
+        Wire(f.detailAnchorBtn, hb.anchor)
+        if f.detailEnableBtn then f.detailEnableBtn:Hide() end
+    end
+
     --- @param skipEntranceCascade boolean|nil When true, skip staggered card entrance (search navigation expands accordions and must not snapshot pre-expand Y positions).
     f.OpenCategoryDetail = function(modName, catName, options, skipEntranceCascade)
+        -- A search jump reveals its row for this one page; any other navigation clears it.
+        local Assemble = addon.OptionsAssemble
+        if Assemble then
+            if Assemble.revealPending then Assemble.revealPending = false else Assemble.revealId = nil end
+        end
         if searchBox then searchBox:ClearFocus() end
 
         local matchedModuleKey = f.currentModuleKey or "modules"
@@ -1044,74 +1256,7 @@ function addon.DashboardDetailView_Init(env)
         end
 
         -- Show fixed header buttons only for pages that expose them.
-            do
-                local selCat = matchedCatIdx and addon.OptionCategories[matchedCatIdx]
-                local isAugment = selCat and selCat.key == "AugmentImprovements"
-                local isAugmentAlerts = selCat and selCat.key == "AugmentAlerts"
-                local isPresence = selCat and selCat.key == "PresenceGeneral"
-                if f.detailPreviewBtn then
-                    if isAugment then
-                        f.detailPreviewBtn._onClick = function()
-                            if addon.Augment and addon.Augment.PreviewToasts then addon.Augment.PreviewToasts() end
-                        end
-                        f.detailPreviewBtn:Show()
-                    elseif isAugmentAlerts then
-                        f.detailPreviewBtn._onClick = function()
-                            if addon.Augment and addon.Augment.Alerts and addon.Augment.Alerts.PreviewAlerts then
-                                addon.Augment.Alerts.PreviewAlerts()
-                            end
-                        end
-                        f.detailPreviewBtn:Show()
-                    else
-                        f.detailPreviewBtn:Hide()
-                    end
-                end
-                if f.detailResetBtn then
-                    if isAugment then
-                        f.detailResetBtn._onClick = function()
-                            if addon.Augment and addon.Augment.ResetPosition then addon.Augment.ResetPosition() end
-                        end
-                        f.detailResetBtn:Show()
-                    elseif isAugmentAlerts then
-                        f.detailResetBtn._onClick = function()
-                            if addon.Augment and addon.Augment.Alerts and addon.Augment.Alerts.ResetPosition then
-                                addon.Augment.Alerts.ResetPosition()
-                            end
-                        end
-                        f.detailResetBtn:Show()
-                    elseif isPresence then
-                        f.detailResetBtn._onClick = function()
-                            if addon.Presence and addon.Presence.ResetPosition then addon.Presence.ResetPosition() end
-                        end
-                        f.detailResetBtn:Show()
-                    else
-                        f.detailResetBtn:Hide()
-                    end
-                end
-                if f.detailAnchorBtn then
-                    if isAugment then
-                        f.detailAnchorBtn._onClick = function()
-                            if addon.Augment and addon.Augment.ToggleAnchorFrame then addon.Augment.ToggleAnchorFrame() end
-                        end
-                        f.detailAnchorBtn:Show()
-                    elseif isAugmentAlerts then
-                        f.detailAnchorBtn._onClick = function()
-                            if addon.Augment and addon.Augment.Alerts and addon.Augment.Alerts.ToggleEditMode then
-                                addon.Augment.Alerts.ToggleEditMode()
-                            end
-                        end
-                        f.detailAnchorBtn:Show()
-                    elseif isPresence then
-                        f.detailAnchorBtn._onClick = function()
-                            if addon.Presence and addon.Presence.ToggleAnchorFrame then addon.Presence.ToggleAnchorFrame() end
-                        end
-                        f.detailAnchorBtn:Show()
-                    else
-                        f.detailAnchorBtn:Hide()
-                    end
-                end
-                if f.detailEnableBtn then f.detailEnableBtn:Hide() end
-            end
+        ApplyPageHeaderButtons(matchedCatIdx and addon.OptionCategories[matchedCatIdx])
 
         f.BuildAccordionDetail(catName, options)
 
@@ -1307,6 +1452,9 @@ function addon.DashboardDetailView_Init(env)
             SetSidebarState({ view = "module", activeModuleKey = mk, activeCategoryIndex = CLEAR })
         elseif not skipDetailBuild then
             -- Only 1 category (or none), go straight to details
+            -- This path never carries a search jump (NavigateToOption passes skipDetailBuild), so drop any stale reveal.
+            local Assemble = addon.OptionsAssemble
+            if Assemble then Assemble.revealId = nil; Assemble.revealPending = false end
             ClearDetailCards()
             CrossfadeTo(detailView)
             ShowDetailHeader()
@@ -1327,73 +1475,7 @@ function addon.DashboardDetailView_Init(env)
             end
 
             -- Show fixed header buttons only for pages that expose them.
-            do
-                local isAugment = cats[1] and cats[1].key == "AugmentImprovements"
-                local isAugmentAlerts = cats[1] and cats[1].key == "AugmentAlerts"
-                local isPresence = cats[1] and cats[1].key == "PresenceGeneral"
-                if f.detailPreviewBtn then
-                    if isAugment then
-                        f.detailPreviewBtn._onClick = function()
-                            if addon.Augment and addon.Augment.PreviewToasts then addon.Augment.PreviewToasts() end
-                        end
-                        f.detailPreviewBtn:Show()
-                    elseif isAugmentAlerts then
-                        f.detailPreviewBtn._onClick = function()
-                            if addon.Augment and addon.Augment.Alerts and addon.Augment.Alerts.PreviewAlerts then
-                                addon.Augment.Alerts.PreviewAlerts()
-                            end
-                        end
-                        f.detailPreviewBtn:Show()
-                    else
-                        f.detailPreviewBtn:Hide()
-                    end
-                end
-                if f.detailResetBtn then
-                    if isAugment then
-                        f.detailResetBtn._onClick = function()
-                            if addon.Augment and addon.Augment.ResetPosition then addon.Augment.ResetPosition() end
-                        end
-                        f.detailResetBtn:Show()
-                    elseif isAugmentAlerts then
-                        f.detailResetBtn._onClick = function()
-                            if addon.Augment and addon.Augment.Alerts and addon.Augment.Alerts.ResetPosition then
-                                addon.Augment.Alerts.ResetPosition()
-                            end
-                        end
-                        f.detailResetBtn:Show()
-                    elseif isPresence then
-                        f.detailResetBtn._onClick = function()
-                            if addon.Presence and addon.Presence.ResetPosition then addon.Presence.ResetPosition() end
-                        end
-                        f.detailResetBtn:Show()
-                    else
-                        f.detailResetBtn:Hide()
-                    end
-                end
-                if f.detailAnchorBtn then
-                    if isAugment then
-                        f.detailAnchorBtn._onClick = function()
-                            if addon.Augment and addon.Augment.ToggleAnchorFrame then addon.Augment.ToggleAnchorFrame() end
-                        end
-                        f.detailAnchorBtn:Show()
-                    elseif isAugmentAlerts then
-                        f.detailAnchorBtn._onClick = function()
-                            if addon.Augment and addon.Augment.Alerts and addon.Augment.Alerts.ToggleEditMode then
-                                addon.Augment.Alerts.ToggleEditMode()
-                            end
-                        end
-                        f.detailAnchorBtn:Show()
-                    elseif isPresence then
-                        f.detailAnchorBtn._onClick = function()
-                            if addon.Presence and addon.Presence.ToggleAnchorFrame then addon.Presence.ToggleAnchorFrame() end
-                        end
-                        f.detailAnchorBtn:Show()
-                    else
-                        f.detailAnchorBtn:Hide()
-                    end
-                end
-                if f.detailEnableBtn then f.detailEnableBtn:Hide() end
-            end
+            ApplyPageHeaderButtons(cats[1])
 
             if cats[1] then
                 local options = type(cats[1].options) == "function" and cats[1].options() or cats[1].options

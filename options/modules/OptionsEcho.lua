@@ -61,7 +61,7 @@ local HISTORY_DAYS_OPTIONS = {
 
 local function TierDropdown(kind, label)
     local key = addon.Echo.TierKey(kind)
-    return { type = "dropdown", name = label, desc = L["ECHO_TIER_DESC"], dbKey = key,
+    return { type = "dropdown", name = label, desc = L["ECHO_TIER_DESC"], tooltip = L["ECHO_TIER_TIP"], dbKey = key,
         options = TIER_OPTIONS, preserveOrder = true,
         get = function() return getDB(key, D[key]) end,
         set = function(v) setDB(key, v) end }
@@ -74,8 +74,12 @@ local function IntSlider(key, name, desc, step)
         set = function(v) setDB(key, clamp(math.floor(v + 0.5), key)) end }
 end
 
+addon.RegisterModulePages("echo", {
+    { key = "feeds", name = L["ECHO_PAGE_FEEDS"] },
+})
+
 local options = {
-    Section(L["ECHO_SECTION_GENERAL"]),
+    Section(L["ECHO_SECTION_GENERAL"], { page = "layout", card = "position" }),
     { type = "dropdown", name = L["ECHO_COLUMN_EDGE"], desc = L["ECHO_COLUMN_EDGE_DESC"], dbKey = "echoColumnEdge",
       options = { { L["ECHO_EDGE_AUTO"], "auto" }, { L["ECHO_EDGE_RIGHT"], "right" }, { L["ECHO_EDGE_LEFT"], "left" } },
       preserveOrder = true,
@@ -94,10 +98,6 @@ local options = {
         setDB("echoX", nil)
         setDB("echoY", nil)
     end),
-    { type = "slider", name = L["ECHO_SCALE"], desc = L["ECHO_SCALE_DESC"], dbKey = "echoScale",
-      min = LIM.echoScale.min * 100, max = LIM.echoScale.max * 100, step = 5,
-      get = function() return math.floor((tonumber(getDB("echoScale", D.echoScale)) or 1) * 100 + 0.5) end,
-      set = function(v) setDB("echoScale", clamp(v / 100, "echoScale")) end },
     { type = "dropdown", name = L["ECHO_STRATA"], desc = L["ECHO_STRATA_DESC"], dbKey = "echoFrameStrata",
       options = {
           { L["FOCUS_STRATA_BACKGROUND"], "BACKGROUND" }, { L["FOCUS_STRATA_LOW"], "LOW" },
@@ -106,6 +106,12 @@ local options = {
       }, preserveOrder = true,
       get = function() return getDB("echoFrameStrata", D.echoFrameStrata) end,
       set = function(v) setDB("echoFrameStrata", v) end },
+    Section(L["ECHO_SECTION_GENERAL"], { page = "layout", card = "size" }),
+    { type = "slider", name = L["ECHO_SCALE"], desc = L["ECHO_SCALE_DESC"], dbKey = "echoScale",
+      min = LIM.echoScale.min * 100, max = LIM.echoScale.max * 100, step = 5,
+      get = function() return math.floor((tonumber(getDB("echoScale", D.echoScale)) or 1) * 100 + 0.5) end,
+      set = function(v) setDB("echoScale", clamp(v / 100, "echoScale")) end },
+    Section(L["ECHO_SECTION_GENERAL"], { page = "general", card = "behaviour" }),
     IntSlider("echoMaxTiles", L["ECHO_MAX_TILES"], L["ECHO_MAX_TILES_DESC"], 1),
     { type = "dropdown", name = L["ECHO_COLLAPSE"], desc = L["ECHO_COLLAPSE_DESC"], dbKey = "echoCollapse",
       options = {
@@ -115,29 +121,38 @@ local options = {
       get = function() return getDB("echoCollapse", D.echoCollapse) end,
       set = function(v) setDB("echoCollapse", v) end },
 
-    Section(L["ECHO_SECTION_NOTIFICATIONS"]),
+    -- New-message pop-ups: how they look and behave. Which chats pop up is set per chat type
+    -- on Feeds & groups › Alerts by chat type.
+    Section(L["ECHO_SECTION_POPUPS"], { page = "general", card = "notifications" }),
     { type = "dropdown", name = L["ECHO_TOAST_STYLE"], desc = L["ECHO_TOAST_STYLE_DESC"], dbKey = "echoToastStyle",
       options = toastStyleOptions(), preserveOrder = true,
       get = function() return getDB("echoToastStyle", D.echoToastStyle) end,
       set = function(v) setDB("echoToastStyle", v) end },
     IntSlider("echoToastSeconds", L["ECHO_TOAST_SECONDS"], L["ECHO_TOAST_SECONDS_DESC"], 1),
     Toggle(L["ECHO_HOLD_IN_COMBAT"], L["ECHO_HOLD_IN_COMBAT_DESC"], "echoHoldToastsInCombat", D.echoHoldToastsInCombat),
+    -- Echo plays its own whisper sound only for whispers it hides from Blizzard's chat
+    -- (EchoFilter). Anywhere else Blizzard's sound plays, so these rows follow "Hide stored
+    -- whispers" (itself shown only while Blizzard's chat is shown) and the card hides with them.
+    Section(L["ECHO_SECTION_SOUNDS"], { page = "general", card = "sounds" }),
     { type = "dropdown", name = L["ECHO_WHISPER_SOUND"], desc = L["ECHO_WHISPER_SOUND_DESC"], dbKey = "echoWhisperSound",
-      options = WHISPER_SOUND_OPTIONS, preserveOrder = true,
+      options = WHISPER_SOUND_OPTIONS, preserveOrder = true, parent = "echoHideStoredWhispers",
       get = function() return getDB("echoWhisperSound", D.echoWhisperSound) end,
       set = function(v) setDB("echoWhisperSound", v) end },
-    Button(L["ECHO_SOUND_PREVIEW"], L["ECHO_SOUND_PREVIEW_DESC"], function()
-        local E = Echo()
-        if E and E.Sound then E.Sound.Whisper(false, true) end
-    end),
-    Toggle(L["ECHO_SOUND_IN_COMBAT"], L["ECHO_SOUND_IN_COMBAT_DESC"], "echoSoundInCombat", D.echoSoundInCombat),
-    Toggle(L["ECHO_SOUND_BNET"], L["ECHO_SOUND_BNET_DESC"], "echoSoundBnet", D.echoSoundBnet),
-    { type = "editbox", name = L["ECHO_KEYWORDS"], labelText = L["ECHO_KEYWORDS"], tooltip = L["ECHO_KEYWORDS_DESC"],
-      dbKey = "echoKeywords", height = 24,
-      get = function() return getDB("echoKeywords", D.echoKeywords) or "" end,
-      set = function(v) setDB("echoKeywords", type(v) == "string" and v:gsub("[\r\n]+", ",") or "") end },
+    (function()
+        local b = Button(L["ECHO_SOUND_PREVIEW"], L["ECHO_SOUND_PREVIEW_DESC"], function()
+            local E = Echo()
+            if E and E.Sound then E.Sound.Whisper(false, true) end
+        end)
+        b.dbKey = "__echoSoundPreview"  -- a row id for the parent link; buttons save nothing
+        b.parent = "echoHideStoredWhispers"
+        return b
+    end)(),
+    Toggle(L["ECHO_SOUND_IN_COMBAT"], L["ECHO_SOUND_IN_COMBAT_DESC"], "echoSoundInCombat", D.echoSoundInCombat,
+        { parent = "echoHideStoredWhispers" }),
+    Toggle(L["ECHO_SOUND_BNET"], L["ECHO_SOUND_BNET_DESC"], "echoSoundBnet", D.echoSoundBnet,
+        { parent = "echoHideStoredWhispers" }),
 
-    Section(L["ECHO_SECTION_TIERS"]),
+    Section(L["ECHO_SECTION_TIERS"], { page = "feeds" }),
     TierDropdown("whisper",  L["ECHO_KIND_WHISPER"]),
     TierDropdown("bnet",     L["ECHO_KIND_BNET"]),
     TierDropdown("party",    L["ECHO_KIND_PARTY"]),
@@ -147,9 +162,17 @@ local options = {
     TierDropdown("officer",  L["ECHO_KIND_OFFICER"]),
     TierDropdown("channel",  L["ECHO_KIND_CHANNEL"]),
     TierDropdown("nearby",   L["ECHO_NEARBY"]),
+    -- Mention words decide what alerts you, so they sit with the per-chat alerts.
+    { type = "editbox", name = L["ECHO_KEYWORDS"], labelText = L["ECHO_KEYWORDS"], tooltip = L["ECHO_KEYWORDS_DESC"],
+      dbKey = "echoKeywords", height = 24,
+      get = function() return getDB("echoKeywords", D.echoKeywords) or "" end,
+      set = function(v) setDB("echoKeywords", type(v) == "string" and v:gsub("[\r\n]+", ",") or "") end },
 
-    Section(L["ECHO_SECTION_FEEDS"]),
-    Toggle(L["ECHO_ALL_VIEW"], L["ECHO_ALL_VIEW_DESC"], "echoAllView", D.echoAllView),
+    Section(L["ECHO_SECTION_FEEDS"], { page = "feeds" }),
+    -- While Blizzard's chat is hidden the All view is always on (Echo.FeedEnabled). That
+    -- setting is on another page, so this is a condition rather than a parent link.
+    Toggle(L["ECHO_ALL_VIEW"], L["ECHO_ALL_VIEW_DESC"], "echoAllView", D.echoAllView,
+        { visibleWhen = function() return getDB("echoHideBlizzardChat", D.echoHideBlizzardChat) == false end }),
 }
 
 for _, kind in ipairs({ "loot", "progress", "system" }) do
@@ -157,7 +180,8 @@ for _, kind in ipairs({ "loot", "progress", "system" }) do
     local feedKey = addon.Echo.FeedKey(kind)
     options[#options + 1] = Toggle(L["ECHO_FEED_SHOW"]:format(name), L["ECHO_FEED_SHOW_DESC"], feedKey, D[feedKey])
     local tier = TierDropdown(kind, L["ECHO_FEED_TIER"]:format(name))
-    tier.visibleWhen = function() return getDB(feedKey, D[feedKey]) ~= false end
+    tier.parent = feedKey
+    tier.parentIs = function(v) return v ~= false end
     options[#options + 1] = tier
 end
 
@@ -221,7 +245,7 @@ local function GroupIconsCopy()
     return copy
 end
 
-options[#options + 1] = Section(L["ECHO_SECTION_GROUPS"])
+options[#options + 1] = Section(L["ECHO_SECTION_GROUPS"], { page = "feeds" })
 options[#options + 1] = Toggle(L["ECHO_GROUPS_ENABLE"], L["ECHO_GROUPS_ENABLE_DESC"], "echoGroupsEnabled", D.echoGroupsEnabled)
 
 for i = 1, 4 do
@@ -258,11 +282,13 @@ for i = 1, 4 do
             end,
             allowDefault = true,
         })
-    end, (i == 1) and { dbKey = "echoGroupIcons" } or nil)
+    end, { dbKey = (i == 1) and "echoGroupIcons" or nil })
 end
 
 for i, member in ipairs(GROUP_MEMBERS) do
     local id = member.id
+    if i == 1 then options[#options + 1] = Section(L["ECHO_SECTION_GROUP_CHANNELS"], { page = "feeds" }) end
+    if i == 9 then options[#options + 1] = Section(L["ECHO_SECTION_GROUP_CHATS"], { page = "feeds" }) end
     options[#options + 1] = {
         type = "dropdown", name = member.label, desc = L["ECHO_GROUP_MEMBER_DESC"],
         dbKey = (i == 1) and "echoGroupOf" or nil,
@@ -303,12 +329,12 @@ for i, member in ipairs(GROUP_MEMBERS) do
 end
 
 local tail = {
-    Section(L["ECHO_SECTION_HISTORY"]),
+    Section(L["ECHO_SECTION_HISTORY"], { page = "general", card = "history" }),
     Toggle(L["ECHO_SAVE_HISTORY"], L["ECHO_SAVE_HISTORY_DESC"], "echoSaveHistory", D.echoSaveHistory),
     Toggle(L["ECHO_SAVE_GUILD"], L["ECHO_SAVE_GUILD_DESC"], "echoSaveGuild", D.echoSaveGuild,
-        { visibleWhen = function() return getDB("echoSaveHistory", D.echoSaveHistory) ~= false end }),
+        { parent = "echoSaveHistory", parentIs = function(v) return v ~= false end }),
     Toggle(L["ECHO_SAVE_OFFICER"], L["ECHO_SAVE_OFFICER_DESC"], "echoSaveOfficer", D.echoSaveOfficer,
-        { visibleWhen = function() return getDB("echoSaveHistory", D.echoSaveHistory) ~= false end }),
+        { parent = "echoSaveHistory", parentIs = function(v) return v ~= false end }),
     { type = "dropdown", name = L["ECHO_HISTORY_DAYS"], desc = L["ECHO_HISTORY_DAYS_DESC"], dbKey = "echoHistoryDays",
       options = HISTORY_DAYS_OPTIONS, preserveOrder = true,
       get = function() return getDB("echoHistoryDays", D.echoHistoryDays) end,
@@ -318,40 +344,44 @@ local tail = {
         if E and E.ConfirmClearHistory then E.ConfirmClearHistory() end
     end),
 
-    Section(L["ECHO_SECTION_BLIZZARD_CHAT"]),
-    Toggle(L["ECHO_HIDE_STORED"], L["ECHO_HIDE_STORED_DESC"], "echoHideStoredWhispers", D.echoHideStoredWhispers),
-    Toggle(L["ECHO_DOCK_INPUT"], L["ECHO_DOCK_INPUT_DESC"], "echoDockInput", D.echoDockInput),
-    Toggle(L["ECHO_INPUT_ALWAYS_VISIBLE"], L["ECHO_INPUT_ALWAYS_VISIBLE_DESC"], "echoInputAlwaysVisible", D.echoInputAlwaysVisible,
-        { visibleWhen = function() return getDB("echoDockInput", D.echoDockInput) ~= false end }),
-    { type = "dropdown", name = L["ECHO_ENTER_OPENS"], desc = L["ECHO_ENTER_OPENS_DESC"], dbKey = "echoEnterOpens",
-      options = { { L["ECHO_NEARBY"], "nearby" }, { L["ECHO_ALL"], "all" } }, preserveOrder = true,
-      visibleWhen = function() return getDB("echoDockInput", D.echoDockInput) ~= false end,
-      get = function() return getDB("echoEnterOpens", D.echoEnterOpens) end,
-      set = function(v) setDB("echoEnterOpens", v) end },
+    Section(L["ECHO_SECTION_BLIZZARD_CHAT"], { page = "general", card = "blizzardChat" }),
     Toggle(L["ECHO_HIDE_CHAT"], L["ECHO_HIDE_CHAT_DESC"], "echoHideBlizzardChat", D.echoHideBlizzardChat),
     { type = "dropdown", name = L["ECHO_COMBAT_LOG"], desc = L["ECHO_COMBAT_LOG_DESC"], dbKey = "echoCombatLog",
       options = COMBAT_LOG_OPTIONS, preserveOrder = true,
-      visibleWhen = function() return getDB("echoHideBlizzardChat", D.echoHideBlizzardChat) == true end,
+      parent = "echoHideBlizzardChat", parentIs = function(v) return v == true end,
       get = function()
           local E = Echo()
           if E and E.CombatLog then return E.CombatLog.Mode(getDB) end
           return getDB("echoCombatLog", D.echoCombatLog)
       end,
       set = function(v) setDB("echoCombatLog", v) end },
+    -- No effect while Blizzard's chat is hidden (Echo.ApplyOptions keeps the filter off then).
+    Toggle(L["ECHO_HIDE_STORED"], L["ECHO_HIDE_STORED_DESC"], "echoHideStoredWhispers", D.echoHideStoredWhispers,
+        { parent = "echoHideBlizzardChat", parentIs = function(v) return v == false end }),
+    Toggle(L["ECHO_DOCK_INPUT"], L["ECHO_DOCK_INPUT_DESC"], "echoDockInput", D.echoDockInput),
+    Toggle(L["ECHO_INPUT_ALWAYS_VISIBLE"], L["ECHO_INPUT_ALWAYS_VISIBLE_DESC"], "echoInputAlwaysVisible", D.echoInputAlwaysVisible,
+        { parent = "echoDockInput", parentIs = function(v) return v ~= false end }),
+    { type = "dropdown", name = L["ECHO_ENTER_OPENS"], desc = L["ECHO_ENTER_OPENS_DESC"], dbKey = "echoEnterOpens",
+      options = { { L["ECHO_NEARBY"], "nearby" }, { L["ECHO_ALL"], "all" } }, preserveOrder = true,
+      parent = "echoDockInput", parentIs = function(v) return v ~= false end,
+      get = function() return getDB("echoEnterOpens", D.echoEnterOpens) end,
+      set = function(v) setDB("echoEnterOpens", v) end },
     ReloadPrompt({ hintText = L["ECHO_HIDE_CHAT_RELOAD"] }),
 
-    Section(L["ECHO_SECTION_CARD"]),
+    -- The font covers Echo's tiles, stack and card alike, so it sits on its own Text card.
+    Section(L["ECHO_SECTION_TEXT"], { page = "look", card = "text" }),
+    { type = "dropdown", name = L["ECHO_FONT"], desc = L["ECHO_FONT_DESC"], dbKey = "echoFontPath", searchable = true,
+      options = function() return addon.GetPerElementFontDropdownOptions("echoFontPath") end,
+      get = function() return getDB("echoFontPath", D.echoFontPath) end,
+      set = function(v) setDB("echoFontPath", v) end,
+      displayFn = addon.DisplayPerElementFont, fontPreviewInList = true },
+    Section(L["ECHO_SECTION_CARD"], { page = "look", card = "card" }),
     IntSlider("echoCardWidth",  L["ECHO_CARD_WIDTH"],  L["ECHO_CARD_SIZE_DESC"], 10),
     IntSlider("echoCardHeight", L["ECHO_CARD_HEIGHT"], L["ECHO_CARD_SIZE_DESC"], 10),
     IntSlider("echoCardTextSize", L["ECHO_CARD_TEXT_SIZE"], L["ECHO_CARD_TEXT_SIZE_DESC"], 1),
     Toggle(L["ECHO_SHOW_TIMESTAMPS"], L["ECHO_SHOW_TIMESTAMPS_DESC"], "echoShowTimestamps", D.echoShowTimestamps),
     Toggle(L["ECHO_ANIMATE_CARD"], L["ECHO_ANIMATE_CARD_DESC"], "echoAnimateCard", D.echoAnimateCard),
     IntSlider("echoCardIdleClose", L["ECHO_CARD_IDLE_CLOSE"], L["ECHO_CARD_IDLE_CLOSE_DESC"], 5),
-    { type = "dropdown", name = L["ECHO_FONT"], desc = L["ECHO_FONT_DESC"], dbKey = "echoFontPath", searchable = true,
-      options = function() return addon.GetPerElementFontDropdownOptions("echoFontPath") end,
-      get = function() return getDB("echoFontPath", D.echoFontPath) end,
-      set = function(v) setDB("echoFontPath", v) end,
-      displayFn = addon.DisplayPerElementFont, fontPreviewInList = true },
 }
 for _, opt in ipairs(tail) do options[#options + 1] = opt end
 

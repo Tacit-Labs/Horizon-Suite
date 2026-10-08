@@ -730,8 +730,8 @@ end
 local function OpenRareWaypointEntry(entry)
     if not entry then return end
     if addon.GetDB("tomtomRareWaypoint", true) then
-        if addon.SetRareWaypoint then
-            addon.SetRareWaypoint(entry)
+        if addon.SetNativeRareWaypoint then
+            addon.SetNativeRareWaypoint(entry)
         end
     else
         local vignetteGUID = entry.vignetteGUID or (entry.entryKey and entry.entryKey:match("^vignette:(.+)$"))

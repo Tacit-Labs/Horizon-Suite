@@ -16,6 +16,14 @@ local Color   = addon.Color
 
 local function setDB(k, v) addon.OptionsData_SetDB(k, v) end
 
+--- Name for one of an integration's cards after its first, e.g. "RareScanner: Alerts".
+--- @param integration string  Localised integration name
+--- @param topic string  Localised card topic
+--- @return string
+local function SubCard(integration, topic)
+    return integration .. ": " .. topic
+end
+
 -- ============================================================================
 -- SHARED
 -- ============================================================================
@@ -128,18 +136,22 @@ end
 -- CATEGORY
 -- ============================================================================
 
+addon.RegisterModulePages("focus", {
+    { key = "integrations", name = L["FOCUS_INTEGRATION"], desc = L["FOCUS_INTEGRATION_DESC"],
+      -- Hide the page entirely when neither bridge addon is installed.
+      hidden = function() return not RareScannerIntegrationLoaded() and not SilverDragonIntegrationLoaded() end },
+})
+
 addon.OptionCategories[#addon.OptionCategories + 1] = {
     key       = "Integrations",
     name      = L["FOCUS_INTEGRATION"],
     desc      = L["FOCUS_INTEGRATION_DESC"],
     moduleKey = "focus",
-    -- Hide the sidebar entry entirely when neither bridge addon is installed.
-    hidden    = function() return not RareScannerIntegrationLoaded() and not SilverDragonIntegrationLoaded() end,
     options   = {
         -- ----------------------------------------------------------------
         -- RareScanner — card hidden when companion bridge is absent.
         -- ----------------------------------------------------------------
-        Section(L["FOCUS_INTEGRATION_RARESCANNER"], { visibleWhen = RareScannerIntegrationLoaded }),
+        Section(L["FOCUS_INTEGRATION_RARESCANNER"], { visibleWhen = RareScannerIntegrationLoaded, page = "integrations", card = "rareScanner" }),
         { type = "header", name = L["FOCUS_INTEGRATION_RARESCANNER_COMPANION"] },
 
         Toggle(
@@ -251,6 +263,7 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             }
         ),
 
+        Section(SubCard(L["FOCUS_INTEGRATION_RARESCANNER"], L["FOCUS_INTEGRATION_CARD_MAP"]), { visibleWhen = RareScannerIntegrationLoaded, page = "integrations", card = "rsMap", subheading = L["FOCUS_INTEGRATION_SUB_WAYPOINTS"] }),
         Toggle(
             L["FOCUS_INTEGRATION_RARE_SHOW_COORDS"],
             L["FOCUS_INTEGRATION_RARE_SHOW_COORDS_DESC"],
@@ -314,6 +327,7 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             }
         ),
 
+        Section(L["FOCUS_INTEGRATION_RARESCANNER"], { visibleWhen = RareScannerIntegrationLoaded, page = "integrations", card = "rareScanner" }),
         Toggle(
             L["FOCUS_INTEGRATION_RARE_SHOW_SEEN_AGO"],
             L["FOCUS_INTEGRATION_RARE_SHOW_SEEN_AGO_DESC"],
@@ -330,6 +344,7 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             }
         ),
 
+        Section(L["FOCUS_INTEGRATION_SUB_PORTRAIT"], { visibleWhen = RareScannerIntegrationLoaded, page = "integrations", card = "rsMap" }),
         Toggle(
             L["FOCUS_INTEGRATION_RARE_SHOW_PORTRAIT"],
             L["FOCUS_INTEGRATION_RARE_SHOW_PORTRAIT_DESC"],
@@ -404,6 +419,7 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             }
         ),
 
+        Section(L["FOCUS_INTEGRATION_SUB_LOOT"], { visibleWhen = RareScannerIntegrationLoaded, page = "integrations", card = "rareScanner" }),
         Toggle(
             L["FOCUS_INTEGRATION_RARESCANNER_SHOW_LOOT"],
             L["FOCUS_INTEGRATION_RARESCANNER_SHOW_LOOT_DESC"],
@@ -461,6 +477,7 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             }
         ),
 
+        Section(SubCard(L["FOCUS_INTEGRATION_RARESCANNER"], L["FOCUS_INTEGRATION_CARD_ALERTS"]), { visibleWhen = RareScannerIntegrationLoaded, page = "integrations", card = "rsAlerts" }),
         Color(
             L["FOCUS_INTEGRATION_RARE_COLOR"],
             L["FOCUS_INTEGRATION_RARE_COLOR_DESC"],
@@ -538,7 +555,7 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
         -- ----------------------------------------------------------------
         -- SilverDragon — card hidden when companion bridge is absent.
         -- ----------------------------------------------------------------
-        Section(L["FOCUS_INTEGRATION_SILVERDRAGON"], { visibleWhen = SilverDragonIntegrationLoaded }),
+        Section(L["FOCUS_INTEGRATION_SILVERDRAGON"], { visibleWhen = SilverDragonIntegrationLoaded, page = "integrations", card = "silverDragon", desc = L["FOCUS_INTEGRATION_SILVERDRAGON_DESC"] }),
         { type = "header", name = L["FOCUS_INTEGRATION_SILVERDRAGON_COMPANION"] },
 
         Toggle(
@@ -596,6 +613,7 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             }
         ),
 
+        Section(SubCard(L["FOCUS_INTEGRATION_SILVERDRAGON"], L["FOCUS_INTEGRATION_CARD_MAP"]), { visibleWhen = SilverDragonIntegrationLoaded, page = "integrations", card = "sdMap", subheading = L["FOCUS_INTEGRATION_SUB_WAYPOINTS"] }),
         Toggle(
             L["FOCUS_INTEGRATION_RARE_SHOW_COORDS"],
             L["FOCUS_INTEGRATION_RARE_SHOW_COORDS_DESC"],
@@ -659,6 +677,7 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             }
         ),
 
+        Section(L["FOCUS_INTEGRATION_SILVERDRAGON"], { visibleWhen = SilverDragonIntegrationLoaded, page = "integrations", card = "silverDragon" }),
         Toggle(
             L["FOCUS_INTEGRATION_RARE_SHOW_SEEN_AGO"],
             L["FOCUS_INTEGRATION_RARE_SHOW_SEEN_AGO_DESC"],
@@ -675,6 +694,7 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             }
         ),
 
+        Section(L["FOCUS_INTEGRATION_SUB_PORTRAIT"], { visibleWhen = SilverDragonIntegrationLoaded, page = "integrations", card = "sdMap" }),
         Toggle(
             L["FOCUS_INTEGRATION_RARE_SHOW_PORTRAIT"],
             L["FOCUS_INTEGRATION_RARE_SHOW_PORTRAIT_DESC"],
@@ -749,6 +769,7 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             }
         ),
 
+        Section(L["FOCUS_INTEGRATION_SILVERDRAGON"], { visibleWhen = SilverDragonIntegrationLoaded, page = "integrations", card = "silverDragon", subheading = false }),
         Toggle(
             L["FOCUS_INTEGRATION_SILVERDRAGON_SHOW_RARES"],
             L["FOCUS_INTEGRATION_SILVERDRAGON_SHOW_RARES_DESC"],
@@ -781,6 +802,7 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             }
         ),
 
+        Section(SubCard(L["FOCUS_INTEGRATION_SILVERDRAGON"], L["FOCUS_INTEGRATION_CARD_ALERTS"]), { visibleWhen = SilverDragonIntegrationLoaded, page = "integrations", card = "sdAlerts" }),
         Color(
             L["FOCUS_INTEGRATION_RARE_COLOR"],
             L["FOCUS_INTEGRATION_RARE_COLOR_DESC"],
@@ -823,6 +845,8 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             {
                 id       = "sd_navArrowSize",
                 disabled = SDDisabled,
+                -- One shared key: shown here only when RareScanner's card is not showing it.
+                visibleWhen = function() return not RareScannerIntegrationLoaded() end,
                 set      = function(v)
                     setDB("rareNavArrowSize", v)
                     if addon.ScheduleRefresh then addon.ScheduleRefresh() end

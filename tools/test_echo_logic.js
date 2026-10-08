@@ -4363,6 +4363,7 @@ run(`
   A.OptionsData_SetDB = function(k, v) db[k] = v end
   local function merge(t, o) if o then for k, v in pairs(o) do t[k] = v end end return t end
   A.Section = function(n) return { type = "section", name = n } end
+  A.RegisterModulePages = function() end
   A.Button = function(n, d, f, o) return merge({ type = "button", name = n, desc = d, onClick = f }, o) end
   A.Toggle = function(n, d, key, def, o) return merge({ type = "toggle", name = n, desc = d, dbKey = key,
     get = function() return A.OptionsData_GetDB(key, def) end, set = function(v) A.OptionsData_SetDB(key, v) end }, o) end
@@ -4405,8 +4406,20 @@ run(`
   keys.echoMaxTiles.set(1)
   check("max tiles at least two", A.OptionsData_GetDB("echoMaxTiles") == 2, A.OptionsData_GetDB("echoMaxTiles"))
   check("guild tier default", keys.echoTierGuild.get() == "quiet", keys.echoTierGuild.get())
+  -- A row's parent and parentIs fields decide when it shows (see options/OptionsAssemble.lua):
+  -- value from the parent row's get; nil = truthy, boolean = truthiness, function = predicate, else equality.
+  local function childShown(row)
+    local v = keys[row.parent].get()
+    local want = row.parentIs
+    if want == nil then return v and true or false end
+    if type(want) == "boolean" then return (v and true or false) == want end
+    if type(want) == "function" then return want(v) and true or false end
+    return v == want
+  end
+  check("loot tier nests under its feed toggle", keys.echoTierLoot.parent == "echoFeedLoot" and keys.echoTierLoot.visibleWhen == nil, tostring(keys.echoTierLoot.parent))
+  check("loot tier shown with its feed on", childShown(keys.echoTierLoot) == true, "hidden")
   A.OptionsData_SetDB("echoFeedLoot", false)
-  check("loot tier hidden with its feed off", keys.echoTierLoot.visibleWhen() == false, "shown")
+  check("loot tier hidden with its feed off", childShown(keys.echoTierLoot) == false, "shown")
   check("keyword box tooltip, not desc", keys.echoKeywords.tooltip == A.L["ECHO_KEYWORDS_DESC"], keys.echoKeywords.tooltip)
 
   local edgeValues = {}
@@ -4418,20 +4431,22 @@ run(`
   for _, o in ipairs(keys.echoHistoryDays.options) do historyDaysValues[#historyDaysValues + 1] = o[2] end
   check("history days dropdown lists 7, 30, 90 and Forever", table.concat(historyDaysValues, ",") == "7,30,90,0",
       table.concat(historyDaysValues, ","))
-  check("guild history toggle hides with saving off", keys.echoSaveGuild.visibleWhen ~= nil, "no visibleWhen")
+  check("guild history toggle hides with saving off", keys.echoSaveGuild.parent == "echoSaveHistory" and keys.echoSaveGuild.visibleWhen == nil, tostring(keys.echoSaveGuild.parent))
   A.OptionsData_SetDB("echoSaveHistory", false)
-  check("guild toggle hidden with history off", keys.echoSaveGuild.visibleWhen() == false, "shown")
-  check("officer toggle hidden with history off", keys.echoSaveOfficer.visibleWhen() == false, "shown")
+  check("guild toggle hidden with history off", childShown(keys.echoSaveGuild) == false, "shown")
+  check("officer toggle hidden with history off", childShown(keys.echoSaveOfficer) == false, "shown")
+  check("officer toggle shown with history on", (function() A.OptionsData_SetDB("echoSaveHistory", true); return childShown(keys.echoSaveOfficer) end)() == true, "hidden")
   A.OptionsData_SetDB("echoSaveHistory", nil)
+  check("input-always-visible nests under dock input", keys.echoInputAlwaysVisible.parent == "echoDockInput", tostring(keys.echoInputAlwaysVisible.parent))
   local combat = keys.echoCombatLog
-  check("combat log choice shown by default, with hiding on", combat and combat.visibleWhen
-      and combat.visibleWhen() == true, "hidden")
+  check("combat log choice shown by default, with hiding on", combat and combat.parent == "echoHideBlizzardChat"
+      and childShown(combat) == true, "hidden")
   A.OptionsData_SetDB("echoHideBlizzardChat", false)
-  check("combat log choice hidden while Blizzard chat shows", combat and combat.visibleWhen
-      and combat.visibleWhen() == false, "shown")
+  check("combat log choice hidden while Blizzard chat shows", combat and combat.parent == "echoHideBlizzardChat"
+      and childShown(combat) == false, "shown")
   A.OptionsData_SetDB("echoHideBlizzardChat", true)
-  check("combat log choice shown while hiding", combat and combat.visibleWhen
-      and combat.visibleWhen() == true, "hidden")
+  check("combat log choice shown while hiding", combat and combat.parent == "echoHideBlizzardChat"
+      and childShown(combat) == true, "hidden")
   A.OptionsData_SetDB("echoHideBlizzardChat", nil)
   local combatValues = {}
   for _, o in ipairs(combat and combat.options or {}) do combatValues[#combatValues + 1] = o[2] end
@@ -6671,10 +6686,10 @@ run(`
   local function has(key, text) return type(EN[key]) == "string" and EN[key]:find(text, 1, true) ~= nil end
   check("Clear's description mentions pinned messages", has("ECHO_CLEAR_HISTORY_DESC", "your pinned messages"), EN.ECHO_CLEAR_HISTORY_DESC)
   check("Clear's confirmation mentions pinned messages", has("ECHO_CLEAR_HISTORY_CONFIRM", "your pinned messages"), EN.ECHO_CLEAR_HISTORY_CONFIRM)
-  check("Save chat history's description", EN.ECHO_SAVE_HISTORY_DESC == "Keep the last 100 whispers with each person between sessions, and reopen recent tiles after a reload. Guild chat is saved too, and officer chat when switched on below. Messages the game hides are never saved.", EN.ECHO_SAVE_HISTORY_DESC)
+  check("Save chat history says 100 whispers", has("ECHO_SAVE_HISTORY_DESC", "100 whispers"), EN.ECHO_SAVE_HISTORY_DESC)
   check("Save guild chat says 200 lines", has("ECHO_SAVE_GUILD_DESC", "200"), EN.ECHO_SAVE_GUILD_DESC)
   check("Save guild chat says every character in the guild shares it", has("ECHO_SAVE_GUILD_DESC", "every character in the same guild"), EN.ECHO_SAVE_GUILD_DESC)
-  check("Keep history for names column pins and message pins", has("ECHO_HISTORY_DAYS_DESC", "Conversations pinned to the column are always kept, and pinned messages are never dropped."), EN.ECHO_HISTORY_DAYS_DESC)
+  check("Keep history for names column pins and message pins", has("ECHO_HISTORY_DAYS_DESC", "Pinned chats and pinned messages are always kept."), EN.ECHO_HISTORY_DAYS_DESC)
   check("Keep history for drops the old wording", not has("ECHO_HISTORY_DAYS_DESC", "A pinned conversation"), EN.ECHO_HISTORY_DAYS_DESC)
   check("Keep history for still says when it takes effect", has("ECHO_HISTORY_DAYS_DESC", "next login"), EN.ECHO_HISTORY_DAYS_DESC)
 `, 'echo-copy');
@@ -6963,6 +6978,7 @@ run(`
   A.OptionsData_SetDB = function(k, v) db[k] = v end
   local function merge(t, o) if o then for k, v in pairs(o) do t[k] = v end end return t end
   A.Section = function(n) return { type = "section", name = n } end
+  A.RegisterModulePages = function() end
   A.Button = function(n, d, f, o) return merge({ type = "button", name = n, desc = d, onClick = f }, o) end
   A.Toggle = function(n, d, key, def, o) return merge({ type = "toggle", name = n, desc = d, dbKey = key,
     get = function() return A.OptionsData_GetDB(key, def) end, set = function(v) A.OptionsData_SetDB(key, v) end }, o) end

@@ -182,7 +182,9 @@ function addon.DashboardSidebar_CreateChrome(p)
         logoSep:SetPoint("LEFT", sidebar, "LEFT", SIDEBAR_CONTENT_X_INSET, 0)
         logoSep:SetPoint("RIGHT", sidebar, "RIGHT", -SIDEBAR_CONTENT_X_INSET, 0)
         sidebarScrollFrame:ClearAllPoints()
-        sidebarScrollFrame:SetPoint("TOPLEFT", logoSep, "BOTTOMLEFT", 0, -10)
+        -- Full sidebar width (logoSep is inset), so scrolling rows line up with the pinned rows
+        -- and their selection fill stays inside the divider.
+        sidebarScrollFrame:SetPoint("TOPLEFT", logoSep, "BOTTOMLEFT", -SIDEBAR_CONTENT_X_INSET, -10)
         sidebarScrollFrame:SetPoint("BOTTOMRIGHT", sidebar, "BOTTOMRIGHT", -1, 10 + SIDEBAR_WHATSNEW_RESERVE)
     end
 
@@ -260,64 +262,183 @@ function addon.DashboardSidebar_CreateChrome(p)
         end
     end
 
+    -- Motion for the sidebar: hover fills fade, the selection pill slides between rows, group
+    -- page lists ease open and shut, and the chevrons turn. All of it runs on the shared
+    -- OptionsWidgets tween runner; a hidden sidebar jumps every tween to its end.
+    local StartTween = addon.OptionsWidgets_StartTween
+    local StopTween = addon.OptionsWidgets_StopTween
+    local Lerp = addon.OptionsWidgets_Lerp or function(a, b, t) return a + (b - a) * t end
+    local HOVER_DUR = (addon.OptionsWidgetsDef and addon.OptionsWidgetsDef.MotionFast) or 0.12
+    local SLIDE_DUR = 0.2
+    local function Tween(frame, dur, onStep, onFinish)
+        if StartTween then
+            StartTween(frame, dur, onStep, onFinish)
+        else
+            onStep(1)
+            if onFinish then onFinish() end
+        end
+    end
+
+    -- The accent colour as the widgets currently use it (class colour when the theme is on).
+    local function AccentRGB()
+        local c = addon.OptionsWidgetsDef and addon.OptionsWidgetsDef.AccentColor
+        if c then return c[1], c[2], c[3] end
+        return GetAccentColor()
+    end
+
+    -- Selection and hover fill for a sidebar row: a rounded rect with a margin at each side (the
+    -- OptionsWidgets rounded paint, flat when Echo.Round is missing). SetColorTexture(r, g, b, a)
+    -- paints at once, as a texture would; FadeTo(r, g, b, a) eases there from what is on screen.
+    -- The host sits one level under the button so the button's icon and label draw over it.
+    local SIDEBAR_HOVER_FILL = { 1, 1, 1, 0.05 }
+    local function MakeSelectionFill(btn, radius)
+        local host = CreateFrame("Frame", nil, btn)
+        host:SetPoint("TOPLEFT", btn, "TOPLEFT", 6, -1)
+        host:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", -6, 1)
+        host:SetFrameLevel(math.max(0, btn:GetFrameLevel() - 1))
+        local paint = addon.OptionsWidgets_PaintRounded(host, radius or 8, "BACKGROUND")
+        local cur = { 0, 0, 0, 0 }
+        local function set(r, g, b, a)
+            cur[1], cur[2], cur[3], cur[4] = r, g, b, a
+            paint(r, g, b, a)
+        end
+        set(0, 0, 0, 0)
+        local fill = { host = host }
+        function fill:SetColorTexture(r, g, b, a)
+            if StopTween then StopTween(host) end
+            set(r, g, b, a or 1)
+        end
+        function fill:FadeTo(r, g, b, a)
+            a = a or 1
+            local fr, fg, fb, fa = cur[1], cur[2], cur[3], cur[4]
+            -- Fading in from clear or out to clear moves only the opacity, never the hue.
+            if fa == 0 then fr, fg, fb = r, g, b end
+            if a == 0 then r, g, b = fr, fg, fb end
+            Tween(host, HOVER_DUR, function(e)
+                set(Lerp(fr, r, e), Lerp(fg, g, e), Lerp(fb, b, e), Lerp(fa, a, e))
+            end)
+        end
+        return fill
+    end
+
+    -- Unselected sidebar text and icons: the muted token, no box.
+    local MUTED_R, MUTED_G, MUTED_B = 0.65, 0.65, 0.7
+    do
+        local c = addon.OptionsWidgetsDef and addon.OptionsWidgetsDef.TextColorMuted
+        if c then MUTED_R, MUTED_G, MUTED_B = c[1], c[2], c[3] end
+    end
+    local HOVER_R, HOVER_G, HOVER_B = 0.9, 0.9, 0.95
+    -- A module header while you are on one of its pages: a step brighter than idle.
+    local CURRENT_R, CURRENT_G, CURRENT_B = 0.85, 0.85, 0.9
+
+    -- Colour a row's label, icon and chevron together. A module row's icon keeps its module
+    -- colour instead: softer while the row is idle, full strength on hover or when selected.
+    local function TintRow(btn, r, g, b)
+        if btn.label then btn.label:SetTextColor(r, g, b, 1) end
+        if btn.icon then
+            local c = btn._iconRGB
+            if c then
+                btn.icon:SetVertexColor(c[1], c[2], c[3], (r + g + b) >= 2.5 and 1 or 0.8)
+            else
+                btn.icon:SetVertexColor(r, g, b, 1)
+            end
+        end
+        if btn.chevron then btn.chevron:SetTextColor(r, g, b, 1) end
+    end
+
+    -- A row's colours at rest: the module header you are inside is a step brighter.
+    local function RestTint(btn)
+        if btn._current then return CURRENT_R, CURRENT_G, CURRENT_B end
+        return MUTED_R, MUTED_G, MUTED_B
+    end
+
+    -- Hover in and out for a row that is not the selected one.
+    local function RowHover(btn, over)
+        if btn == dashSession.activeSidebarBtn then return end
+        if over then
+            btn.btnBg:FadeTo(SIDEBAR_HOVER_FILL[1], SIDEBAR_HOVER_FILL[2], SIDEBAR_HOVER_FILL[3], SIDEBAR_HOVER_FILL[4])
+        else
+            btn.btnBg:FadeTo(0, 0, 0, 0)
+        end
+        if btn._patchNotesSidebarRowStyle and addon.PatchNotes_ApplyWhatsNewSidebarRowStyle then
+            addon.PatchNotes_ApplyWhatsNewSidebarRowStyle(btn, btn.label, btn.icon, over)
+        elseif over then
+            TintRow(btn, HOVER_R, HOVER_G, HOVER_B)
+        else
+            TintRow(btn, RestTint(btn))
+        end
+    end
+
+    -- Badges: a small rounded tag at the right of a row. kind "accent" (New) tints with the
+    -- accent; "muted" (Off) is neutral. text nil removes it. A button's label stops short of it.
+    local badges = {}
+    local function PaintBadge(bd)
+        -- Width follows the text, which a dashboard font change can resize.
+        bd:SetWidth(math.ceil((bd.text:GetStringWidth() or 20) + 12))
+        if bd.kind == "muted" then
+            bd.paint(1, 1, 1, 0.08)
+            bd.text:SetTextColor(MUTED_R, MUTED_G, MUTED_B, 1)
+        else
+            local r, g, b = AccentRGB()
+            bd.paint(r, g, b, 0.24)
+            bd.text:SetTextColor(r + (1 - r) * 0.55, g + (1 - g) * 0.55, b + (1 - b) * 0.55, 1)
+        end
+    end
+    local function SetRowBadge(btn, text, kind)
+        if not btn then return end
+        local bd = btn.badge
+        local lbl = btn.label
+        if not text or text == "" then
+            if bd then bd:Hide() end
+            if lbl and btn._labelRightInset then lbl:SetPoint("RIGHT", btn, "RIGHT", btn._labelRightInset, 0) end
+            return
+        end
+        if not bd then
+            bd = CreateFrame("Frame", nil, btn)
+            bd:SetHeight(15)
+            bd:SetPoint("RIGHT", btn, "RIGHT", -14, 0)
+            bd.paint = addon.OptionsWidgets_PaintRounded(bd, 7, "BACKGROUND")
+            bd.text = MakeText(bd, "", 9, 1, 1, 1, "CENTER")
+            bd.text:SetPoint("CENTER", bd, "CENTER", 0, 0)
+            btn.badge = bd
+            badges[#badges + 1] = bd
+        end
+        bd.kind = kind or "accent"
+        bd.text:SetText(text)
+        PaintBadge(bd)
+        bd:Show()
+        if lbl and btn._labelRightInset then lbl:SetPoint("RIGHT", bd, "LEFT", -4, 0) end
+    end
+    addon.DashboardSidebar_SetRowBadge = SetRowBadge
+
     local function CreateSidebarButton(parent, label, iconName, onClick, indentPx, noHover)
         indentPx = indentPx or 0
         parent = parent or sidebarScrollContent
         local btn = CreateFrame("Button", nil, parent)
         btn:SetSize(SIDEBAR_WIDTH - 1, TAB_ROW_HEIGHT)
 
-        local btnBg = btn:CreateTexture(nil, "BACKGROUND")
-        btnBg:SetAllPoints()
-        btnBg:SetColorTexture(0, 0, 0, 0)
+        local btnBg = MakeSelectionFill(btn, indentPx > 0 and 6 or 8)
         btn.btnBg = btnBg
-
-        local accentBar = btn:CreateTexture(nil, "ARTWORK")
-        accentBar:SetSize(3, 22)
-        accentBar:SetPoint("LEFT", 4 + indentPx, 0)
-        local sar, sag, sab = GetAccentColor()
-        accentBar:SetColorTexture(sar, sag, sab, 1)
-        accentBar:Hide()
-        btn.accentBar = accentBar
-        tinsert(dashAccentRefs.sidebarBars, accentBar)
 
         if iconName then
             local ic = btn:CreateTexture(nil, "ARTWORK")
             ic:SetSize(16, 16)
             ic:SetPoint("LEFT", indentPx + 14, 0)
             ApplySidebarButtonIconTexture(ic, iconName)
-            ic:SetVertexColor(0.6, 0.6, 0.65, 1)
+            ic:SetVertexColor(MUTED_R, MUTED_G, MUTED_B, 1)
             btn.icon = ic
         end
 
-        local lbl = MakeText(btn, label, 11, 0.65, 0.65, 0.7, "LEFT")
+        local lbl = MakeText(btn, label, 11, MUTED_R, MUTED_G, MUTED_B, "LEFT")
         lbl:SetPoint("LEFT", indentPx + (iconName and 36 or 14), 0)
         lbl:SetPoint("RIGHT", -8, 0)
         lbl:SetWordWrap(false)
         btn.label = lbl
+        btn._labelRightInset = -8
 
         if not noHover then
-            btn:SetScript("OnEnter", function()
-                if btn ~= dashSession.activeSidebarBtn then
-                    btnBg:SetColorTexture(0.1, 0.1, 0.12, DASHBOARD_CHILD_PANEL_ALPHA)
-                    if btn._patchNotesSidebarRowStyle and addon.PatchNotes_ApplyWhatsNewSidebarRowStyle then
-                        addon.PatchNotes_ApplyWhatsNewSidebarRowStyle(btn, lbl, btn.icon, true)
-                    else
-                        lbl:SetTextColor(0.9, 0.9, 0.95)
-                        if btn.icon then btn.icon:SetVertexColor(0.9, 0.9, 0.95, 1) end
-                    end
-                end
-            end)
-            btn:SetScript("OnLeave", function()
-                if btn ~= dashSession.activeSidebarBtn then
-                    btnBg:SetColorTexture(0, 0, 0, 0)
-                    if btn._patchNotesSidebarRowStyle and addon.PatchNotes_ApplyWhatsNewSidebarRowStyle then
-                        addon.PatchNotes_ApplyWhatsNewSidebarRowStyle(btn, lbl, btn.icon, false)
-                    else
-                        lbl:SetTextColor(0.65, 0.65, 0.7)
-                        if btn.icon then btn.icon:SetVertexColor(0.6, 0.6, 0.65, 1) end
-                    end
-                end
-            end)
+            btn:SetScript("OnEnter", function() RowHover(btn, true) end)
+            btn:SetScript("OnLeave", function() RowHover(btn, false) end)
         end
         btn:SetScript("OnClick", function()
             if onClick then onClick() end
@@ -333,58 +454,37 @@ function addon.DashboardSidebar_CreateChrome(p)
         btn:SetSize(SIDEBAR_WIDTH - 1, TAB_ROW_HEIGHT)
         btn:SetPoint("BOTTOMLEFT", sidebar, "BOTTOMLEFT", 0, yFromBottom)
         btn:SetPoint("BOTTOMRIGHT", sidebar, "BOTTOMRIGHT", -1, yFromBottom)
+        -- Pinned rows sit outside the scroll area, so they keep their own fill and accent bar
+        -- for selection instead of the sliding pill.
+        btn._pinned = true
 
-        local btnBg = btn:CreateTexture(nil, "BACKGROUND")
-        btnBg:SetAllPoints()
-        btnBg:SetColorTexture(0, 0, 0, 0)
+        local btnBg = MakeSelectionFill(btn, 8)
         btn.btnBg = btnBg
-
-        local accentBar = btn:CreateTexture(nil, "ARTWORK")
-        accentBar:SetSize(3, 22)
-        accentBar:SetPoint("LEFT", 4, 0)
-        local sar, sag, sab = GetAccentColor()
-        accentBar:SetColorTexture(sar, sag, sab, 1)
-        accentBar:Hide()
-        btn.accentBar = accentBar
-        tinsert(dashAccentRefs.sidebarBars, accentBar)
+        local selBar = btnBg.host:CreateTexture(nil, "ARTWORK")
+        selBar:SetWidth(3)
+        selBar:SetPoint("TOPLEFT", btnBg.host, "TOPLEFT", 2, -9)
+        selBar:SetPoint("BOTTOMLEFT", btnBg.host, "BOTTOMLEFT", 2, 9)
+        selBar:Hide()
+        btn.selBar = selBar
 
         if iconName then
             local ic = btn:CreateTexture(nil, "ARTWORK")
             ic:SetSize(16, 16)
             ic:SetPoint("LEFT", 14, 0)
             ApplySidebarButtonIconTexture(ic, iconName)
-            ic:SetVertexColor(0.6, 0.6, 0.65, 1)
+            ic:SetVertexColor(MUTED_R, MUTED_G, MUTED_B, 1)
             btn.icon = ic
         end
 
-        local lbl = MakeText(btn, label, 11, 0.65, 0.65, 0.7, "LEFT")
+        local lbl = MakeText(btn, label, 11, MUTED_R, MUTED_G, MUTED_B, "LEFT")
         lbl:SetPoint("LEFT", iconName and 36 or 14, 0)
         lbl:SetPoint("RIGHT", -8, 0)
         lbl:SetWordWrap(false)
         btn.label = lbl
+        btn._labelRightInset = -8
 
-        btn:SetScript("OnEnter", function()
-            if btn ~= dashSession.activeSidebarBtn then
-                btnBg:SetColorTexture(0.1, 0.1, 0.12, DASHBOARD_CHILD_PANEL_ALPHA)
-                if btn._patchNotesSidebarRowStyle and addon.PatchNotes_ApplyWhatsNewSidebarRowStyle then
-                    addon.PatchNotes_ApplyWhatsNewSidebarRowStyle(btn, lbl, btn.icon, true)
-                else
-                    lbl:SetTextColor(0.9, 0.9, 0.95)
-                    if btn.icon then btn.icon:SetVertexColor(0.9, 0.9, 0.95, 1) end
-                end
-            end
-        end)
-        btn:SetScript("OnLeave", function()
-            if btn ~= dashSession.activeSidebarBtn then
-                btnBg:SetColorTexture(0, 0, 0, 0)
-                if btn._patchNotesSidebarRowStyle and addon.PatchNotes_ApplyWhatsNewSidebarRowStyle then
-                    addon.PatchNotes_ApplyWhatsNewSidebarRowStyle(btn, lbl, btn.icon, false)
-                else
-                    lbl:SetTextColor(0.65, 0.65, 0.7)
-                    if btn.icon then btn.icon:SetVertexColor(0.6, 0.6, 0.65, 1) end
-                end
-            end
-        end)
+        btn:SetScript("OnEnter", function() RowHover(btn, true) end)
+        btn:SetScript("OnLeave", function() RowHover(btn, false) end)
         btn:SetScript("OnClick", function()
             if onClick then onClick() end
         end)
@@ -392,36 +492,240 @@ function addon.DashboardSidebar_CreateChrome(p)
         return btn
     end
 
+    -- One selection pill for every scrolling row (Welcome, News, module headers and pages). It
+    -- slides from the row it was on to the new one, growing or shrinking to the new row's height.
+    -- It sits at the scroll content's own level, under every row, so labels draw over it.
+    local selPill = CreateFrame("Frame", nil, sidebarScrollContent)
+    selPill:SetFrameLevel(sidebarScrollContent:GetFrameLevel())
+    local paintPill = addon.OptionsWidgets_PaintRounded(selPill, 8, "BACKGROUND")
+    local pillBar = selPill:CreateTexture(nil, "ARTWORK")
+    pillBar:SetWidth(3)
+    pillBar:SetPoint("TOPLEFT", selPill, "TOPLEFT", 2, -9)
+    pillBar:SetPoint("BOTTOMLEFT", selPill, "BOTTOMLEFT", 2, 9)
+    selPill:Hide()
+    local pillTarget, pillSliding
+
+    local function PaintSelection()
+        local sel = addon.OptionsWidgetsDef.SidebarSelectedBg
+        paintPill(sel[1], sel[2], sel[3], sel[4])
+        local r, g, b = AccentRGB()
+        pillBar:SetColorTexture(r, g, b, 1)
+        local active = dashSession.activeSidebarBtn
+        if active and active._pinned then
+            active.btnBg:SetColorTexture(sel[1], sel[2], sel[3], sel[4])
+            active.selBar:SetColorTexture(r, g, b, 1)
+        end
+        for _, bd in ipairs(badges) do PaintBadge(bd) end
+    end
+    -- Called when the class theme changes the accent.
+    dashSession.RefreshSidebarSelection = PaintSelection
+
+    -- dy shifts the pill up (positive) from its resting place on btn. With no dy it rests on the
+    -- row, anchored top and bottom, so it follows the row if the row's height changes later.
+    local function PlacePill(btn, dy, h)
+        selPill:ClearAllPoints()
+        if not dy then
+            selPill:SetPoint("TOPLEFT", btn, "TOPLEFT", 6, -1)
+            selPill:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", -6, 1)
+            return
+        end
+        selPill:SetPoint("TOPLEFT", btn, "TOPLEFT", 6, -1 + dy)
+        selPill:SetPoint("TOPRIGHT", btn, "TOPRIGHT", -6, -1 + dy)
+        selPill:SetHeight(math.max(1, h))
+    end
+
+    local function MovePill(btn)
+        local h = (btn:GetHeight() or 0) - 2
+        if pillTarget == btn and selPill:IsShown() then
+            if not pillSliding then
+                PlacePill(btn)
+                selPill:SetAlpha(1)
+            end
+            return
+        end
+        local wasShown = selPill:IsShown() and (selPill:GetAlpha() or 0) > 0
+        local fromTop, toTop = selPill:GetTop(), btn:GetTop()
+        local fromH, fromA = selPill:GetHeight() or h, selPill:GetAlpha() or 0
+        pillTarget = btn
+        selPill:Show()
+        if wasShown and fromTop and toTop then
+            -- Slide: start where the pill is on screen, ease to rest on the new row.
+            local dy0 = fromTop - (toTop - 1)
+            pillSliding = true
+            Tween(selPill, SLIDE_DUR, function(e)
+                PlacePill(btn, Lerp(dy0, 0, e), Lerp(fromH, h, e))
+                selPill:SetAlpha(Lerp(fromA, 1, e))
+            end, function()
+                pillSliding = nil
+                PlacePill(btn)
+            end)
+        else
+            -- Nothing selected in the scroll area before: fade in on the row.
+            PlacePill(btn)
+            selPill:SetAlpha(0)
+            pillSliding = nil
+            Tween(selPill, HOVER_DUR, function(e) selPill:SetAlpha(e) end)
+        end
+    end
+
+    local function HidePill()
+        pillTarget, pillSliding = nil, nil
+        if not selPill:IsShown() then return end
+        local a0 = selPill:GetAlpha() or 1
+        Tween(selPill, HOVER_DUR, function(e) selPill:SetAlpha(Lerp(a0, 0, e)) end, function() selPill:Hide() end)
+    end
+
     local function SetActiveSidebarButton(btn)
-        if dashSession.activeSidebarBtn then
-            local prev = dashSession.activeSidebarBtn
-            prev.btnBg:SetColorTexture(0, 0, 0, 0)
+        local prev = dashSession.activeSidebarBtn
+        if prev and prev ~= btn then
+            if prev._pinned then
+                prev.btnBg:FadeTo(0, 0, 0, 0)
+                prev.selBar:Hide()
+            else
+                prev.btnBg:SetColorTexture(0, 0, 0, 0)
+            end
             if prev._patchNotesSidebarRowStyle and addon.PatchNotes_ApplyWhatsNewSidebarRowStyle then
                 addon.PatchNotes_ApplyWhatsNewSidebarRowStyle(prev, prev.label, prev.icon, false)
-            elseif prev.chevron then
-                prev.label:SetTextColor(0.55, 0.55, 0.65, 1)
-                prev.chevron:SetTextColor(0.55, 0.55, 0.65, 1)
             else
-                prev.label:SetTextColor(0.65, 0.65, 0.7)
-                if prev.icon then prev.icon:SetVertexColor(0.6, 0.6, 0.65, 1) end
+                TintRow(prev, RestTint(prev))
             end
-            prev.accentBar:Hide()
         end
         dashSession.activeSidebarBtn = btn
-        if btn then
-            local bar, bag, bab = GetAccentColor()
-            btn.btnBg:SetColorTexture(bar * 0.15, bag * 0.15, bab * 0.15, DASHBOARD_CHILD_PANEL_ALPHA)
-            if btn._patchNotesSidebarRowStyle and addon.PatchNotes_ApplyWhatsNewSidebarRowStyle then
-                addon.PatchNotes_ApplyWhatsNewSidebarRowStyle(btn, btn.label, btn.icon, false)
-            else
-                btn.label:SetTextColor(1, 1, 1)
-                if btn.icon then btn.icon:SetVertexColor(1, 1, 1, 1) end
-                if btn.chevron then
-                    btn.chevron:SetTextColor(1, 1, 1, 1)
-                end
-            end
-            btn.accentBar:Show()
+        if not btn then
+            HidePill()
+            return
         end
+        -- Selected: a rounded accent fill (SidebarSelectedBg, the accent at about 16%) with a
+        -- thin accent bar at its left edge, and white text.
+        local sel = addon.OptionsWidgetsDef.SidebarSelectedBg
+        if btn._pinned then
+            HidePill()
+            if prev ~= btn then btn.btnBg:FadeTo(sel[1], sel[2], sel[3], sel[4]) end
+            local r, g, b = AccentRGB()
+            btn.selBar:SetColorTexture(r, g, b, 1)
+            btn.selBar:Show()
+        else
+            btn.btnBg:SetColorTexture(0, 0, 0, 0)
+            local r, g, b = AccentRGB()
+            paintPill(sel[1], sel[2], sel[3], sel[4])
+            pillBar:SetColorTexture(r, g, b, 1)
+            MovePill(btn)
+        end
+        if btn._patchNotesSidebarRowStyle and addon.PatchNotes_ApplyWhatsNewSidebarRowStyle then
+            addon.PatchNotes_ApplyWhatsNewSidebarRowStyle(btn, btn.label, btn.icon, false)
+        else
+            TintRow(btn, 1, 1, 1)
+        end
+    end
+
+    -- A drawn chevron (two short lines) that turns from pointing right (closed) to pointing down
+    -- (open). It answers SetText("+" closed, "-" open) and SetTextColor like the text glyph it
+    -- replaces, so the callers need no change. Falls back to that glyph where lines are missing.
+    local function CreateChevron(parent)
+        local ch = CreateFrame("Frame", nil, parent)
+        if not ch.CreateLine then
+            ch:Hide()
+            local fs = MakeText(parent, "+", 11, MUTED_R, MUTED_G, MUTED_B, "CENTER")
+            return fs
+        end
+        ch:SetSize(10, 10)
+        local l1, l2 = ch:CreateLine(nil, "OVERLAY"), ch:CreateLine(nil, "OVERLAY")
+        l1:SetThickness(1.5)
+        l2:SetThickness(1.5)
+        local s = 2.25      -- half the chevron's depth; its arms are 2s long each way
+        local turn = 0      -- 0 points right, 1 points down
+        local function draw(t)
+            turn = t
+            local a = t * math.pi / 2
+            local c, si = math.cos(a), math.sin(a)
+            -- ">" around the centre (tip (s, 0), ends (-s, +-2s)), turned clockwise by a.
+            local function pt(x, y) return x * c + y * si, -x * si + y * c end
+            local tx, ty = pt(s, 0)
+            local ax, ay = pt(-s, 2 * s)
+            local bx, by = pt(-s, -2 * s)
+            l1:SetStartPoint("CENTER", ch, ax, ay)
+            l1:SetEndPoint("CENTER", ch, tx, ty)
+            l2:SetStartPoint("CENTER", ch, bx, by)
+            l2:SetEndPoint("CENTER", ch, tx, ty)
+        end
+        local open
+        function ch:SetText(txt)
+            local want = (txt == "-")
+            if want == open then return end
+            local first = (open == nil)
+            open = want
+            local from, to = turn, want and 1 or 0
+            if first then draw(to) return end
+            Tween(ch, SLIDE_DUR, function(e) draw(Lerp(from, to, e)) end)
+        end
+        function ch:SetTextColor(r, g, b, a)
+            l1:SetColorTexture(r, g, b, a or 1)
+            l2:SetColorTexture(r, g, b, a or 1)
+        end
+        ch:SetTextColor(MUTED_R, MUTED_G, MUTED_B, 1)
+        draw(0)
+        return ch
+    end
+
+    -- Open or close a group's page list by easing its height and fading it, reflowing the
+    -- sidebar each frame through relayout. Also stores the state and turns the chevron. A module
+    -- that is turned off always stays closed.
+    -- noStore leaves the saved open/closed state alone (closing a module that was turned off).
+    local function AnimateGroup(g, expand, relayout, noStore)
+        local tc = g and g.tabsContainer
+        if not tc then return end
+        local header = g.header
+        if header and header._moduleOff then expand = false end
+        if header and header.groupKey and not noStore then SetGroupCollapsed(header.groupKey, not expand) end
+        if header and header.chevron then header.chevron:SetText(expand and "-" or "+") end
+        local target = expand and (g.fullHeight or 0) or 0
+        local from = tc:GetHeight() or 0
+        if expand then SetGroupChildrenShown(g, true) end
+        local function step(e)
+            local h = Lerp(from, target, e)
+            tc:SetHeight(h)
+            local full = g.fullHeight or 0
+            tc:SetAlpha(full > 0 and math.min(1, h / full) or 1)
+            if header and header.updateSpacer then header.updateSpacer() end
+            if relayout then relayout() end
+        end
+        local function done()
+            tc:SetAlpha(1)
+            if not expand then SetGroupChildrenShown(g, false) end
+        end
+        if math.abs(from - target) < 0.5 then
+            if StopTween then StopTween(tc) end
+            step(1)
+            done()
+            return
+        end
+        Tween(tc, COLLAPSE_ANIM_DUR, step, done)
+    end
+
+    -- A module header's icon, left of its label, in the row icon style. rgb (optional, 0-1)
+    -- is the module colour the icon keeps through every row state (see TintRow).
+    local function AddRowIcon(btn, iconSpec, rgb)
+        if not iconSpec then return end
+        local ic = btn:CreateTexture(nil, "ARTWORK")
+        ic:SetSize(16, 16)
+        ic:SetPoint("LEFT", btn, "LEFT", 14, 0)
+        ApplySidebarButtonIconTexture(ic, iconSpec)
+        btn.icon = ic
+        btn._iconRGB = rgb
+        if rgb then
+            ic:SetVertexColor(rgb[1], rgb[2], rgb[3], 0.8)
+        else
+            ic:SetVertexColor(MUTED_R, MUTED_G, MUTED_B, 1)
+        end
+        return ic
+    end
+
+    -- Show a module header as turned off (dimmed, "Off" tag, no chevron) or as normal.
+    local function SetModuleOff(header, off)
+        header._moduleOff = off and true or nil
+        header:SetAlpha(off and 0.55 or 1)
+        if header.chevron then header.chevron:SetShown(not off) end
+        SetRowBadge(header, off and (addon.L and addon.L["DASH_SIDEBAR_OFF_BADGE"] or "Off") or nil, "muted")
     end
 
     -- ===== END SIDEBAR (chrome) =====
@@ -445,8 +749,18 @@ function addon.DashboardSidebar_CreateChrome(p)
         TAB_ROW_HEIGHT = TAB_ROW_HEIGHT,
         SIDEBAR_WHATSNEW_RESERVE = SIDEBAR_WHATSNEW_RESERVE,
         CreateSidebarButton = CreateSidebarButton,
+        MakeSelectionFill = MakeSelectionFill,
+        sidebarMuted = { MUTED_R, MUTED_G, MUTED_B },
         CreateBottomPinnedButton = CreateBottomPinnedButton,
         SetActiveSidebarButton = SetActiveSidebarButton,
+        TintRow = TintRow,
+        RestTint = RestTint,
+        RowHover = RowHover,
+        CreateChevron = CreateChevron,
+        AnimateGroup = AnimateGroup,
+        AddRowIcon = AddRowIcon,
+        SetModuleOff = SetModuleOff,
+        SetRowBadge = SetRowBadge,
         layoutUnderHeader = layoutUnderHeader,
     }
 end

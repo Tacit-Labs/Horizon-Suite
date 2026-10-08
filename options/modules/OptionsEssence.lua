@@ -22,13 +22,13 @@ local categories = {
         desc      = L["ESSENCE_DESC"],
         moduleKey = "essence",
         options   = {
-            Section(L["AXIS_POSITION"]),
+            Section(L["AXIS_POSITION"], { page = "layout", card = "position" }),
             Toggle(L["ESSENCE_LOCK_POSITION"], L["ESSENCE_LOCK_POSITION_DESC"], "essenceLockPosition", D.essenceLockPosition),
             Button(L["AXIS_RESET_POSITION"], L["ESSENCE_RESET_POSITION_DESC"], function()
                 setDB("essencePoint", D.essencePoint); setDB("essenceX", D.essenceX); setDB("essenceY", D.essenceY)
                 if addon.Essence and addon.Essence.ApplyPosition then addon.Essence.ApplyPosition(true) end
             end),
-            Section(L["DASH_APPEARANCE"]),
+            Section(L["DASH_APPEARANCE"], { page = "general", card = "visibility" }),
             Toggle(L["ESSENCE_PVP_TITLE"],   L["ESSENCE_PVP_TITLE_DESC"],   "essenceShowTitle",     D.essenceShowTitle),
             Toggle(L["ESSENCE_STAT_BARS"],   L["ESSENCE_STAT_BARS_DESC"],   "essenceShowStatBars",  D.essenceShowStatBars),
             Toggle(L["ESSENCE_ILVL_BADGE"],  L["ESSENCE_ILVL_BADGE_DESC"],  "essenceShowIlvlBadge", D.essenceShowIlvlBadge),

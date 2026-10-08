@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard style mockup</title>
+<style>
+  :root{
+    --bg:#0c0c0f; --panel:#141419; --card:#17171d; --card-hi:#1c1c23;
+    --line:rgba(150,160,190,.10); --line-strong:rgba(150,160,190,.18);
+    --text:#e9eaef; --label:#d6d6de; --muted:#8a90a0; --faint:#5d6272;
+    --accent:#7b94d1; --accent-soft:rgba(123,148,209,.16);
+    --input:#101015; --track:#24242d;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font:13px/1.35 "Segoe UI",system-ui,-apple-system,sans-serif}
+  .bar{display:flex;gap:8px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line)}
+  .bar b{font-weight:600;margin-right:auto}
+  .bar button{background:var(--input);color:var(--label);border:1px solid var(--line-strong);border-radius:6px;padding:6px 10px;cursor:pointer;font:inherit}
+  .bar button.on{background:var(--accent-soft);border-color:var(--accent);color:var(--text)}
+  .app{display:grid;grid-template-columns:180px 1fr;min-height:calc(100vh - 49px)}
+  nav{background:var(--panel);padding:14px 10px;border-right:1px solid var(--line)}
+  nav .mod{padding:8px 10px;border-radius:8px;color:var(--muted);margin:2px 0}
+  nav .mod.sel{background:var(--accent-soft);color:var(--text)}
+  nav .sub{padding:6px 10px 6px 26px;color:var(--muted);font-size:12px;border-radius:6px}
+  nav .sub.sel{color:var(--text);background:rgba(255,255,255,.04)}
+  main{padding:24px 32px;max-width:860px}
+  h1{font-size:20px;font-weight:600;margin:0 0 4px}
+  .crumb{color:var(--muted);font-size:12px;margin-bottom:22px}
+
+  /* ---------- NEW STYLE ---------- */
+  .new .card{background:var(--card);border-radius:12px;margin-bottom:14px;overflow:hidden}
+  .new .card-h{display:flex;align-items:center;gap:10px;padding:14px 18px;cursor:pointer}
+  .new .card-h .t{font-size:15px;font-weight:600}
+  .new .card-h .d{color:var(--muted);font-size:12px;margin-left:2px}
+  .new .card-h .chev{margin-left:auto;color:var(--faint);transition:transform .15s}
+  .new .card.closed .chev{transform:rotate(-90deg)}
+  .new .card.closed .body{display:none}
+  .new .body{padding:0 18px 6px}
+  .new .sub-h{font-size:11px;color:var(--muted);letter-spacing:.02em;padding:16px 0 6px;display:flex;align-items:center;gap:10px}
+  .new .sub-h::after{content:"";flex:1;height:1px;background:var(--line)}
+  .new .row{display:flex;align-items:center;gap:16px;padding:11px 0;border-top:1px solid var(--line)}
+  .new .sub-h + .row,.new .body > .row:first-child{border-top:0}
+  .new .row .lbl{flex:1;min-width:0}
+  .new .row .lbl .n{color:var(--label)}
+  .new .row .lbl .h{color:var(--muted);font-size:11.5px;margin-top:2px}
+  .new .row.child .lbl{padding-left:18px;border-left:2px solid var(--accent-soft);margin-left:2px}
+  .new .ctl{display:flex;gap:8px;align-items:center;flex-shrink:0}
+
+  /* controls (shared) */
+  .sw{width:36px;height:20px;border-radius:10px;background:var(--track);position:relative;cursor:pointer;flex-shrink:0}
+  .sw::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:left .12s}
+  .sw.on{background:var(--accent)} .sw.on::after{left:18px}
+  .seg{display:inline-flex;background:var(--input);border-radius:8px;padding:2px;gap:2px}
+  .seg span{padding:5px 11px;border-radius:6px;color:var(--muted);cursor:pointer;font-size:12px;white-space:nowrap}
+  .seg span.on{background:var(--card-hi);color:var(--text);box-shadow:0 0 0 1px var(--line-strong)}
+  .dd{background:var(--input);border-radius:8px;padding:6px 10px;min-width:170px;display:flex;justify-content:space-between;color:var(--label);font-size:12px}
+  .dd::after{content:"▾";color:var(--faint)}
+  .step{display:inline-flex;align-items:center;background:var(--input);border-radius:8px}
+  .step b{padding:5px 9px;color:var(--muted);font-weight:400;cursor:pointer}
+  .step i{font-style:normal;min-width:24px;text-align:center}
+  .sl{display:flex;align-items:center;gap:10px}
+  .sl .tr{width:140px;height:4px;border-radius:2px;background:var(--track);position:relative}
+  .sl .tr::before{content:"";position:absolute;left:0;top:0;bottom:0;width:var(--v);background:var(--accent);border-radius:2px}
+  .sl .tr::after{content:"";position:absolute;left:calc(var(--v) - 7px);top:-5px;width:14px;height:14px;border-radius:50%;background:#fff}
+  .sl i{font-style:normal;color:var(--label);width:30px;text-align:right;font-size:12px}
+  .sw-c{width:22px;height:22px;border-radius:6px;box-shadow:0 0 0 1px var(--line-strong)}
+
+  /* ---------- CURRENT STYLE (approximation) ---------- */
+  .old .card{background:rgba(23,23,28,.96);border:1px solid rgba(46,51,61,.6);border-radius:8px;margin-bottom:30px}
+  .old .card-h{padding:14px 18px;font-size:16px;color:#e6e9f0;display:flex;cursor:pointer;text-transform:none}
+  .old .card-h .chev{margin-left:auto;color:var(--faint)}
+  .old .card.closed .body{display:none}
+  .old .body{padding:4px 30px 26px}
+  .old .sub-h{font-size:11px;color:#94a3bd;padding:10px 0 4px}
+  .old .row{display:flex;align-items:center;min-height:34px;margin:6px 0}
+  .old .row .lbl{flex:1;color:#d6d6e0;text-shadow:0 0 1px #000}
+  .old .row .lbl .h{display:none}
+  .old .row.child{padding-left:20px}
+  .old .ctl{display:flex;gap:8px}
+  .old .dd{border:1px solid rgba(51,56,71,.6);border-radius:3px;width:180px}
+  .old .seg{background:none;padding:0}
+  .old .seg span{display:none}
+  .old .seg span.on{display:block;border:1px solid rgba(51,56,71,.6);background:var(--input);border-radius:3px;width:180px;color:var(--label);box-shadow:none}
+  .old .seg span.on::after{content:" ▾";float:right;color:var(--faint)}
+  .old .step{border:1px solid rgba(51,56,71,.6);border-radius:3px}
+  .note{color:var(--muted);font-size:12px;margin:26px 0 0;max-width:640px}
+</style>
+</head>
+<body>
+<div class="bar"><b>Horizon Suite · dashboard style mockup</b>
+  <button id="bNew" class="on">Proposed</button><button id="bOld">Current (approx.)</button></div>
+<div class="app">
+  <nav>
+    <div class="mod">Axis</div>
+    <div class="mod sel">Focus</div>
+    <div class="sub">General</div><div class="sub">Layout</div><div class="sub sel">Look &amp; Feel</div>
+    <div class="sub">What's tracked</div><div class="sub">Instances</div>
+    <div class="mod">Vista</div><div class="mod">Insight</div><div class="mod">Presence</div><div class="mod">Echo</div><div class="mod">Augment</div>
+  </nav>
+  <main id="page" class="new">
+    <h1>Look &amp; Feel</h1>
+    <div class="crumb">Focus › Look &amp; Feel</div>
+
+    <section class="card">
+      <div class="card-h"><span class="t">Text</span><span class="d">Fonts used by the tracker</span><span class="chev">▾</span></div>
+      <div class="body">
+        <div class="row"><div class="lbl"><div class="n">Font</div><div class="h">Typeface and outline for all tracker text</div></div>
+          <div class="ctl"><span class="dd">Friz Quadrata</span><span class="seg"><span>None</span><span class="on">Outline</span><span>Thick</span></span></div></div>
+        <div class="row"><div class="lbl"><div class="n">Overall text size</div><div class="h">Makes every line bigger or smaller together</div></div>
+          <div class="ctl"><span class="step"><b>−</b><i>0</i><b>+</b></span></div></div>
+        <div class="sub-h">Per-element fonts</div>
+        <div class="row"><div class="lbl"><div class="n">Use different fonts per element</div><div class="h">Pick a font for titles, objectives and zones separately</div></div>
+          <div class="ctl"><span class="sw on"></span></div></div>
+        <div class="row child"><div class="lbl"><div class="n">Title font</div></div><div class="ctl"><span class="dd">Use global font</span></div></div>
+        <div class="row child"><div class="lbl"><div class="n">Objective font</div></div><div class="ctl"><span class="dd">Use global font</span></div></div>
+        <div class="row child"><div class="lbl"><div class="n">Zone font</div></div><div class="ctl"><span class="dd">Morpheus</span></div></div>
+      </div>
+    </section>
+
+    <section class="card closed"><div class="card-h"><span class="t">Text sizes</span><span class="d">Header, titles, objectives…</span><span class="chev">▾</span></div><div class="body"></div></section>
+
+    <section class="card">
+      <div class="card-h"><span class="t">Text style</span><span class="d">Case and shadow</span><span class="chev">▾</span></div>
+      <div class="body">
+        <div class="sub-h">Case</div>
+        <div class="row"><div class="lbl"><div class="n">Header</div></div><div class="ctl"><span class="seg"><span class="on">UPPER</span><span>Title</span><span>lower</span></span></div></div>
+        <div class="row"><div class="lbl"><div class="n">Quest titles</div></div><div class="ctl"><span class="seg"><span>UPPER</span><span class="on">Title</span><span>lower</span></span></div></div>
+        <div class="sub-h">Shadow</div>
+        <div class="row"><div class="lbl"><div class="n">Text shadow</div><div class="h">A soft drop shadow behind tracker text</div></div><div class="ctl"><span class="sw on"></span></div></div>
+        <div class="row child"><div class="lbl"><div class="n">Shadow opacity</div></div><div class="ctl"><span class="sl" style="--v:60%"><span class="tr"></span><i>60%</i></span></div></div>
+      </div>
+    </section>
+
+    <section class="card closed"><div class="card-h"><span class="t">Colours</span><span class="d">Titles, objectives and progress</span><span class="chev">▾</span></div><div class="body"></div></section>
+
+    <section class="card">
+      <div class="card-h"><span class="t">Background &amp; border</span><span class="d">The panel behind the tracker</span><span class="chev">▾</span></div>
+      <div class="body">
+        <div class="row"><div class="lbl"><div class="n">Background</div><div class="h">Colour and opacity of the panel</div></div>
+          <div class="ctl"><span class="sw-c" style="background:#111622"></span><span class="sl" style="--v:35%"><span class="tr"></span><i>35%</i></span></div></div>
+        <div class="row"><div class="lbl"><div class="n">Show background</div></div><div class="ctl"><span class="seg"><span class="on">Always</span><span>On mouseover</span><span>Never</span></span></div></div>
+        <div class="row"><div class="lbl"><div class="n">Border</div><div class="h">A thin line around the tracker</div></div><div class="ctl"><span class="sw"></span></div></div>
+      </div>
+    </section>
+
+    <section class="card closed"><div class="card-h"><span class="t">Animation</span><span class="d">How entries appear and complete</span><span class="chev">▾</span></div><div class="body"></div></section>
+
+    <p class="note">Mockup only: real Focus settings, simplified. Proposed style = grouped rows with fine dividers and a muted one-line description under each label (1), segmented buttons for 2–4 choices (2), one accent colour used only on switches, selection and the active segment (4), and a three-size type scale with bolder card titles and more space between cards than rows (5). Click a card title to open or close it.</p>
+  </main>
+</div>
+<script>
+  const page=document.getElementById('page'),bN=document.getElementById('bNew'),bO=document.getElementById('bOld');
+  bN.onclick=()=>{page.className='new';bN.classList.add('on');bO.classList.remove('on')};
+  bO.onclick=()=>{page.className='old';bO.classList.add('on');bN.classList.remove('on')};
+  document.querySelectorAll('.card-h').forEach(h=>h.onclick=()=>h.parentElement.classList.toggle('closed'));
+  document.querySelectorAll('.seg').forEach(s=>s.querySelectorAll('span').forEach(o=>o.onclick=e=>{e.stopPropagation();s.querySelectorAll('span').forEach(x=>x.classList.remove('on'));o.classList.add('on')}));
+  document.querySelectorAll('.sw').forEach(s=>s.onclick=()=>s.classList.toggle('on'));
+</script>
+</body>
+</html>

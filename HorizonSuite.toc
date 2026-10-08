@@ -41,6 +41,7 @@ core/migrations/20260527_2_cleanup_legacy_flags.lua
 core/migrations/20260617_db_key_convention_cleanup.lua
 core/migrations/20260617_2_legacy_cleanup.lua
 core/migrations/20260802_augment_toast_styles.lua
+core/migrations/20261006_settings_review.lua
 modules/Focus/FocusLayoutState.lua
 core/Core.lua
 core/UrlCopyDialog.lua
@@ -191,6 +192,7 @@ options/HorizonColorPicker.lua
 options/OptionsDefaults.lua
 options/OptionsData.lua
 options/OptionsHelpers.lua
+options/OptionsPages.lua
 options/modules/defaults/augment/OptionsDefaultsAugmentLootFrame.lua
 options/modules/defaults/augment/OptionsDefaultsAugmentSelfHighlight.lua
 options/modules/defaults/augment/OptionsDefaultsAugmentAutoVendor.lua
@@ -219,6 +221,7 @@ options/modules/OptionsAugmentTalkingHead.lua
 options/modules/OptionsAugmentAlerts.lua
 options/modules/OptionsAugmentLootRoll.lua
 options/modules/OptionsFocusIntegrations.lua
+options/OptionsAssemble.lua
 options/OptionsPlatform.lua
 options/OptionsSearch.lua
 options/HorizonIconPicker.lua
@@ -233,8 +236,11 @@ options/dashboard/DashboardAccordionBuild.lua
 options/dashboard/DashboardDetailView.lua
 options/dashboard/DashboardWelcomeFeedData.lua
 options/dashboard/DashboardNewsFeed.lua
+options/dashboard/DashboardNewsLogic.lua
 options/dashboard/DashboardIntegrationsFeedData.lua
-options/dashboard/DashboardWelcomeView.lua
+options/dashboard/DashboardShowcase.lua
+options/dashboard/DashboardNewsStory.lua
+options/dashboard/DashboardWelcomeShowcase.lua
 options/dashboard/DashboardHomeWelcome.lua
 options/dashboard/DashboardModuleGuide.lua
 options/dashboard/DashboardIntegrationsView.lua
