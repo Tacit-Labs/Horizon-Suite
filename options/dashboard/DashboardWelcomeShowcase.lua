@@ -322,14 +322,15 @@ local function BuildTile(S, env, parent, key)
 
     if key ~= "integrations" then tile._chip = MakeTileChip(S, env, tile) end
 
-    -- "Open" fades in on hover. Its host is a plain Frame (not mouse-enabled) so the tween's
-    -- OnUpdate never touches the tile's own scripts.
+    -- "Open" shares the chip's slot: on hover the chip fades out as "Open" fades in, so the two
+    -- never stack. Its host is a plain Frame (not mouse-enabled) so the tween's OnUpdate never
+    -- touches the tile's own scripts.
     local openHost = CreateFrame("Frame", nil, tile)
     openHost:SetFrameLevel((tile:GetFrameLevel() or 0) + 3)
-    openHost:SetSize(60, 14)
+    openHost:SetSize(60, TILE_CHIP_H)
     openHost:SetAlpha(0)
     tile._openHost = openHost
-    tile._open = SingleLine(S.MakeText(env, openHost, Loc("DASH_WELCOME_OPEN", "Open"), 11, 1, 1, 1, "RIGHT"))
+    tile._open = SingleLine(S.MakeText(env, openHost, Loc("DASH_WELCOME_OPEN", "Open"), 12, 1, 1, 1, "RIGHT"))
     tile._open:SetPoint("RIGHT", openHost, "RIGHT", 0, 0)
 
     function tile:PaintAccent()
@@ -344,14 +345,19 @@ local function BuildTile(S, env, parent, key)
         if self._chip then self._chip:Paint(on, r, g, b) end
     end
 
+    -- Crossfade: "Open" goes to `to`, the chip to the opposite.
+    local function SetOpenAlpha(a)
+        openHost:SetAlpha(a)
+        if tile._chip then tile._chip:SetAlpha(1 - a) end
+    end
     local function FadeOpen(to)
         local from = openHost:GetAlpha() or 0
         if addon.OptionsWidgets_StartTween then
             addon.OptionsWidgets_StartTween(openHost, OPEN_FADE, function(e)
-                openHost:SetAlpha(from + (to - from) * e)
+                SetOpenAlpha(from + (to - from) * e)
             end)
         else
-            openHost:SetAlpha(to)
+            SetOpenAlpha(to)
         end
     end
 
@@ -377,7 +383,7 @@ local function BuildTile(S, env, parent, key)
     tile:SetScript("OnHide", function(self)
         self._hover = false
         if addon.OptionsWidgets_StopTween then addon.OptionsWidgets_StopTween(openHost) end
-        openHost:SetAlpha(0)
+        SetOpenAlpha(0)
     end)
 
     function tile:Layout(w, h)
@@ -410,24 +416,29 @@ local function BuildTile(S, env, parent, key)
         end
 
         local textTop = TILE_STRIP_H + imgH + 8
-        local chipW = 0
+        -- One right-hand slot, centred on the name + description block, holds the chip at
+        -- rest and "Open" on hover; the text stops short of whichever is wider.
+        local slotMidY = textTop + 15
+        local openW = math.ceil(self._open:GetStringWidth() or 30)
+        openHost:SetWidth(openW)
+        openHost:ClearAllPoints()
+        openHost:SetPoint("RIGHT", self, "TOPRIGHT", -TILE_PAD, -slotMidY)
+        local slotW = openW
         if self._chip then
             self:PaintAccent()
-            chipW = (self._chip:GetWidth() or 0) + 8
+            slotW = max(slotW, self._chip:GetWidth() or 0)
             self._chip:ClearAllPoints()
-            self._chip:SetPoint("TOPRIGHT", self, "TOPRIGHT", -TILE_PAD, -textTop)
+            self._chip:SetPoint("RIGHT", self, "TOPRIGHT", -TILE_PAD, -slotMidY)
         end
-        local textW = max(1, w - TILE_PAD * 2)
+        local textW = max(1, w - TILE_PAD * 2 - slotW - 10)
         self._name:SetText(TileName(self.key))
         self._name:SetTextColor(S.HeadingRGB())
-        self._name:SetWidth(max(1, textW - chipW))
+        self._name:SetWidth(textW)
         self._name:ClearAllPoints()
         self._name:SetPoint("TOPLEFT", self, "TOPLEFT", TILE_PAD, -textTop)
-        self._desc:SetWidth(max(1, textW - 44))
+        self._desc:SetWidth(textW)
         self._desc:ClearAllPoints()
         self._desc:SetPoint("TOPLEFT", self._name, "BOTTOMLEFT", 0, -3)
-        openHost:ClearAllPoints()
-        openHost:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", -TILE_PAD, 8)
         self:PaintAccent()
     end
 
