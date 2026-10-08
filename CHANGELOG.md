@@ -10,6 +10,24 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [6.7.0] – 2026-10-09
+
+### ✨ New Features
+- **(Axis) Rebuilt settings dashboard** — Every on-screen element now has one card, with its switch at the top and everything for it underneath, across every module. Related settings sit under topic headings inside each card.
+- **(Axis) Smarter settings search** — Search forgives typos, understands synonyms, highlights what matched, remembers recent searches and takes you straight to the setting.
+- **(Axis) New Welcome and News pages** — Welcome shows every module at a glance with its on or off state, and News carries what's new in each version, with stories you can open.
+- **(Echo) Choose what Enter opens** — Pressing Enter to talk can open All chat instead of Nearby. It stays on Nearby unless you change it.
+
+### 🔧 Improvements
+- **(Axis) A cleaner settings window** — A modern look, a matching icon for every module, shorter labels, and smooth animation as sub-settings appear and disappear.
+- **(Axis) See what you've changed** — A marker shows which settings differ from their defaults, each with a reset arrow, and every card shows how many of its settings you've changed.
+- **(Axis)** Font, size and outline now sit together on one row.
+
+### 🐛 Fixes
+- **(Axis)** Settings that did nothing now work, and settings that can't apply right now are greyed out instead of silently ignored.
+
+---
+
 ## [6.6.0] – 2026-10-05
 
 ### ✨ New Features
