@@ -8,25 +8,25 @@ local addon = _G.HorizonSuite
 
 addon.DashboardNewsFeed = {
     {
-        id = "axis-settings-refresh",
-        title = "A tidier settings dashboard",
+        id = "settings-rebuilt-6-7",
+        title = "6.7.0: a rebuilt settings dashboard",
         layout = "featured",
         priority = 500,
-        fromDate = "2026-10-06",
-        untilDate = "2026-12-31",
-        image = "Interface/AddOns/HorizonSuite/media/news/axis-settings-refresh.png",
+        fromDate = "2026-10-09",
+        untilDate = "2026-12-08",
+        image = "Interface/AddOns/HorizonSuite/media/news/settings-rebuilt-6-7.png",
         button = "Open settings",
         action = { type = "module", moduleKey = "axis" },
         button2 = "Module guide",
         action2 = { type = "guide" },
         modules = { "axis" },
-        summary = "Every on-screen element now has |cffffffffone card|r, with its switch at the top and everything else for it underneath.",
+        summary = "Version 6.7.0 rebuilds the settings dashboard so every setting sits with the thing it changes.",
         blocks = {
-            { kind = "p", text = "Every on-screen element now has |cffffffffone card|r, with its switch at the top and everything else for it underneath." },
-            { kind = "list", items = { "Related settings are grouped under topic headings inside each card.", "Search matches typos and synonyms, and remembers what you looked for.", "A new Welcome page and this News page, so changes like these are easy to find." } },
+            { kind = "p", text = "Version 6.7.0 rebuilds the settings dashboard so every setting sits with the thing it changes." },
+            { kind = "list", items = { "|cffffffffOne card per element:|r each on-screen element has its switch at the top and everything for it underneath, in every module.", "Search forgives typos, understands synonyms and remembers what you looked for.", "Sub-settings slide in when you turn their switch on, and a marker shows which settings you have changed from their defaults.", "A new Welcome page, matching module icons, and News stories you can open." } },
         },
         paragraphs = {
-            "Every on-screen element now has |cffffffffone card|r, with its switch at the top and everything else for it underneath.",
+            "Version 6.7.0 rebuilds the settings dashboard so every setting sits with the thing it changes.",
         },
     },
 }
