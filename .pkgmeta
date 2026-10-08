@@ -13,6 +13,7 @@ ignore:
   - .pkgmeta
   - scripts
   - tools
+  - news
   - Docs/Branding/ColourSchema.md
   - Docs/Branding/HorizonClassIcons.png
   - Docs/Branding/CurseForge

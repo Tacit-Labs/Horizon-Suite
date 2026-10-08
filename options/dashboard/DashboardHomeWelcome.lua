@@ -506,14 +506,8 @@ function addon.DashboardHomeWelcome_Init(env)
         envAddon.DashboardWelcomeView_Init(env)
     end
 
-    if envAddon.DashboardWelcomeView_Init and env.newsView then
-        local newsEnv = {}
-        for k, v in pairs(env) do newsEnv[k] = v end
-        newsEnv.targetView      = env.newsView
-        newsEnv.feedData        = envAddon.DashboardNewsFeed
-        newsEnv.targetViewName  = "news"
-        newsEnv.headSubKey      = "DASH_NEWS_HEAD_SUB"
-        envAddon.DashboardWelcomeView_Init(newsEnv)
+    if envAddon.DashboardShowcase_InitNews and env.newsView then
+        envAddon.DashboardShowcase_InitNews(env)
     end
 
     return {
