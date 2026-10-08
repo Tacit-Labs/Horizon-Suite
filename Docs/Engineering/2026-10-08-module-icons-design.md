@@ -32,6 +32,8 @@ Welcome tiles never look like one product. Only Echo has its own icon.
 
 Meridian (coming soon) keeps its current icon until the module exists.
 
+Added after review in game: the sidebar's other rows use the same style (`welcome` house, `news` newspaper, `search` magnifier, `patchnotes` page; also the search box), from `addon.DashboardRowIcons`, and module rows in the sidebar keep their module colour on the icon (softer at rest, full on hover or selection) while the label keeps its usual tint.
+
 ## 1. Source and build
 
 - **Source:** each glyph is an SVG in `tools/icons/<key>.svg`, on a `viewBox="0 0 24 24"` grid. It
@@ -43,7 +45,7 @@ Meridian (coming soon) keeps its current icon until the module exists.
   - It strokes them at 8× size and downsamples with LANCZOS to **128×128**. The output is white with
     anti-aliased alpha.
   - The script is deterministic, so the same SVG always gives the same bytes.
-- **Output:** `media/icons/modules/<key>.tga` (RGBA TGA, the same format as Echo's existing icon). The
+- **Output:** `media/icons/<key>.tga` (RGBA TGA, the same format as Echo's existing icon). The
   same TGA serves every size from 16px to 48px.
 - **Check:** `--check` exits 1 when a committed TGA no longer matches its SVG. The Luacheck workflow
   runs it, as it does for the news feed.

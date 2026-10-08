@@ -331,10 +331,18 @@ function addon.DashboardSidebar_CreateChrome(p)
     -- A module header while you are on one of its pages: a step brighter than idle.
     local CURRENT_R, CURRENT_G, CURRENT_B = 0.85, 0.85, 0.9
 
-    -- Colour a row's label, icon and chevron together.
+    -- Colour a row's label, icon and chevron together. A module row's icon keeps its module
+    -- colour instead: softer while the row is idle, full strength on hover or when selected.
     local function TintRow(btn, r, g, b)
         if btn.label then btn.label:SetTextColor(r, g, b, 1) end
-        if btn.icon then btn.icon:SetVertexColor(r, g, b, 1) end
+        if btn.icon then
+            local c = btn._iconRGB
+            if c then
+                btn.icon:SetVertexColor(c[1], c[2], c[3], (r + g + b) >= 2.5 and 1 or 0.8)
+            else
+                btn.icon:SetVertexColor(r, g, b, 1)
+            end
+        end
         if btn.chevron then btn.chevron:SetTextColor(r, g, b, 1) end
     end
 
@@ -694,15 +702,21 @@ function addon.DashboardSidebar_CreateChrome(p)
         Tween(tc, COLLAPSE_ANIM_DUR, step, done)
     end
 
-    -- A module header's icon, left of its label, in the row icon style.
-    local function AddRowIcon(btn, iconSpec)
+    -- A module header's icon, left of its label, in the row icon style. rgb (optional, 0-1)
+    -- is the module colour the icon keeps through every row state (see TintRow).
+    local function AddRowIcon(btn, iconSpec, rgb)
         if not iconSpec then return end
         local ic = btn:CreateTexture(nil, "ARTWORK")
         ic:SetSize(16, 16)
         ic:SetPoint("LEFT", btn, "LEFT", 14, 0)
         ApplySidebarButtonIconTexture(ic, iconSpec)
-        ic:SetVertexColor(MUTED_R, MUTED_G, MUTED_B, 1)
         btn.icon = ic
+        btn._iconRGB = rgb
+        if rgb then
+            ic:SetVertexColor(rgb[1], rgb[2], rgb[3], 0.8)
+        else
+            ic:SetVertexColor(MUTED_R, MUTED_G, MUTED_B, 1)
+        end
         return ic
     end
 

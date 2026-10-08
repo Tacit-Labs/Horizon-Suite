@@ -24,10 +24,15 @@ local addonFolder = (addon and addon.ADDON_NAME) or "HorizonSuite"
 
 -- Module icons: white monoline glyphs (tools/icons/*.svg, rendered by tools/make_module_icons.py)
 -- that each surface tints. The one source for the sidebar, the module hub cards and the Welcome tiles.
-local MODULE_ICON_DIR = "Interface\\AddOns\\" .. addonFolder .. "\\media\\icons\\modules\\"
+local ICON_DIR = "Interface\\AddOns\\" .. addonFolder .. "\\media\\icons\\"
 addon.DashboardModuleIcons = {}
 for _, key in ipairs({ "focus", "presence", "vista", "insight", "augment", "essence", "echo", "axis", "integrations" }) do
-    addon.DashboardModuleIcons[key] = MODULE_ICON_DIR .. key .. ".tga"
+    addon.DashboardModuleIcons[key] = ICON_DIR .. key .. ".tga"
+end
+-- The same style for the sidebar's other rows and the search box.
+addon.DashboardRowIcons = {}
+for _, key in ipairs({ "welcome", "news", "search", "patchnotes" }) do
+    addon.DashboardRowIcons[key] = ICON_DIR .. key .. ".tga"
 end
 addon.DashboardModuleIconPath = ModuleIconPath
 

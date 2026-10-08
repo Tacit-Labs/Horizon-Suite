@@ -103,7 +103,7 @@ class RenderTests(unittest.TestCase):
     def test_shipped_sources_all_render(self):
         src = os.path.join(mi.REPO, "tools", "icons")
         names = sorted(n for n in os.listdir(src) if n.endswith(".svg"))
-        self.assertEqual(len(names), 9)
+        self.assertEqual(len(names), 13)  # 9 module glyphs + welcome, news, search, patch notes
         for n in names:
             with open(os.path.join(src, n), encoding="utf-8") as fh:
                 self.assertEqual(mi.render(fh.read()).size, (mi.SIZE, mi.SIZE), n)

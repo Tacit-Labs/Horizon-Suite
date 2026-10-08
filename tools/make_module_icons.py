@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Render the dashboard's monoline module icons from tools/icons/*.svg.
+"""Render the dashboard's monoline icons (modules and sidebar rows) from tools/icons/*.svg.
 
 Each source is a 24x24 SVG of stroked <path>, <circle> and <rect> elements (no fills, no
 transforms). Each is drawn at 8x size and downsampled, giving a 128x128 white TGA with
-anti-aliased alpha in media/icons/modules/. The game tints it (module colour, grey or the
+anti-aliased alpha in media/icons/. The game tints it (module colour, grey or the
 sidebar's muted tone), so one file serves every surface and size.
 
 Usage:
@@ -29,7 +29,7 @@ except ImportError:  # pragma: no cover
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DEFAULT_SRC = os.path.join(REPO, "tools", "icons")
-DEFAULT_OUT = os.path.join(REPO, "media", "icons", "modules")
+DEFAULT_OUT = os.path.join(REPO, "media", "icons")
 
 SIZE = 128          # output pixels
 SUPERSAMPLE = 8     # drawn at SIZE * SUPERSAMPLE, then downsampled
