@@ -155,20 +155,17 @@ function addon.Dashboard_BuildMainFrame()
             end
 
             local categoryIcons = {
-                ["Axis"] = "INV_Misc_Wrench_01",
                 ["Profiles"] = "INV_Misc_GroupNeedMore",
                 ["GlobalToggles"] = "Trade_Engineering",
-                ["Focus"] = "achievement_quests_completed_05",
-                ["Presence"] = "vas_guildnamechange",
-                ["Vista"] = "ability_hunter_pathfinding",
-                ["Insight"] = "ui_profession_inscription",
-                ["Augment"] = "INV_Misc_Coin_01",
-                ["Essence"] = "achievement_character_human_male",
-                ["Echo"] = "Interface\\AddOns\\" .. (addon.ADDON_NAME or "HorizonSuite") .. "\\media\\echo\\echo_icon.tga",
                 ["Meridian"] = "ability_tracking",
                 ["General"] = "INV_Misc_Question_01",
                 ["Core"] = "INV_Misc_Wrench_01",
             }
+            -- Module rows use the shared monoline glyphs (DashboardHomeWelcome.lua), so the
+            -- sidebar, the module hub and the Welcome tiles always show the same icon.
+            for key, path in pairs(addon.DashboardModuleIcons or {}) do
+                categoryIcons[(key:gsub("^%l", string.upper))] = path
+            end
             
             local function GetAccentColor()
                 if addon.GetOptionsClassColor then
@@ -1767,7 +1764,8 @@ function addon.Dashboard_BuildMainFrame()
             f.whatsnewSidebarBtn = whatsNewBtn
 
             local integrationsSidebarBtn = CreateBottomPinnedButton(
-                L["DASH_INTEGRATIONS_TAB"], "INV_Misc_Gear_08",
+                L["DASH_INTEGRATIONS_TAB"],
+                (addon.DashboardModuleIcons and addon.DashboardModuleIcons.integrations) or "INV_Misc_Gear_08",
                 function()
                     if f.ShowIntegrations then f.ShowIntegrations() end
                 end, TAB_ROW_HEIGHT

@@ -256,8 +256,8 @@ local function TileArtPath(key)
 end
 
 local function TileIconPath(key)
-    local icon = (key == "integrations") and INTEGRATIONS_ICON
-        or (addon.DashboardModuleIcons and addon.DashboardModuleIcons[key])
+    local icon = (addon.DashboardModuleIcons and addon.DashboardModuleIcons[key])
+        or (key == "integrations" and INTEGRATIONS_ICON) or nil
     if addon.DashboardModuleIconPath then return addon.DashboardModuleIconPath(icon) end
     return "Interface\\Icons\\" .. (icon or "INV_Misc_Question_01")
 end
@@ -313,6 +313,7 @@ local function BuildTile(S, env, parent, key)
     local icon = tile:CreateTexture(nil, "ARTWORK", nil, 2)
     icon:SetSize(TILE_ICON, TILE_ICON)
     icon:SetTexture(TileIconPath(key))
+    icon:SetTexCoord(0, 1, 0, 1)
     tile._icon = icon
 
     tile._name = SingleLine(S.MakeText(env, tile, "", 13, S.HeadingRGB()))
@@ -342,6 +343,13 @@ local function BuildTile(S, env, parent, key)
         if self._hover then edgeR, edgeG, edgeB, edgeA = r, g, b, TILE_HOVER_BORDER_ALPHA end
         for _, e in ipairs(self._edges or {}) do e:SetColorTexture(edgeR, edgeG, edgeB, edgeA) end
         self._open:SetTextColor(S.Lighten(r, g, b, 0.45))
+        -- The glyph is white: module colour while on (lifted a touch so it reads over the
+        -- same-colour wash behind it), grey while off.
+        if on then
+            self._icon:SetVertexColor(S.Lighten(r, g, b, 0.2))
+        else
+            self._icon:SetVertexColor(0.45, 0.46, 0.50)
+        end
         if self._chip then self._chip:Paint(on, r, g, b) end
     end
 
@@ -410,8 +418,7 @@ local function BuildTile(S, env, parent, key)
             place:Show()
             icon:ClearAllPoints()
             icon:SetPoint("CENTER", place, "CENTER", 0, 0)
-            if icon.SetDesaturated then icon:SetDesaturated(not on) end
-            icon:SetAlpha(on and 1 or 0.6)
+            icon:SetAlpha(on and 1 or 0.7)
             icon:Show()
         end
 

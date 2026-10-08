@@ -29,6 +29,11 @@ jobs:
         run: |
           python3 tools/build_news.py --check
           python3 tools/test_build_news.py
+      - name: Module icons are up to date
+        run: |
+          python3 -m pip install --quiet Pillow==12.3.0
+          python3 tools/make_module_icons.py --check
+          python3 tools/test_make_module_icons.py
       - uses: leafo/gh-actions-lua@6919171ccf181b826f44b9bca76307b577217377 # v13
         with:
           luaVersion: "5.1"

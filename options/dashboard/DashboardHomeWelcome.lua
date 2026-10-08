@@ -20,18 +20,15 @@ local function ModuleIconPath(icon)
 end
 -- ECHO_ICON_PATH_HELPER_END
 
-local echoAddonName = (addon and addon.ADDON_NAME) or "HorizonSuite"
+local addonFolder = (addon and addon.ADDON_NAME) or "HorizonSuite"
 
--- Module icons, shared by the module hub cards and the Welcome tiles.
-addon.DashboardModuleIcons = {
-    focus    = "achievement_quests_completed_05",
-    presence = "vas_guildnamechange",
-    vista    = "ability_hunter_pathfinding",
-    insight  = "ui_profession_inscription",
-    augment  = "Spell_holy_powerinfusion",
-    essence  = "achievement_character_human_male",
-    echo     = "Interface\\AddOns\\" .. echoAddonName .. "\\media\\echo\\echo_icon.tga",
-}
+-- Module icons: white monoline glyphs (tools/icons/*.svg, rendered by tools/make_module_icons.py)
+-- that each surface tints. The one source for the sidebar, the module hub cards and the Welcome tiles.
+local MODULE_ICON_DIR = "Interface\\AddOns\\" .. addonFolder .. "\\media\\icons\\modules\\"
+addon.DashboardModuleIcons = {}
+for _, key in ipairs({ "focus", "presence", "vista", "insight", "augment", "essence", "echo", "axis", "integrations" }) do
+    addon.DashboardModuleIcons[key] = MODULE_ICON_DIR .. key .. ".tga"
+end
 addon.DashboardModuleIconPath = ModuleIconPath
 
 -- @param env table
@@ -221,6 +218,7 @@ function addon.DashboardHomeWelcome_Init(env)
         iconTex:SetSize(ICON_SIZE, ICON_SIZE)
         iconTex:SetPoint("TOPLEFT", card, "TOPLEFT", 18, -topInset)
         iconTex:SetTexture(ModuleIconPath(MODULE_ICONS[moduleKey]))
+        iconTex:SetTexCoord(0, 1, 0, 1)
         card.iconTex = iconTex
 
         local modName = (moduleLabels and moduleLabels[moduleKey]) or (moduleKey:sub(1, 1):upper() .. moduleKey:sub(2))
@@ -353,8 +351,9 @@ function addon.DashboardHomeWelcome_Init(env)
                 accentRail:SetColorTexture(mr, mg, mb, 1)
                 accentGlow:SetColorTexture(mr, mg, mb, hovered and 0.14 or 0.10)
                 toggleWell:SetColorTexture(mr, mg, mb, hovered and 0.09 or 0.06)
+                -- The glyph is white; it takes the module colour while the module is on.
                 if iconTex.SetDesaturated then iconTex:SetDesaturated(false) end
-                iconTex:SetVertexColor(1, 1, 1, hovered and 0.98 or 0.92)
+                iconTex:SetVertexColor(mr, mg, mb, hovered and 1 or 0.92)
                 nameLbl:SetTextColor(mr, mg, mb)
                 descLbl:SetTextColor(0.62, 0.64, 0.69)
                 if previewDisclaimerLbl then
@@ -371,8 +370,8 @@ function addon.DashboardHomeWelcome_Init(env)
                 accentRail:SetColorTexture(mr, mg, mb, 0.30)
                 accentGlow:SetColorTexture(mr, mg, mb, hovered and 0.06 or 0.04)
                 toggleWell:SetColorTexture(mr, mg, mb, hovered and 0.04 or 0.025)
-                if iconTex.SetDesaturated then iconTex:SetDesaturated(true) end
-                iconTex:SetVertexColor(0.50, 0.52, 0.56, 0.72)
+                if iconTex.SetDesaturated then iconTex:SetDesaturated(false) end
+                iconTex:SetVertexColor(0.45, 0.46, 0.50, hovered and 0.85 or 0.72)
                 nameLbl:SetTextColor(0.44, 0.46, 0.50)
                 descLbl:SetTextColor(0.36, 0.38, 0.42)
                 if previewDisclaimerLbl then
