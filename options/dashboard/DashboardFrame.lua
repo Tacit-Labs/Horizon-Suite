@@ -1298,14 +1298,20 @@ function addon.Dashboard_BuildMainFrame()
 
             f:SetScript("OnKeyDown", function(self, key)
                 if key == "ESCAPE" then
-                    pcall(function()
-                        self:SetPropagateKeyboardInput(false)
-                    end)
                     -- An open news story closes first; the next Escape closes the dashboard.
+                    -- In combat the propagation call is protected, so it is skipped there.
                     if addon.News_IsStoryOpen and addon.News_IsStoryOpen() then
+                        if not InCombatLockdown() then
+                            pcall(function()
+                                self:SetPropagateKeyboardInput(false)
+                            end)
+                        end
                         addon.News_CloseStory()
                         return
                     end
+                    pcall(function()
+                        self:SetPropagateKeyboardInput(false)
+                    end)
                     self:Hide()
                 elseif key == "F" and IsControlKeyDown() then
                     pcall(function()

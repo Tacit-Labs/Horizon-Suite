@@ -99,13 +99,20 @@ function Showcase.StoryBlocks(story)
 end
 
 --- True when opening the story shows more than its summary.
+--- Text that only repeats the summary (the summary paragraph itself, or a release
+--- story's single bullet) doesn't count.
 function Showcase.StoryHasMore(story)
-    local blocks = Showcase.StoryBlocks(story)
-    if #blocks > 1 then return true end
-    local b = blocks[1]
-    if not b then return false end
-    if b.kind ~= "p" then return true end
-    return b.text ~= Showcase.StorySummary(story)
+    local summary = Showcase.StorySummary(story)
+    for _, b in ipairs(Showcase.StoryBlocks(story)) do
+        if b.kind == "list" and type(b.items) == "table" then
+            for _, item in ipairs(b.items) do
+                if item ~= summary then return true end
+            end
+        elseif b.text ~= summary then
+            return true
+        end
+    end
+    return false
 end
 
 -- ============================================================================
@@ -132,6 +139,10 @@ end
 
 local function IsModuleOn(key)
     if key == "axis" then return true end
+    -- Saved on but failed to start still counts as on: "Turn on" couldn't fix that.
+    local db = _G[addon.DATABASE or "HorizonDB"]
+    local saved = type(db) == "table" and type(db.modules) == "table" and db.modules[key]
+    if type(saved) == "table" and saved.enabled == true then return true end
     if addon.IsModuleEnabled then return addon:IsModuleEnabled(key) and true or false end
     return true
 end
@@ -188,26 +199,51 @@ function Showcase.MakeTagLine(parent, env)
         local x, row, used = 0, 0, false
         local nChips, nTexts = 0, 0
 
-        -- Reserve w on the current row (wrapping when it won't fit); @return x, y offsets.
-        local function Reserve(w)
-            if x > 0 and x + w > width then
+        -- Reserve w on the current row, wrapping when it won't fit. lead is what goes
+        -- before the item on the same row: SEP (a separator font string) or a gap in px.
+        -- It is reserved together with the item and dropped on a wrap, so a row never
+        -- starts with a separator. @return x, y offsets of the item
+        local function Reserve(w, lead)
+            local sep, leadW = nil, 0
+            if x > 0 and lead == SEP then
+                nTexts = nTexts + 1
+                sep = Text(nTexts)
+                sep:SetText(SEP)
+                sep:SetTextColor(MUTED_R, MUTED_G, MUTED_B)
+                leadW = StringW(sep)
+                sep:SetWidth(leadW)
+            elseif x > 0 and type(lead) == "number" then
+                leadW = lead
+            end
+            if x > 0 and x + leadW + w > width then
                 x = 0
                 row = row + 1
+                leadW = 0
+                if sep then
+                    sep:Hide()
+                    sep = nil
+                end
             end
+            if sep then
+                sep:ClearAllPoints()
+                sep:SetPoint("TOPLEFT", self, "TOPLEFT", x, -(row * TAG_ROW_H))
+                sep:Show()
+            end
+            x = x + leadW
             local px, py = x, row * TAG_ROW_H
             x = x + w
             used = true
             return px, py
         end
 
-        local function PutText(text, r, g, b)
+        local function PutText(text, r, g, b, lead)
             nTexts = nTexts + 1
             local fs = Text(nTexts)
             fs:SetText(text)
             fs:SetTextColor(r, g, b)
             local w = StringW(fs)
             fs:SetWidth(w)
-            local px, py = Reserve(w)
+            local px, py = Reserve(w, lead)
             fs:ClearAllPoints()
             fs:SetPoint("TOPLEFT", self, "TOPLEFT", px, -py)
             fs:Show()
@@ -232,10 +268,7 @@ function Showcase.MakeTagLine(parent, env)
                 c.text:SetWidth(tw)
                 local hasIcon = path ~= nil
                 local w = (hasIcon and (TAG_ICON + TAG_ICON_GAP) or 0) + tw
-                if nChips > 1 then
-                    x = x + TAG_CHIP_GAP
-                end
-                local px, py = Reserve(w)
+                local px, py = Reserve(w, TAG_CHIP_GAP)
                 if hasIcon then
                     c.icon:SetTexture(path)
                     c.icon:SetVertexColor(r, g, b, 1)
@@ -260,18 +293,15 @@ function Showcase.MakeTagLine(parent, env)
         local posted = NL and NL.PostedLabel and type(story) == "table"
             and NL.PostedLabel(story.fromDate, NL.Today and NL.Today() or "")
         if posted then
-            if nChips > 0 then PutText(SEP, MUTED_R, MUTED_G, MUTED_B) end
-            PutText(posted, MUTED_R, MUTED_G, MUTED_B)
+            PutText(posted, MUTED_R, MUTED_G, MUTED_B, SEP)
         end
 
         local btn = self._turnOn
         if offKey then
-            if used then PutText(SEP, MUTED_R, MUTED_G, MUTED_B) end
-            PutText(Loc("DASH_NEWS_MODULE_OFF_X", "%s is off"):format(ModuleName(offKey)), MUTED_R, MUTED_G, MUTED_B)
-            PutText(SEP, MUTED_R, MUTED_G, MUTED_B)
+            PutText(Loc("DASH_NEWS_MODULE_OFF_X", "%s is off"):format(ModuleName(offKey)), MUTED_R, MUTED_G, MUTED_B, SEP)
             btn:SetLabel(Loc("DASH_NEWS_TURN_ON", "Turn on"))
             btn:PaintAccent()
-            local px, py = Reserve(btn:GetWidth() or 40)
+            local px, py = Reserve(btn:GetWidth() or 40, SEP)
             btn:ClearAllPoints()
             btn:SetPoint("TOPLEFT", self, "TOPLEFT", px, -py)
             btn:Show()
