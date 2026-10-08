@@ -109,15 +109,24 @@ function addon.DashboardAccordionBuild_Init(f, p)
         end
 
         -- Rows a parent switch hides fade out (drifting up DEPENDENT_HIDE_DRIFT px), then the
-        -- card closes the gap. Rows it reveals grow the card while they fade and rise into
-        -- place one after another, like a card opening (RowStaggerAt), a touch slower.
-        local DEPENDENT_FADE_DUR = 0.14
-        local DEPENDENT_HEIGHT_DUR = 0.18
-        local DEPENDENT_HIDE_DRIFT = 4
-        local REVEAL_ROW_DUR = 0.2
-        local REVEAL_STEP = 0.035
-        local REVEAL_CAP = 0.36
-        local REVEAL_HEIGHT_DUR = 0.22
+        -- card closes the gap. Rows it reveals grow the card (ease in-out) while they fade and
+        -- rise REVEAL_RISE px into place one after another (ease-out cubic). Timings were
+        -- picked by the director from a side-by-side prototype ("B" at 1.1x); the card-open
+        -- stagger is quicker because it moves the whole card.
+        local DEPENDENT_FADE_DUR = 0.2
+        local DEPENDENT_HEIGHT_DUR = 0.29
+        local DEPENDENT_HIDE_DRIFT = 6
+        local REVEAL_ROW_DUR = 0.35
+        local REVEAL_STEP = 0.066
+        local REVEAL_CAP = 0.66
+        local REVEAL_HEIGHT_DUR = 0.37
+        local REVEAL_RISE = 12
+        local function easeOutCubic(t) local u = 1 - t; return 1 - u * u * u end
+        local function easeInOutCubic(t)
+            if t < 0.5 then return 4 * t * t * t end
+            local u = -2 * t + 2
+            return 1 - u * u * u / 2
+        end
         local CARD_VISIBILITY_FADE_DUR = 0.3
         local easeOutDep = addon.easeOut or function(t) return 1 - (1 - t) * (1 - t) end
 
@@ -232,9 +241,11 @@ function addon.DashboardAccordionBuild_Init(f, p)
             local anim = card.relayoutAnim
             local rv = anim and anim.reveal
             local ridx = rv and rv.index[frame]
-            if ridx and RowStaggerAt then
-                local alpha, dy = RowStaggerAt(ridx, anim.elapsed or 0, rv.step, rv.dur, rv.rise)
-                return alpha, dy
+            if ridx then
+                local lt = math.max(0, (anim.elapsed or 0) - (ridx - 1) * rv.step)
+                if rv.dur <= 0 or lt >= rv.dur then return 1, 0 end
+                local v = easeOutCubic(lt / rv.dur)
+                return v, -rv.rise * (1 - v)
             end
             local st = card._rowStagger
             local idx = st and st.index[frame]
@@ -537,13 +548,6 @@ function addon.DashboardAccordionBuild_Init(f, p)
             end
 
             local skipAnim = (#toHide == 0 and #toShow == 0) or not card.expanded
-            -- Temporary diagnostic for the reveal animation: /run HorizonSuite.debugReveal = true
-            if addon.debugReveal then
-                print(("|cff66ccffHS reveal|r %s: show=%d hide=%d expanded=%s skip=%s anim=%s t=%.3f"):format(
-                    tostring(card.cardId or (card.titleText and card.titleText:GetText()) or "?"),
-                    #toShow, #toHide, tostring(card.expanded), tostring(skipAnim),
-                    tostring(card.relayoutAnim and card.relayoutAnim.phase), GetTime and GetTime() or 0))
-            end
 
             if skipAnim then
                 DoInstantRelayout(card, false, animateVisibility)
@@ -614,11 +618,11 @@ function addon.DashboardAccordionBuild_Init(f, p)
                         end
                     end
                 end
-                local step, dur, total = REVEAL_STEP, REVEAL_ROW_DUR, REVEAL_ROW_DUR
+                local step, dur, total = REVEAL_STEP, REVEAL_ROW_DUR, (n - 1) * REVEAL_STEP + REVEAL_ROW_DUR
                 if RowStaggerSchedule then
                     step, dur, total = RowStaggerSchedule(n, REVEAL_STEP, REVEAL_ROW_DUR, REVEAL_CAP)
                 end
-                local rise = (addon.OptionsWidgetsDef and addon.OptionsWidgetsDef.RowRise) or 6
+                local rise = REVEAL_RISE
                 card.relayoutAnim = {
                     phase = "fadeIn",
                     elapsed = 0,
@@ -657,13 +661,10 @@ function addon.DashboardAccordionBuild_Init(f, p)
                     end
                     a.elapsed = a.elapsed + dt
                     local heightT = math.min(1, a.elapsed / REVEAL_HEIGHT_DUR)
-                    local curH = a.oldHeight + (a.targetFullH - a.oldHeight) * easeOutDep(heightT)
+                    local curH = a.oldHeight + (a.targetFullH - a.oldHeight) * easeInOutCubic(heightT)
                     card:SetHeight(curH)
                     local done = heightT >= 1 and a.elapsed >= (a.reveal.total or 0)
                     if done then
-                        if addon.debugReveal then
-                            print(("|cff66ccffHS reveal|r done after %.3fs, %d rows"):format(a.elapsed, #a.toShow))
-                        end
                         card.relayoutAnim = nil
                         for _, entry in ipairs(a.toShow) do
                             PlaceStaggerRow(card, entry.frame, 1, 0)
