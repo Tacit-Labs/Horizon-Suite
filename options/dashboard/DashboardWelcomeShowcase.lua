@@ -64,7 +64,6 @@ local BG_BOTTOM_INSET = 12
 local SCROLL_TO_BG_INSET = 20
 
 local TILE_ART_DIR = "Interface/AddOns/HorizonSuite/media/dashboard/welcome/tiles/"
-local INTEGRATIONS_ICON = "INV_Misc_Gear_08"
 local FOOTER_LINK_IDS = { "discord", "github", "kofi", "patreon" }
 
 -- ============================================================================
@@ -256,8 +255,7 @@ local function TileArtPath(key)
 end
 
 local function TileIconPath(key)
-    local icon = (addon.DashboardModuleIcons and addon.DashboardModuleIcons[key])
-        or (key == "integrations" and INTEGRATIONS_ICON) or nil
+    local icon = addon.DashboardModuleIcons and addon.DashboardModuleIcons[key]
     if addon.DashboardModuleIconPath then return addon.DashboardModuleIconPath(icon) end
     return "Interface\\Icons\\" .. (icon or "INV_Misc_Question_01")
 end

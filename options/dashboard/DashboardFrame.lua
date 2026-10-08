@@ -1764,8 +1764,7 @@ function addon.Dashboard_BuildMainFrame()
             f.whatsnewSidebarBtn = whatsNewBtn
 
             local integrationsSidebarBtn = CreateBottomPinnedButton(
-                L["DASH_INTEGRATIONS_TAB"],
-                (addon.DashboardModuleIcons and addon.DashboardModuleIcons.integrations) or "INV_Misc_Gear_08",
+                L["DASH_INTEGRATIONS_TAB"], addon.DashboardModuleIcons.integrations,
                 function()
                     if f.ShowIntegrations then f.ShowIntegrations() end
                 end, TAB_ROW_HEIGHT

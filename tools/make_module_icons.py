@@ -10,6 +10,8 @@ Usage:
   python3 tools/make_module_icons.py          # render every icon
   python3 tools/make_module_icons.py --check  # exit 1 if a committed icon is stale
 
+Path data supports M L H V C S Q A Z (absolute and relative); write arc flags space-separated.
+
 Requires Pillow (dev tooling only; nothing here ships).
 """
 import argparse
@@ -21,7 +23,7 @@ import sys
 import xml.etree.ElementTree as ET
 
 try:
-    from PIL import Image, ImageDraw
+    from PIL import Image, ImageChops, ImageDraw
 except ImportError:  # pragma: no cover
     sys.exit("make_module_icons: Pillow is required (pip install Pillow)")
 
@@ -136,6 +138,8 @@ def parse_path(d):
             raise IconError(f"unsupported path command {cmd!r}")
         ox, oy = cur if rel else (0.0, 0.0)
         if up == "Z":
+            if i < len(tokens) and not tokens[i].isalpha():
+                raise IconError("numbers after Z need a command letter")
             if pts:
                 subpaths.append((pts, True))
             pts, cur, last_ctrl = None, start, None
@@ -256,6 +260,25 @@ def tga_bytes(img):
     return buf.getvalue()
 
 
+# Floating-point rasterising can differ by a unit between platforms (the committed icons are
+# rendered on macOS, CI runs on Linux), so --check allows a tiny alpha difference rather than
+# demanding identical bytes. A real edit to a source moves far more than this.
+CHECK_TOLERANCE = 2
+
+
+def matches(path, img):
+    """Whether the committed icon at `path` matches a fresh render within CHECK_TOLERANCE."""
+    try:
+        committed = Image.open(path)
+        committed.load()
+    except (FileNotFoundError, OSError):
+        return False
+    if committed.size != img.size or committed.mode != img.mode:
+        return False
+    diff = ImageChops.difference(committed, img)
+    return all(hi <= CHECK_TOLERANCE for _, hi in diff.getextrema())
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--check", action="store_true", help="exit 1 if a committed icon is stale")
@@ -270,22 +293,18 @@ def main(argv=None):
     for name in names:
         with open(os.path.join(args.src, name + ".svg"), encoding="utf-8") as fh:
             try:
-                data = tga_bytes(render(fh.read()))
-            except (IconError, ET.ParseError, ValueError) as e:
+                img = render(fh.read())
+            except (IconError, ET.ParseError, ValueError, TypeError) as e:
                 print(f"make_module_icons: {name}.svg: {e}", file=sys.stderr)
                 return 2
         out = os.path.join(args.out, name + ".tga")
         if args.check:
-            try:
-                with open(out, "rb") as fh:
-                    if fh.read() != data:
-                        stale.append(name)
-            except FileNotFoundError:
+            if not matches(out, img):
                 stale.append(name)
         else:
             os.makedirs(args.out, exist_ok=True)
             with open(out, "wb") as fh:
-                fh.write(data)
+                fh.write(tga_bytes(img))
     if stale:
         print("make_module_icons: out of date: " + ", ".join(stale)
               + "; run `python3 tools/make_module_icons.py` and commit the result", file=sys.stderr)

@@ -68,6 +68,10 @@ class PathTests(unittest.TestCase):
         with self.assertRaises(mi.IconError):
             mi.parse_path("M0 0L5")
 
+    def test_numbers_after_close_are_rejected_not_looped(self):
+        with self.assertRaises(mi.IconError):
+            mi.parse_path("M0 0L1 1Z 2 2")
+
 
 class RenderTests(unittest.TestCase):
     def test_render_is_white_rgba_of_the_right_size(self):
@@ -134,6 +138,20 @@ class CheckModeTests(unittest.TestCase):
         with open(os.path.join(self.src, "dot.svg"), "w") as fh:
             fh.write(svg('<polygon points="1,1 2,2"/>'))
         self.assertEqual(self.run_main(), 2)
+
+    def test_circle_without_radius_exits_2(self):
+        with open(os.path.join(self.src, "dot.svg"), "w") as fh:
+            fh.write(svg('<circle cx="12" cy="12"/>'))
+        self.assertEqual(self.run_main(), 2)
+
+    def test_check_tolerates_one_unit_platform_noise(self):
+        self.assertEqual(self.run_main(), 0)
+        path = os.path.join(self.out, "dot.tga")
+        img = mi.Image.open(path).convert("RGBA")
+        r, g, b, a = img.split()
+        a = a.point(lambda v: min(255, v + 1) if v else v)
+        mi.Image.merge("RGBA", (r, g, b, a)).save(path, format="TGA", compression=None)
+        self.assertEqual(self.run_main("--check"), 0)
 
 
 if __name__ == "__main__":
