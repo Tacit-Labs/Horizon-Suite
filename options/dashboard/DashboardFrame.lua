@@ -155,20 +155,17 @@ function addon.Dashboard_BuildMainFrame()
             end
 
             local categoryIcons = {
-                ["Axis"] = "INV_Misc_Wrench_01",
                 ["Profiles"] = "INV_Misc_GroupNeedMore",
                 ["GlobalToggles"] = "Trade_Engineering",
-                ["Focus"] = "achievement_quests_completed_05",
-                ["Presence"] = "vas_guildnamechange",
-                ["Vista"] = "ability_hunter_pathfinding",
-                ["Insight"] = "ui_profession_inscription",
-                ["Augment"] = "INV_Misc_Coin_01",
-                ["Essence"] = "achievement_character_human_male",
-                ["Echo"] = "Interface\\AddOns\\" .. (addon.ADDON_NAME or "HorizonSuite") .. "\\media\\echo\\echo_icon.tga",
                 ["Meridian"] = "ability_tracking",
                 ["General"] = "INV_Misc_Question_01",
                 ["Core"] = "INV_Misc_Wrench_01",
             }
+            -- Module rows use the shared monoline glyphs (DashboardHomeWelcome.lua), so the
+            -- sidebar, the module hub and the Welcome tiles always show the same icon.
+            for key, path in pairs(addon.DashboardModuleIcons or {}) do
+                categoryIcons[(key:gsub("^%l", string.upper))] = path
+            end
             
             local function GetAccentColor()
                 if addon.GetOptionsClassColor then
@@ -486,8 +483,7 @@ function addon.Dashboard_BuildMainFrame()
             local sbIcon = searchBox:CreateTexture(nil, "ARTWORK")
             sbIcon:SetSize(16, 16)
             sbIcon:SetPoint("LEFT", 12, 0)
-            sbIcon:SetTexture("Interface\\Icons\\INV_Misc_Spyglass_03")
-            sbIcon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+            sbIcon:SetTexture(addon.DashboardRowIcons.search)
             sbIcon:SetVertexColor(0.5, 0.52, 0.58, 1)
 
             local searchClearBtn = CreateFrame("Button", nil, searchBarShell)
@@ -1725,7 +1721,7 @@ function addon.Dashboard_BuildMainFrame()
             local LayoutSidebar
 
             -- Welcome (first row — overview for new and returning users)
-            local welcomeBtn = CreateSidebarButton(sidebarScrollContent, L["DASH_WELCOME_TAB"], "INV_Misc_Book_09", function()
+            local welcomeBtn = CreateSidebarButton(sidebarScrollContent, L["DASH_WELCOME_TAB"], addon.DashboardRowIcons.welcome, function()
                 if f.ShowWelcome then f.ShowWelcome() end
             end)
             welcomeBtn:SetPoint("TOPLEFT", sidebarScrollContent, "TOPLEFT", 0, -SIDEBAR_TOP_PAD)
@@ -1735,11 +1731,8 @@ function addon.Dashboard_BuildMainFrame()
             lastSidebarRow = welcomeBtn
             yOff = SIDEBAR_TOP_PAD + TAB_ROW_HEIGHT
 
-            -- News (Blizzard atlas; same family as Focus campaign quest icon; fallback if atlas fails)
-            local newsBtn = CreateSidebarButton(sidebarScrollContent, L["DASH_NEWS_TAB"], {
-                atlas = "Quest-Campaign-Available",
-                fallback = "INV_Misc_StarFall_Blue",
-            }, function()
+            -- News
+            local newsBtn = CreateSidebarButton(sidebarScrollContent, L["DASH_NEWS_TAB"], addon.DashboardRowIcons.news, function()
                 if f.ShowNews then f.ShowNews() end
             end)
             newsBtn:SetPoint("TOPLEFT", welcomeBtn, "BOTTOMLEFT", 0, 0)
@@ -1755,7 +1748,7 @@ function addon.Dashboard_BuildMainFrame()
             --   y = TAB_ROW_HEIGHT     Integrations
             --   y = TAB_ROW_HEIGHT * 2 Search
             local whatsNewBase = L["DASH_WHATS_NEW"]
-            local whatsNewBtn = CreateBottomPinnedButton(whatsNewBase, "INV_Scroll_05", function()
+            local whatsNewBtn = CreateBottomPinnedButton(whatsNewBase, addon.DashboardRowIcons.patchnotes, function()
                 if addon.PatchNotes_MarkWhatsNewSidebarClicked then
                     addon.PatchNotes_MarkWhatsNewSidebarClicked()
                 end
@@ -1767,7 +1760,7 @@ function addon.Dashboard_BuildMainFrame()
             f.whatsnewSidebarBtn = whatsNewBtn
 
             local integrationsSidebarBtn = CreateBottomPinnedButton(
-                L["DASH_INTEGRATIONS_TAB"], "INV_Misc_Gear_08",
+                L["DASH_INTEGRATIONS_TAB"], addon.DashboardModuleIcons.integrations,
                 function()
                     if f.ShowIntegrations then f.ShowIntegrations() end
                 end, TAB_ROW_HEIGHT
@@ -1777,7 +1770,7 @@ function addon.Dashboard_BuildMainFrame()
             integrationsSidebarBtn._integrationsBaseText = L["DASH_INTEGRATIONS_TAB"]
             f.integrationsSidebarBtn = integrationsSidebarBtn
 
-            local searchSidebarBtn = CreateBottomPinnedButton(L["DASH_SEARCH_TAB"], "INV_Misc_Spyglass_03", function()
+            local searchSidebarBtn = CreateBottomPinnedButton(L["DASH_SEARCH_TAB"], addon.DashboardRowIcons.search, function()
                 if f.ShowSearch then f.ShowSearch() end
             end, TAB_ROW_HEIGHT * 2)
             f.searchSidebarBtn = searchSidebarBtn
@@ -1884,7 +1877,7 @@ function addon.Dashboard_BuildMainFrame()
                         header.btnBg = sb.MakeSelectionFill(header, 8)
                         -- Module icon at the left, drawn chevron at the right (it turns as the
                         -- group opens), label aligned with the Welcome and News labels.
-                        sb.AddRowIcon(header, categoryIcons[(mk:gsub("^%l", string.upper))])
+                        sb.AddRowIcon(header, categoryIcons[(mk:gsub("^%l", string.upper))], TILE_MODULE_LABEL_COLORS[mk])
                         local chevron = sb.CreateChevron(header)
                         chevron:SetPoint("RIGHT", header, "RIGHT", -16, 0)
                         header.chevron = chevron
