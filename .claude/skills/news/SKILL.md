@@ -17,6 +17,8 @@ allowed-tools:
   - Bash(python3 *)
   - Bash(node *)
   - Bash(date *)
+  - Bash(ls *)
+  - Skill
 ---
 
 ## Description
@@ -83,7 +85,7 @@ Sources: PR #431 (merged), PatchNotesData 6.7.0 "Focus: pinned quests ..."
   from 2026-10-08, until 2026-12-07, card, priority 100
 
 Checks: build ok, --check ok, 47 python tests, 54 logic checks.
-Commit and open a PR into feature/axis-settings-consolidation? (yes / edit / cancel)
+Commit and open a PR into the current integration branch? (yes / edit / cancel)
 ```
 
 ## Gotchas
@@ -112,8 +114,8 @@ Commit and open a PR into feature/axis-settings-consolidation? (yes / edit / can
 - **Do not hand-edit `DashboardNewsFeed.lua`.** It is generated.
 - **Show the rendered story and wait for approval before committing or opening
   a PR.** Stories go straight to players' dashboards.
-- **PR base is the current integration branch** (`feature/axis-settings-consolidation`,
+- **PR base is the current integration branch** (e.g. `feature/axis-settings-consolidation`,
   or the top of an open stack), never `main` directly unless the director says
-  so. Check with `git branch --show-current` and `gh pr list` before opening.
+  so. Find it with `git branch --show-current` and `gh pr list` before opening.
 - **Working copies are CRLF** for most text files; use the Edit tool for existing
   files, and confirm `git show :<path> | grep -c $'\r'` is 0 after `git add`.

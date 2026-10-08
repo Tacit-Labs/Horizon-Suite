@@ -35,7 +35,7 @@ An action form is `<kind> [<arg>]`:
 After the closing `---`, blocks separated by blank lines. The body must start with a paragraph, which becomes the story's summary on cards and the Welcome strip.
 
 - **Paragraph:** any block that is not a list. Line breaks inside it are joined with spaces.
-- **List:** a block where every line starts with `- `. Each line is one item.
+- **List:** a block where every line starts with `- `. Each line is one item. A block that mixes `- ` lines with other lines is an error; keep each item on one line.
 - **Bold:** `**text**` shows in white. Every `**` must be paired.
 
 Pipe characters are doubled (`||`) so they display literally and can't start WoW escape codes; bold is added by the builder after that, so a story cannot inject its own codes.

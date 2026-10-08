@@ -131,6 +131,11 @@ run(`
     { section = "y", bullets = { "Essence: c", "Insight: d" } } } }, "1.0")
   check("modules capped by the two bullets taken", #r4.modules == 2)
 
+  local r5 = N.ReleaseStory({ ["1.0"] = { { section = "x", bullets = { "Focus: a", "Focus (Forever): b" } } } }, "1.0")
+  check("same module twice gives one", #r5.modules == 1 and r5.modules[1] == "focus", #r5.modules)
+  local r6 = N.ReleaseStory({ ["1.0"] = { { section = "x", bullets = { "Meridian: a", "Vista: b" } } } }, "1.0")
+  check("unknown prefix skipped, known kept", #r6.modules == 1 and r6.modules[1] == "vista", #r6.modules)
+
   -- PostedLabel buckets.
   local P = N.PostedLabel
   check("same day is Today", P("2026-10-08", "2026-10-08") == "Today", P("2026-10-08", "2026-10-08"))

@@ -71,10 +71,10 @@ def parse_story(name, text):
             raise StoryError(f"{name}:{n}: duplicate field '{key}'")
         meta[key] = value
     body = text[end + 5:]
-    return meta, parse_blocks(body)
+    return meta, parse_blocks(body, name)
 
 
-def parse_blocks(body):
+def parse_blocks(body, name="story"):
     """Blank-line separated blocks: all lines '- x' make a list, anything else a paragraph."""
     blocks = []
     for chunk in re.split(r"\n\s*\n", body):
@@ -83,6 +83,9 @@ def parse_blocks(body):
             continue
         if all(ln.startswith("- ") for ln in lines):
             blocks.append(("list", [" ".join(ln[2:].split()) for ln in lines]))
+        elif any(ln.startswith("- ") for ln in lines):
+            raise StoryError(f"{name}: a list block must have every line start with '- '; "
+                             f"join wrapped items onto one line (near '{lines[0][:30]}')")
         else:
             blocks.append(("p", " ".join(chunk.split())))
     return blocks
@@ -92,6 +95,8 @@ def render_text(name, text):
     """Escape for WoW (| doubled), then turn **bold** into white colour codes.
 
     Done in this order so a story can never inject its own escape codes."""
+    if "***" in text:
+        raise StoryError(f"{name}: '***' is ambiguous; put a space or word between bold markers in '{text[:40]}'")
     parts = text.replace("|", "||").split("**")
     if len(parts) % 2 == 0:
         raise StoryError(f"{name}: unbalanced ** in '{text[:40]}'")

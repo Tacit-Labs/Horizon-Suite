@@ -110,10 +110,7 @@ class FormatTests(Base):
 
     def test_list_block(self):
         body = "Intro line.\n\n- one\n-   two\n  wrapped no\n\nAfter.\n"
-        self.story("hello-world.md", GOOD.split("---\nFirst")[0] + "---\n" + body)
-        lua = self.build()
-        # a block with a non-bullet line is a paragraph, not a list
-        self.assertIn('{ kind = "p", text = "- one - two wrapped no" },', lua)
+        self.assertRejects(GOOD.split("---\nFirst")[0] + "---\n" + body, "every line start with '- '")
         body = "Intro line.\n\n- one\n-   two  words\n\nAfter.\n"
         self.story("hello-world.md", GOOD.split("---\nFirst")[0] + "---\n" + body)
         lua = self.build()
@@ -136,6 +133,16 @@ class FormatTests(Base):
         body = "Try |cffff0000red|r here.\n"
         self.story("hello-world.md", GOOD.split("---\nFirst")[0] + "---\n" + body)
         self.assertIn("||cffff0000red||r", self.build())
+
+    def test_triple_star_rejected(self):
+        self.assertRejects(GOOD.replace("First paragraph", "First ***paragraph***"), "'***'")
+
+    def test_backslash_and_quote_escaped_in_bold_and_list(self):
+        body = 'Lead **a\\b "q"** end.\n\n- item **c\\d "r"** x\n'
+        self.story("hello-world.md", GOOD.split("---\nFirst")[0] + "---\n" + body)
+        lua = self.build()
+        self.assertIn('|cffffffffa\\\\b \\"q\\"|r', lua)
+        self.assertIn('items = { "item |cffffffffc\\\\d \\"r\\"|r x" }', lua)
 
     def test_unbalanced_bold_rejected(self):
         self.assertRejects(GOOD.replace("First paragraph", "First **paragraph"), "unbalanced")
