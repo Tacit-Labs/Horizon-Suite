@@ -121,17 +121,15 @@ local options = {
       get = function() return getDB("echoCollapse", D.echoCollapse) end,
       set = function(v) setDB("echoCollapse", v) end },
 
-    Section(L["ECHO_SECTION_NOTIFICATIONS"], { page = "general", card = "notifications" }),
+    -- New-message pop-ups: how they look and behave. Which chats pop up is set per chat type
+    -- on Feeds & groups › Alerts by chat type.
+    Section(L["ECHO_SECTION_POPUPS"], { page = "general", card = "notifications" }),
     { type = "dropdown", name = L["ECHO_TOAST_STYLE"], desc = L["ECHO_TOAST_STYLE_DESC"], dbKey = "echoToastStyle",
       options = toastStyleOptions(), preserveOrder = true,
       get = function() return getDB("echoToastStyle", D.echoToastStyle) end,
       set = function(v) setDB("echoToastStyle", v) end },
     IntSlider("echoToastSeconds", L["ECHO_TOAST_SECONDS"], L["ECHO_TOAST_SECONDS_DESC"], 1),
     Toggle(L["ECHO_HOLD_IN_COMBAT"], L["ECHO_HOLD_IN_COMBAT_DESC"], "echoHoldToastsInCombat", D.echoHoldToastsInCombat),
-    { type = "editbox", name = L["ECHO_KEYWORDS"], labelText = L["ECHO_KEYWORDS"], tooltip = L["ECHO_KEYWORDS_DESC"],
-      dbKey = "echoKeywords", height = 24,
-      get = function() return getDB("echoKeywords", D.echoKeywords) or "" end,
-      set = function(v) setDB("echoKeywords", type(v) == "string" and v:gsub("[\r\n]+", ",") or "") end },
     -- Echo plays its own whisper sound only for whispers it hides from Blizzard's chat
     -- (EchoFilter). Anywhere else Blizzard's sound plays, so these rows follow "Hide stored
     -- whispers" (itself shown only while Blizzard's chat is shown) and the card hides with them.
@@ -164,6 +162,11 @@ local options = {
     TierDropdown("officer",  L["ECHO_KIND_OFFICER"]),
     TierDropdown("channel",  L["ECHO_KIND_CHANNEL"]),
     TierDropdown("nearby",   L["ECHO_NEARBY"]),
+    -- Mention words decide what alerts you, so they sit with the per-chat alerts.
+    { type = "editbox", name = L["ECHO_KEYWORDS"], labelText = L["ECHO_KEYWORDS"], tooltip = L["ECHO_KEYWORDS_DESC"],
+      dbKey = "echoKeywords", height = 24,
+      get = function() return getDB("echoKeywords", D.echoKeywords) or "" end,
+      set = function(v) setDB("echoKeywords", type(v) == "string" and v:gsub("[\r\n]+", ",") or "") end },
 
     Section(L["ECHO_SECTION_FEEDS"], { page = "feeds" }),
     -- While Blizzard's chat is hidden the All view is always on (Echo.FeedEnabled). That
@@ -365,6 +368,13 @@ local tail = {
       set = function(v) setDB("echoEnterOpens", v) end },
     ReloadPrompt({ hintText = L["ECHO_HIDE_CHAT_RELOAD"] }),
 
+    -- The font covers Echo's tiles, stack and card alike, so it sits on its own Text card.
+    Section(L["ECHO_SECTION_TEXT"], { page = "look", card = "text" }),
+    { type = "dropdown", name = L["ECHO_FONT"], desc = L["ECHO_FONT_DESC"], dbKey = "echoFontPath", searchable = true,
+      options = function() return addon.GetPerElementFontDropdownOptions("echoFontPath") end,
+      get = function() return getDB("echoFontPath", D.echoFontPath) end,
+      set = function(v) setDB("echoFontPath", v) end,
+      displayFn = addon.DisplayPerElementFont, fontPreviewInList = true },
     Section(L["ECHO_SECTION_CARD"], { page = "look", card = "card" }),
     IntSlider("echoCardWidth",  L["ECHO_CARD_WIDTH"],  L["ECHO_CARD_SIZE_DESC"], 10),
     IntSlider("echoCardHeight", L["ECHO_CARD_HEIGHT"], L["ECHO_CARD_SIZE_DESC"], 10),
@@ -372,11 +382,6 @@ local tail = {
     Toggle(L["ECHO_SHOW_TIMESTAMPS"], L["ECHO_SHOW_TIMESTAMPS_DESC"], "echoShowTimestamps", D.echoShowTimestamps),
     Toggle(L["ECHO_ANIMATE_CARD"], L["ECHO_ANIMATE_CARD_DESC"], "echoAnimateCard", D.echoAnimateCard),
     IntSlider("echoCardIdleClose", L["ECHO_CARD_IDLE_CLOSE"], L["ECHO_CARD_IDLE_CLOSE_DESC"], 5),
-    { type = "dropdown", name = L["ECHO_FONT"], desc = L["ECHO_FONT_DESC"], dbKey = "echoFontPath", searchable = true,
-      options = function() return addon.GetPerElementFontDropdownOptions("echoFontPath") end,
-      get = function() return getDB("echoFontPath", D.echoFontPath) end,
-      set = function(v) setDB("echoFontPath", v) end,
-      displayFn = addon.DisplayPerElementFont, fontPreviewInList = true },
 }
 for _, opt in ipairs(tail) do options[#options + 1] = opt end
 

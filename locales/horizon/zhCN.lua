@@ -2839,3 +2839,5 @@ L["M_BLOCK_WHENEVER_AN_ACTIVE_KEYSTONE"]                      = "Show the M+ blo
 -- L["PRESENCE_CARD_DISCOVERY"]                                = "Discovery line"
 -- L["INSIGHT_TEXT_SIZE"]                                      = "Text size"
 -- L["INSIGHT_COLOUR_BOTH_TYPES"]                              = "Applies to both player and NPC tooltips."
+-- L["ECHO_SECTION_POPUPS"]                                    = "Pop-ups"
+-- L["ECHO_SECTION_TEXT"]                                      = "Text"
