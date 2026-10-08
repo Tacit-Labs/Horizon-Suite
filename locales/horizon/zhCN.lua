@@ -2841,3 +2841,7 @@ L["M_BLOCK_WHENEVER_AN_ACTIVE_KEYSTONE"]                      = "Show the M+ blo
 -- L["INSIGHT_COLOUR_BOTH_TYPES"]                              = "Applies to both player and NPC tooltips."
 -- L["ECHO_SECTION_POPUPS"]                                    = "Pop-ups"
 -- L["ECHO_SECTION_TEXT"]                                      = "Text"
+-- L["AUGMENT_CARD_LOOT_WINDOW"]                               = "Loot window"
+-- L["AUGMENT_SCALE_ALSO_WINDOW"]                              = "Also sizes the loot window."
+-- L["AUGMENT_ALERTS_CARD_GEAR"]                               = "Gear & bags"
+-- L["AUGMENT_ALERTS_CARD_MESSAGES"]                           = "Mail, vault & friends"
