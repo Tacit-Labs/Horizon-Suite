@@ -207,9 +207,10 @@ end
 --- A story panel: section-card fill and a 1px hairline border. Clips its children.
 --- @param parent Frame
 --- @param env table|nil dashboard env (for the card alpha multiplier)
+--- @param frameType string|nil "Frame" (default) or "Button" for a clickable panel
 --- @return Frame
-function Showcase.MakePanel(parent, env)
-    local panel = CreateFrame("Frame", nil, parent)
+function Showcase.MakePanel(parent, env, frameType)
+    local panel = CreateFrame(frameType or "Frame", nil, parent)
     panel:SetFrameLevel((parent:GetFrameLevel() or 0) + 1)
     if panel.SetClipsChildren then panel:SetClipsChildren(true) end
 
@@ -347,6 +348,20 @@ local function MakeChip(parent, env)
     chip:PaintAccent()
     return chip
 end
+
+-- Shared with the Welcome page (DashboardWelcomeShowcase.lua).
+Showcase.Accent = Accent
+Showcase.Lighten = Lighten
+Showcase.PanelRGBA = PanelRGBA
+Showcase.HeadingRGB = HeadingRGB
+Showcase.TextHeight = TextHeight
+Showcase.MakeText = MakeText
+Showcase.Rounded = Rounded
+Showcase.CropFill = CropFill
+Showcase.RegisterAccent = RegisterAccent
+Showcase.RootDB = RootDB
+Showcase.MakeChip = MakeChip
+Showcase.BODY_RGB = { BODY_R, BODY_G, BODY_B }
 
 -- ============================================================================
 -- STORIES
@@ -730,7 +745,7 @@ function addon.DashboardShowcase_InitNews(env)
     -- Stories read env.newsSeen; keep the snapshot on a child env, not the shared one.
     local storyEnv = setmetatable({}, { __index = env })
 
-    -- Same frame as DashboardWelcomeView: an anchor texture, a footer panel, a smooth scroll.
+    -- Same frame as the Welcome page: an anchor texture, a footer panel, a smooth scroll.
     local BG_TOP_NUDGE = 50
     local CONTENT_TOP_PAD = 6
     local SCROLL_TO_BG_INSET = 20

@@ -179,53 +179,11 @@ L["DASH_SEARCH_FILTER_TOOLTIP"]                               = "仅在特定模
 L["DASH_SEARCH_NO_RESULTS_IN_MODULE"]                         = "未找到匹配项，请尝试在所有模块中搜索或换个关键词。"
 L["DASH_NEWS_HEAD_SUB"]                                       = "最新动态与社区焦点"
 L["DASH_NEWS_BADGE_NEW"]                                      = "最新"
-L["DASH_NEWS_EDITORIAL_FOOTER_PREFIX"]                        = "新闻中心 • 编辑布局"
-L["DASH_NEWS_EDITORIAL_FOOTER_LINK"]                          = "更新日志"
-L["DASH_WELCOME_TITLE"]                                       = "欢迎使用 Horizon Suite"
 L["DASH_WELCOME_HEAD_SUB"]                                    = "了解每个模块的功能以及在哪里开启它们"
-L["DASH_WELCOME_INTRO"]                                       = "Horizon Suite 采用模块化设计 —— 您可以只启用自己需要的部分。开启或关闭模块将在重载界面后生效。展开下方的“贡献者”或“本地化”可查看致谢名单和支持的语言。您可以使用“模块”菜单下的“打开模块开关”，或者在侧边栏中依次打开“控制中心-> 模块”。您可以随时从侧边栏返回此欢迎页面。"
-L["DASH_WELCOME_HERO_EYEBROW"]                                = "欢迎"
-L["DASH_WELCOME_HERO_TITLE"]                                  = "一款模块化的 UI 套件，让您只启用自己需要的部分。"
-L["DASH_WELCOME_HERO_TAGLINE"]                                = "您可以围绕自己的任务追踪、通知、小地图、鼠标提示和角色界面来定制 Horizon，而无需使用一整套臃肿的UI。"
-L["DASH_WELCOME_HERO_BODY"]                                   = "首先选择您想要启用的模块，然后参考下方的指南来了解各个功能的简介。“更新日志”和“新闻中心”，方便您随时快速掌握最新改动。"
-L["DASH_WELCOME_START_HERE"]                                  = "从这里开始"
-L["DASH_WELCOME_CTA_MODULES"]                                 = "打开控制中心"
-L["DASH_WELCOME_CTA_PATCH_NOTES"]                             = "打开更新日志"
-L["DASH_WELCOME_CTA_NEWS"]                                    = "打开新闻中心"
-L["DASH_WELCOME_ACTION_MODULES_TITLE"]                        = "自由挑选您需要的 Horizon 模块"
-L["DASH_WELCOME_ACTION_MODULES_BODY"]                         = "在控制台主页可以一键开启或关闭模块，调整完毕后重载界面即可应用。"
-L["DASH_WELCOME_ACTION_UPDATES_TITLE"]                        = "掌握最新的版本改动"
-L["DASH_WELCOME_ACTION_UPDATES_BODY"]                         = "“更新日志”和“新闻中心”是您了解各个版本之间新增预设、美术资源、细节优化以及模块改动的最快途径。"
-L["DASH_WELCOME_ACTION_NEWS_TITLE"]                           = "浏览更新动态"
-L["DASH_WELCOME_ACTION_NEWS_BODY"]                            = "Open News for featured stories, roadmap notes, art highlights, and smaller curated updates in one place."
 L["DASH_WELCOME_LEARN_BODY"]                                  = "本板块是 Horizon 的引导概述：帮您了解每个模块的作用、如何上手入门，以及在熟悉基础设置后该去哪里进行进阶微调。"
-L["DASH_WELCOME_PATH"]                                        = "%s → %s → %s"
-L["DASH_WELCOME_FOCUS_BLIZZARD_PLUS_HEADING"]                 = "Blizzard+ 点击方案"
-L["DASH_WELCOME_FOCUS_BLIZZARD_PLUS_BODY"]                    = [=[Focus 模块现在默认使用 |cffffffffBlizzard+|r 方案 —— 保持了暴雪原生的任务行点击习惯，并融入了 Horizon 的便捷优化。打开 |cffaaaaaaFocus > 交互|r 并查看 |cffaaaaaa点击方案|r 即可了解该预设；更强大的 |cffffffffHorizon+|r 和全自定义的 |cffffffffCustom|r 快捷键方案也即将推出。]=]
-L["DASH_WELCOME_COMING_SOON_TITLE"]                           = "敬请期待"
-L["DASH_WELCOME_COMING_SOON_TAGLINE"]                         = "全新的体验即将到来。"
--- L["DASH_WELCOME_COMING_SOON_BODY"]                         = [=[Watch this space — we will post updates here and in |cffaaaaaaPatch Notes|r. Join |cffaaaaaaDiscord|r from the links below for news and feedback.]=]
-L["DASH_WELCOME_CLASS_ICONS_HEADING"]                         = "Horizon 专属职业图标"
-L["DASH_WELCOME_CLASS_ICONS_LEAD"]                            = [=[我们内置整合了一套全新的定制版职业图标 —— 当您在 |cffaaaaaaAxis → 全局开关|r 中将（职业图标样式）选择为 |cffaaaaaaHorizon|r 时，该套图标将默认启用。]=]
-L["DASH_WELCOME_CLASS_ICONS_THANK_BOOFULS"]                   = [=[特别感谢 Boofuls 支援了本次美术创作，并使这套精美的图标可以分享给每一个人。]=]
--- L["DASH_WELCOME_CLASS_ICONS_CREATED_PREFIX"]               = "• Created by "
--- L["DASH_WELCOME_CLASS_ICONS_ARTIST_NAME"]                  = "Gabriel C"
 L["DASH_WELCOME_CONTRIBUTORS_HEADING"]                        = "贡献者"
-L["DASH_WELCOME_CONTRIBUTORS_BODY"]                           = [=[感谢所有为 Horizon Suite 做出贡献的朋友：]=]
 -- L["DASH_WELCOME_SUPPORTERS_HEADING"]                       = "Supporters"
--- L["DASH_WELCOME_SUPPORTERS_BODY"]                          = [=[Thank you to everyone who supports Horizon Suite through Ko-fi, Patreon, and other channels.]=]
 -- L["DASH_WELCOME_LOCALISATIONS_HEADING"]                    = "Localisations"
-L["DASH_WELCOME_LOCALISATIONS_BODY"]                          = [=[The addon UI is localised for:
--- 
--- • German (deDE) — `locales/horizon/deDE.lua`
--- • English (enUS) — `locales/horizon/enUS.lua`
--- • Spanish (esES) — `locales/horizon/esES.lua`
--- • French (frFR) — `locales/horizon/frFR.lua`
--- • Korean (koKR) — `locales/horizon/koKR.lua`
--- • Brazilian Portuguese (ptBR) — `locales/horizon/ptBR.lua`
--- • Chinese (zhCN) — `locales/horizon/zhCN.lua`
--- 
--- See contributions/translate.md in the repo for how to contribute. Additional locales are welcome via Discord.]=]
 
 -- =====================================================================
 -- options/dashboard/DashboardIntegrationsView.lua — third-party integrations list
@@ -2797,6 +2755,27 @@ L["M_BLOCK_WHENEVER_AN_ACTIVE_KEYSTONE"]                      = "Show the M+ blo
 -- L["DASH_NEWS_EMPTY_TITLE"]                                    = "No news right now"
 -- L["DASH_NEWS_EMPTY_BODY"]                                     = "Patch notes list every change in this version."
 -- L["DASH_NEWS_READ_MORE"]                                      = "Read more"
+-- L["DASH_WELCOME_SHOWCASE_TITLE"]                              = "Craft your UI, your way"
+-- L["DASH_WELCOME_SHOWCASE_BODY"]                               = "Seven modules that reshape Blizzard's interface. Turn on the ones you want."
+-- L["DASH_WELCOME_VERSION_X"]                                   = "Version %s"
+-- L["DASH_WELCOME_OPEN_SETTINGS"]                               = "Open settings"
+-- L["DASH_WELCOME_WHATS_NEW"]                                   = "What's new"
+-- L["DASH_WELCOME_MODULES"]                                     = "The modules"
+-- L["DASH_WELCOME_OPEN"]                                        = "Open"
+-- L["DASH_WELCOME_ON"]                                          = "On"
+-- L["DASH_WELCOME_OFF"]                                         = "Off"
+-- L["DASH_WELCOME_LATEST"]                                      = "Latest news"
+-- L["DASH_WELCOME_ALL_NEWS"]                                    = "All news"
+-- L["DASH_WELCOME_MADE_WITH"]                                   = "Made with help from contributors, supporters and translators"
+-- L["DASH_WELCOME_MODULE_GUIDE"]                                = "Module guide"
+-- L["DASH_WELCOME_TILE_FOCUS"]                                  = "Quest tracker"
+-- L["DASH_WELCOME_TILE_PRESENCE"]                               = "Zone and quest text"
+-- L["DASH_WELCOME_TILE_VISTA"]                                  = "Minimap"
+-- L["DASH_WELCOME_TILE_INSIGHT"]                                = "Tooltips"
+-- L["DASH_WELCOME_TILE_ECHO"]                                   = "Chat"
+-- L["DASH_WELCOME_TILE_AUGMENT"]                                = "Loot and alerts"
+-- L["DASH_WELCOME_TILE_ESSENCE"]                                = "Character sheet"
+-- L["DASH_WELCOME_TILE_INTEGRATIONS"]                           = "Other addons"
 -- L["VISTA_PAGE_TEXT"]                                        = "Text"
 -- L["VISTA_PAGE_TEXT_DESC"]                                   = "Zone, coordinates, clock and other text around the minimap."
 -- L["VISTA_PAGE_BUTTONS"]                                     = "Buttons"

@@ -9,6 +9,31 @@ local addon = _G.HorizonSuite
 
 local tinsert = table.insert
 
+-- A "pure" function, tested by extracting the exact source slice below
+-- (tools/test_echo_logic.js), since this file isn't loaded in the logic harness. A
+-- module icon that already names a full path (it has a backslash, as the Echo tile art
+-- does) is used as-is; anything else resolves under Interface\Icons\ as before.
+-- ECHO_ICON_PATH_HELPER_START
+local function ModuleIconPath(icon)
+    if type(icon) == "string" and icon:find("\\", 1, true) then return icon end
+    return "Interface\\Icons\\" .. (icon or "INV_Misc_Question_01")
+end
+-- ECHO_ICON_PATH_HELPER_END
+
+local echoAddonName = (addon and addon.ADDON_NAME) or "HorizonSuite"
+
+-- Module icons, shared by the module hub cards and the Welcome tiles.
+addon.DashboardModuleIcons = {
+    focus    = "achievement_quests_completed_05",
+    presence = "vas_guildnamechange",
+    vista    = "ability_hunter_pathfinding",
+    insight  = "ui_profession_inscription",
+    augment  = "Spell_holy_powerinfusion",
+    essence  = "achievement_character_human_male",
+    echo     = "Interface\\AddOns\\" .. echoAddonName .. "\\media\\echo\\echo_icon.tga",
+}
+addon.DashboardModuleIconPath = ModuleIconPath
+
 -- @param env table
 -- @return table { RefreshDashboardTiles = function }
 function addon.DashboardHomeWelcome_Init(env)
@@ -50,28 +75,7 @@ function addon.DashboardHomeWelcome_Init(env)
         echo     = { 0.56, 0.64, 0.91 },
     }
 
-    -- A "pure" function, tested by extracting the exact source slice below
-    -- (tools/test_echo_logic.js), since this file isn't loaded in the logic harness. A
-    -- module icon that already names a full path (it has a backslash, as the Echo tile art
-    -- does) is used as-is; anything else resolves under Interface\Icons\ as before.
-    -- ECHO_ICON_PATH_HELPER_START
-    local function ModuleIconPath(icon)
-        if type(icon) == "string" and icon:find("\\", 1, true) then return icon end
-        return "Interface\\Icons\\" .. (icon or "INV_Misc_Question_01")
-    end
-    -- ECHO_ICON_PATH_HELPER_END
-
-    local echoAddonName = (addon and addon.ADDON_NAME) or (envAddon and envAddon.ADDON_NAME) or "HorizonSuite"
-
-    local MODULE_ICONS = {
-        focus    = "achievement_quests_completed_05",
-        presence = "vas_guildnamechange",
-        vista    = "ability_hunter_pathfinding",
-        insight  = "ui_profession_inscription",
-        augment    = "Spell_holy_powerinfusion",
-        essence  = "achievement_character_human_male",
-        echo     = "Interface\\AddOns\\" .. echoAddonName .. "\\media\\echo\\echo_icon.tga",
-    }
+    local MODULE_ICONS = addon.DashboardModuleIcons
 
     local MODULE_DESCS = {
         focus    = L["HOME_MOD_FOCUS_SHORT"],
@@ -502,8 +506,8 @@ function addon.DashboardHomeWelcome_Init(env)
 
     RefreshHomeToggleCards()
 
-    if envAddon.DashboardWelcomeView_Init then
-        envAddon.DashboardWelcomeView_Init(env)
+    if envAddon.DashboardShowcase_InitWelcome and env.welcomeView then
+        envAddon.DashboardShowcase_InitWelcome(env)
     end
 
     if envAddon.DashboardShowcase_InitNews and env.newsView then
