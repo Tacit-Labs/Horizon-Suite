@@ -139,10 +139,7 @@ end
 
 local function IsModuleOn(key)
     if key == "axis" then return true end
-    -- Saved on but failed to start still counts as on: "Turn on" couldn't fix that.
-    local db = _G[addon.DATABASE or "HorizonDB"]
-    local saved = type(db) == "table" and type(db.modules) == "table" and db.modules[key]
-    if type(saved) == "table" and saved.enabled == true then return true end
+    -- Running state, deliberately matching the module hub's toggle cards.
     if addon.IsModuleEnabled then return addon:IsModuleEnabled(key) and true or false end
     return true
 end
