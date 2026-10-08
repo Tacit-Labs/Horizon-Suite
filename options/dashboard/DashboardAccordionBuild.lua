@@ -537,6 +537,13 @@ function addon.DashboardAccordionBuild_Init(f, p)
             end
 
             local skipAnim = (#toHide == 0 and #toShow == 0) or not card.expanded
+            -- Temporary diagnostic for the reveal animation: /run HorizonSuite.debugReveal = true
+            if addon.debugReveal then
+                print(("|cff66ccffHS reveal|r %s: show=%d hide=%d expanded=%s skip=%s anim=%s t=%.3f"):format(
+                    tostring(card.cardId or (card.titleText and card.titleText:GetText()) or "?"),
+                    #toShow, #toHide, tostring(card.expanded), tostring(skipAnim),
+                    tostring(card.relayoutAnim and card.relayoutAnim.phase), GetTime and GetTime() or 0))
+            end
 
             if skipAnim then
                 DoInstantRelayout(card, false, animateVisibility)
@@ -654,6 +661,9 @@ function addon.DashboardAccordionBuild_Init(f, p)
                     card:SetHeight(curH)
                     local done = heightT >= 1 and a.elapsed >= (a.reveal.total or 0)
                     if done then
+                        if addon.debugReveal then
+                            print(("|cff66ccffHS reveal|r done after %.3fs, %d rows"):format(a.elapsed, #a.toShow))
+                        end
                         card.relayoutAnim = nil
                         for _, entry in ipairs(a.toShow) do
                             PlaceStaggerRow(card, entry.frame, 1, 0)
