@@ -17,9 +17,16 @@ addon.DashboardNewsFeed = {
         image = "Interface/AddOns/HorizonSuite/media/news/axis-settings-refresh.png",
         button = "Open settings",
         action = { type = "module", moduleKey = "axis" },
+        button2 = "Module guide",
+        action2 = { type = "guide" },
+        modules = { "axis" },
+        summary = "Every on-screen element now has |cffffffffone card|r, with its switch at the top and everything else for it underneath.",
+        blocks = {
+            { kind = "p", text = "Every on-screen element now has |cffffffffone card|r, with its switch at the top and everything else for it underneath." },
+            { kind = "list", items = { "Related settings are grouped under topic headings inside each card.", "Search matches typos and synonyms, and remembers what you looked for.", "A new Welcome page and this News page, so changes like these are easy to find." } },
+        },
         paragraphs = {
-            "Every on-screen element now has one card, with its switch at the top and everything else for it underneath.",
-            "Search understands typos and synonyms, and remembers what you looked for.",
+            "Every on-screen element now has |cffffffffone card|r, with its switch at the top and everything else for it underneath.",
         },
     },
 }

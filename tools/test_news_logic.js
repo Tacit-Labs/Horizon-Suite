@@ -113,6 +113,50 @@ run(`
   check("release id never stored", seen2["release-6.6.0"] == nil)
   check("Today is ISO", type(N.Today()) == "string")
 
+  -- Release story extras: summary, blocks, modules, posted date.
+  local rn = { ["6.7.0"] = { date = "2026-10-05",
+    { section = "New Features", bullets = { "Focus (Forever): a thing.", "Vista: other thing." } },
+    { section = "Fixes", bullets = { "Focus: third." } } } }
+  local r2 = N.ReleaseStory(rn, "6.7.0")
+  check("release summary is the first bullet", r2.summary == "Focus (Forever): a thing.", r2.summary)
+  check("release blocks are one list of two", #r2.blocks == 1 and r2.blocks[1].kind == "list"
+    and #r2.blocks[1].items == 2 and r2.blocks[1].items[2] == "Vista: other thing.")
+  check("release modules distinct and lowercased", #r2.modules == 2 and r2.modules[1] == "focus" and r2.modules[2] == "vista")
+  check("release fromDate", r2.fromDate == "2026-10-05")
+  check("release keeps paragraphs", #r2.paragraphs == 2)
+  check("no module prefix gives no modules", #r.modules == 0)
+  local r3 = N.ReleaseStory({ ["1.0"] = { { section = "x", bullets = { "Focus on speed: yes.", "Nonsense: x" } } } }, "1.0")
+  check("only a leading Module: prefix counts", #r3.modules == 0, #r3.modules)
+  local r4 = N.ReleaseStory({ ["1.0"] = { { section = "x", bullets = { "Echo: a", "Axis: b" } },
+    { section = "y", bullets = { "Essence: c", "Insight: d" } } } }, "1.0")
+  check("modules capped by the two bullets taken", #r4.modules == 2)
+
+  local r5 = N.ReleaseStory({ ["1.0"] = { { section = "x", bullets = { "Focus: a", "Focus (Forever): b" } } } }, "1.0")
+  check("same module twice gives one", #r5.modules == 1 and r5.modules[1] == "focus", #r5.modules)
+  local r6 = N.ReleaseStory({ ["1.0"] = { { section = "x", bullets = { "Meridian: a", "Vista: b" } } } }, "1.0")
+  check("unknown prefix skipped, known kept", #r6.modules == 1 and r6.modules[1] == "vista", #r6.modules)
+
+  -- PostedLabel buckets.
+  local P = N.PostedLabel
+  check("same day is Today", P("2026-10-08", "2026-10-08") == "Today", P("2026-10-08", "2026-10-08"))
+  check("future is Today", P("2026-10-20", "2026-10-08") == "Today")
+  check("one day is Yesterday", P("2026-10-07", "2026-10-08") == "Yesterday")
+  check("2 days", P("2026-10-06", "2026-10-08") == "2 days ago", P("2026-10-06", "2026-10-08"))
+  check("6 days", P("2026-10-02", "2026-10-08") == "6 days ago", P("2026-10-02", "2026-10-08"))
+  check("7 days is a date", P("2026-10-01", "2026-10-08") == "1 Oct", P("2026-10-01", "2026-10-08"))
+  check("older is day and month", P("2026-03-12", "2026-10-08") == "12 Mar", P("2026-03-12", "2026-10-08"))
+  check("month boundary yesterday", P("2026-09-30", "2026-10-01") == "Yesterday")
+  check("month boundary 5 days", P("2026-09-26", "2026-10-01") == "5 days ago", P("2026-09-26", "2026-10-01"))
+  check("year boundary yesterday", P("2025-12-31", "2026-01-01") == "Yesterday")
+  check("year boundary 3 days", P("2025-12-29", "2026-01-01") == "3 days ago", P("2025-12-29", "2026-01-01"))
+  check("leap day counted", P("2024-02-28", "2024-03-01") == "2 days ago", P("2024-02-28", "2024-03-01"))
+  check("non-leap Feb", P("2026-02-28", "2026-03-01") == "Yesterday")
+  check("other year shows year", P("2025-10-12", "2026-10-08") == "12 Oct 2025", P("2025-10-12", "2026-10-08"))
+  check("nil date", P(nil, "2026-10-08") == nil)
+  check("garbage date", P("soon", "2026-10-08") == nil)
+  check("bad month", P("2026-13-01", "2026-10-08") == nil)
+  check("bad today still labels the date", P("2026-10-01", "") == "1 Oct 2026", P("2026-10-01", ""))
+
   print(string.format("news_logic: %d passed, %d failed", pass, fail))
   if fail > 0 then error("failures") end
 `, 'assertions');
