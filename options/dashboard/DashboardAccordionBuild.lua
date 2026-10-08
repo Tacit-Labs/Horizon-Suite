@@ -108,8 +108,16 @@ function addon.DashboardAccordionBuild_Init(f, p)
             end
         end
 
-        local DEPENDENT_FADE_DUR = 0.12
-        local DEPENDENT_HEIGHT_DUR = 0.15
+        -- Rows a parent switch hides fade out (drifting up DEPENDENT_HIDE_DRIFT px), then the
+        -- card closes the gap. Rows it reveals grow the card while they fade and rise into
+        -- place one after another, like a card opening (RowStaggerAt), a touch slower.
+        local DEPENDENT_FADE_DUR = 0.14
+        local DEPENDENT_HEIGHT_DUR = 0.18
+        local DEPENDENT_HIDE_DRIFT = 4
+        local REVEAL_ROW_DUR = 0.2
+        local REVEAL_STEP = 0.035
+        local REVEAL_CAP = 0.36
+        local REVEAL_HEIGHT_DUR = 0.22
         local CARD_VISIBILITY_FADE_DUR = 0.3
         local easeOutDep = addon.easeOut or function(t) return 1 - (1 - t) * (1 - t) end
 
@@ -215,8 +223,19 @@ function addon.DashboardAccordionBuild_Init(f, p)
         local RowStaggerAt = addon.OptionsWidgets_RowStaggerAt
         local RowStaggerSchedule = addon.OptionsWidgets_RowStaggerSchedule
 
-        -- A row's alpha and y offset now: 1 and 0 unless a running stagger owns it.
+        -- A row's alpha and y offset now: 1 and 0 unless a running animation owns it — rows a
+        -- parent switch is revealing (card.relayoutAnim.reveal) or the card-open stagger. Every
+        -- relayout pass asks this, so a restack mid-animation (a revealed row measuring its
+        -- wrapped text on its first frame) keeps the row where the animation has it instead of
+        -- snapping it to full alpha.
         local function RowStaggerLook(card, frame)
+            local anim = card.relayoutAnim
+            local rv = anim and anim.reveal
+            local ridx = rv and rv.index[frame]
+            if ridx and RowStaggerAt then
+                local alpha, dy = RowStaggerAt(ridx, anim.elapsed or 0, rv.step, rv.dur, rv.rise)
+                return alpha, dy
+            end
             local st = card._rowStagger
             local idx = st and st.index[frame]
             if not idx then return 1, 0 end
@@ -545,18 +564,22 @@ function addon.DashboardAccordionBuild_Init(f, p)
                         local t = math.min(1, a.elapsed / DEPENDENT_FADE_DUR)
                         local ep = easeOutDep(t)
                         for _, entry in ipairs(a.toHide) do
-                            entry.frame:SetAlpha(1 - ep)
+                            PlaceStaggerRow(card, entry.frame, 1 - ep, DEPENDENT_HIDE_DRIFT * ep)
                         end
                         if t >= 1 then
                             for _, entry in ipairs(a.toHide) do
                                 entry.frame:Hide()
-                                entry.frame:SetAlpha(1)
+                                PlaceStaggerRow(card, entry.frame, 1, 0)
                             end
                             DoInstantRelayout(card, true, capturedAnimateVisibility)
                             a.phase = "heightShrink"
                             a.elapsed = 0
                             a.targetFullH = card.fullHeight
                         end
+                    elseif not card.expanded then
+                        -- Collapsed mid-shrink: the collapse owns the height now.
+                        card.relayoutAnim = nil
+                        self:SetScript("OnUpdate", nil)
                     else
                         local t = math.min(1, a.elapsed / DEPENDENT_HEIGHT_DUR)
                         local ep = easeOutDep(t)
@@ -571,42 +594,76 @@ function addon.DashboardAccordionBuild_Init(f, p)
                     end
                 end)
             elseif #toShow > 0 then
-                DoInstantRelayout(card, true, capturedAnimateVisibility)
-                for _, entry in ipairs(toShow) do
-                    entry.frame:SetAlpha(0)
+                -- The revealed rows, top to bottom, each with its place in the stagger. The
+                -- animation is registered before the relayout, so that pass (and any restack
+                -- while it runs) places them through RowStaggerLook: hidden and low at first.
+                local index, n = {}, 0
+                for _, entry in ipairs(card.widgetList) do
+                    for _, s in ipairs(toShow) do
+                        if s == entry then
+                            n = n + 1
+                            index[entry.frame] = n
+                            break
+                        end
+                    end
                 end
-                card:SetHeight(oldHeight)
-
+                local step, dur, total = REVEAL_STEP, REVEAL_ROW_DUR, REVEAL_ROW_DUR
+                if RowStaggerSchedule then
+                    step, dur, total = RowStaggerSchedule(n, REVEAL_STEP, REVEAL_ROW_DUR, REVEAL_CAP)
+                end
+                local rise = (addon.OptionsWidgetsDef and addon.OptionsWidgetsDef.RowRise) or 6
                 card.relayoutAnim = {
                     phase = "fadeIn",
                     elapsed = 0,
                     toShow = toShow,
                     oldHeight = oldHeight,
-                    targetFullH = card.fullHeight,
+                    reveal = { index = index, step = step, dur = dur, rise = rise, total = total },
                 }
+                -- If the relayout raises, drop the reveal so its rows are not left invisible.
+                local ok, err = pcall(DoInstantRelayout, card, true, capturedAnimateVisibility)
+                if not ok then
+                    card.relayoutAnim = nil
+                    error(err, 0)
+                end
+                card.relayoutAnim.targetFullH = card.fullHeight
+                card:SetHeight(oldHeight)
+
+                local function placeRevealed(a)
+                    for _, entry in ipairs(a.toShow) do
+                        local alpha, dy = RowStaggerLook(card, entry.frame)
+                        PlaceStaggerRow(card, entry.frame, alpha, dy)
+                    end
+                end
+                placeRevealed(card.relayoutAnim)
                 animFrame:SetScript("OnUpdate", function(self, dt)
                     local a = card.relayoutAnim
                     if not a then self:SetScript("OnUpdate", nil) return end
-                    a.elapsed = a.elapsed + dt
-                    local fadeT = math.min(1, a.elapsed / DEPENDENT_FADE_DUR)
-                    local heightT = math.min(1, a.elapsed / DEPENDENT_HEIGHT_DUR)
-                    local fadeEp = easeOutDep(fadeT)
-                    local heightEp = easeOutDep(heightT)
-                    for _, entry in ipairs(a.toShow) do
-                        entry.frame:SetAlpha(fadeEp)
-                    end
-                    local curH = a.oldHeight + (a.targetFullH - a.oldHeight) * heightEp
-                    card:SetHeight(curH)
-                    UpdateDetailLayout()
-                    if fadeT >= 1 and heightT >= 1 then
+                    -- The player collapsed the card mid-reveal: land the rows and leave the
+                    -- height to the collapse.
+                    if not card.expanded then
+                        card.relayoutAnim = nil
                         for _, entry in ipairs(a.toShow) do
-                            entry.frame:SetAlpha(1)
+                            PlaceStaggerRow(card, entry.frame, 1, 0)
+                        end
+                        self:SetScript("OnUpdate", nil)
+                        return
+                    end
+                    a.elapsed = a.elapsed + dt
+                    local heightT = math.min(1, a.elapsed / REVEAL_HEIGHT_DUR)
+                    local curH = a.oldHeight + (a.targetFullH - a.oldHeight) * easeOutDep(heightT)
+                    card:SetHeight(curH)
+                    local done = heightT >= 1 and a.elapsed >= (a.reveal.total or 0)
+                    if done then
+                        card.relayoutAnim = nil
+                        for _, entry in ipairs(a.toShow) do
+                            PlaceStaggerRow(card, entry.frame, 1, 0)
                         end
                         card:SetHeight(a.targetFullH)
-                        card.relayoutAnim = nil
                         self:SetScript("OnUpdate", nil)
-                        UpdateDetailLayout()
+                    else
+                        placeRevealed(a)
                     end
+                    UpdateDetailLayout()
                 end)
             end
         end
