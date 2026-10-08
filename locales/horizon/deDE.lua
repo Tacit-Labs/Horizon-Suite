@@ -2848,3 +2848,4 @@ L["FOCUS_COMPLETED_CHECKMARK"]                                = "|TInterface\\\\
 -- L["DASH_ROW_COLOUR"]                                        = "Colour"
 -- L["DASH_ROW_SIZE"]                                          = "Size"
 -- L["DASH_ROW_PULSE"]                                         = "Pulse"
+-- L["PRESENCE_CARD_DISCOVERY"]                                = "Discovery line"

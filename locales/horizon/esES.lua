@@ -2847,3 +2847,4 @@ L["M_BLOCK_WHENEVER_AN_ACTIVE_KEYSTONE"]                      = "Show the M+ blo
 -- L["DASH_ROW_COLOUR"]                                        = "Colour"
 -- L["DASH_ROW_SIZE"]                                          = "Size"
 -- L["DASH_ROW_PULSE"]                                         = "Pulse"
+-- L["PRESENCE_CARD_DISCOVERY"]                                = "Discovery line"
