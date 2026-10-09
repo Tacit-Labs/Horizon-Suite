@@ -1642,7 +1642,9 @@ local function PopulateEntry(entry, questData, groupKey)
     -- combination is needed so everything is right-aligned.
     local S = addon.Scaled or function(v) return v end
     local showLfgBtn  = questData.isGroupQuest and entry.lfgBtn
-                        and addon.GetDB("showGroupFinderButton", true) and true or false
+                        and addon.GetDB("showGroupFinderButton", true)
+                        and (not addon.Platform or addon.Platform.Has("questGroupFinder"))
+                        and true or false
     local lfgBtnSize  = S(addon.LFG_BTN_SIZE or 26)
     local itemBtnSize = S(addon.ITEM_BTN_SIZE or 26)
     local gutterGap   = S(addon.LFG_BTN_GAP or 4)  -- gap between text and gutter, and between buttons

@@ -85,6 +85,9 @@ local ABSENT_ON_FOREVER = {
     housing     = true,
     weeklyVault = true,
     adventureGuide = true,  -- Traveler's Log: probe returned 0 activities (Trading Post is Retail-only)
+    -- Quest group search: clicking the Focus group-quest eye did nothing on the
+    -- beta (2026-10-09), although LFGListUtil_FindQuestGroup is defined.
+    questGroupFinder = true,
 }
 
 -- Systems Forever exposes through the API whose content has not been verified on
@@ -124,6 +127,8 @@ local detected = {
     professions     = C_TradeSkillUI ~= nil,
     adventureGuide  = HasFunction(C_PerksActivities, "GetPerksActivitiesInfo"),  -- Traveler's Log
     contentTracking = C_ContentTracking ~= nil,
+    -- Premade-group search for one quest, behind the Focus group-quest eye button.
+    questGroupFinder = type(LFGListUtil_FindQuestGroup) == "function",
     -- Group loot rolls: the roll frame needs only these three globals. Which
     -- *buttons* a given roll offers is answered per-item by GetLootRollItemInfo's
     -- can* flags, not by this key (see Augment/LootRoll).
@@ -372,6 +377,13 @@ local PROBES = {
         return ("%d factions, C_MajorFactions=%s"):format(n, type(C_MajorFactions))
     end },
     -- Baseline confirmations for systems marked absent on Forever.
+    { "questGroupFinder", function()
+        local cats = C_LFGList and C_LFGList.GetAvailableCategories
+        local ok, list = pcall(cats or error)
+        return ("LFGListUtil_FindQuestGroup=%s, C_LFGList.Search=%s, categories=%s"):format(
+            type(LFGListUtil_FindQuestGroup), type(C_LFGList and C_LFGList.Search),
+            (ok and type(list) == "table") and tostring(#list) or "ABSENT")
+    end },
     { "mythicPlus", function()
         local maps = C_ChallengeMode.GetMapTable and C_ChallengeMode.GetMapTable() or {}
         return ("%d keystone maps"):format(#maps)
