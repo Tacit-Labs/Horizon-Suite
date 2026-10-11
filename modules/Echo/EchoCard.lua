@@ -53,6 +53,11 @@ Card.GAP = 3
 Card.GROUP_GAP = 10
 Card.SECRET_LINES = 3
 Card.LINE_HEIGHT = 14
+-- Text is measured this much narrower than it is drawn. At a scale that isn't a whole
+-- number of pixels per unit (UI scale off at 1440p, say) the drawn line can snap a pixel
+-- short of the measured one and wrap a word the measurement kept, running the text out of
+-- its bubble; measuring narrower means the drawn text never needs more lines than counted.
+Card.WRAP_SLACK = 2
 Card.TEXT_SIZE = 11  -- message text; echoCardTextSize
 Card.FEED_TIME_WIDTH = 40
 Card.STAMP_GAP = 4  -- between a conversation bubble and its time beside it (echoShowTimestamps)
@@ -577,6 +582,17 @@ end
 -- The height of Card.SECRET_LINES lines of message text, measured on a hidden readable
 -- FontString in the current font and size. Cached until the font or size changes.
 local probe, secretHeight, secretKey
+
+-- The height a readable FontString's text needs when drawn width wide: measured
+-- Card.WRAP_SLACK narrower, then given the full width back to draw in. Nil when the client
+-- can't say.
+local function WrappedHeight(fs, width)
+    fs:SetWidth(width - Card.WRAP_SLACK)
+    local h = fs:GetStringHeight()
+    fs:SetWidth(width)
+    if Echo.IsSecret(h) or type(h) ~= "number" or h <= 0 then return nil end
+    return h
+end
 function Card.SecretHeight()
     local path = Echo.FontPath()
     local key = tostring(path) .. ":" .. tostring(Card.TEXT_SIZE)
@@ -621,13 +637,11 @@ local function SizeBubble(b, text, secret, markSide)
         if Echo.IsSecret(measured) or type(measured) ~= "number" or measured <= 0 then measured = nil end
         width = Echo.View.BubbleWidth(measured, maxWidth, Card.BUBBLE_PAD)
         -- A measured width can round a hair short at some UI scales and wrap the last
-        -- word; 2 px of slack keeps a fitted bubble on its lines.
-        if measured then width = math.min(maxWidth, width + 2) end
-        b.text:SetWidth(width - Card.BUBBLE_PAD * 2)
+        -- word; 2 px of slack, on top of what WrappedHeight measures without, keeps a
+        -- fitted bubble on its lines.
+        if measured then width = math.min(maxWidth, width + 2 + Card.WRAP_SLACK) end
+        height = WrappedHeight(b.text, width - Card.BUBBLE_PAD * 2) or Card.LINE_HEIGHT
         width = width + extra
-        local h = b.text:GetStringHeight()
-        if Echo.IsSecret(h) or type(h) ~= "number" or h <= 0 then h = Card.LINE_HEIGHT end
-        height = h
     end
     b:SetSize(width, height + Card.BUBBLE_PAD * 2)
     Echo.Round.Layout(b)
@@ -687,9 +701,7 @@ local function SizeFeedLine(b, msg, secret, pinned, text)
     if secret then
         height = Card.SecretHeight()
     else
-        local h = b.text:GetStringHeight()
-        if Echo.IsSecret(h) or type(h) ~= "number" or h <= 0 then h = Card.LINE_HEIGHT end
-        height = h
+        height = WrappedHeight(b.text, width - left - 4) or Card.LINE_HEIGHT
     end
     b:SetSize(width, height + 6)
     Echo.Round.Layout(b)
