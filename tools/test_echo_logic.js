@@ -3142,11 +3142,23 @@ run(`
   check("G5b: without MenuUtil the menu button is hidden", not f.menu.shown, "shown")
   MenuUtil = savedMenuUtil
 
-  -- (c) A fitted bubble gets 2 px of slack, never past the widest bubble.
+  -- (c) A fitted bubble gets 2 px of slack plus the wrap slack, never past the widest bubble.
   local measured = 40.2
   f.bubbles[1].text.GetUnboundedStringWidth = function() return measured end
   S.Add({ convKey = "w:Brisa-Horizon", text = "short", sender = "Brisa-Horizon" })
-  check("G5c: a fitted bubble gets 2 px of slack", f.bubbles[1].width == 59, f.bubbles[1].width)
+  check("G5c: a fitted bubble gets 2 px of slack", f.bubbles[1].width == 59 + C.WRAP_SLACK, f.bubbles[1].width)
+  -- Its height is measured narrower than the text is drawn, so a pixel lost to snapping
+  -- can't wrap a word past the bubble's bottom.
+  local text1 = f.bubbles[1].text
+  local measuredAt
+  text1.GetStringHeight = function(self) measuredAt = self.setWidth; return 28 end
+  measured = 900
+  S.Add({ convKey = "w:Brisa-Horizon", text = "a long one that wraps", sender = "Brisa-Horizon" })
+  local inner = C.BUBBLE_MAX - C.BUBBLE_PAD * 2
+  check("G5c: a wrapped bubble is measured narrower than it is drawn",
+    measuredAt == inner - C.WRAP_SLACK and text1.setWidth == inner, tostring(measuredAt) .. "/" .. tostring(text1.setWidth))
+  check("G5c: the bubble is as tall as the measured text", f.bubbles[1].height == 28 + C.BUBBLE_PAD * 2, f.bubbles[1].height)
+  text1.GetStringHeight = nil
   measured = 233
   S.Add({ convKey = "w:Brisa-Horizon", text = "nearly the widest", sender = "Brisa-Horizon" })
   check("G5c: the slack stops at the widest bubble", f.bubbles[1].width == C.BUBBLE_MAX, f.bubbles[1].width)
