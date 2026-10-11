@@ -19,6 +19,17 @@ local addon = _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["6.7.1"] = {
+        date = "2026-10-11",
+        {
+            section = "Fixes",
+            bullets = {
+                "Focus (Forever): group quests no longer show a group finder eye that does nothing when clicked; its option is greyed out until Forever supports group search.",
+                "Echo: long messages stay inside their chat bubble instead of spilling their last word into the next one.",
+            },
+        },
+    },
+
     ["6.7.0"] = {
         date = "2026-10-09",
         {
