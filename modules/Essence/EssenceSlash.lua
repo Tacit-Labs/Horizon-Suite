@@ -6,25 +6,23 @@
 local addon = _G.HorizonSuite
 if not addon then return end
 
+local HSPrint = addon.HSPrint or function(msg) print("|cFF00CCFFHorizon Suite - Essence:|r " .. tostring(msg or "")) end
+
 local function HandleEssenceSlash(msg)
     local cmd = strtrim(msg or ""):lower()
 
     if cmd == "toggle" then
         if InCombatLockdown() then
-            if addon.Print then addon.Print("Cannot toggle Essence during combat.") end
+            HSPrint("Cannot toggle Essence during combat.")
             return
         end
         addon:SetModuleEnabled("essence", not addon:IsModuleEnabled("essence"))
-        if addon.Print then
-            addon.Print("Essence " .. (addon:IsModuleEnabled("essence") and "|cFF00FF00enabled|r" or "|cFFFF0000disabled|r"))
-        end
+        HSPrint("Essence " .. (addon:IsModuleEnabled("essence") and "|cFF00FF00enabled|r" or "|cFFFF0000disabled|r"))
         return
     end
 
     if not addon:IsModuleEnabled("essence") then
-        if addon.Print then
-            addon.Print("Horizon Essence is disabled. Use /h essence toggle to enable it.")
-        end
+        HSPrint("Horizon Essence is disabled. Use /h essence toggle to enable it.")
         return
     end
 
@@ -32,18 +30,16 @@ local function HandleEssenceSlash(msg)
         if addon.Essence and addon.Essence.ApplyPosition then
             addon.Essence.ApplyPosition(true)
         end
-        if addon.Print then addon.Print("Horizon Essence: Position reset to center.") end
+        HSPrint("Horizon Essence: Position reset to center.")
 
     elseif cmd == "" or cmd == "help" then
-        if addon.Print then
-            addon.Print("Essence commands:")
-            addon.Print("  /h essence        - Show this help")
-            addon.Print("  /h essence toggle - Enable / disable Essence module")
-            addon.Print("  /h essence reset  - Reset position to default")
-        end
+        HSPrint("Essence commands:")
+        HSPrint("  /h essence        - Show this help")
+        HSPrint("  /h essence toggle - Enable / disable Essence module")
+        HSPrint("  /h essence reset  - Reset position to default")
 
     else
-        if addon.Print then addon.Print("Unknown command. Use /h essence for help.") end
+        HSPrint("Unknown command. Use /h essence for help.")
     end
 end
 
@@ -51,14 +47,12 @@ local function HandleEssenceDebugSlash(msg)
     local cmd = strtrim(msg or ""):lower()
 
     if cmd == "" or cmd == "help" then
-        if addon.Print then
-            addon.Print("Essence debug commands (/h debug essence [cmd]):")
-            addon.Print("  debuglive - Toggle live debug log panel (DEV_MODE required)")
-        end
+        HSPrint("Essence debug commands (/h debug essence [cmd]):")
+        HSPrint("  debuglive - Toggle live debug log panel (DEV_MODE required)")
         return
     end
 
-    if addon.Print then addon.Print("Unknown debug command. Use /h debug essence for help.") end
+    HSPrint("Unknown debug command. Use /h debug essence for help.")
 end
 
 if addon.RegisterSlashHandler then
