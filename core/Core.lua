@@ -1755,7 +1755,6 @@ HS:RegisterForDrag("LeftButton")
 HS:SetScript("OnDragStart", function(self)
     if InCombatLockdown() then return end
     if addon.GetDB("lockPosition", false) then return end
-    if addon.GetDB("focusDynamicWidth", false) then return end
     self:StartMoving()
 end)
 
