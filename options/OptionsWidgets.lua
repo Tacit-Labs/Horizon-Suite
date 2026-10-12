@@ -1036,7 +1036,7 @@ local function SliderTrackWidth(rowWidth)
     return math.max(Def.SliderTrackMin, math.min(Def.SliderTrackMax, w))
 end
 
-function _G.OptionsWidgets_CreateSlider(parent, labelText, description, get, set, minVal, maxVal, disabledFn, step, tooltip)
+function _G.OptionsWidgets_CreateSlider(parent, labelText, description, get, set, minVal, maxVal, disabledFn, step, tooltip, preview)
     -- step: snapping increment (default 1 = integer). Use e.g. 0.1 for one decimal place.
     step = step or 1
     local decimals = 0
@@ -1258,6 +1258,7 @@ function _G.OptionsWidgets_CreateSlider(parent, labelText, description, get, set
         startX = GetCursorPosition() / scale
         local dragFillWidth = fillWidth
         local lastCommittedSnapped = snapToStep(normToValue(startNorm))
+        local lastPreviewed
         thumb:GetParent():SetScript("OnUpdate", function()
             if not IsMouseButtonDown("LeftButton") then
                 thumb:GetParent():SetScript("OnUpdate", nil)
@@ -1265,7 +1266,9 @@ function _G.OptionsWidgets_CreateSlider(parent, labelText, description, get, set
                 if not rowHovered then setThumbActive(false) end
                 -- Commit final value on release so the DB is up-to-date.
                 local finalV = snapToStep(math.max(minVal, math.min(maxVal, normToValue(startNorm))))
-                if finalV ~= lastCommittedSnapped then
+                -- A previewed drag commits even back at its start value, so the full apply
+                -- replaces whatever the last preview drew.
+                if finalV ~= lastCommittedSnapped or lastPreviewed ~= nil then
                     lastCommittedSnapped = finalV
                     set(finalV)
                 end
@@ -1280,6 +1283,15 @@ function _G.OptionsWidgets_CreateSlider(parent, labelText, description, get, set
             -- work, which is too costly to run every drag tick.
             -- Update the visual LAST so the smooth position wins over any row:Refresh()
             -- the set() callback may trigger (which would otherwise snap the handle = lag).
+            -- An option with a cheap preview(v) shows the change on screen as the thumb moves,
+            -- once per step; the DB write and full apply still wait for release.
+            if preview then
+                local pv = snapToStep(math.max(minVal, math.min(maxVal, v)))
+                if pv ~= lastPreviewed then
+                    lastPreviewed = pv
+                    preview(pv)
+                end
+            end
             dragTo(v)
             startNorm = n
             startX = x
