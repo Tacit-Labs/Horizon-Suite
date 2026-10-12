@@ -353,6 +353,24 @@ end
 -- panel can resize itself based on content. Uses GetUnboundedStringWidth where
 -- available so the result doesn't depend on the current frame width (and therefore
 -- doesn't loop with width application).
+-- Re-lay the panel out at a new shrink-to-fit width. The populate cache must be
+-- invalidated first: its signature does not include the panel width, so cached
+-- entries would keep the heights they wrapped to at the old width and render
+-- clipped, with gaps, until some unrelated option change busted the cache.
+local function ScheduleDynamicWidthRelayout()
+    local function relayout()
+        if not (addon.focus and addon.focus.enabled) then return end
+        if addon.ApplyDimensions then addon.ApplyDimensions() end
+        if addon.focus.InvalidatePopulateCache then addon.focus.InvalidatePopulateCache() end
+        if addon.FullLayout then addon.FullLayout() end
+    end
+    if C_Timer and C_Timer.After then
+        C_Timer.After(0, relayout)
+    elseif addon.ApplyDimensions then
+        addon.ApplyDimensions()
+    end
+end
+
 local function MeasureDynamicContentWidth()
     local maxW = 0
     local function meas(fs)
@@ -1669,20 +1687,12 @@ local function FullLayout()
             local prev = addon.focus.layout.dynamicContentWidth
             if not prev or math.abs(prev - target) > 1 then
                 addon.focus.layout.dynamicContentWidth = target
-                if C_Timer and C_Timer.After then
-                    C_Timer.After(0, function()
-                        if not (addon.focus and addon.focus.enabled) then return end
-                        if addon.ApplyDimensions then addon.ApplyDimensions() end
-                        if addon.FullLayout then addon.FullLayout() end
-                    end)
-                elseif addon.ApplyDimensions then
-                    addon.ApplyDimensions()
-                end
+                ScheduleDynamicWidthRelayout()
             end
         end
     elseif addon.focus.layout.dynamicContentWidth ~= nil then
         addon.focus.layout.dynamicContentWidth = nil
-        if addon.ApplyDimensions then addon.ApplyDimensions() end
+        ScheduleDynamicWidthRelayout()
     end
 end
 
