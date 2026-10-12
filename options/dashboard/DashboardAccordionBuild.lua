@@ -988,7 +988,7 @@ function addon.DashboardAccordionBuild_Init(f, p)
                         if widget.Refresh then detailOptionFrames[optId] = widget end
                     end
                 elseif opt.type == "slider" then
-                    widget = _G.OptionsWidgets_CreateSlider(currentCard.settingsContainer, displayName, opt.desc or "", g, s, opt.min or 0, opt.max or 100, opt.disabled, opt.step or 1, opt.tooltip)
+                    widget = _G.OptionsWidgets_CreateSlider(currentCard.settingsContainer, displayName, opt.desc or "", g, s, opt.min or 0, opt.max or 100, opt.disabled, opt.step or 1, opt.tooltip, opt.preview)
                     if widget then
                         if opt.hidden and type(opt.hidden) == "function" then
                             local origRefresh = widget.Refresh

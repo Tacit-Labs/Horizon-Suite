@@ -77,7 +77,12 @@ local function SetDB(key, value)
     if addon.SetDB then addon.SetDB(key, value) end
 end
 
-local function GetMapSize() return tonumber(DB("vistaMapSize", MAP_SIZE_DEFAULT)) or MAP_SIZE_DEFAULT end
+-- Set while the Minimap size slider is being dragged; the next full ApplyOptions clears it.
+local previewMapSize
+local function GetMapSize()
+    if previewMapSize then return previewMapSize end
+    return tonumber(DB("vistaMapSize", MAP_SIZE_DEFAULT)) or MAP_SIZE_DEFAULT
+end
 local function GetBorderShow()  return DB("vistaBorderShow", true) end
 local function GetBorderW()     return tonumber(DB("vistaBorderWidth", 1)) or 1 end
 -- Minimap border: DB stores full RGBA. With class colour on, use class RGB scaled by picker RGB (white = full class)
@@ -605,9 +610,9 @@ Vista.ScheduleAutoZoom = ScheduleAutoZoom
 -- Icon Size does the same through MinimapCluster, but that system is out of reach while Vista
 -- owns the minimap, so Vista sets it and re-asserts it whenever Blizzard reapplies its layout.
 local applyingIconScale = false
-local function ApplyMapIconScale()
+local function ApplyMapIconScale(pct)
     if not Minimap.SetIconScale then return end
-    local pct = tonumber(DB("vistaMapIconScale", 100)) or 100
+    pct = pct or tonumber(DB("vistaMapIconScale", 100)) or 100
     applyingIconScale = true
     pcall(Minimap.SetIconScale, Minimap, pct / 100)
     applyingIconScale = false
@@ -4979,6 +4984,7 @@ end
 -- @return nil
 function Vista.ApplyOptions(changedKey)
     if not decor then return end
+    previewMapSize = nil
     ApplyOptions_Minimap()
     ApplyOptions_Texts(GetMapSize())
     ApplyOptions_Buttons(changedKey)
@@ -4986,6 +4992,23 @@ function Vista.ApplyOptions(changedKey)
         addon.MinimapButton_ApplyPosition()
     end
     if Vista.ApplyClusterOpacity then Vista.ApplyClusterOpacity(true) end
+end
+
+-- Live previews for the Size & shape sliders while they are dragged. Each redraws only what the
+-- value touches (map scale, border, text widths; or the icon scale) and skips the button
+-- rebuild in ApplyOptions, which runs once on release when the slider commits.
+-- @param sz number Map size in pixels
+function Vista.PreviewMapSize(sz)
+    if not decor then return end
+    previewMapSize = sz
+    ApplyOptions_Minimap()
+    ApplyOptions_Texts(sz)
+end
+
+-- @param pct number Icon size as a percentage
+function Vista.PreviewMapIconScale(pct)
+    if not decor then return end
+    ApplyMapIconScale(pct)
 end
 
 -- Lightweight apply for position-lock toggles only: no proxy rebuild, no CollectMinimapButtons, no FullLayout (caller skips NotifyMainAddon).
