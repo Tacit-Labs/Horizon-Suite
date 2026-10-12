@@ -10,6 +10,18 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [6.8.0] – 2026-10-12
+
+### ✨ New Features
+- **(Vista) Map icon size** — A new slider under Layout → Size & shape resizes the inn, repair and herb icons on the minimap without switching Vista off. Both it and Minimap size now redraw as you drag.
+
+### 🐛 Fixes
+- **(Focus)** Lock position now only controls the lock: it can be turned off with Shrink to fit on, and both the header and the body obey it.
+- **(Focus)** Turning on Shrink to fit redraws every quest in full instead of cutting entries off half-way with gaps between sections.
+- **(Augment)** The money, currency and reputation toast sounds play the toast chime again, and the durability, bags and mail alerts do too.
+
+---
+
 ## [6.7.1] – 2026-10-11
 
 ### 🐛 Fixes

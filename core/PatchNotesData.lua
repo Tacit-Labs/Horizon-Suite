@@ -19,6 +19,24 @@ local addon = _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["6.8.0"] = {
+        date = "2026-10-12",
+        {
+            section = "New Features",
+            bullets = {
+                "Vista: a new Map icon size slider under Layout > Size & shape resizes the inn, repair and herb icons on the minimap without switching Vista off. It and Minimap size now redraw as you drag.",
+            },
+        },
+        {
+            section = "Fixes",
+            bullets = {
+                "Focus: Lock position now only controls the lock: it can be turned off with Shrink to fit on, and both the header and the body obey it.",
+                "Focus: turning on Shrink to fit redraws every quest in full instead of cutting entries off half-way with gaps between sections.",
+                "Augment: the money, currency and reputation toast sounds play the toast chime again, and the durability, bags and mail alerts do too.",
+            },
+        },
+    },
+
     ["6.7.1"] = {
         date = "2026-10-11",
         {
