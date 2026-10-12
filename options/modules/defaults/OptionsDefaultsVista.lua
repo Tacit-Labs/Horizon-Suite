@@ -10,6 +10,7 @@ if not addon then return end
 -- Vista option keys — trigger Vista.ApplyOptions when changed
 addon.VISTA_KEYS = {
     vistaMapSize = true,
+    vistaMapIconScale = true,
     vistaCircular = true,
     vistaBorderShow = true, vistaBorderWidth = true,
     vistaOpacity = true, vistaCombatOpacity = true,
@@ -146,7 +147,7 @@ addon.VISTA_SKIP_FULL_LAYOUT_KEYS = {
 }
 
 addon.VISTA_DEFAULTS = {
-    vistaMapSize = 200, vistaCircular = false, vistaLock = true, vistaAutoZoom = 5,
+    vistaMapSize = 200, vistaMapIconScale = 100, vistaCircular = false, vistaLock = true, vistaAutoZoom = 5,
     vistaShowZoneText = true, vistaZoneDisplayMode = "zone",
     vistaShowCoordText = true, vistaCoordPrecision = 1,
     vistaShowTimeText = true, vistaTimeUseLocal = true, vistaTime24Hour = false,
@@ -208,6 +209,7 @@ addon.VISTA_DEFAULTS = {
 
 addon.VISTA_LIMITS = {
     vistaMapSize               = { min = 100, max = 400 },
+    vistaMapIconScale          = { min = 50,  max = 200 },
     vistaAutoZoom              = { min = 0,   max = 30  },
     vistaBorderWidth           = { min = 1,   max = 8   },
     vistaOpacity               = { min = 0,   max = 100 },

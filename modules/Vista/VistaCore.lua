@@ -601,6 +601,25 @@ Vista.ScheduleAutoZoom = ScheduleAutoZoom
 -- MINIMAP SETUP
 -- ============================================================================
 
+-- Icon size for the engine's own minimap icons (inn, repair, herbs, party). Edit Mode's minimap
+-- Icon Size does the same through MinimapCluster, but that system is out of reach while Vista
+-- owns the minimap, so Vista sets it and re-asserts it whenever Blizzard reapplies its layout.
+local applyingIconScale = false
+local function ApplyMapIconScale()
+    if not Minimap.SetIconScale then return end
+    local pct = tonumber(DB("vistaMapIconScale", 100)) or 100
+    applyingIconScale = true
+    pcall(Minimap.SetIconScale, Minimap, pct / 100)
+    applyingIconScale = false
+    if not Vista._iconScaleHooked and hooksecurefunc then
+        Vista._iconScaleHooked = true
+        hooksecurefunc(Minimap, "SetIconScale", function()
+            if applyingIconScale or not addon:IsModuleEnabled("vista") then return end
+            ApplyMapIconScale()
+        end)
+    end
+end
+
 local function SetupMinimap()
     local pt    = DB("vistaPoint",    nil)
     local rp    = DB("vistaRelPoint", nil)
@@ -635,6 +654,7 @@ local function SetupMinimap()
 
     local moduleScale = (addon.GetModuleScale and addon.GetModuleScale("vista")) or 1
     proxy.SetScale(Minimap, (scale or 1.0) * moduleScale * mapScale)
+    ApplyMapIconScale()
     Minimap:Show()
     if Vista.ApplyClusterOpacity then Vista.ApplyClusterOpacity(true) end
 end
@@ -4767,6 +4787,7 @@ local function ApplyOptions_Minimap()
     local vistaScale  = DB("vistaScale", 1.0) or 1.0
     local moduleScale = (addon.GetModuleScale and addon.GetModuleScale("vista")) or 1
     proxy.SetScale(Minimap, vistaScale * moduleScale * mapScale)
+    ApplyMapIconScale()
     ApplyBorderTextures()
 end
 

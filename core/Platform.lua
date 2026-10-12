@@ -144,6 +144,9 @@ local detected = {
     -- in Platform.unverified until /h echo probe has been run on the Forever beta.
     bnetWhispers    = type(BNSendWhisper) == "function" or HasFunction(C_BattleNet, "SendWhisper"),
     secretChat      = type(issecretvalue) == "function",
+    -- Vista: size of the engine's minimap icons (inn, repair, herbs). Edit Mode's minimap
+    -- Icon Size slider calls the same method.
+    minimapIconScale = type(Minimap) == "table" and type(Minimap.SetIconScale) == "function",
 }
 
 Platform.has = {}
