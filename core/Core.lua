@@ -2217,12 +2217,34 @@ function addon.DebugHeaderCount()
     addon.HSPrint(string.format("[HeaderCount] End breakdown: %s entries listed (production logic).", tostring(n)))
 end
 
+-- Links that failed to resolve, so the warning prints once per link rather than on
+-- every SPELL_UPDATE_COOLDOWN (some campaign quest items throw in GetItemInfoInstant).
+local itemLinkFailWarned = {}
+
+local function ResolveItemID(itemLink)
+    if type(itemLink) == "number" then return itemLink end
+    if issecretvalue and issecretvalue(itemLink) then return nil end
+    local getInfo = (C_Item and C_Item.GetItemInfoInstant) or GetItemInfoInstant
+    if getInfo then
+        local ok, itemID = pcall(getInfo, itemLink)
+        if ok and itemID then return itemID end
+    end
+    -- Fall back to the item ID inside the hyperlink itself.
+    local ok, idStr = pcall(string.match, itemLink, "item:(%d+)")
+    local itemID = ok and tonumber(idStr) or nil
+    if not itemID and not itemLinkFailWarned[itemLink] then
+        itemLinkFailWarned[itemLink] = true
+        if addon.HSPrint then addon.HSPrint("Could not resolve quest item: " .. tostring(itemLink)) end
+    end
+    return itemID
+end
+
 function addon.ApplyItemCooldown(cooldownFrame, itemLink)
     if not cooldownFrame or not itemLink then return end
-    local ok, itemID = pcall(GetItemInfoInstant, itemLink)
-    if not ok and addon.HSPrint then addon.HSPrint("GetItemInfoInstant failed: " .. tostring(itemLink)) end
-    if not ok or not itemID or not GetItemCooldown then return end
-    local start, duration = GetItemCooldown(itemID)
+    local itemID = ResolveItemID(itemLink)
+    local getCooldown = (C_Item and C_Item.GetItemCooldown) or GetItemCooldown
+    if not itemID or not getCooldown then return end
+    local start, duration = getCooldown(itemID)
     if start and duration and duration > 0 then
         cooldownFrame:SetCooldown(start, duration)
     else
