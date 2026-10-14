@@ -19,6 +19,18 @@ local addon = _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["6.8.1"] = {
+        date = "2026-10-14",
+        {
+            section = "Fixes",
+            bullets = {
+                "Augment: gold, currency and reputation toasts no longer play the friend-online chime: gold plays the coin clink, currency and reputation play the loot toast sound, and the durability, bags and mail alerts play a neutral chime.",
+                "Focus: quest items the game can't look up no longer flood chat with a warning every second, and their cooldown shows on the quest item button again.",
+                "Axis: the Integrations page shows an installed add-on built for a different game version as \"Out of date\" instead of calling it missing.",
+            },
+        },
+    },
+
     ["6.8.0"] = {
         date = "2026-10-12",
         {
