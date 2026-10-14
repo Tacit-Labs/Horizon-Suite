@@ -241,6 +241,7 @@ L["DASH_INT_STATUS_DISABLED"]                                 = "Disabled"
 L["DASH_INT_STATUS_MISSING"]                                  = "Not installed"
 L["DASH_INT_STATUS_BUNDLED"]                                  = "Bundled"
 L["DASH_INT_STATUS_PENDING"]                                  = "Reload needed"
+L["DASH_INT_STATUS_OUTDATED"]                                 = "Out of date"
 
 -- CTA labels
 L["DASH_INT_CTA_GET"]                                         = "Install"
@@ -2855,6 +2856,7 @@ L["DASH_INT_SD_WHAT"]                                         = "Rare NPC alerts
 L["DASH_INT_COMPANION_ENABLED"]                               = "Bridge: Active"
 L["DASH_INT_COMPANION_DISABLED"]                              = "Bridge: Off"
 L["DASH_INT_COMPANION_MISSING"]                               = "Bridge: Missing"
+L["DASH_INT_COMPANION_OUTDATED"]                              = "Bridge: Outdated"
 L["DASH_INT_CTA_GET_COMPANION"]                               = "Install Bridge"
 
 -- Focus dungeon run tracker — the block shown in a party dungeon outside a keystone.

@@ -25,7 +25,7 @@ if not addon then return end
 -- State helpers
 -- ---------------------------------------------------------------------------
 
--- @return string  "enabled" | "disabled" | "missing"
+-- @return string  "enabled" | "disabled" | "outdated" | "missing"
 local function GetIntegrationState(name)
     if type(name) ~= "string" or name == "" then return "missing" end
     if not C_AddOns then return "missing" end
@@ -38,6 +38,12 @@ local function GetIntegrationState(name)
     local _, _, _, loadable, reason = C_AddOns.GetAddOnInfo(name)
     if loadable == false and reason == "DISABLED" then
         return "disabled"
+    end
+    -- Installed, but its TOC doesn't list this client's interface (e.g. a bridge
+    -- addon built only for Retail, running on Forever). Reporting it as missing
+    -- sends the player off to install something they already have.
+    if loadable == false and reason == "INTERFACE_VERSION" then
+        return "outdated"
     end
     -- LoadOnDemand libs (e.g. LibSharedMedia-3.0) are never auto-loaded when
     -- the host addon bundles its own copy, so IsAddOnLoaded returns false even
@@ -173,6 +179,7 @@ function addon.DashboardIntegrationsView_Init(env)
     local STATUS_COLORS = {
         enabled       = { 0.20, 0.75, 0.30, 0.85, "DASH_INT_STATUS_ENABLED",  true },
         disabled      = { 0.95, 0.65, 0.20, 0.85, "DASH_INT_STATUS_DISABLED", false },
+        outdated      = { 0.95, 0.65, 0.20, 0.85, "DASH_INT_STATUS_OUTDATED", false },
         missing       = { 0.90, 0.25, 0.25, 0.80, "DASH_INT_STATUS_MISSING",  false },
         bundled       = { 0.20, 0.75, 0.30, 0.85, "DASH_INT_STATUS_BUNDLED",  true },
         pendingReload = { 0.55, 0.55, 0.95, 0.85, "DASH_INT_STATUS_PENDING",  false },
@@ -315,6 +322,7 @@ function addon.DashboardIntegrationsView_Init(env)
                 row.companionPillBg:SetColorTexture(cd[1], cd[2], cd[3], cd[4])
                 local labelKey = (cs == "enabled") and "DASH_INT_COMPANION_ENABLED"
                     or (cs == "disabled") and "DASH_INT_COMPANION_DISABLED"
+                    or (cs == "outdated") and "DASH_INT_COMPANION_OUTDATED"
                     or "DASH_INT_COMPANION_MISSING"
                 row.companionPillText:SetText(L[labelKey] or "Companion")
                 row.companionPill:Show()
