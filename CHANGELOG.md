@@ -10,6 +10,15 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [6.8.1] – 2026-10-14
+
+### 🐛 Fixes
+- **(Augment)** Gold, currency and reputation toasts no longer play the friend-online chime: gold plays the coin clink, currency and reputation play the loot toast sound, and the durability, bags and mail alerts play a neutral chime.
+- **(Focus)** Quest items the game can't look up no longer flood chat with a warning every second, and their cooldown shows on the quest item button again.
+- **(Axis)** The Integrations page shows an installed add-on built for a different game version as "Out of date" instead of calling it missing.
+
+---
+
 ## [6.8.0] – 2026-10-12
 
 ### ✨ New Features
