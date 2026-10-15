@@ -87,6 +87,9 @@ local categories = {
                 b.parent = "augmentLootWindowSkinEnabled"
                 return b
             end)(),
+            -- Runs in the loot toasts' event handlers (AugmentEvents.lua), so it needs them on.
+            Toggle(L["AUGMENT_FAST_LOOT"], L["AUGMENT_FAST_LOOT_DESC"], "augmentFastLoot", D.augmentFastLoot,
+                { parent = "augmentLootToastsEnabled" }),
 
             -- Toast Settings: look of each toast
             -- Loot toasts: the switch leads, and every toast row on this page nests under it, so

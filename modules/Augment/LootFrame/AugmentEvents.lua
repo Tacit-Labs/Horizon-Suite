@@ -283,6 +283,33 @@ local function RevealHeldLoot()
     onEvent(frame, "LOOT_OPENED", false, heldFromItem)
 end
 
+-- Faster auto-loot (augmentFastLoot). Blizzard's auto-loot works through the
+-- slots one at a time; taking every slot here, on LOOT_READY, empties the
+-- corpse at once. Locked slots (a group roll under way,
+-- or another player looting) stay with Blizzard, and so does the bind-on-pickup
+-- prompt a slot may raise (LOOT_BIND_CONFIRM). Whatever cannot be taken is left
+-- for the reveal above.
+--
+-- Should LOOT_READY fire again before LOOT_OPENED, the loot is still taken
+-- once: nothing more until LOOT_CLOSED, or for FAST_LOOT_GUARD seconds should
+-- LOOT_CLOSED never arrive.
+local FAST_LOOT_GUARD = 1.0
+local fastLootAt = nil
+
+local function FastLoot()
+    if addon.GetDB("augmentFastLoot", addon.AUGMENT_DEFAULTS.augmentFastLoot) ~= true then return end
+    if type(LootSlot) ~= "function" or type(GetLootSlotInfo) ~= "function" then return end
+    local now = GetTime()
+    if fastLootAt and now - fastLootAt < FAST_LOOT_GUARD then return end
+    fastLootAt = now
+    for slot = (GetNumLootItems() or 0), 1, -1 do
+        if LootSlotHasItem(slot) then
+            local locked = select(6, GetLootSlotInfo(slot))
+            if not locked then LootSlot(slot) end
+        end
+    end
+end
+
 handlers.LOOT_READY = function(autoLoot)
     -- The second LOOT_READY of a loot arrives after LOOT_OPENED; ignore it.
     if lootOpen then return end
@@ -292,6 +319,8 @@ handlers.LOOT_READY = function(autoLoot)
         showNextLoot = false
     end
     SetLootWindowOpens(not hold)
+    -- After the bag check above, which counts the slots still to take.
+    if autoLoot then FastLoot() end
 end
 
 handlers.LOOT_OPENED = function(autoLoot, acquiredFromItem)
@@ -317,6 +346,7 @@ handlers.LOOT_CLOSED = function()
     lootOpen = false
     lootHeld = false
     heldFromItem = nil
+    fastLootAt = nil
     SetLootWindowOpens(true)
 end
 
@@ -369,6 +399,7 @@ function Y.DisableEvents()
     -- Toasts are off: let Blizzard open the loot window again.
     lootOpen = false
     lootHeld = false
+    fastLootAt = nil
     SetLootWindowOpens(true)
     eventsRegistered = false
 end

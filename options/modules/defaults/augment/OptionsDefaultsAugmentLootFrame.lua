@@ -53,6 +53,10 @@ D.augmentCondenseJunk        = true
 -- Blizzard suppression
 D.augmentSuppressBlizzard    = true
 
+-- Faster auto-loot: take every slot on LOOT_READY rather than waiting for
+-- Blizzard's loot window. Off until verified in-game.
+D.augmentFastLoot            = false
+
 -- Hold durations (seconds)
 D.augmentHoldItem            = 5.0
 D.augmentHoldEpic            = 6.5
