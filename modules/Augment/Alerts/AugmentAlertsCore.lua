@@ -353,7 +353,7 @@ end
 -- @param kind string
 -- @param title string
 -- @param body string
--- @param meta table|nil  meta.duration overrides the default hold time
+-- @param meta table|nil  meta.duration overrides the default hold time; meta.icon the kind icon
 function A.ShowToast(kind, title, body, meta)
     if not addon:IsModuleEnabled("augment") then return end
     if not framesCreated then return end
@@ -367,7 +367,7 @@ function A.ShowToast(kind, title, body, meta)
     end
 
     local r, g, b = A.GetKindColor(kind)
-    local kindIcon = A.KIND_ICONS[kind]
+    local kindIcon = (meta and meta.icon) or A.KIND_ICONS[kind]
     if type(kindIcon) == "table" and kindIcon.atlas then
         entry.icon:SetAtlas(kindIcon.atlas, false)
     else

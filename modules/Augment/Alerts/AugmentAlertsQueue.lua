@@ -89,7 +89,8 @@ end
 -- @param kind string  one of A.KNOWN_KINDS
 -- @param title string  short headline (e.g. a friend's name)
 -- @param body string  detail line
--- @param meta table|nil  optional per-toast overrides; meta.duration overrides the hold time
+-- @param meta table|nil  optional per-toast overrides; meta.duration overrides the hold time,
+--                        meta.icon the kind icon (texture path or file ID)
 function A.Enqueue(kind, title, body, meta)
     if not A.KNOWN_KINDS[kind] then return end
     title = A.SafeString(title)

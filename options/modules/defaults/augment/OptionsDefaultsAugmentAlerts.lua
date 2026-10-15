@@ -27,6 +27,7 @@ D.alertsBagsThreshold         = 90
 D.alertsBagsReminder          = "threshold"
 D.alertsMailEnabled           = false
 D.alertsVaultEnabled          = false
+D.alertsRecipeEnabled         = false
 D.alertsFriendsEnabled        = false
 
 -- Sound. Channel default matches LootFrame's augmentSoundChannel ("SFX").
@@ -39,6 +40,7 @@ D.alertsSoundDurability       = false
 D.alertsSoundBags             = false
 D.alertsSoundMail             = false
 D.alertsSoundVault            = false
+D.alertsSoundRecipe           = false
 D.alertsSoundFriends          = false
 
 -- Display
@@ -70,6 +72,7 @@ D.alertsDurabilityColorR, D.alertsDurabilityColorG, D.alertsDurabilityColorB = 0
 D.alertsBagsColorR,       D.alertsBagsColorG,       D.alertsBagsColorB       = 0.90, 0.70, 0.20
 D.alertsMailColorR,       D.alertsMailColorG,       D.alertsMailColorB       = 0.30, 0.70, 1.00
 D.alertsVaultColorR,      D.alertsVaultColorG,      D.alertsVaultColorB      = 0.65, 0.40, 0.95
+D.alertsRecipeColorR,     D.alertsRecipeColorG,     D.alertsRecipeColorB     = 0.95, 0.80, 0.35
 D.alertsFriendOnColorR,   D.alertsFriendOnColorG,   D.alertsFriendOnColorB   = 0.20, 0.90, 0.30
 D.alertsFriendOffColorR,  D.alertsFriendOffColorG,  D.alertsFriendOffColorB  = 0.60, 0.60, 0.60
 
