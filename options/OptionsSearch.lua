@@ -266,8 +266,11 @@ end
 function OptionsData_SearchResultDetailText(opt, maxLen)
     if not opt then return "" end
     maxLen = maxLen or 140
-    local rawD = type(opt.desc) == "function" and opt.desc() or opt.desc
-    local rawT = type(opt.tooltip) == "function" and opt.tooltip() or opt.tooltip
+    -- Not `f() or f`: a function returning nil (a parented row with no tooltip of its own)
+    -- would fall back to the function and show as "function: 0x...".
+    local rawD, rawT = opt.desc, opt.tooltip
+    if type(rawD) == "function" then rawD = rawD() end
+    if type(rawT) == "function" then rawT = rawT() end
     local d = NormalizeSearchDisplayWhitespace(StripSearchDisplayFormatting(rawD))
     local t = NormalizeSearchDisplayWhitespace(StripSearchDisplayFormatting(rawT))
     local combined

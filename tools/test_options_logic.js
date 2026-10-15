@@ -1216,6 +1216,26 @@ run(`
   end
 `, 'widget-motion');
 
+// --- Tooltips: a function returning nil means no tooltip ------------------------------
+// A parented row with no tooltip of its own gets a wrapper that returns nil while its
+// parent is on. Hovering Augment's "Reset loot window position" button then threw
+// "attempt to concatenate local 'tt' (a function value)": the and/or fell back to the
+// function. Search showed the same row's detail as "function: 0x...".
+run(`
+  local H = HorizonSuite
+  local R = H.OptionsWidgets_ResolveTooltip
+  check("tooltip resolver exists", type(R) == "function", type(R))
+  if type(R) == "function" then
+    check("function returning nil is no tooltip", R(function() return nil end) == nil, R(function() return nil end))
+    check("function returning text is that text", R(function() return "hi" end) == "hi")
+    check("plain string passes through", R("hi") == "hi")
+    check("empty string is no tooltip", R("") == nil)
+    check("nil is no tooltip", R(nil) == nil)
+  end
+  local detail = OptionsData_SearchResultDetailText({ desc = "Reset it.", tooltip = function() return nil end })
+  check("search detail skips a nil tooltip function", detail == "Reset it.", detail)
+`, 'tooltip-resolve');
+
 // --- Card opening: rows stagger in, the whole sequence capped -------------------------
 run(`
   local H = HorizonSuite

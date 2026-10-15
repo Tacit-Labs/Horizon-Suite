@@ -266,13 +266,25 @@ addon.OptionsWidgets_SetSafeFont = SetSafeFont
 
 local easeOut = addon.easeOut or function(t) return 1 - (1 - t) * (1 - t) end
 
+-- A tooltip is a string or a function returning one. A function may return nil (a parented
+-- row with no tooltip of its own, while its parent is on), which means no tooltip; an
+-- `and/or` here once fell back to the function itself and concatenated it.
+-- @param tooltip string|function|nil
+-- @return string|nil
+local function ResolveTooltip(tooltip)
+    if type(tooltip) == "function" then tooltip = tooltip() end
+    if type(tooltip) ~= "string" or tooltip == "" then return nil end
+    return tooltip
+end
+addon.OptionsWidgets_ResolveTooltip = ResolveTooltip
+
 -- Apply optional hover tooltip to option rows (desc = inline; tooltip = hover detail).
 local function ApplyOptionTooltip(frame, tooltip)
     if not tooltip or tooltip == "" then return end
     frame:EnableMouse(true)
     frame:HookScript("OnEnter", function()
-        local tt = type(tooltip) == "function" and tooltip() or tooltip
-        if not tt or tt == "" then return end
+        local tt = ResolveTooltip(tooltip)
+        if not tt then return end
         GameTooltip:SetOwner(frame, "ANCHOR_RIGHT")
         -- Split on \n\n so callers can append extra lines (e.g. shift-click hints).
         -- First segment → SetText (white title); subsequent segments → AddLine (grey).
