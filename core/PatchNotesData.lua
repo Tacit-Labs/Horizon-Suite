@@ -19,6 +19,23 @@ local addon = _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["6.9.0"] = {
+        date = "2026-10-16",
+        {
+            section = "New Features",
+            bullets = {
+                "Augment: a new Faster auto-loot option takes every item on a corpse at once when auto-loot is on. Anything that won't fit in your bags stays behind and the loot window opens straight away showing just those. Turn it on under Augment > Loot Frame > Loot window.",
+                "Augment: a new Recipe learned alert shows the \"new recipe learned\" pop-up in your Horizon alert style, and Train all at a trainer shows one \"12 Recipes Learned\" alert instead of one per recipe. Turn it on in Augment Alerts.",
+            },
+        },
+        {
+            section = "Fixes",
+            bullets = {
+                "Axis: hovering Reset loot window position no longer raises a Lua error, and settings search no longer shows \"function: 0x...\" as a setting's description.",
+            },
+        },
+    },
+
     ["6.8.1"] = {
         date = "2026-10-14",
         {
