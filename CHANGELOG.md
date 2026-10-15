@@ -10,6 +10,17 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [6.9.0] – 2026-10-16
+
+### ✨ New Features
+- **(Augment) Faster auto-loot** — With auto-loot on, every item on a corpse is taken at once; anything that won't fit in your bags stays behind and the loot window opens straight away showing just those. Off by default: turn it on under Augment → Loot Frame → Loot window.
+- **(Augment) Recipe learned alerts** — The "new recipe learned" pop-up can show in your Horizon alert style, and Train all at a trainer shows one "12 Recipes Learned" alert instead of one per recipe. Off by default: turn on Recipe learned in Augment Alerts.
+
+### 🐛 Fixes
+- **(Axis)** Hovering Reset loot window position no longer raises a Lua error, and settings search no longer shows "function: 0x…" as a setting's description.
+
+---
+
 ## [6.8.1] – 2026-10-14
 
 ### 🐛 Fixes
