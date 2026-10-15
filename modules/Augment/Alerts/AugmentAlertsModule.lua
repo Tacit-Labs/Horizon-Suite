@@ -39,6 +39,7 @@ function A.PreviewAlerts()
         { "BAGS",       L["ALERTS_BAGS_TITLE"],       string.format(L["ALERTS_BAGS_BODY"], 95) },
         { "MAIL",       L["ALERTS_MAIL_TITLE"],       L["ALERTS_MAIL_BODY"] },
         { "VAULT",      L["ALERTS_VAULT_TITLE"],      L["ALERTS_VAULT_BODY"] },
+        { "RECIPE",     L["ALERTS_RECIPE_TITLE"],     L["ALERTS_PREVIEW_RECIPE_NAME"] },
         { "FRIEND_ON",  L["ALERTS_PREVIEW_FRIEND_NAME"], L["ALERTS_FRIEND_ON_BODY"] },
     }
 

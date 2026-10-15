@@ -1,7 +1,7 @@
 --[[
     Horizon Suite - Augment / Alerts - State
     Shared constants, DB key registry, and safe-string helpers for the Alerts
-    mini-module (durability, bags, mail, vault, friends). Architecture is
+    mini-module (durability, bags, mail, vault, recipes, friends). Architecture is
     modelled on HKDToasts (see Roadmap §8.2 "Notification System"): a single
     Enqueue entry point, per-kind enable flags, a combat-deferral queue, a
     baseline-snapshot pattern so the first event of a session can't fire a
@@ -28,6 +28,7 @@ Y.DB_KEYS.alertsBagsThreshold       = true
 Y.DB_KEYS.alertsBagsReminder       = true
 Y.DB_KEYS.alertsMailEnabled         = true
 Y.DB_KEYS.alertsVaultEnabled        = true
+Y.DB_KEYS.alertsRecipeEnabled       = true
 Y.DB_KEYS.alertsFriendsEnabled      = true
 Y.DB_KEYS.alertsSoundEnabled        = true
 Y.DB_KEYS.alertsSoundCooldown       = true
@@ -48,6 +49,7 @@ Y.DB_KEYS.alertsSoundDurability     = true
 Y.DB_KEYS.alertsSoundBags           = true
 Y.DB_KEYS.alertsSoundMail           = true
 Y.DB_KEYS.alertsSoundVault          = true
+Y.DB_KEYS.alertsSoundRecipe         = true
 Y.DB_KEYS.alertsSoundFriends        = true
 Y.DB_KEYS.alertsToastStyle          = true
 Y.DB_KEYS.alertsTextOutlineType     = true
@@ -60,7 +62,7 @@ Y.DB_KEYS.alertsGrowDirection       = true
 -- Per-kind colours (3 float keys each, mirrors talkingHeadNameColorR/G/B).
 for _, prefix in ipairs({
     "alertsDurabilityColor", "alertsBagsColor", "alertsMailColor",
-    "alertsVaultColor", "alertsFriendOnColor", "alertsFriendOffColor",
+    "alertsVaultColor", "alertsRecipeColor", "alertsFriendOnColor", "alertsFriendOffColor",
 }) do
     Y.DB_KEYS[prefix .. "R"] = true
     Y.DB_KEYS[prefix .. "G"] = true
@@ -96,6 +98,7 @@ A.KNOWN_KINDS = {
     BAGS       = true,
     MAIL       = true,
     VAULT      = true,
+    RECIPE     = true,
     FRIEND_ON  = true,
     FRIEND_OFF = true,
 }
@@ -105,6 +108,8 @@ A.KIND_ICONS = {
     BAGS       = "Interface\\Icons\\INV_Misc_Bag_08",
     MAIL       = "Interface\\Icons\\INV_Letter_15",
     VAULT      = { atlas = "GreatVault-32x32" },
+    -- Fallback only: recipe toasts pass their own icon in meta.icon.
+    RECIPE     = "Interface\\Icons\\INV_Scroll_04",
     FRIEND_ON  = "Interface\\FriendsFrame\\StatusIcon-Online",
     FRIEND_OFF = "Interface\\FriendsFrame\\StatusIcon-Offline",
 }
@@ -116,6 +121,7 @@ local KIND_COLOR_PREFIX = {
     BAGS       = "alertsBagsColor",
     MAIL       = "alertsMailColor",
     VAULT      = "alertsVaultColor",
+    RECIPE     = "alertsRecipeColor",
     FRIEND_ON  = "alertsFriendOnColor",
     FRIEND_OFF = "alertsFriendOffColor",
 }
@@ -139,6 +145,7 @@ local KIND_SOUND_KEY = {
     BAGS       = "alertsSoundBags",
     MAIL       = "alertsSoundMail",
     VAULT      = "alertsSoundVault",
+    RECIPE     = "alertsSoundRecipe",
     FRIEND_ON  = "alertsSoundFriends",
     FRIEND_OFF = "alertsSoundFriends",
 }
@@ -157,6 +164,7 @@ A.KIND_SOUNDS = {
     BAGS       = (SOUNDKIT and SOUNDKIT.UI_EVENT_SCHEDULER_CHIME) or 278769,
     MAIL       = (SOUNDKIT and SOUNDKIT.UI_EVENT_SCHEDULER_CHIME) or 278769,
     VAULT      = (SOUNDKIT and SOUNDKIT.UI_RAID_BOSS_WHISPER_WARNING) or 8959,
+    RECIPE     = (SOUNDKIT and SOUNDKIT.UI_PROFESSIONS_NEW_RECIPE_LEARNED_TOAST) or (SOUNDKIT and SOUNDKIT.UI_EVENT_SCHEDULER_CHIME) or 278769,
     FRIEND_ON  = (SOUNDKIT and SOUNDKIT.FRIEND_LIST_ONLINE) or 7996,
     FRIEND_OFF = (SOUNDKIT and SOUNDKIT.FRIEND_LIST_OFFLINE) or 7997,
 }

@@ -133,6 +133,7 @@ modules/Augment/Alerts/AugmentAlertsDurability.lua
 modules/Augment/Alerts/AugmentAlertsBags.lua
 modules/Augment/Alerts/AugmentAlertsMail.lua
 modules/Augment/Alerts/AugmentAlertsVault.lua
+modules/Augment/Alerts/AugmentAlertsRecipe.lua
 modules/Augment/Alerts/AugmentAlertsFriends.lua
 modules/Augment/Alerts/AugmentAlertsModule.lua
 modules/Augment/LootRoll/AugmentRollState.lua

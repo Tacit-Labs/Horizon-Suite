@@ -25,10 +25,32 @@ local function regOptional(eventName, on)
     end
 end
 
+-- Recipe learned replaces a Blizzard toast, so its registration also moves the
+-- event off AlertFrame. The Blizzard toast is only taken away once our own
+-- registration succeeded: a client without NEW_RECIPE_LEARNED (or one that
+-- rejects it) keeps Blizzard's behaviour untouched.
+local function setRecipeKind(on)
+    local R = A.Recipe
+    if on then
+        local ok = pcall(ev.RegisterEvent, ev, "NEW_RECIPE_LEARNED")
+        if ok and R then R.SuppressBlizzardToast() end
+    else
+        pcall(ev.UnregisterEvent, ev, "NEW_RECIPE_LEARNED")
+        if R then
+            R.Reset()
+            R.RestoreBlizzardToast()
+        end
+    end
+end
+
 -- Re-evaluate every kind's event registration against current DB flags. Safe
 -- to call repeatedly (e.g. from the options page toggles) — RegisterEvent on
 -- an already-registered event, or UnregisterEvent on one that isn't, are both no-ops.
+-- A no-op while Alerts is off: the options page calls this on every toggle, and
+-- registering a kind then would raise its toasts (or, for recipes, hide
+-- Blizzard's) with Alerts switched off.
 function A.UpdateEventRegistrations()
+    if not registered then return end
     local D = addon.AUGMENT_DEFAULTS
 
     regOptional("UPDATE_INVENTORY_DURABILITY", A.GetDB("alertsDurabilityEnabled", D.alertsDurabilityEnabled))
@@ -39,6 +61,7 @@ function A.UpdateEventRegistrations()
     regOptional("MAIL_INBOX_UPDATE", mailOn)
 
     regOptional("WEEKLY_REWARDS_UPDATE", A.GetDB("alertsVaultEnabled", D.alertsVaultEnabled))
+    setRecipeKind(A.GetDB("alertsRecipeEnabled", D.alertsRecipeEnabled) and true or false)
     regOptional("FRIENDLIST_UPDATE", A.GetDB("alertsFriendsEnabled", D.alertsFriendsEnabled))
 end
 
@@ -82,6 +105,11 @@ ev:SetScript("OnEvent", function(_, event, ...)
         return
     end
 
+    if event == "NEW_RECIPE_LEARNED" then
+        if A.Recipe then A.Recipe.HandleRecipeLearned(...) end
+        return
+    end
+
     if event == "FRIENDLIST_UPDATE" then
         if A.Friends then A.Friends.HandleFriendListUpdate() end
         return
@@ -103,4 +131,5 @@ function A.DisableEvents()
     if not registered then return end
     registered = false
     ev:UnregisterAllEvents()
+    setRecipeKind(false)
 end
