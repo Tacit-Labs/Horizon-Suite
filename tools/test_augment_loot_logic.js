@@ -14,6 +14,8 @@
  *   - Every slot is taken, last to first, except empty and locked ones.
  *   - LOOT_READY repeating before or after LOOT_OPENED takes the loot once.
  *   - Items the game refuses still reveal the held-back window.
+ *   - Items that cannot fit the bags are left and shown at once, counting
+ *     stacks, profession bags and the reagent bag.
  *   - A client without LootSlot (Forever, should it differ) does not error.
  *
  * Usage:
@@ -108,7 +110,10 @@ run(`
     return function(_, event, autoLoot) windowOpens[#windowOpens + 1] = { event = event, autoLoot = autoLoot } end
   end
 
-  -- The corpse. slots[i] = { locked = bool, refuse = bool } or false once taken.
+  -- The corpse. slots[i] = false once taken, else a table:
+  --   locked, refuse (the game says no), money, qty, stack (max stack size),
+  --   have (count already carried), family (profession bag bits), reagent,
+  --   uncached (item info not loaded yet).
   slots = {}
   looted = {}
   closed = 0
@@ -117,21 +122,46 @@ run(`
   function GetLootSlotInfo(i)
     local s = slots[i]
     if not s then return nil end
-    return 134400, "Item " .. i, 1, nil, 1, s.locked or false
+    return 134400, "Item " .. i, s.qty or 1, nil, 1, s.locked or false
   end
-  function GetLootSlotType() return 1 end
-  Enum = { LootSlotType = { Item = 1 } }
+  Enum = { LootSlotType = { None = 0, Item = 1, Money = 2, Currency = 3 } }
+  function GetLootSlotType(i)
+    local s = slots[i]
+    if not s then return 0 end
+    return s.money and 2 or 1
+  end
+  function GetLootSlotLink(i) return slots[i] and ("item:" .. i) or nil end
+  local function slotOf(link) return slots[tonumber(link:match("item:(%d+)"))] end
+  C_Item = {
+    GetItemInfo = function(link)
+      local s = slotOf(link)
+      if not s or s.uncached then return nil end
+      local r = {}
+      r[1], r[8], r[17] = "Item", s.stack or 1, s.reagent or false
+      return table.unpack(r, 1, 17)
+    end,
+    GetItemCount = function(link) local s = slotOf(link); return s and s.have or 0 end,
+    GetItemFamily = function(link) local s = slotOf(link); return s and s.family or 0 end,
+  }
+  bit = { band = function(a, b) return a & b end }
   function LootSlot(i)
     looted[#looted + 1] = i
     if slots[i] and not slots[i].refuse then slots[i] = false end
   end
   function CloseLoot() closed = closed + 1 end
   NUM_BAG_SLOTS = 4
-  freeSlots = 20
+  NUM_REAGENTBAG_SLOTS = 1
+  -- bag 0: general; bag 1: a profession bag; bag 5: the reagent bag.
+  freeSlots, profFree, profFamily, reagentFree = 20, 0, 0, 0
   C_Container = { GetContainerNumFreeSlots = function(bag)
     if bag == 0 then return freeSlots, 0 end
+    if bag == 1 then return profFree, profFamily end
+    if bag == 5 then return reagentFree, 0 end
     return 0, 0
   end }
+  function bags(general, prof, family, reagent)
+    freeSlots, profFree, profFamily, reagentFree = general, prof or 0, family or 0, reagent or 0
+  end
 
   function fire(event, ...) eventFrame.onEvent(eventFrame, event, ...) end
   function reset(newSlots)
@@ -234,9 +264,69 @@ run(`
   reset({ {}, {}, {} })
   fire("LOOT_READY", true)
   check("gamepad: loot that does not fit opens Blizzard's window", LootFrame:IsEventRegistered("LOOT_OPENED"), "held")
-  check("gamepad: fast loot still runs", #looted == 3, list(looted))
+  check("gamepad: fast loot takes what fits", list(looted) == "3", list(looted))
   addon.gamepad = false
   freeSlots = 20
+
+  -- Bag-space check: items that cannot fit are left, and the held window
+  -- shows them as soon as it opens rather than after the 0.5s fallback.
+  bags(0)
+  reset({ {}, { money = true }, {} })
+  fire("LOOT_READY", true)
+  check("full bags: money taken, items left", list(looted) == "2", list(looted))
+  fire("LOOT_OPENED", true)
+  check("full bags: window shows at once", #windowOpens == 1 and windowOpens[1].autoLoot == false, #windowOpens)
+  advance(0.6)
+  check("full bags: the fallback does not show it again", #windowOpens == 1, #windowOpens)
+
+  bags(1)
+  reset({ {}, {}, {} })
+  fire("LOOT_READY", true)
+  check("one free slot: one item taken", list(looted) == "3", list(looted))
+
+  bags(0)
+  reset({ { stack = 20, have = 15, qty = 3 } })
+  fire("LOOT_READY", true)
+  check("room on a carried stack: taken", list(looted) == "1", list(looted))
+  reset({ { stack = 20, have = 15, qty = 6 } })
+  fire("LOOT_READY", true)
+  check("stack without room for the whole loot: left", #looted == 0, list(looted))
+  reset({ { stack = 20, have = 40, qty = 1 } })
+  fire("LOOT_READY", true)
+  check("only full stacks carried: left", #looted == 0, list(looted))
+
+  bags(0, 1, 0x20)
+  reset({ { family = 0x20 }, { family = 0x20 }, {} })
+  fire("LOOT_READY", true)
+  check("profession bag takes one of its own kind, nothing else", list(looted) == "2", list(looted))
+
+  bags(0, 0, 0, 1)
+  reset({ { reagent = true }, {} })
+  fire("LOOT_READY", true)
+  check("reagent bag takes a reagent only", list(looted) == "1", list(looted))
+
+  bags(0)
+  reset({ { uncached = true } })
+  fire("LOOT_READY", true)
+  check("uncached item info: taken, the game decides", list(looted) == "1", list(looted))
+
+  -- A locked slot also shows at once.
+  bags(20)
+  reset({ { locked = true }, {} })
+  fire("LOOT_READY", true)
+  fire("LOOT_OPENED", true)
+  check("locked slot: window shows at once", #windowOpens == 1, #windowOpens)
+
+  -- Without the item API the check takes everything rather than erroring.
+  bags(0)
+  local savedItem = C_Item
+  C_Item = nil
+  reset({ {}, {} })
+  local okItem, errItem = pcall(fire, "LOOT_READY", true)
+  check("missing item API does not error", okItem, errItem)
+  check("missing item API takes everything", list(looted) == "2,1", list(looted))
+  C_Item = savedItem
+  bags(20)
 
   -- A client without the loot API (Forever, should it differ) must not error.
   local savedLootSlot = LootSlot

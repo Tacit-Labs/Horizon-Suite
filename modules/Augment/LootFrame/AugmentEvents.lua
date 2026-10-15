@@ -293,8 +293,74 @@ end
 -- Should LOOT_READY fire again before LOOT_OPENED, the loot is still taken
 -- once: nothing more until LOOT_CLOSED, or for FAST_LOOT_GUARD seconds should
 -- LOOT_CLOSED never arrive.
+--
+-- Items that will not fit in the bags are left rather than tried: a refusal's
+-- UI error can arrive before LOOT_OPENED, when nothing is held yet to reveal,
+-- which left the window waiting on AUTOLOOT_REVEAL_DELAY. Anything left here
+-- reveals the window as soon as it opens. The check only skips an item it is
+-- sure cannot fit; when it cannot tell (item info not cached, an API missing
+-- on this client) it takes the item and the refusal path above still applies.
 local FAST_LOOT_GUARD = 1.0
 local fastLootAt = nil
+local fastLootLeft = false
+
+local function ItemAPI(name)
+    return (C_Item and C_Item[name]) or _G[name]
+end
+
+-- Free slots by kind: general bags, profession bags (by family) and the
+-- reagent bag, which sits after the NUM_BAG_SLOTS bags.
+local function ReadBagSpace()
+    if not (C_Container and C_Container.GetContainerNumFreeSlots) then return nil end
+    local space = { general = 0, families = {}, reagent = 0 }
+    for bag = 0, NUM_BAG_SLOTS + (NUM_REAGENTBAG_SLOTS or 0) do
+        local n, family = C_Container.GetContainerNumFreeSlots(bag)
+        n = n or 0
+        if bag > NUM_BAG_SLOTS then
+            space.reagent = space.reagent + n
+        elseif not family or family == 0 then
+            space.general = space.general + n
+        elseif n > 0 then
+            space.families[#space.families + 1] = { family = family, free = n }
+        end
+    end
+    return space
+end
+
+-- True if the item fits, spending the bag slot it would take so the next
+-- item counts what is left.
+local function TakeBagSpace(space, link, quantity)
+    local getInfo = ItemAPI("GetItemInfo")
+    if not space or not link or not getInfo then return true end
+    local info = { getInfo(link) }
+    local stackSize = info[8]
+    if not stackSize then return true end  -- not cached yet
+    local getCount = ItemAPI("GetItemCount")
+    if stackSize > 1 and getCount then
+        local part = (getCount(link) or 0) % stackSize
+        if part > 0 and stackSize - part >= (quantity or 1) then return true end
+    end
+    -- A profession item goes to its own bag first.
+    local getFamily = ItemAPI("GetItemFamily")
+    local itemFamily = getFamily and getFamily(link)
+    if itemFamily and itemFamily > 0 and bit and bit.band then
+        for _, b in ipairs(space.families) do
+            if b.free > 0 and bit.band(itemFamily, b.family) > 0 then
+                b.free = b.free - 1
+                return true
+            end
+        end
+    end
+    if space.general > 0 then
+        space.general = space.general - 1
+        return true
+    end
+    if space.reagent > 0 and info[17] then  -- isCraftingReagent
+        space.reagent = space.reagent - 1
+        return true
+    end
+    return false
+end
 
 local function FastLoot()
     if addon.GetDB("augmentFastLoot", addon.AUGMENT_DEFAULTS.augmentFastLoot) ~= true then return end
@@ -302,10 +368,20 @@ local function FastLoot()
     local now = GetTime()
     if fastLootAt and now - fastLootAt < FAST_LOOT_GUARD then return end
     fastLootAt = now
+    fastLootLeft = false
+    local space = ReadBagSpace()
     for slot = (GetNumLootItems() or 0), 1, -1 do
         if LootSlotHasItem(slot) then
-            local locked = select(6, GetLootSlotInfo(slot))
-            if not locked then LootSlot(slot) end
+            local _, _, quantity, _, _, locked = GetLootSlotInfo(slot)
+            -- Money and currency need no bag space.
+            local isItem = type(GetLootSlotType) == "function" and Enum and Enum.LootSlotType
+                and GetLootSlotType(slot) == Enum.LootSlotType.Item
+            local link = isItem and type(GetLootSlotLink) == "function" and GetLootSlotLink(slot)
+            if not locked and (not isItem or TakeBagSpace(space, link, quantity)) then
+                LootSlot(slot)
+            else
+                fastLootLeft = true
+            end
         end
     end
 end
@@ -334,6 +410,8 @@ handlers.LOOT_OPENED = function(autoLoot, acquiredFromItem)
     C_Timer.After(AUTOLOOT_REVEAL_DELAY, function()
         if token == autoLootToken then RevealHeldLoot() end
     end)
+    -- Fast loot already knows what it left behind, so show it now.
+    if fastLootLeft then RevealHeldLoot() end
 end
 
 -- "Inventory is full", "You can't carry any more of those" and the like.
@@ -347,6 +425,7 @@ handlers.LOOT_CLOSED = function()
     lootHeld = false
     heldFromItem = nil
     fastLootAt = nil
+    fastLootLeft = false
     SetLootWindowOpens(true)
 end
 
@@ -400,6 +479,7 @@ function Y.DisableEvents()
     lootOpen = false
     lootHeld = false
     fastLootAt = nil
+    fastLootLeft = false
     SetLootWindowOpens(true)
     eventsRegistered = false
 end
