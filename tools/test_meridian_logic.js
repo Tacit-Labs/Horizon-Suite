@@ -334,6 +334,23 @@ run(`
   check("disable: no longer owns", M.Owns("t1") == false)
   check("disable: the bar is hidden", frame.shown == false)
   check("disable: blocks are detached", DETACHED >= 2, DETACHED)
+
+  -- Disabling in combat defers the detach, and Vista's notification waits with it.
+  HorizonSuite.Vista = { ApplyOptions = function() VISTA_CALLS = (VISTA_CALLS or 0) + 1 end }
+  VISTA_CALLS = 0
+  Bar.Enable()
+  local vistaAfterEnable = VISTA_CALLS
+  local detachedBefore = DETACHED
+  COMBAT = true
+  Bar.Disable()
+  check("disable in combat: Vista is not told yet", VISTA_CALLS == vistaAfterEnable, VISTA_CALLS)
+  check("disable in combat: detach waits for combat to end", DETACHED == detachedBefore, DETACHED)
+  COMBAT = false
+  Bar._driver.scripts.OnEvent(Bar._driver, "PLAYER_REGEN_ENABLED")
+  check("disable in combat: detached once combat ends", DETACHED > detachedBefore, DETACHED)
+  check("disable in combat: Vista is told once combat ends", VISTA_CALLS > vistaAfterEnable, VISTA_CALLS)
+  check("disable in combat: no ownership notice left pending", not HorizonSuite.Meridian._ownershipPending)
+  HorizonSuite.Vista = nil
   M._ResetForTests()
 `, 'bar');
 

@@ -449,6 +449,9 @@ function Bar.OnEvent(event, ...)
             disablePending = false
             DetachAll()
             driver:UnregisterAllEvents()
+            -- Disable's own notification was deferred by combat and nothing else will fire it now.
+            Meridian._ownershipPending = false
+            Meridian.NotifyOwnershipChanged()
             return
         end
         if Meridian._ownershipPending then
