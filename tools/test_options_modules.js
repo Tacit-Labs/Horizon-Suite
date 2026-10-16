@@ -167,6 +167,8 @@ function assemble(capsOff) {
     C_AddOns = { IsAddOnLoaded = function() return false end }
     IsAddOnLoaded = function() return false end
     NUM_BAG_SLOTS = 4  -- read by a desc function the search index resolves
+    -- The gold block makes an event frame at load; every method on it is a no-op here.
+    CreateFrame = function() return setmetatable({}, { __index = function() return function() end end }) end
   `, 'stub');
   for (const f of PREREQS.concat(FILES)) run(read(f), f);
 
