@@ -58,6 +58,7 @@ run(`
 const FILES = [
   'modules/Meridian/MeridianRegistry.lua',
   'modules/Meridian/MeridianFormat.lua',
+  'modules/Meridian/MeridianAutoHide.lua',
 ];
 for (const f of FILES) run(read(f), f);
 
@@ -185,6 +186,56 @@ run(`
   check("durability: nothing to measure gives nil", F.LowestDurability({ { nil, nil } }) == nil)
   check("percent", F.Percent(87.4) == "87%", F.Percent(87.4))
 `, 'format');
+
+// --- Auto-hide ---------------------------------------------------------------------
+run(`
+  local A = HorizonSuite.Meridian.AutoHide
+  local function inp(t)
+    return { autoHide = t.autoHide ~= false, keepOutOfCombat = t.keep or false, inCombat = t.combat or false,
+             hovering = t.hover or false, combatMode = t.mode or "show", fadeAlpha = 0.3 }
+  end
+
+  local s = A.New(true)
+  local p = A.Step(s, 1, inp({ autoHide = false }))
+  check("off: always out", p == 1, p)
+
+  s = A.New(true)
+  p = A.Step(s, 1.0, inp({}))
+  check("on: stays out before the hide delay", p == 1, p)
+  p = A.Step(s, 0.6, inp({}))
+  check("on: starts sliding after the delay", p < 1, p)
+  p = A.Step(s, 1, inp({}))
+  check("on: fully away", p == 0, p)
+
+  p = A.Step(s, 0.05, inp({ hover = true }))
+  check("hover: slides back in", p > 0 and p < 1, p)
+  p = A.Step(s, 1, inp({ hover = true }))
+  check("hover: fully out", p == 1, p)
+  p = A.Step(s, 1.4, inp({}))
+  check("leave: waits the delay again", p == 1, p)
+
+  s = A.New(false)
+  p = A.Step(s, 1, inp({ keep = true }))
+  check("keep shown out of combat: out while not fighting", p == 1, p)
+  p = A.Step(s, 1, inp({ keep = true, combat = true }))
+  p = A.Step(s, 1, inp({ keep = true, combat = true }))
+  check("keep shown out of combat: still hides in combat", p == 0, p)
+
+  s = A.New(true)
+  local _, alpha = A.Step(s, 0.01, inp({ autoHide = false, combat = true, mode = "fade" }))
+  check("fade: combat alpha", alpha == 0.3, alpha)
+  _, alpha = A.Step(s, 0.01, inp({ autoHide = false, combat = true, mode = "fade", hover = true }))
+  check("fade: hover restores full alpha", alpha == 1, alpha)
+  p = A.Step(s, 1, inp({ autoHide = false, combat = true, mode = "hide", hover = true }))
+  check("hide: gone in combat, hover included", p == 0, p)
+  p = A.Step(s, 1, inp({ autoHide = false, mode = "hide" }))
+  check("hide: back after combat", p == 1, p)
+
+  check("zone: top edge", A.CursorInZone("top", 1078, 1080, 4) == true)
+  check("zone: below the top zone", A.CursorInZone("top", 1070, 1080, 4) == false)
+  check("zone: bottom edge", A.CursorInZone("bottom", 3, 1080, 4) == true)
+  check("zone: no cursor", A.CursorInZone("top", nil, 1080, 4) == false)
+`, 'autohide');
 
 // --- Summary (keep last; add new sections above this line) -----------------------
 run(`
