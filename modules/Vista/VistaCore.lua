@@ -2362,21 +2362,7 @@ local DEFAULT_BTN_DEFS = {
         end,
         onClick = function(self, _btn)
             pcall(function()
-                if not addon.Vista or not addon.Vista.GetTeleportMenuEntries then return end
-                local inCombat = InCombatLockdown()
-                local menu = Vista._teleportMenu
-                if menu and menu:IsShown() then
-                    if not inCombat then menu:Hide() end  -- can't hide a frame parenting secure rows in combat
-                    return
-                end
-                if inCombat then return end  -- menu builds/positions secure rows; out of combat only
-                menu = EnsureTeleportMenu()
-                if not menu then return end
-                menu._page = 1
-                LayoutTeleportMenu(menu)
-                menu:ClearAllPoints()
-                menu:SetPoint("TOPRIGHT", self, "BOTTOMRIGHT", 0, -2)
-                menu:Show()
+                Vista.ToggleTeleportMenu(self, "TOPRIGHT", "BOTTOMRIGHT", -2)
             end)
         end,
     },
@@ -2597,9 +2583,11 @@ do
     local QUEUE_ANCHOR_PAD = 6  -- padding around the 45px button
     Vista._queueReattach = Vista._queueReattach or { internal = false, timer = nil }
 
-    -- Queue handling is off when the player switched it off, or while Meridian hosts the button.
+    -- Queue handling is off when the player switched it off, or while Meridian hosts the button
+    -- (including a release it has deferred until combat ends).
     local function QueueOff()
         return DB("vistaQueueHandlingDisabled", false) or G.Owned("queue")
+            or (addon.Meridian and addon.Meridian.QueueHeld and addon.Meridian.QueueHeld()) or false
     end
 
     -- Avoid scheduling full reattach on every SetPoint/Show (Blizzard can call those every frame).
