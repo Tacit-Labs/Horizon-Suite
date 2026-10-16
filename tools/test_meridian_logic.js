@@ -437,8 +437,10 @@ run(`
   check("queue: room for the eye while queued", q.text() == "")
 
   local host = STUB_FRAME()
+  QueueStatusButton.alpha = 0.4  -- a minimap fade Vista left on the button
   q.Attach(host)
   check("queue: attach reparents Blizzard's button", QueueStatusButton.parent == host)
+  check("queue: attach clears a faded alpha", QueueStatusButton.alpha == 1, QueueStatusButton.alpha)
   check("queue: attach centres it", QueueStatusButton.points[1][1] == "CENTER" and QueueStatusButton.points[1][2] == host)
   check("queue: attach hooks re-anchoring", hooks.SetPoint ~= nil)
 

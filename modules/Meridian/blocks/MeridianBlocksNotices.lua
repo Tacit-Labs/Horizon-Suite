@@ -111,6 +111,7 @@ AttachQueue = function(host)
     pcall(btn.SetSize, btn, QUEUE_SIZE, QUEUE_SIZE)
     pcall(btn.SetFrameLevel, btn, host:GetFrameLevel() + 2)
     pcall(btn.SetIgnoreParentAlpha, btn, false)  -- Vista sets it true; on the bar it fades with the bar
+    pcall(btn.SetAlpha, btn, 1)  -- drop any minimap-fade alpha Vista left on it
     Q.internal = false
     HookOnce(btn)
 end

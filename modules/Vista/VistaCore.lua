@@ -2583,11 +2583,17 @@ do
     local QUEUE_ANCHOR_PAD = 6  -- padding around the 45px button
     Vista._queueReattach = Vista._queueReattach or { internal = false, timer = nil }
 
-    -- Queue handling is off when the player switched it off, or while Meridian hosts the button
-    -- (including a release it has deferred until combat ends).
-    local function QueueOff()
-        return DB("vistaQueueHandlingDisabled", false) or G.Owned("queue")
+    -- Meridian hosts the button, or still holds it for a release deferred until combat ends.
+    local function MeridianHoldsQueue()
+        return G.Owned("queue")
             or (addon.Meridian and addon.Meridian.QueueHeld and addon.Meridian.QueueHeld()) or false
+    end
+    -- The minimap fade (another do-block) asks this before setting the button's alpha.
+    Vista._MeridianHoldsQueue = MeridianHoldsQueue
+
+    -- Queue handling is off when the player switched it off, or while Meridian holds the button.
+    local function QueueOff()
+        return DB("vistaQueueHandlingDisabled", false) or MeridianHoldsQueue()
     end
 
     -- Avoid scheduling full reattach on every SetPoint/Show (Blizzard can call those every frame).
@@ -2610,6 +2616,9 @@ do
 
     local function AttachQueueButtonToAnchor()
         if not queueAnchor then return end
+        -- Every caller (SyncQueueAnchorGeometry runs on each options apply) stops here while
+        -- Meridian holds the button, so Vista never takes it back from the bar, in combat or out.
+        if MeridianHoldsQueue() then return end
         local realBtn = _G["QueueStatusButton"] or _G["QueueStatusMinimapButton"] or _G["MiniMapBattlefieldFrame"]
         if not realBtn then return end
 
@@ -4592,6 +4601,8 @@ do
     end
 
     local function ApplyQueueClusterAlpha()
+        -- On Meridian's bar the button fades with the bar, not with the minimap.
+        if Vista._MeridianHoldsQueue and Vista._MeridianHoldsQueue() then return end
         local q = _G.QueueStatusButton or _G.QueueStatusMinimapButton or _G.MiniMapBattlefieldFrame
         if q and q:IsShown() then
             pcall(function() q:SetAlpha(Vista._opacity.alpha) end)
