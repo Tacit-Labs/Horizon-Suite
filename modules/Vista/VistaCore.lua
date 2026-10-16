@@ -152,11 +152,17 @@ do
     G.DiffFont   = function() return ResolveFont("vistaDiffFontPath") end
     G.DiffSize   = function() return tonumber(DB("vistaDiffFontSize",  DIFF_SIZE)) or DIFF_SIZE end
 
+    -- Meridian (the info bar) draws some of these readouts itself when the player puts them on it.
+    G.Owned = function(id)
+        local M = addon.Meridian
+        return (M and M.Owns and M.Owns(id)) and true or false
+    end
+
     -- Visibility toggles
     G.ShowZone      = function() return DB("vistaShowZoneText",   true)  end
-    G.ShowCoord     = function() return DB("vistaShowCoordText",  true)  end
-    G.ShowTime      = function() return DB("vistaShowTimeText",   true) end
-    G.ShowPerf      = function() return DB("vistaShowPerfText",   false) end
+    G.ShowCoord     = function() return DB("vistaShowCoordText",  true) and not G.Owned("coords") end
+    G.ShowTime      = function() return DB("vistaShowTimeText",   true) and not G.Owned("clock") end
+    G.ShowPerf      = function() return DB("vistaShowPerfText",   false) and not G.Owned("perf") end
     G.TimeUseLocal  = function() return DB("vistaTimeUseLocal",   true) end
     G.TimeUse24Hour = function() return DB("vistaTime24Hour",     false) end
     G.ZoneDisplayMode = function() return DB("vistaZoneDisplayMode", "zone") end
@@ -1281,6 +1287,12 @@ local MAIL_ANCHOR_PAD = 8  -- padding around the mail icon for easier grab
 
 local function RefreshMailAnchor()
     if not mailAnchor then return end
+    if G.Owned("mail") then
+        mailAnchor:SetAlpha(0)
+        mailAnchor._border:Hide()
+        mailAnchor:Hide()
+        return
+    end
     local locked = DB("vistaLocked_proxy_mail", true)
     local hasMail = HasNewMail()
 
@@ -1391,11 +1403,19 @@ end
 
 local function UpdateMailIndicator()
     if not mailFrame then return end
+    if G.Owned("mail") then
+        mailFrame:Hide()
+        mailPulsing = false
+        RefreshMailAnchor()
+        return
+    end
     local hasMail = HasNewMail()
     if hasMail then mailFrame:Show(); mailPulsing = true
     else mailFrame:Hide(); mailPulsing = false end
     RefreshMailAnchor()
 end
+
+Vista.UpdateMailIndicator = function() UpdateMailIndicator() end
 
 local function SuppressBlizzardMail()
     pcall(function()
@@ -2156,6 +2176,27 @@ function LayoutTeleportMenu(menu)
     menu:SetSize(maxW + TELEPORT_PAD * 2, y + TELEPORT_PAD)
 end
 
+--- Open or close the teleport menu beside any frame. Meridian's Teleports block uses it.
+-- @return boolean whether it opened or closed
+function Vista.ToggleTeleportMenu(owner, point, relativePoint, y)
+    if not addon.Vista or not addon.Vista.GetTeleportMenuEntries then return false end
+    local inCombat = InCombatLockdown()
+    local menu = Vista._teleportMenu
+    if menu and menu:IsShown() then
+        if not inCombat then menu:Hide() end  -- can't hide a frame parenting secure rows in combat
+        return true
+    end
+    if inCombat then return false end
+    menu = EnsureTeleportMenu()
+    if not menu then return false end
+    menu._page = 1
+    LayoutTeleportMenu(menu)
+    menu:ClearAllPoints()
+    menu:SetPoint(point or "TOPRIGHT", owner, relativePoint or "BOTTOMRIGHT", 0, y or -2)
+    menu:Show()
+    return true
+end
+
 -- ============================================================================
 -- DEFAULT BUTTON PROXIES  (tracking, calendar, teleport)
 -- Expansion landing / Omnium Folio uses CreateLandingPageAnchor (native button).
@@ -2556,10 +2597,15 @@ do
     local QUEUE_ANCHOR_PAD = 6  -- padding around the 45px button
     Vista._queueReattach = Vista._queueReattach or { internal = false, timer = nil }
 
+    -- Queue handling is off when the player switched it off, or while Meridian hosts the button.
+    local function QueueOff()
+        return DB("vistaQueueHandlingDisabled", false) or G.Owned("queue")
+    end
+
     -- Avoid scheduling full reattach on every SetPoint/Show (Blizzard can call those every frame).
     local function QueueButtonNeedsReattach(realBtn)
         if not realBtn or not queueAnchor then return false end
-        if DB("vistaQueueHandlingDisabled", false) then return false end
+        if QueueOff() then return false end
         local okP, parent = pcall(function() return realBtn:GetParent() end)
         if not okP or parent ~= queueAnchor then return true end
         local okN, n = pcall(function() return realBtn:GetNumPoints() end)
@@ -2613,7 +2659,7 @@ do
 
     local function ScheduleQueueButtonReattach()
         local QR = Vista._queueReattach
-        if DB("vistaQueueHandlingDisabled", false) then return end
+        if QueueOff() then return end
         if not queueAnchor then return end
         if QR.internal then return end
         local realBtn = _G["QueueStatusButton"] or _G["QueueStatusMinimapButton"] or _G["MiniMapBattlefieldFrame"]
@@ -2621,7 +2667,7 @@ do
         if QR.timer then return end
         QR.timer = C_Timer.NewTimer(0, function()
             QR.timer = nil
-            if not queueAnchor or DB("vistaQueueHandlingDisabled", false) then return end
+            if not queueAnchor or QueueOff() then return end
             local btn = _G["QueueStatusButton"] or _G["QueueStatusMinimapButton"] or _G["MiniMapBattlefieldFrame"]
             if btn and QueueButtonNeedsReattach(btn) then
                 AttachQueueButtonToAnchor()
@@ -2632,7 +2678,7 @@ do
 
     RefreshQueueAnchor = function()
         if not queueAnchor then return end
-        if DB("vistaQueueHandlingDisabled", false) then
+        if QueueOff() then
             queueAnchor:SetAlpha(0)
             queueAnchor._border:Hide()
             queueAnchor:EnableMouse(false)
@@ -2661,7 +2707,7 @@ do
     end
 
     CreateQueueAnchor = function()
-        if DB("vistaQueueHandlingDisabled", false) then
+        if QueueOff() then
             if queueAnchor then RefreshQueueAnchor() end
             return
         end
@@ -2733,25 +2779,25 @@ do
         if hooksecurefunc and not realBtn._vistaQueueHooked then
             realBtn._vistaQueueHooked = true
             hooksecurefunc(realBtn, "SetParent", function(self, parent)
-                if parent ~= queueAnchor and queueAnchor and not DB("vistaQueueHandlingDisabled", false) then
+                if parent ~= queueAnchor and queueAnchor and not QueueOff() then
                     ScheduleQueueButtonReattach()
                 end
             end)
             hooksecurefunc(realBtn, "SetPoint", function(self)
                 if Vista._queueReattach.internal then return end
-                if DB("vistaQueueHandlingDisabled", false) then return end
+                if QueueOff() then return end
                 if not QueueButtonNeedsReattach(self) then return end
                 ScheduleQueueButtonReattach()
             end)
             hooksecurefunc(realBtn, "ClearAllPoints", function(self)
                 if Vista._queueReattach.internal then return end
-                if DB("vistaQueueHandlingDisabled", false) then return end
+                if QueueOff() then return end
                 if not QueueButtonNeedsReattach(self) then return end
                 ScheduleQueueButtonReattach()
             end)
             hooksecurefunc(realBtn, "Show", function(self)
                 if Vista._queueReattach.internal then return end
-                if DB("vistaQueueHandlingDisabled", false) then return end
+                if QueueOff() then return end
                 if not QueueButtonNeedsReattach(self) then return end
                 ScheduleQueueButtonReattach()
             end)
@@ -2771,6 +2817,16 @@ do
         end
         AttachQueueButtonToAnchor()
         RefreshQueueAnchor()
+    end
+
+    -- Meridian calls this when it lets go of the queue button.
+    Vista.ReattachQueueButton = function()
+        if not queueAnchor then
+            if CreateQueueAnchor then CreateQueueAnchor() end
+        else
+            ScheduleQueueButtonReattach()
+        end
+        if RefreshQueueAnchor then RefreshQueueAnchor() end
     end
 end
 
