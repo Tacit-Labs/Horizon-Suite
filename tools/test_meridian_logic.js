@@ -354,6 +354,56 @@ run(`
   M._ResetForTests()
 `, 'bar');
 
+// --- Bar: layout timing --------------------------------------------------------------
+run(`
+  local M = HorizonSuite.Meridian
+  local Bar = M.Bar
+  M._ResetForTests()
+  DB = {}
+  M.RegisterBlock({ id = "lay_l", text = function() return "left" end, defaultSide = "left", defaultOrder = 1 })
+  M.RegisterBlock({ id = "lay_r", text = function() return "right" end, defaultSide = "right", defaultOrder = 1 })
+  Bar.Enable()
+  local frame = _G.HorizonSuiteMeridianBar
+  local r = Bar._buttons.lay_r
+  check("layout: a right block ends at the pad", r.points[1] and r.points[1][4] == 1000 - Bar.PAD - 30,
+    r.points[1] and r.points[1][4])
+
+  -- An unchanged layout leaves the anchors alone (Layout runs up to four times a second).
+  local sets = 0
+  local function count(self, ...) sets = sets + 1; self.points[#self.points + 1] = { ... } end
+  rawset(r, "SetPoint", count)
+  rawset(Bar._buttons.lay_l, "SetPoint", count)
+  Bar.Layout()
+  check("layout: unchanged x and width skip SetPoint", sets == 0, sets)
+  check("layout: a skipped block stays shown", r.shown == true)
+  rawset(r.text, "GetStringWidth", function() return 50 end)
+  Bar.Layout()
+  check("layout: a width change re-anchors that block", sets == 1, sets)
+  check("layout: the wider block moves left", r.points[1] and r.points[1][4] == 1000 - Bar.PAD - 50,
+    r.points[1] and r.points[1][4])
+  rawset(r.text, "GetStringWidth", nil)
+
+  -- The bar's width settles after a scale or display change: OnSizeChanged lays out again.
+  check("size: the bar listens for size changes", type(frame.scripts.OnSizeChanged) == "function")
+  rawset(frame, "GetWidth", function() return 600 end)
+  sets = 0
+  frame.scripts.OnSizeChanged(frame, 600, Bar.HEIGHT)
+  check("size: a narrower bar moves the right block", r.points[1] and r.points[1][4] == 600 - Bar.PAD - 30,
+    r.points[1] and r.points[1][4])
+  check("size: the left block does not move", sets == 1, sets)
+  M._active = false
+  rawset(frame, "GetWidth", function() return 800 end)
+  frame.scripts.OnSizeChanged(frame, 800, Bar.HEIGHT)
+  check("size: no layout while the bar is off", r.points[1][4] == 600 - Bar.PAD - 30, r.points[1][4])
+  M._active = true
+  rawset(frame, "GetWidth", nil)
+  frame.scripts.OnSizeChanged(frame, 1000, Bar.HEIGHT)
+
+  Bar.Disable()
+  M._ResetForTests()
+  DB = {}
+`, 'bar-layout');
+
 // --- Blocks ----------------------------------------------------------------------
 run(`HorizonSuite.Meridian._ResetForTests(); DB = {}`, 'blocks-reset');
 for (const f of [

@@ -273,9 +273,15 @@ function Bar.Layout()
     local xs = Bar.ComputeX(widths, frame:GetWidth() or 0, Bar.PAD, Bar.GAP)
     for _, side in ipairs(Meridian.SIDES) do
         for i, b in ipairs(lists[side]) do
-            b:ClearAllPoints()
-            b:SetPoint("LEFT", frame, "LEFT", xs[side][i], 0)
-            b:SetWidth(math.max(1, b._width))
+            -- Re-anchor only on a real move: Layout runs up to four times a second, and a frame
+            -- touched in combat can trip a protected-action block if anything secure hangs off it.
+            local x, w = xs[side][i], math.max(1, b._width)
+            if b._x ~= x or b._laidWidth ~= w then
+                b:ClearAllPoints()
+                b:SetPoint("LEFT", frame, "LEFT", x, 0)
+                b:SetWidth(w)
+                b._x, b._laidWidth = x, w
+            end
             b:Show()
         end
     end
@@ -329,6 +335,9 @@ function Bar.Create()
     edgeLine.tex = edgeLine:CreateTexture(nil, "ARTWORK")
     edgeLine.tex:SetAllPoints(edgeLine)
     edgeLine:Hide()
+
+    -- Layout reads the bar's width, which settles only after scale and display changes land.
+    frame:SetScript("OnSizeChanged", function() if Meridian._active then Bar.Layout() end end)
 
     driver = CreateFrame("Frame")
     Bar._driver = driver
