@@ -26,7 +26,7 @@ local addonFolder = (addon and addon.ADDON_NAME) or "HorizonSuite"
 -- that each surface tints. The one source for the sidebar, the module hub cards and the Welcome tiles.
 local ICON_DIR = "Interface\\AddOns\\" .. addonFolder .. "\\media\\icons\\"
 addon.DashboardModuleIcons = {}
-for _, key in ipairs({ "focus", "presence", "vista", "insight", "augment", "essence", "echo", "axis", "integrations" }) do
+for _, key in ipairs({ "focus", "presence", "vista", "insight", "augment", "essence", "echo", "meridian", "axis", "integrations" }) do
     addon.DashboardModuleIcons[key] = ICON_DIR .. key .. ".tga"
 end
 -- The same style for the sidebar's other rows and the search box.
@@ -65,7 +65,7 @@ function addon.DashboardHomeWelcome_Init(env)
     local SBg  = (WDef and WDef.SectionCardBg) or { 0.09, 0.09, 0.11, 0.96 }
     local SBgA = SBg[4] * (DASHBOARD_CONTENT_CARD_ALPHA_MULT or 1)
 
-    local MODULE_ORDER = { "focus", "presence", "vista", "insight", "augment", "essence", "echo" }
+    local MODULE_ORDER = { "focus", "presence", "vista", "insight", "augment", "essence", "echo", "meridian" }
 
     local MODULE_COLORS = {
         focus    = { 1.00, 0.82, 0.20 },
@@ -75,6 +75,7 @@ function addon.DashboardHomeWelcome_Init(env)
         augment    = { 0.20, 0.80, 0.40 },
         essence  = { 0.86, 0.08, 0.24 },
         echo     = { 0.56, 0.64, 0.91 },
+        meridian = { 0.91, 0.85, 0.71 },
     }
 
     local MODULE_ICONS = addon.DashboardModuleIcons
@@ -87,6 +88,7 @@ function addon.DashboardHomeWelcome_Init(env)
         augment    = L["HOME_MOD_AUGMENT_SHORT"],
         essence  = L["HOME_MOD_ESSENCE_SHORT"],
         echo     = L["HOME_MOD_ECHO_SHORT"],
+        meridian = L["HOME_MOD_MERIDIAN_SHORT"],
     }
 
     -- Horizontal inset is on the scroll frame (match detail/subcategory); cards align to scroll content left.

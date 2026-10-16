@@ -37,6 +37,7 @@ except ImportError:
 # Docs/Branding/ColourSchema.md. Keep in step with that file.
 MODULE_COLOURS = {
     "Augment": "#33CC66", "Axis": "#E0E0E0", "Echo": "#8FA3E8",
+    "Meridian": "#E8D9B5",
     "Essence": "#DC143C", "Flow": "#3399FF", "Focus": "#FFD133",
     "Insight": "#FF66B3", "Presence": "#33FFDF", "Vista": "#B366FF",
     "Core": "#FF8C42",

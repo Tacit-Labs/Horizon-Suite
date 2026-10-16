@@ -709,7 +709,7 @@ addon.BrandDisplay = {
         augment = L["NAME_ADDON_LOOT"],
         essence = L["NAME_ADDON_CHARACTER"],
         echo = L["NAME_ADDON_CHAT"],
-        meridian = L["NAME_ADDON_C-----S"],
+        meridian = L["NAME_ADDON_INFOBAR"],
     },
     -- Human-readable descriptions shown in "Subtitle" and "simple" name modes.
     simple = {
@@ -721,7 +721,7 @@ addon.BrandDisplay = {
         augment  = L["AXIS_MODULE_NAME_SIMPLE_LOOT"],
         essence  = L["AXIS_MODULE_NAME_SIMPLE_CHARACTER"],
         echo     = L["AXIS_MODULE_NAME_SIMPLE_CHAT"],
-        meridian = L["AXIS_MODULE_NAME_SIMPLE_C-----S"],
+        meridian = L["AXIS_MODULE_NAME_SIMPLE_INFOBAR"],
     },
 }
 

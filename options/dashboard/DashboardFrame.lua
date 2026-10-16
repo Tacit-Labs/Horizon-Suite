@@ -134,10 +134,9 @@ function addon.Dashboard_BuildMainFrame()
             -- Preview-labelled modules (tiles, sidebar, welcome); keep in sync with OptionsData Modules toggles.
             local PREVIEW_MODULE_KEYS = { essence = true }
             -- Coming-soon modules: planned but with no in-game content yet.
-            local COMING_SOON_MODULE_KEYS = { meridian = true }
+            local COMING_SOON_MODULE_KEYS = {}
 
             -- Per-module label colours for Home tiles, matching PN_MODULE_COLORS hex values.
-            -- Meridian omitted: no colour assigned yet, falls back to neutral gray.
             local TILE_MODULE_LABEL_COLORS = {
                 axis     = { 224/255, 224/255, 224/255 },  -- E0E0E0
                 focus    = { 255/255, 209/255,  51/255 },  -- FFD133
@@ -147,6 +146,7 @@ function addon.Dashboard_BuildMainFrame()
                 augment    = {  51/255, 204/255, 102/255 },  -- 33CC66
                 essence  = { 220/255,  20/255,  60/255 },  -- DC143C
                 echo     = { 143/255, 163/255, 232/255 },  -- 8FA3E8
+                meridian = { 232/255, 217/255, 181/255 },  -- E8D9B5
             }
 
             local function ShouldShowModuleOnDashboard(mk)
@@ -157,7 +157,6 @@ function addon.Dashboard_BuildMainFrame()
             local categoryIcons = {
                 ["Profiles"] = "INV_Misc_GroupNeedMore",
                 ["GlobalToggles"] = "Trade_Engineering",
-                ["Meridian"] = "ability_tracking",
                 ["General"] = "INV_Misc_Question_01",
                 ["Core"] = "INV_Misc_Wrench_01",
             }
@@ -616,7 +615,7 @@ function addon.Dashboard_BuildMainFrame()
 
             local searchModuleFilterMenuRows = {}
             local SEARCH_MODULE_FILTER_ROW_H = 28
-            local SEARCH_MODULE_FILTER_GROUP_ORDER = { "axis", "focus", "insight", "essence", "echo", "presence", "vista", "augment" }
+            local SEARCH_MODULE_FILTER_GROUP_ORDER = { "axis", "focus", "insight", "essence", "echo", "meridian", "presence", "vista", "augment" }
 
             local searchModuleFilterMenu = CreateFrame("Frame", nil, f, "BackdropTemplate")
             searchModuleFilterMenu:SetFrameLevel(f:GetFrameLevel() + 12)
@@ -1698,7 +1697,7 @@ function addon.Dashboard_BuildMainFrame()
                 tinsert(groups[mk].categories, i)
             end
             f.dashboardSidebarGroups = groups
-            local groupOrder = { "axis", "focus", "insight", "essence", "echo", "presence", "vista", "augment" }
+            local groupOrder = { "axis", "focus", "insight", "essence", "echo", "meridian", "presence", "vista", "augment" }
             local sidebarRows = {}
             -- Extra height added to group headers when subtitle mode is active.
             local SUBTITLE_EXTRA_H = 14

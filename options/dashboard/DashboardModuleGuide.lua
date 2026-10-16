@@ -19,7 +19,7 @@ local GUIDE_MODULE_COLORS = {
     ["Vista"]    = "B366FF",
     ["Insight"]  = "FF66B3",
     ["Axis"]     = "E0E0E0",
-    ["Meridian"] = "8CB2E6",
+    ["Meridian"] = "E8D9B5",
 }
 
 -- Wrap module proper names in |cFF……|r for guide bullets (enUS uses English names per BrandDisplay rule).
@@ -107,12 +107,10 @@ function addon.DashboardModuleGuide_Init(env)
     local function ApplyGuideBulletStatusTags(text)
         if type(text) ~= "string" or text == "" then return text end
         local prevTag = " |cff228b22(" .. (L["PRESENCE_PREVIEW"]) .. ")|r"
-        local soonTag = " |cff8cb2e6(" .. (L["COMING_SOON"]) .. ")|r"
         for _, row in ipairs({
             { key = "augment", label = "Augment", tag = prevTag, when = PREVIEW_MODULE_KEYS },
             { key = "essence", label = "Essence", tag = prevTag, when = PREVIEW_MODULE_KEYS },
             { key = "echo", label = "Echo", tag = prevTag, when = PREVIEW_MODULE_KEYS },
-            { key = "meridian", label = "Meridian", tag = soonTag, when = COMING_SOON_MODULE_KEYS },
         }) do
             if row.when[row.key] then
                 local hex = GUIDE_MODULE_COLORS[row.label]
