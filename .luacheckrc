@@ -505,4 +505,5 @@ read_globals = {
     "QueueStatusButton",
     "QueueStatusMinimapButton",
     "MiniMapBattlefieldFrame",
+    "STANDARD_TEXT_FONT",
 }
