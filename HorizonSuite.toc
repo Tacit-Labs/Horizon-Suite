@@ -57,6 +57,7 @@ core/skins/ElvUI.lua
 core/skins/EllesmereUI.lua
 core/GameMenuButton.lua
 modules/Meridian/MeridianRegistry.lua
+modules/Meridian/MeridianFormat.lua
 
 modules/Focus/FocusState.lua
 modules/Focus/FocusClickConfig.lua

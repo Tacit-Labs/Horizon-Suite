@@ -57,6 +57,7 @@ run(`
 // Files in TOC order. Block files are not listed: block sections load them after a reset.
 const FILES = [
   'modules/Meridian/MeridianRegistry.lua',
+  'modules/Meridian/MeridianFormat.lua',
 ];
 for (const f of FILES) run(read(f), f);
 
@@ -149,6 +150,41 @@ run(`
 
   M._ResetForTests()
 `, 'registry');
+
+// --- Format ------------------------------------------------------------------------
+run(`
+  local F = HorizonSuite.Meridian.Format
+  check("clock: 24-hour pads", F.Clock(9, 5, true) == "09:05", F.Clock(9, 5, true))
+  check("clock: 12-hour afternoon", F.Clock(21, 37, false) == "9:37 PM", F.Clock(21, 37, false))
+  check("clock: 12-hour midnight is 12 AM", F.Clock(0, 0, false) == "12:00 AM", F.Clock(0, 0, false))
+  check("clock: 12-hour noon is 12 PM", F.Clock(12, 1, false) == "12:01 PM", F.Clock(12, 1, false))
+
+  check("coords: one decimal", F.Coords(0.452, 0.618, 1) == "45.2, 61.8", F.Coords(0.452, 0.618, 1))
+  check("coords: none", F.Coords(0.452, 0.618, 0) == "45, 62", F.Coords(0.452, 0.618, 0))
+  check("coords: two", F.Coords(0.45219, 0.61844, 2) == "45.22, 61.84", F.Coords(0.45219, 0.61844, 2))
+  check("coords: unknown precision means one", F.Coords(0.5, 0.5, 7) == "50.0, 50.0", F.Coords(0.5, 0.5, 7))
+  check("coords: missing gives nil", F.Coords(nil, 0.5, 1) == nil)
+  check("coords: 0,0 (inside an instance) gives nil", F.Coords(0, 0, 1) == nil)
+
+  check("perf: whole numbers", F.Perf(59.8, 28.4) == "59 / 28", F.Perf(59.8, 28.4))
+  check("perf: missing values are 0", F.Perf(nil, nil) == "0 / 0", F.Perf(nil, nil))
+
+  check("thousands: small", F.Thousands(999) == "999", F.Thousands(999))
+  check("thousands: exact group", F.Thousands(1000) == "1,000", F.Thousands(1000))
+  check("thousands: millions", F.Thousands(1234567) == "1,234,567", F.Thousands(1234567))
+  check("thousands: negative", F.Thousands(-12345) == "-12,345", F.Thousands(-12345))
+
+  check("gold: whole gold only", F.Gold(123456789) == "12,345", F.Gold(123456789))
+  check("gold delta: gain", F.GoldDelta(12340000) == "+1,234g", F.GoldDelta(12340000))
+  check("gold delta: loss", F.GoldDelta(-120000) == "-12g", F.GoldDelta(-120000))
+  check("gold delta: under a gold is 0g", F.GoldDelta(9999) == "0g", F.GoldDelta(9999))
+
+  check("durability: lowest slot", F.LowestDurability({ { 50, 100 }, { 35, 40 }, { 10, 80 } }) == 13,
+    F.LowestDurability({ { 50, 100 }, { 35, 40 }, { 10, 80 } }))
+  check("durability: slots without durability are skipped", F.LowestDurability({ { nil, nil }, { 40, 40 } }) == 100)
+  check("durability: nothing to measure gives nil", F.LowestDurability({ { nil, nil } }) == nil)
+  check("percent", F.Percent(87.4) == "87%", F.Percent(87.4))
+`, 'format');
 
 // --- Summary (keep last; add new sections above this line) -----------------------
 run(`
