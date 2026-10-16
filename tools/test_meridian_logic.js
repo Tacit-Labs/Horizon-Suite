@@ -445,8 +445,10 @@ run(`
   COMBAT = true
   q.Detach(host)
   check("queue: no release in combat", QueueStatusButton.parent == host)
+  check("queue: still held after a combat-deferred release", HorizonSuite.Meridian.QueueHeld() == true)
   COMBAT = false
   q.Detach(host)
+  check("queue: not held once released", HorizonSuite.Meridian.QueueHeld() == false)
   check("queue: release restores the parent with Vista off", QueueStatusButton.parent == home)
   check("queue: release restores the point", QueueStatusButton.points[1][1] == "BOTTOMLEFT" and QueueStatusButton.points[1][4] == 5)
 

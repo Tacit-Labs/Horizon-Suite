@@ -43,6 +43,9 @@ Meridian.RegisterBlock({
 local QUEUE_SIZE = 20
 local Q = { owned = false, host = nil, internal = false, saved = nil, hooked = false }
 
+-- Vista stays hands-off while this is true, including a combat-deferred release.
+Meridian.QueueHeld = function() return Q.owned == true end
+
 local function QueueButton()
     return _G["QueueStatusButton"] or _G["QueueStatusMinimapButton"] or _G["MiniMapBattlefieldFrame"]
 end
