@@ -2191,8 +2191,25 @@ function Vista.ToggleTeleportMenu(owner, point, relativePoint, y)
     if not menu then return false end
     menu._page = 1
     LayoutTeleportMenu(menu)
+    point, relativePoint, y = point or "TOPRIGHT", relativePoint or "BOTTOMRIGHT", y or -2
     menu:ClearAllPoints()
-    menu:SetPoint(point or "TOPRIGHT", owner, relativePoint or "BOTTOMRIGHT", 0, y or -2)
+    -- Pin the menu to the screen where the owner's relativePoint sits, never to the owner itself.
+    -- The menu parents secure rows, so anchoring it to an owner makes that owner's anchor chain
+    -- restricted in combat; Meridian's bar re-anchors and slides its blocks in combat.
+    local left, right = owner:GetLeft(), owner:GetRight()
+    local top, bottom = owner:GetTop(), owner:GetBottom()
+    if left and right and top and bottom then
+        local menuScale = menu:GetEffectiveScale() or UIParent:GetEffectiveScale()
+        local s = (owner:GetEffectiveScale() or 1) / ((menuScale and menuScale > 0) and menuScale or 1)
+        local x = (relativePoint:find("LEFT") and left) or (relativePoint:find("RIGHT") and right)
+            or (left + right) / 2
+        local oy = (relativePoint:find("TOP") and top) or (relativePoint:find("BOTTOM") and bottom)
+            or (top + bottom) / 2
+        menu:SetPoint(point, UIParent, "BOTTOMLEFT", x * s, oy * s + y)
+    else
+        -- The owner has no position yet. Out of combat (checked above), so this is safe.
+        menu:SetPoint(point, owner, relativePoint, 0, y)
+    end
     menu:Show()
     return true
 end
