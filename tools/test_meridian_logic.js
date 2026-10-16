@@ -354,7 +354,7 @@ run(`
   M._ResetForTests()
 `, 'bar');
 
-// --- Bar: layout timing --------------------------------------------------------------
+// --- Bar: layout timing, fonts, config clamps, Vista notice -------------------------
 run(`
   local M = HorizonSuite.Meridian
   local Bar = M.Bar
@@ -398,6 +398,58 @@ run(`
   M._active = true
   rawset(frame, "GetWidth", nil)
   frame.scripts.OnSizeChanged(frame, 1000, Bar.HEIGHT)
+
+  -- Config clamps.
+  DB.meridianFontSize = 40; DB.meridianCombatFadeOpacity = 250
+  Bar.ApplyOptions()
+  check("cfg: font size clamps to 18", Bar._cfg.fontSize == 18, Bar._cfg.fontSize)
+  check("cfg: fade opacity clamps to 1", Bar._cfg.fadeAlpha == 1, Bar._cfg.fadeAlpha)
+  DB.meridianFontSize = 3; DB.meridianCombatFadeOpacity = -20
+  Bar.ApplyOptions()
+  check("cfg: font size clamps to 9", Bar._cfg.fontSize == 9, Bar._cfg.fontSize)
+  check("cfg: fade opacity clamps to 0", Bar._cfg.fadeAlpha == 0, Bar._cfg.fadeAlpha)
+  DB.meridianFontSize = 14; DB.meridianCombatFadeOpacity = 45
+  Bar.ApplyOptions()
+  check("cfg: an in-range font size is kept", Bar._cfg.fontSize == 14, Bar._cfg.fontSize)
+  check("cfg: an in-range fade is kept", math.abs(Bar._cfg.fadeAlpha - 0.45) < 1e-9, Bar._cfg.fadeAlpha)
+  DB.meridianFontSize = nil; DB.meridianCombatFadeOpacity = nil
+
+  -- Font fallback: a font that fails to load (SetFont returns nil) retries with the standard font.
+  DB.fontPath = "Fonts\\\\Missing.ttf"
+  STANDARD_TEXT_FONT = "Fonts\\\\STANDARD.TTF"
+  local fonts = {}
+  local okFont = false
+  local function rec(_, path, size) fonts[#fonts + 1] = { path, size }; return okFont or nil end
+  rawset(r.text, "SetFont", rec)
+  Bar.ApplyOptions()
+  check("font: a failed font is tried first", fonts[1] and fonts[1][1] == "Fonts\\\\Missing.ttf", fonts[1] and fonts[1][1])
+  check("font: then the standard font", fonts[2] and fonts[2][1] == "Fonts\\\\STANDARD.TTF", fonts[2] and fonts[2][1])
+  check("font: the fallback keeps the size", fonts[2] and fonts[2][2] == 12, fonts[2] and fonts[2][2])
+  fonts = {}
+  STANDARD_TEXT_FONT = nil
+  Bar.ApplyOptions()
+  check("font: Friz Quadrata when STANDARD_TEXT_FONT is absent", fonts[2] and fonts[2][1] == "Fonts\\\\FRIZQT__.TTF",
+    fonts[2] and fonts[2][1])
+  fonts, okFont = {}, true
+  Bar.ApplyOptions()
+  check("font: a font that loads is set once", #fonts == 1, #fonts)
+
+  -- A new block's button takes the same fallback.
+  okFont = false
+  STANDARD_TEXT_FONT = "Fonts\\\\STANDARD.TTF"
+  local made = {}
+  local origStub = STUB_FRAME
+  STUB_FRAME = function(parent)
+    local f = origStub(parent)
+    rawset(f, "SetFont", function(self, path) made[#made + 1] = path; return okFont or nil end)
+    return f
+  end
+  M.RegisterBlock({ id = "lay_new", text = function() return "new" end, defaultSide = "left", defaultOrder = 2 })
+  Bar.Layout()  -- the registry test cleared OnBlocksChanged, so lay out by hand
+  STUB_FRAME = origStub
+  check("font: a new block falls back too", made[#made] == "Fonts\\\\STANDARD.TTF", made[#made])
+  STANDARD_TEXT_FONT = nil
+  DB.fontPath = nil
 
   Bar.Disable()
   M._ResetForTests()

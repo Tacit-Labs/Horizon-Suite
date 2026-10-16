@@ -41,6 +41,7 @@ local layoutAfterCombat = false
 local disablePending = false
 
 Bar._buttons = buttons
+Bar._cfg = cfg
 
 local LAYOUT_EVENTS = { PLAYER_ENTERING_WORLD = true, DISPLAY_SIZE_CHANGED = true, UI_SCALE_CHANGED = true }
 
@@ -54,8 +55,17 @@ local function ReadConfig()
     cfg.autoHide = Meridian.Setting("meridianAutoHide") and true or false
     cfg.keepOutOfCombat = Meridian.Setting("meridianKeepShownOutOfCombat") and true or false
     cfg.combatMode = Meridian.Setting("meridianCombat") or "show"
-    cfg.fadeAlpha = (tonumber(Meridian.Setting("meridianCombatFadeOpacity")) or 30) / 100
-    cfg.fontSize = tonumber(Meridian.Setting("meridianFontSize")) or 12
+    local fade = (tonumber(Meridian.Setting("meridianCombatFadeOpacity")) or 30) / 100
+    cfg.fadeAlpha = math.max(0, math.min(1, fade))
+    local size = tonumber(Meridian.Setting("meridianFontSize")) or 12
+    cfg.fontSize = math.max(9, math.min(18, size))
+end
+
+--- Set a block's font, falling back to the client's standard font when the chosen one fails to
+-- load (a missing SharedMedia file): a font string with no font errors on every SetText.
+local function SetBlockFont(fs, size)
+    if fs:SetFont(Meridian.FontPath(), size, "") then return end
+    fs:SetFont(STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF", size, "")
 end
 
 --- Left edge x of each block, per side. Order reads left to right on every side.
@@ -159,7 +169,7 @@ local function CreateBlockButton(id)
     b.icon = b:CreateTexture(nil, "ARTWORK")
     b.icon:SetSize(Bar.ICON, Bar.ICON)
     b.text = b:CreateFontString(nil, "OVERLAY")
-    b.text:SetFont(Meridian.FontPath(), cfg.fontSize or 12, "")
+    SetBlockFont(b.text, cfg.fontSize or 12)
     b.text:SetShadowOffset(1, -1)
     b.text:SetShadowColor(0, 0, 0, 0.8)
     b.text:SetTextColor(Bar.TEXT[1], Bar.TEXT[2], Bar.TEXT[3])
@@ -505,8 +515,7 @@ function Bar.ApplyOptions()
     edgeLine.tex:SetColorTexture(r, g, b, 0.55)
     bg:SetShown(not cfg.capsules)
     accentLine:SetShown(not cfg.capsules)
-    local font = Meridian.FontPath()
-    for _, btn in pairs(buttons) do btn.text:SetFont(font, cfg.fontSize, "") end
+    for _, btn in pairs(buttons) do SetBlockFont(btn.text, cfg.fontSize) end
     if state and not cfg.autoHide then state.progress = 1 end
     Bar.ApplyEdge()
     Bar.Layout()
