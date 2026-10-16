@@ -58,3 +58,25 @@ Meridian.RegisterBlock({
     end,
     defaultSide = "left", defaultOrder = 10, defaultOn = true,
 })
+
+Meridian.RegisterBlock({
+    id = "teleports",
+    label = L["MERIDIAN_BLOCK_TELEPORTS"],
+    icon = Meridian.Glyph("portal"),
+    text = function() return "" end,
+    module = "vista",
+    combatLocked = true,
+    OnClick = function(b)
+        local V = addon.Vista
+        if not (V and V.ToggleTeleportMenu) then return end
+        if Meridian.Setting("meridianEdge") == "bottom" then
+            V.ToggleTeleportMenu(b, "BOTTOMLEFT", "TOPLEFT", 2)
+        else
+            V.ToggleTeleportMenu(b, "TOPLEFT", "BOTTOMLEFT", -2)
+        end
+    end,
+    OnTooltipShow = function(tooltip)
+        tooltip:AddLine(L["MERIDIAN_TELEPORTS_TOOLTIP"], 0.7, 0.7, 0.7)
+    end,
+    defaultSide = "left", defaultOrder = 20, defaultOn = false,
+})

@@ -3239,3 +3239,6 @@ L["MERIDIAN_BLOCK_ORDER_DESC"]                                = "Lower numbers s
 L["MERIDIAN_CLASS_COLOURS_DESC"]                              = "Tint Meridian's accent line and icons."
 L["MERIDIAN_SCALE"]                                           = "Meridian scale"
 L["AXIS_SCALE_MERIDIAN"]                                      = "Scale the Meridian bar."
+L["MERIDIAN_BLOCK_QUEUE"]                                     = "Queue"
+L["MERIDIAN_BLOCK_TELEPORTS"]                                 = "Teleports"
+L["MERIDIAN_TELEPORTS_TOOLTIP"]                               = "Click for your teleports"

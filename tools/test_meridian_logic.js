@@ -365,10 +365,11 @@ for (const f of [
 ]) run(read(f), f);
 run(`
   local M = HorizonSuite.Meridian
-  for _, id in ipairs({ "horizon", "clock", "coords", "perf", "gold", "durability", "bags", "mail" }) do
+  for _, id in ipairs({ "horizon", "clock", "coords", "perf", "gold", "durability", "bags", "mail", "teleports" }) do
     check("blocks: " .. id .. " registered", M.Get(id) ~= nil)
   end
   check("blocks: clock defaults to the centre", M.BlockSide("clock") == "centre")
+  check("blocks: teleports belongs to Vista", M.Get("teleports").module == "vista")
 
   date = function() return { hour = 21, min = 37 } end
   GetGameTime = function() return 20, 5 end
@@ -416,6 +417,50 @@ run(`
   check("horizon: icon only", M.Get("horizon").text() == "")
   M._ResetForTests()
 `, 'blocks');
+
+// --- Queue -----------------------------------------------------------------------
+run(`HorizonSuite.Meridian._ResetForTests(); DB = {}; ENABLED = {}`, 'queue-reset');
+run(read('modules/Meridian/blocks/MeridianBlocksNotices.lua'), 'notices');
+run(`
+  local M = HorizonSuite.Meridian
+  local hooks = {}
+  hooksecurefunc = function(obj, name, fn) hooks[name] = fn end
+  local home = STUB_FRAME()
+  QueueStatusButton = STUB_FRAME(home)
+  QueueStatusButton:SetPoint("BOTTOMLEFT", home, "BOTTOMLEFT", 5, 6)
+  QueueStatusButton.shown = false
+
+  local q = M.Get("queue")
+  check("queue: registered", q ~= nil)
+  check("queue: nothing while not queued", q.text() == nil)
+  QueueStatusButton.shown = true
+  check("queue: room for the eye while queued", q.text() == "")
+
+  local host = STUB_FRAME()
+  q.Attach(host)
+  check("queue: attach reparents Blizzard's button", QueueStatusButton.parent == host)
+  check("queue: attach centres it", QueueStatusButton.points[1][1] == "CENTER" and QueueStatusButton.points[1][2] == host)
+  check("queue: attach hooks re-anchoring", hooks.SetPoint ~= nil)
+
+  COMBAT = true
+  q.Detach(host)
+  check("queue: no release in combat", QueueStatusButton.parent == host)
+  COMBAT = false
+  q.Detach(host)
+  check("queue: release restores the parent with Vista off", QueueStatusButton.parent == home)
+  check("queue: release restores the point", QueueStatusButton.points[1][1] == "BOTTOMLEFT" and QueueStatusButton.points[1][4] == 5)
+
+  local reattached = 0
+  HorizonSuite.Vista = { ReattachQueueButton = function() reattached = reattached + 1 end }
+  ENABLED.vista = true
+  q.Attach(host)
+  q.Detach(host)
+  check("queue: release hands back to Vista when it is on", reattached == 1, reattached)
+  HorizonSuite.Vista = nil
+  ENABLED.vista = nil
+  hooksecurefunc = nil
+  M._ResetForTests()
+`, 'queue');
 
 // --- Summary (keep last; add new sections above this line) -----------------------
 run(`
