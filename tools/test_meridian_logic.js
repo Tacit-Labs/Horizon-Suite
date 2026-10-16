@@ -354,6 +354,69 @@ run(`
   M._ResetForTests()
 `, 'bar');
 
+// --- Blocks ----------------------------------------------------------------------
+run(`HorizonSuite.Meridian._ResetForTests(); DB = {}`, 'blocks-reset');
+for (const f of [
+  'modules/Meridian/blocks/MeridianBlocksTime.lua',
+  'modules/Meridian/blocks/MeridianBlocksWorld.lua',
+  'modules/Meridian/blocks/MeridianBlocksCharacter.lua',
+  'modules/Meridian/blocks/MeridianBlocksNotices.lua',
+  'modules/Meridian/blocks/MeridianBlocksActions.lua',
+]) run(read(f), f);
+run(`
+  local M = HorizonSuite.Meridian
+  for _, id in ipairs({ "horizon", "clock", "coords", "perf", "gold", "durability", "bags", "mail" }) do
+    check("blocks: " .. id .. " registered", M.Get(id) ~= nil)
+  end
+  check("blocks: clock defaults to the centre", M.BlockSide("clock") == "centre")
+
+  date = function() return { hour = 21, min = 37 } end
+  GetGameTime = function() return 20, 5 end
+  DB.meridianClockLocal = true; DB.meridianClock24Hour = true
+  check("clock: local 24-hour", M.Get("clock").text() == "21:37", M.Get("clock").text())
+  DB.meridianClockLocal = false; DB.meridianClock24Hour = false
+  check("clock: realm 12-hour", M.Get("clock").text() == "8:05 PM", M.Get("clock").text())
+  GetGameTime = function() return nil end
+  check("clock: no realm time yet gives nil", M.Get("clock").text() == nil)
+  DB.meridianClockLocal = nil; DB.meridianClock24Hour = nil
+
+  C_Map = { GetBestMapForUnit = function() return 2339 end,
+            GetPlayerMapPosition = function() return { GetXY = function() return 0.452, 0.618 end } end }
+  check("coords: from the map", M.Get("coords").text() == "45.2, 61.8", M.Get("coords").text())
+  C_Map.GetBestMapForUnit = function() return nil end
+  check("coords: no map gives nil", M.Get("coords").text() == nil)
+
+  GetFramerate = function() return 61.7 end
+  GetNetStats = function() return 0, 0, 22, 31 end
+  check("perf: fps and world latency", M.Get("perf").text() == "61 / 31", M.Get("perf").text())
+
+  GetMoney = function() return 123456789 end
+  check("gold: whole gold", M.Get("gold").text() == "12,345", M.Get("gold").text())
+
+  local dur = { [1] = { 50, 100 }, [5] = { 30, 40 } }
+  GetInventoryItemDurability = function(slot) local d = dur[slot]; if d then return d[1], d[2] end end
+  check("durability: lowest slot", M.Get("durability").text() == "50%", M.Get("durability").text())
+  dur = {}
+  check("durability: nothing equipped gives nil", M.Get("durability").text() == nil)
+
+  NUM_BAG_SLOTS = 4
+  C_Container = { GetContainerNumFreeSlots = function(bag)
+    if bag == 0 then return 10, 0 end
+    if bag == 1 then return 6, 0 end
+    if bag == 2 then return 4, 8 end   -- a profession bag does not count
+    return 0, 0
+  end }
+  check("bags: general free slots", M.Get("bags").text() == "16", M.Get("bags").text())
+
+  HasNewMail = function() return true end
+  check("mail: icon only while there is mail", M.Get("mail").text() == "")
+  HasNewMail = function() return false end
+  check("mail: nothing without mail", M.Get("mail").text() == nil)
+
+  check("horizon: icon only", M.Get("horizon").text() == "")
+  M._ResetForTests()
+`, 'blocks');
+
 // --- Summary (keep last; add new sections above this line) -----------------------
 run(`
   print(PASS .. " passed, " .. FAIL .. " failed")

@@ -59,6 +59,11 @@ core/GameMenuButton.lua
 modules/Meridian/MeridianRegistry.lua
 modules/Meridian/MeridianFormat.lua
 modules/Meridian/MeridianAutoHide.lua
+modules/Meridian/blocks/MeridianBlocksTime.lua
+modules/Meridian/blocks/MeridianBlocksWorld.lua
+modules/Meridian/blocks/MeridianBlocksCharacter.lua
+modules/Meridian/blocks/MeridianBlocksNotices.lua
+modules/Meridian/blocks/MeridianBlocksActions.lua
 
 modules/Focus/FocusState.lua
 modules/Focus/FocusClickConfig.lua
