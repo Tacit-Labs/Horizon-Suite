@@ -490,4 +490,19 @@ read_globals = {
     "FACTION_STANDING_INCREASED_GENERIC",
     "FACTION_STANDING_DECREASED",
     "ERR_CHAT_PLAYER_NOT_FOUND_S",
+
+    -- Meridian bar: the strip's blocks and their readouts
+    "GetLatestThreeSenders",
+    "GetInventoryItemDurability",
+    "C_Container",
+    "GetContainerNumFreeSlots",
+    "NUM_BAG_SLOTS",
+    "ToggleAllBags",
+    "ToggleCharacter",
+    "C_DateAndTime",
+    "SecondsToTime",
+    "GetMoneyString",
+    "QueueStatusButton",
+    "QueueStatusMinimapButton",
+    "MiniMapBattlefieldFrame",
 }
