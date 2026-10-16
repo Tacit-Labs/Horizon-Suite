@@ -92,6 +92,7 @@ function OptionsData_SetDB(key, value)
         if addon.Insight and addon.Insight.ApplyInsightOptions then addon.Insight.ApplyInsightOptions() end
         if addon.Essence and addon.Essence.ApplyEssenceOptions then addon.Essence.ApplyEssenceOptions() end
         if addon.Echo and addon.Echo.ApplyFont and addon.IsModuleEnabled and addon:IsModuleEnabled("echo") then addon.Echo.ApplyFont() end
+        if addon.Meridian and addon.Meridian.ApplyOptions then addon.Meridian.ApplyOptions() end
         if addon.Vista and addon.Vista.ApplyOptions then
             local k = key
             C_Timer.After(0, function() if addon.Vista and addon.Vista.ApplyOptions then addon.Vista.ApplyOptions(k) end end)
@@ -122,6 +123,10 @@ function OptionsData_SetDB(key, value)
     if addon.ECHO_KEYS and addon.ECHO_KEYS[key] and addon.Echo and addon.Echo.ApplyOptions
         and addon.IsModuleEnabled and addon:IsModuleEnabled("echo") then
         addon.Echo.ApplyOptions()
+    end
+    if (addon.MERIDIAN_KEYS and addon.MERIDIAN_KEYS[key]) or key:sub(1, 14) == "meridianBlock_" then
+        if addon.Meridian and addon.Meridian.ApplyOptions then addon.Meridian.ApplyOptions() end
+        return  -- nothing outside Meridian reads these; skip the Focus layout notify
     end
     if addon.AUGMENT_KEYS and addon.AUGMENT_KEYS[key]
         and addon.Augment and addon.Augment.ApplyAugmentOptions
@@ -165,6 +170,9 @@ function OptionsData_SetDB(key, value)
         end
         if key == "classColorEcho" and addon.Echo and addon.Echo.View and addon.Echo.View.ApplyAccent then
             addon.Echo.View.ApplyAccent()
+        end
+        if key == "classColorMeridian" and addon.Meridian and addon.Meridian.ApplyOptions then
+            addon.Meridian.ApplyOptions()
         end
     end
     if addon.VISTA_KEYS and addon.VISTA_KEYS[key] and addon.Vista then

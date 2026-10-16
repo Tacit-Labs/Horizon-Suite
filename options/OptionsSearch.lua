@@ -74,6 +74,7 @@ local MODULE_ALIASES = {
     augment = "loot toasts vendor",
     essence = "character sheet",
     echo = "chat whispers",
+    meridian = "info bar titan panel clock gold durability bags mail",
 }
 
 local function Fold(word)

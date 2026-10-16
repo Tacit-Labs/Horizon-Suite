@@ -37,6 +37,13 @@ const read = f => fs.readFileSync(REPO + f, 'utf8').replace(/^﻿/, '');
 
 // Module files that load earlier in the TOC and that the options files call into.
 const PREREQS = [
+  'modules/Meridian/MeridianRegistry.lua',
+  'modules/Meridian/MeridianFormat.lua',
+  'modules/Meridian/blocks/MeridianBlocksTime.lua',
+  'modules/Meridian/blocks/MeridianBlocksWorld.lua',
+  'modules/Meridian/blocks/MeridianBlocksCharacter.lua',
+  'modules/Meridian/blocks/MeridianBlocksNotices.lua',
+  'modules/Meridian/blocks/MeridianBlocksActions.lua',
   'modules/Echo/EchoOptions.lua',  // Echo.TierKey / Echo.FeedKey name Echo's settings
 ];
 
@@ -67,6 +74,7 @@ const FILES = [
   'options/modules/OptionsInsight.lua',
   'options/modules/OptionsEssence.lua',
   'options/modules/OptionsEcho.lua',
+  'options/modules/OptionsMeridian.lua',
   'options/modules/OptionsVista.lua',
   'options/modules/OptionsAugment.lua',
   'options/modules/OptionsAugmentTalkingHead.lua',
@@ -88,6 +96,7 @@ const EXPECTED = {
     'insight:npcsItems'],
   presence: ['presence:general', 'presence:layout', 'presence:look', 'presence:notifications'],
   echo: ['echo:general', 'echo:layout', 'echo:look', 'echo:feeds'],
+  meridian: ['meridian:general', 'meridian:layout', 'meridian:look', 'meridian:blocks'],
   essence: ['essence:general', 'essence:layout'],
   augment: ['augment:loot', 'augment:alerts', 'augment:lootRoll', 'augment:talkingHead',
     'augment:vendor', 'augment:selfHighlight', 'augment:achievementTracker'],
@@ -358,7 +367,7 @@ function assemble(capsOff) {
             if r.type ~= "fontRow" and r.default ~= nil and type(r.default) ~= "table" then
               local td
               for _, name in ipairs({ "FOCUS_DEFAULTS", "VISTA_DEFAULTS", "INSIGHT_DEFAULTS", "PRESENCE_DEFAULTS",
-                  "ECHO_DEFAULTS", "AUGMENT_DEFAULTS", "ESSENCE_DEFAULTS", "AXIS_DEFAULTS" }) do
+                  "ECHO_DEFAULTS", "MERIDIAN_DEFAULTS", "AUGMENT_DEFAULTS", "ESSENCE_DEFAULTS", "AXIS_DEFAULTS" }) do
                 local t = rawget(addon, name)
                 if td == nil and type(t) == "table" then td = t[r.dbKey] end
               end

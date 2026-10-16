@@ -44,6 +44,7 @@ addon.AXIS_DEFAULTS = {
     classColorPresence             = false,
     classColorAugment                = false,
     classColorEcho                 = false,
+    classColorMeridian             = false,
     dashboardClassTheme            = false,
     dashboardShowClassIcon         = false,
     dashboardBackgroundClassOverride = false,
@@ -55,6 +56,7 @@ addon.AXIS_DEFAULTS = {
     vistaUIScale                   = 1.0,
     insightUIScale                 = 1.0,
     augmentUIScale                   = 1.0,
+    meridianUIScale                = 1.0,
     perModuleScaling               = false,
     showGameMenuButton             = true,
     hideMinimapButton              = false,
@@ -73,4 +75,5 @@ addon.AXIS_LIMITS = {
     vistaUIScale_pct           = { min = 50,  max = 200 },
     insightUIScale_pct         = { min = 50,  max = 200 },
     augmentUIScale_pct           = { min = 50,  max = 200 },
+    meridianUIScale_pct          = { min = 50,  max = 200 },
 }

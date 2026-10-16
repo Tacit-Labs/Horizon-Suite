@@ -227,6 +227,7 @@ options/modules/OptionsPresence.lua
 options/modules/OptionsInsight.lua
 options/modules/OptionsEssence.lua
 options/modules/OptionsEcho.lua
+options/modules/OptionsMeridian.lua
 options/modules/OptionsVista.lua
 options/modules/OptionsAugment.lua
 options/modules/OptionsAugmentTalkingHead.lua

@@ -244,7 +244,7 @@ local categories = {
             opts[#opts + 1] = { type = "section", name = L["AXIS_CLASS_THEME_SECTION"], page = "look", card = "colours" }
             local classColorKeys = {
                 "classColorDashboard", "classColorVista", "classColorInsight", "classColorEssence",
-                "classColorFocus", "classColorPresence", "classColorAugment", "classColorEcho",
+                "classColorFocus", "classColorPresence", "classColorAugment", "classColorEcho", "classColorMeridian",
             }
             -- Include "_classColorAll" so the master row Refresh() runs after batch (Axis/Dashboard accordion does not use OptionsPanel allRefreshers).
             local classColorAllRefreshIds = { "_classColorAll", "_dashboardClassTheme" }
@@ -344,6 +344,7 @@ local categories = {
             opts[#opts + 1] = { type = "toggle", name = BM and BM("augment"), desc = L["AUGMENT_CLASS_COLOURS_DESC"], dbKey = "classColorAugment", get = function() return getDB("classColorAugment", false) end, set = function(v) setDB("classColorAugment", v) end, refreshIds = { "_classColorAll" } }
             opts[#opts + 1] = { type = "toggle", name = BM and BM("essence"), desc = L["ESSENCE_CLASS_COLOURS_DESC"], dbKey = "classColorEssence", get = function() return getDB("classColorEssence", false) end, set = function(v) setDB("classColorEssence", v) end, refreshIds = { "_classColorAll" } }
             opts[#opts + 1] = { type = "toggle", name = BM and BM("echo"), desc = L["ECHO_CLASS_COLOURS_DESC"], dbKey = "classColorEcho", get = function() return getDB("classColorEcho", false) end, set = function(v) setDB("classColorEcho", v) end, refreshIds = { "_classColorAll" } }
+            opts[#opts + 1] = { type = "toggle", name = BM and BM("meridian"), desc = L["MERIDIAN_CLASS_COLOURS_DESC"], dbKey = "classColorMeridian", get = function() return getDB("classColorMeridian", false) end, set = function(v) setDB("classColorMeridian", v) end, refreshIds = { "_classColorAll" } }
             opts[#opts + 1] = { type = "section", name = L["AXIS_GLOBAL_FONT_SECTION"], page = "look", card = "text" }
             local isGlobalFontOn = function() return getDB("useGlobalFont", D and D.useGlobalFont or false) end
             opts[#opts + 1] = {
@@ -387,6 +388,7 @@ local categories = {
                 if addon.Presence and addon.Presence.ApplyPresenceOptions then addon.Presence.ApplyPresenceOptions() end
                 if addon.Vista and addon.Vista.ApplyScale then addon.Vista.ApplyScale() end
                 if addon.Augment and addon.Augment.ApplyScale then addon.Augment.ApplyScale() end
+                if addon.Meridian and addon.Meridian.ApplyOptions then addon.Meridian.ApplyOptions() end
                 local fullLayout = addon.FullLayout or _G.HorizonSuite_FullLayout
                 if fullLayout and not InCombatLockdown() then fullLayout() end
             end
@@ -451,6 +453,16 @@ local categories = {
                     return math.floor((tonumber(getDB("insightUIScale", 1)) or 1) * 100 + 0.5)
                 end, set = function(v)
                     setDB("insightUIScale", math.max(50, math.min(200, v)) / 100)
+                end }
+            opts[#opts + 1] = { type = "slider", name = L["MERIDIAN_SCALE"], desc = L["AXIS_SCALE_MERIDIAN"], dbKey = "meridianUIScale_pct", min = 50, max = 200,
+                parent = "perModuleScaling",
+                get = function()
+                    return math.floor((tonumber(getDB("meridianUIScale", 1)) or 1) * 100 + 0.5)
+                end, set = function(v)
+                    setDB("meridianUIScale", math.max(50, math.min(200, v)) / 100)
+                    debouncedRefresh("meridian", function()
+                        if addon.Meridian and addon.Meridian.ApplyOptions then addon.Meridian.ApplyOptions() end
+                    end)
                 end }
             -- No Augment row: Augment's own Toast settings › Scale is the same augmentUIScale, and
             -- Augment ignores the global and per-module scale.
