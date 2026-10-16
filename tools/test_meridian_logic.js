@@ -32,7 +32,7 @@ function run(code, name) {
 }
 
 const REPO = path.resolve(__dirname, '..') + '/';
-const read = f => fs.readFileSync(REPO + f, 'utf8').replace(/^﻿/, '');
+const read = f => fs.readFileSync(REPO + f, 'utf8').replace(/^\uFEFF/, '');
 
 run(`
   DB, ENABLED, COMBAT = {}, {}, false
