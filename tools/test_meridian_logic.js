@@ -516,6 +516,57 @@ run(`
   M._ResetForTests()
 `, 'queue');
 
+// --- Gold session baseline -------------------------------------------------------
+run(`
+  HorizonSuite.Meridian._ResetForTests(); DB = {}
+  WATCHERS = {}
+  local origCreate = CreateFrame
+  CreateFrame = function(kind, name, parent)
+    local f = origCreate(kind, name, parent)
+    f.events = {}
+    rawset(f, "RegisterEvent", function(self, ev) self.events[ev] = true end)
+    rawset(f, "UnregisterEvent", function(self, ev) self.events[ev] = nil end)
+    WATCHERS[#WATCHERS + 1] = f
+    return f
+  end
+`, 'gold-reset');
+run(read('modules/Meridian/blocks/MeridianBlocksCharacter.lua'), 'character-gold');
+run(`
+  CreateFrame = STUB_CREATE_FRAME
+  local M = HorizonSuite.Meridian
+  local watcher
+  for _, f in ipairs(WATCHERS) do if f.events.PLAYER_ENTERING_WORLD then watcher = f end end
+  check("gold: a local frame waits for PLAYER_ENTERING_WORLD", watcher ~= nil)
+
+  local money = 0  -- ADDON_LOADED: the balance has not arrived yet
+  GetMoney = function() return money end
+  GetMoneyString = nil
+  local gold = M.Get("gold")
+  gold.text()
+  money = 50000000
+  local lines = {}
+  local tip = { AddLine = function() end,
+                AddDoubleLine = function(_, l, r) lines[#lines + 1] = r end }
+  gold.OnTooltipShow(tip)
+  check("gold: no baseline before PLAYER_ENTERING_WORLD shows no change", lines[1] == "0g", lines[1])
+
+  watcher.scripts.OnEvent(watcher, "PLAYER_ENTERING_WORLD")
+  check("gold: the watcher lets go after one event", watcher.events.PLAYER_ENTERING_WORLD == nil)
+  money = 50000000 + 1230000
+  lines = {}
+  gold.OnTooltipShow(tip)
+  check("gold: the session counts from PLAYER_ENTERING_WORLD", lines[1] == "+123g", lines[1])
+
+  money = 90000000
+  watcher.scripts.OnEvent(watcher, "PLAYER_ENTERING_WORLD")  -- a later zone change
+  lines = {}
+  gold.OnTooltipShow(tip)
+  check("gold: the baseline is set once", lines[1] == "+4,000g", lines[1])
+  GetMoney = nil
+  WATCHERS = nil
+  M._ResetForTests()
+`, 'gold');
+
 // --- Summary (keep last; add new sections above this line) -----------------------
 run(`
   print(PASS .. " passed, " .. FAIL .. " failed")

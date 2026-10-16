@@ -1,7 +1,7 @@
 --[[
     Horizon Suite - Meridian - Gold, durability and bag blocks
-    Blizzard: GetMoney, GetMoneyString, GetInventoryItemDurability, GetInventoryItemLink,
-    C_Container.GetContainerNumFreeSlots, ToggleAllBags, ToggleCharacter.
+    Blizzard: CreateFrame, GetMoney, GetMoneyString, GetInventoryItemDurability,
+    GetInventoryItemLink, C_Container.GetContainerNumFreeSlots, ToggleAllBags, ToggleCharacter.
 ]]
 
 local addon = _G.HorizonSuite
@@ -17,7 +17,18 @@ local BAD = { 0.90, 0.30, 0.30 }
 
 -- Gold ---------------------------------------------------------------------------
 
+-- The session baseline waits for PLAYER_ENTERING_WORLD: at ADDON_LOADED GetMoney can still
+-- read 0, and "This session" would then claim the whole balance. The bar's own driver swallows
+-- PLAYER_ENTERING_WORLD for layout, so a small frame of this file's own takes it.
 local sessionStart
+do
+    local watcher = CreateFrame("Frame")
+    watcher:RegisterEvent("PLAYER_ENTERING_WORLD")
+    watcher:SetScript("OnEvent", function(self)
+        if sessionStart == nil and GetMoney then sessionStart = GetMoney() end
+        self:UnregisterEvent("PLAYER_ENTERING_WORLD")
+    end)
+end
 
 Meridian.RegisterBlock({
     id = "gold",
@@ -26,9 +37,7 @@ Meridian.RegisterBlock({
     iconColor = { 0.90, 0.76, 0.35 },
     text = function()
         if not GetMoney then return nil end
-        local money = GetMoney()
-        if sessionStart == nil then sessionStart = money end
-        return F.Gold(money)
+        return F.Gold(GetMoney())
     end,
     events = { "PLAYER_MONEY", "PLAYER_ENTERING_WORLD" },
     OnClick = function() if ToggleAllBags then ToggleAllBags() end end,
@@ -36,6 +45,7 @@ Meridian.RegisterBlock({
         if not GetMoney then return end
         local money = GetMoney()
         if GetMoneyString then tooltip:AddLine(GetMoneyString(money, true), 1, 1, 1) end
+        -- No baseline yet means no change yet.
         tooltip:AddDoubleLine(L["MERIDIAN_GOLD_SESSION"], F.GoldDelta(money - (sessionStart or money)), 0.7, 0.7, 0.7, 1, 1, 1)
     end,
     defaultSide = "right", defaultOrder = 30, defaultOn = true,
