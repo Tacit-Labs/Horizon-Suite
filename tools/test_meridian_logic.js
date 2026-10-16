@@ -337,6 +337,7 @@ run(`
 
   -- Disabling in combat defers the detach, and Vista's notification waits with it.
   HorizonSuite.Vista = { ApplyOptions = function() VISTA_CALLS = (VISTA_CALLS or 0) + 1 end }
+  ENABLED.vista = true
   VISTA_CALLS = 0
   Bar.Enable()
   local vistaAfterEnable = VISTA_CALLS
@@ -351,6 +352,7 @@ run(`
   check("disable in combat: Vista is told once combat ends", VISTA_CALLS > vistaAfterEnable, VISTA_CALLS)
   check("disable in combat: no ownership notice left pending", not HorizonSuite.Meridian._ownershipPending)
   HorizonSuite.Vista = nil
+  ENABLED.vista = nil
   M._ResetForTests()
 `, 'bar');
 
@@ -450,6 +452,25 @@ run(`
   check("font: a new block falls back too", made[#made] == "Fonts\\\\STANDARD.TTF", made[#made])
   STANDARD_TEXT_FONT = nil
   DB.fontPath = nil
+
+  -- Vista's refresh runs only while Vista is on, checked when the timer fires.
+  local vistaCalls = 0
+  HorizonSuite.Vista = { ApplyOptions = function() vistaCalls = vistaCalls + 1 end }
+  ENABLED.vista = false
+  M.NotifyOwnershipChanged()
+  check("notify: Vista off, its options are left alone", vistaCalls == 0, vistaCalls)
+  ENABLED.vista = true
+  M.NotifyOwnershipChanged()
+  check("notify: Vista on, its options re-apply", vistaCalls == 1, vistaCalls)
+  local queued
+  C_Timer.After = function(_, fn) queued = fn end
+  M.NotifyOwnershipChanged()
+  ENABLED.vista = false
+  queued()
+  check("notify: Vista switched off before the timer fires is left alone", vistaCalls == 1, vistaCalls)
+  C_Timer.After = function(_, fn) fn() end
+  HorizonSuite.Vista = nil
+  ENABLED.vista = nil
 
   Bar.Disable()
   M._ResetForTests()

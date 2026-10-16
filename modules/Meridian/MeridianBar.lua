@@ -581,6 +581,9 @@ function Meridian.NotifyOwnershipChanged()
         return
     end
     C_Timer.After(0, function()
+        -- Checked when the timer fires, not before: Vista may enable after Meridian, or be
+        -- switched off at runtime, and its apply paths assume it is running.
+        if not (addon.IsModuleEnabled and addon:IsModuleEnabled("vista")) then return end
         if V.ApplyOptions then V.ApplyOptions("vistaShowTimeText") end
         if V.UpdateMailIndicator then V.UpdateMailIndicator() end
         if V.RefreshMailAnchor then V.RefreshMailAnchor() end
