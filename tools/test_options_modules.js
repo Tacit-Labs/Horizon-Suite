@@ -56,6 +56,7 @@ const FILES = [
   'options/modules/defaults/OptionsDefaultsInsight.lua',
   'options/modules/defaults/OptionsDefaultsEssence.lua',
   'options/modules/defaults/OptionsDefaultsEcho.lua',
+  'options/modules/defaults/OptionsDefaultsMeridian.lua',
   'options/modules/defaults/OptionsDefaultsVista.lua',
   'options/modules/defaults/OptionsDefaultsFocus.lua',
   'options/modules/defaults/OptionsDefaultsAxis.lua',

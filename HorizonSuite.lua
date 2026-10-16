@@ -150,6 +150,7 @@ function addon:EnsureModulesDB()
         db.modules.vista = { enabled = false }
         db.modules.essence = { enabled = false }
         db.modules.echo = { enabled = false }
+        db.modules.meridian = { enabled = false }
     end
     -- Migrate old Vista (Presence) module key to Presence; repurpose vista for minimap.
     -- Guarded by db._migrations so this runs exactly once, preventing replays that
@@ -186,6 +187,10 @@ function addon:EnsureModulesDB()
     -- hides Blizzard's chat windows
     if not db.modules.echo then
         db.modules.echo = { enabled = false }
+    end
+    -- Ensure meridian exists for existing installs; off by default like every module
+    if not db.modules.meridian then
+        db.modules.meridian = { enabled = false }
     end
 
     -- Module on/off follows the active profile: sync db.modules from the active

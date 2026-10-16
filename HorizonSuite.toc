@@ -191,6 +191,8 @@ modules/Echo/EchoHideChat.lua
 modules/Echo/EchoOptions.lua
 modules/Echo/EchoSlash.lua
 modules/Echo/EchoModule.lua
+modules/Meridian/MeridianBar.lua
+modules/Meridian/MeridianModule.lua
 options/OptionsWidgets.lua
 options/HorizonColorPicker.lua
 options/OptionsDefaults.lua
@@ -209,6 +211,7 @@ options/modules/defaults/OptionsDefaultsPresence.lua
 options/modules/defaults/OptionsDefaultsInsight.lua
 options/modules/defaults/OptionsDefaultsEssence.lua
 options/modules/defaults/OptionsDefaultsEcho.lua
+options/modules/defaults/OptionsDefaultsMeridian.lua
 options/modules/defaults/OptionsDefaultsVista.lua
 options/modules/defaults/OptionsDefaultsFocus.lua
 options/modules/defaults/OptionsDefaultsAxis.lua

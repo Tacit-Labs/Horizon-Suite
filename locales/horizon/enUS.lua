@@ -3162,3 +3162,11 @@ L["DASH_NEWS_POSTED_DAYS_X"]                                  = "%d days ago"
 L["DASH_NEWS_BACK"]                                           = "All news"
 L["DASH_NEWS_MODULE_OFF_X"]                                   = "%s is off"
 L["DASH_NEWS_TURN_ON"]                                        = "Turn on"
+
+-- =====================================================================
+-- Meridian — info bar
+-- =====================================================================
+L["NAME_ADDON_INFOBAR"]                                       = "Meridian"
+L["MERIDIAN_NOT_IN_COMBAT"]                                   = "Not available in combat"
+L["MERIDIAN_MENU_HIDE_BLOCK"]                                 = "Hide this block"
+L["MERIDIAN_MENU_SETTINGS"]                                   = "Meridian settings"

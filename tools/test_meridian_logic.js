@@ -54,11 +54,54 @@ run(`
   end
 `, 'stubs');
 
+run(`
+  function STUB_FRAME(parent)
+    local o = { scripts = {}, shown = true, parent = parent, points = {}, alpha = 1 }
+    local fixed = { GetFrameLevel = 1, GetWidth = 1000, GetHeight = 1080, GetEffectiveScale = 1,
+                    IsMouseOver = false, GetStringWidth = 30 }
+    return setmetatable(o, { __index = function(_, k)
+      if k == "SetScript" then return function(self, n, fn) self.scripts[n] = fn end end
+      if k == "Show" then return function(self) self.shown = true end end
+      if k == "Hide" then return function(self) self.shown = false end end
+      if k == "SetShown" then return function(self, v) self.shown = v and true or false end end
+      if k == "IsShown" then return function(self) return self.shown end end
+      if k == "SetAlpha" then return function(self, a) self.alpha = a end end
+      if k == "SetText" then return function(self, t) self.text = t end end
+      if k == "GetText" then return function(self) return self.text end end
+      if k == "SetPoint" then return function(self, ...) self.points[#self.points + 1] = { ... } end end
+      if k == "ClearAllPoints" then return function(self) self.points = {} end end
+      if k == "GetNumPoints" then return function(self) return #self.points end end
+      if k == "GetPoint" then return function(self, i)
+        local p = self.points[i or 1]
+        if p then return p[1], p[2], p[3], p[4], p[5] end
+      end end
+      if k == "SetParent" then return function(self, p) self.parent = p end end
+      if k == "GetParent" then return function(self) return self.parent end end
+      if k == "SetWidth" then return function(self, w) self.width = w end end
+      if k == "SetSize" then return function(self, w, h) self.width, self.height = w, h end end
+      if k == "GetSize" then return function(self) return self.width, self.height end end
+      if k == "CreateTexture" or k == "CreateFontString" then return function(self) return STUB_FRAME(self) end end
+      if fixed[k] ~= nil then local v = fixed[k]; return function() return v end end
+      -- Unknown methods (capitalised) are no-ops; unknown data fields stay nil, as on a real frame.
+      if type(k) == "string" and k:match("^%u") then return function() end end
+      return nil
+    end })
+  end
+  function STUB_CREATE_FRAME(_, name, parent)
+    local f = STUB_FRAME(parent)
+    if name then _G[name] = f end
+    return f
+  end
+  CreateFrame = STUB_CREATE_FRAME
+  UIParent = STUB_FRAME()
+`, 'frame-stubs');
+
 // Files in TOC order. Block files are not listed: block sections load them after a reset.
 const FILES = [
   'modules/Meridian/MeridianRegistry.lua',
   'modules/Meridian/MeridianFormat.lua',
   'modules/Meridian/MeridianAutoHide.lua',
+  'modules/Meridian/MeridianBar.lua',
 ];
 for (const f of FILES) run(read(f), f);
 
@@ -236,6 +279,63 @@ run(`
   check("zone: bottom edge", A.CursorInZone("bottom", 3, 1080, 4) == true)
   check("zone: no cursor", A.CursorInZone("top", nil, 1080, 4) == false)
 `, 'autohide');
+
+// --- Bar -------------------------------------------------------------------------
+run(`
+  local M = HorizonSuite.Meridian
+  local Bar = M.Bar
+
+  local x = Bar.ComputeX({ left = { 20, 30 }, centre = { 40 }, right = { 20, 30 } }, 1000, 10, 12)
+  check("x: left starts at the pad", x.left[1] == 10 and x.left[2] == 42, x.left[2])
+  check("x: centre is centred", x.centre[1] == 480, x.centre[1])
+  check("x: right ends at the pad", x.right[1] == 928 and x.right[2] == 960, x.right[1])
+  x = Bar.ComputeX({ left = {}, centre = {}, right = {} }, 1000, 10, 12)
+  check("x: empty sides", #x.left == 0 and #x.right == 0)
+
+  M._ResetForTests()
+  ATTACHED, DETACHED = 0, 0  -- globals: the next chunk reads them
+  M.RegisterBlock({ id = "t1", text = function() return "abc" end, defaultSide = "left", defaultOrder = 1 })
+  M.RegisterBlock({ id = "t2", text = function() return nil end, defaultSide = "right",
+    Attach = function() ATTACHED = ATTACHED + 1 end, Detach = function() DETACHED = DETACHED + 1 end })
+`, 'bar-setup');
+run(read('options/modules/defaults/OptionsDefaultsMeridian.lua'), 'options/modules/defaults/OptionsDefaultsMeridian.lua');
+run(`
+  local M = HorizonSuite.Meridian
+  local Bar = M.Bar
+  check("defaults: a block row per registered block", HorizonSuite.MERIDIAN_DEFAULTS.meridianBlock_t1_side == "left")
+  check("defaults: routing keys include block rows", HorizonSuite.MERIDIAN_KEYS.meridianBlock_t2_enabled == true)
+
+  Bar.Enable()
+  local frame = _G.HorizonSuiteMeridianBar
+  check("enable: builds the named bar", frame ~= nil)
+  check("enable: active, so it owns its blocks", M.Owns("t1") == true)
+  local b1 = Bar._buttons.t1
+  check("layout: a block with text is shown", b1 and b1.shown == true)
+  check("layout: placed at the left pad", b1 and b1.points[1] and b1.points[1][4] == Bar.PAD, b1 and b1.points[1] and b1.points[1][4])
+  local b2 = Bar._buttons.t2
+  check("layout: a contextual block with no text is hidden", b2 and b2.shown == false)
+  check("layout: Attach runs for an on block even while it is empty", ATTACHED >= 1, ATTACHED)
+
+  DB.meridianBlock_t2_enabled = false
+  Bar.Layout()
+  check("layout: Detach runs once a block is switched off", DETACHED >= 1, DETACHED)
+  DB.meridianBlock_t2_enabled = nil
+
+  DB.meridianAutoHide = true
+  Bar.ApplyOptions()
+  Bar._driver.scripts.OnUpdate(Bar._driver, 2)
+  check("auto-hide: the bar slides away with no hover", frame.shown == false)
+  DB.meridianAutoHide = nil
+  Bar.ApplyOptions()
+  Bar._driver.scripts.OnUpdate(Bar._driver, 0.5)
+  check("auto-hide off: the bar comes back", frame.shown == true)
+
+  Bar.Disable()
+  check("disable: no longer owns", M.Owns("t1") == false)
+  check("disable: the bar is hidden", frame.shown == false)
+  check("disable: blocks are detached", DETACHED >= 2, DETACHED)
+  M._ResetForTests()
+`, 'bar');
 
 // --- Summary (keep last; add new sections above this line) -----------------------
 run(`
