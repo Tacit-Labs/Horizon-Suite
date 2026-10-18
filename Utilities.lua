@@ -478,7 +478,7 @@ end
 -- ============================================================================
 
 -- Focused quest highlight styles, and where retired styles now land.
-local HIGHLIGHT_STYLES = { ["bar-gutter"] = true, ["bar-right"] = true, ["gradient"] = true, ["title-color"] = true, ["none"] = true }
+local HIGHLIGHT_STYLES = { ["bar-gutter"] = true, ["bar-right"] = true, ["gradient"] = true, ["title-color"] = true, ["pointer"] = true, ["none"] = true }
 local RETIRED_HIGHLIGHT_STYLES = {
     ["bar"] = "bar-gutter", ["bar-left"] = "bar-gutter", ["pill-left"] = "bar-gutter", ["bar-both"] = "bar-gutter",
     ["bar-top"] = "bar-gutter", ["bar-bottom"] = "bar-gutter", ["underline"] = "bar-gutter",

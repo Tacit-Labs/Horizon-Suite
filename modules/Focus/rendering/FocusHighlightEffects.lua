@@ -1,8 +1,9 @@
 --[[
     Horizon Suite - Focus - Highlight Effects
     Effects built into the focused quest highlight styles: the bars get a progress fill (unless
-    Show progress is off) and grow in when focus changes; the gradient slides in when focus changes and carries a sheen sweep.
-    The animated parts follow the global Animations option.
+    Show progress is off) and grow in when focus changes; the gradient slides in when focus
+    changes and carries a sheen sweep; the pointer is an arrow left of the entry that nudges
+    toward it. The animated parts follow the global Animations option.
 ]]
 
 local addon = _G.HorizonSuite
@@ -12,6 +13,7 @@ local STYLE_FX = {
     ["bar-gutter"] = { progress = true, enter = true },
     ["bar-right"]  = { progress = true, enter = true },
     ["gradient"]   = { enter = true, sheen = true },
+    ["pointer"]    = { pointer = true },
 }
 
 local TRACK_ALPHA = 0.25  -- bar alpha behind the progress fill
@@ -22,6 +24,11 @@ local SHEEN_DURATION = 1.1
 local SHEEN_DELAY = 5
 local ENTER_DURATION = 0.3
 local SLIDE_OFFSET = 24   -- how far the gradient slides in from, px
+local POINTER_TEXTURE = "Interface\\AddOns\\HorizonSuite\\media\\pointer"
+local POINTER_SIZE = 10   -- px
+local POINTER_GAP = 3     -- gap between the arrow tip and the entry, px
+local POINTER_NUDGE = 3   -- how far the arrow nudges toward the entry, px
+local POINTER_NUDGE_DURATION = 0.8
 
 -- Key of the quest that last played the focus-change animation, so it plays once per change.
 local lastFocusKey
@@ -106,6 +113,75 @@ local function HideSheen(fx)
     StopGroups(fx.sheenAnims)
 end
 
+-- The pointer sits in the tracker's left padding, outside the entry, so it is parented to the
+-- entry's parent (the entry clips its children) and follows the entry's visibility by hooks.
+local function EnsurePointer(entry, fx)
+    if fx.pointer then return fx.pointer end
+    local p = CreateFrame("Frame", nil, entry:GetParent())
+    p:SetFrameLevel(entry:GetFrameLevel() + 2)
+    p:Hide()
+    p.tex = p:CreateTexture(nil, "OVERLAY")
+    p.tex:SetAllPoints(p)
+    p.tex:SetTexture(POINTER_TEXTURE)
+
+    p.nudge = p:CreateAnimationGroup()
+    p.nudge:SetLooping("BOUNCE")
+    p.nudge.move = p.nudge:CreateAnimation("Translation")
+    p.nudge.move:SetDuration(POINTER_NUDGE_DURATION)
+    p.nudge.move:SetSmoothing("IN_OUT")
+
+    -- Focus change: fade in while sliding toward the entry.
+    p.enter = p.tex:CreateAnimationGroup()
+    local hideA = p.enter:CreateAnimation("Alpha")
+    hideA:SetFromAlpha(0); hideA:SetToAlpha(0); hideA:SetDuration(0); hideA:SetOrder(1)
+    local back = p.enter:CreateAnimation("Translation")
+    back:SetOffset(-S(8), 0); back:SetDuration(0); back:SetOrder(1)
+    local showA = p.enter:CreateAnimation("Alpha")
+    showA:SetFromAlpha(0); showA:SetToAlpha(1); showA:SetDuration(ENTER_DURATION); showA:SetOrder(2)
+    local forward = p.enter:CreateAnimation("Translation")
+    forward:SetOffset(S(8), 0); forward:SetDuration(ENTER_DURATION); forward:SetSmoothing("OUT"); forward:SetOrder(2)
+
+    entry:HookScript("OnHide", function() p:Hide() end)
+    entry:HookScript("OnShow", function() if fx.pointerOn then p:Show() end end)
+    fx.pointer = p
+    return p
+end
+
+local function HidePointer(fx)
+    fx.pointerOn = false
+    local p = fx.pointer
+    if not p then return end
+    p:Hide()
+    if p.nudge:IsPlaying() then p.nudge:Stop() end
+    if p.enter:IsPlaying() then p.enter:Stop() end
+end
+
+-- Arrow just left of the entry, level with the middle of the title's first line.
+local function ApplyPointer(entry, fx, hc)
+    local p = EnsurePointer(entry, fx)
+    local size = S(POINTER_SIZE)
+    local _, fontSize = entry.titleText:GetFont()
+    local _, _, _, _, titleY = entry.titleText:GetPoint(1)
+    local midY = (type(titleY) == "number" and titleY or 0) - (tonumber(fontSize) or size) / 2
+    p:SetSize(size, size)
+    p:ClearAllPoints()
+    p:SetPoint("RIGHT", entry, "TOPLEFT", -S(POINTER_GAP) - S(POINTER_NUDGE), midY)
+    p.tex:SetVertexColor(hc[1], hc[2], hc[3], 1)
+    fx.pointerOn = true
+    if entry:IsShown() then p:Show() end
+    if AnimationsOn() then
+        local nudge = S(POINTER_NUDGE)
+        if p.nudge._offset ~= nudge then
+            p.nudge.move:SetOffset(nudge, 0)
+            p.nudge._offset = nudge
+        end
+        -- Leave a running nudge alone so re-renders do not restart it.
+        if not p.nudge:IsPlaying() then p.nudge:Play() end
+    elseif p.nudge:IsPlaying() then
+        p.nudge:Stop()
+    end
+end
+
 --- Hide every effect and stop its animations (entry no longer focused, or released to the pool).
 -- @param entry Frame Focus entry
 function addon.FocusHighlight_Clear(entry)
@@ -113,6 +189,7 @@ function addon.FocusHighlight_Clear(entry)
     if not fx then return end
     fx.fill:Hide()
     HideSheen(fx)
+    HidePointer(fx)
     StopGroups(fx.enter)
 end
 
@@ -186,6 +263,12 @@ function addon.FocusHighlight_Apply(entry, questData, highlightStyle)
         shown[#shown + 1] = entry.highlightGradient
     end
 
+    if styleFx.pointer then
+        ApplyPointer(entry, fx, hc)
+    else
+        HidePointer(fx)
+    end
+
     if styleFx.sheen and AnimationsOn() and entryW > 0 then
         ApplySheen(fx, entry, hc, entryW)
     else
@@ -198,6 +281,9 @@ function addon.FocusHighlight_Apply(entry, questData, highlightStyle)
         if styleFx.enter and AnimationsOn() then
             for _, tex in ipairs(shown) do fx.enter[tex]:Play() end
         end
+        if styleFx.pointer and AnimationsOn() then
+            fx.pointer.enter:Play()
+        end
     end
 end
 
@@ -209,6 +295,9 @@ function addon.FocusHighlight_Recolour(entry, hc)
     if not fx then return end
     if fx.fill:IsShown() then
         fx.fill:SetColorTexture(hc[1], hc[2], hc[3], BAR_ALPHA)
+    end
+    if fx.pointer and fx.pointerOn then
+        fx.pointer.tex:SetVertexColor(hc[1], hc[2], hc[3], 1)
     end
     if fx.sheenL:IsShown() then
         local tint = SheenTint(hc)

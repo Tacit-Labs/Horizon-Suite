@@ -160,6 +160,7 @@ local HIGHLIGHT_OPTIONS = {
     { L["FOCUS_HIGHLIGHT_BAR_RIGHT_EDGE"], "bar-right" },
     { L["FOCUS_HIGHLIGHT_TITLE_COLOUR"], "title-color" },
     { L["FOCUS_HIGHLIGHT_GRADIENT"], "gradient" },
+    { L["FOCUS_HIGHLIGHT_POINTER"], "pointer" },
     { L["FOCUS_HIGHLIGHT_NONE"], "none" },
 }
 local MPLUS_POSITION_OPTIONS = {

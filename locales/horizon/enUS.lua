@@ -1879,6 +1879,7 @@ L["FOCUS_HIGHLIGHT_BAR_LEFT_EDGE"]                            = "Left bar"
 L["FOCUS_HIGHLIGHT_BAR_RIGHT_EDGE"]                           = "Right bar"
 L["FOCUS_HIGHLIGHT_TITLE_COLOUR"]                             = "Coloured title"
 L["FOCUS_HIGHLIGHT_GRADIENT"]                                 = "Gradient fade"
+L["FOCUS_HIGHLIGHT_POINTER"]                                  = "Pointer"
 L["FOCUS_HIGHLIGHT_NONE"]                                     = "None"
 
 -- =====================================================================
