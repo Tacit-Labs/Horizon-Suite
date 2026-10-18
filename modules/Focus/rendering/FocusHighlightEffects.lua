@@ -325,12 +325,15 @@ end
 function addon.FocusHighlight_Recolour(entry, hc)
     local fx = entry and entry._highlightFx
     if not fx then return end
+    -- The layout recolour sets the bar's alpha from its vertex colour (always 1), so put it back:
+    -- invisible under the progress steps, else the usual bar alpha.
     if fx.steps[1]:IsShown() then
-        -- The layout recolour sets the bar's alpha from its vertex colour; keep the anchor invisible.
         entry.trackBar:SetColorTexture(hc[1], hc[2], hc[3], 0)
         for _, tex in ipairs(fx.steps) do
             tex:SetColorTexture(hc[1], hc[2], hc[3], tex._alpha or BAR_ALPHA)
         end
+    elseif entry.trackBar:IsShown() then
+        entry.trackBar:SetColorTexture(hc[1], hc[2], hc[3], BAR_ALPHA)
     end
     if fx.pointer and fx.pointerOn then
         fx.pointer.tex:SetVertexColor(hc[1], hc[2], hc[3], 1)

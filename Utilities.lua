@@ -494,6 +494,7 @@ end
 
 -- Styles with their own colour, and the setting that holds it (read by the options swatch too).
 local STYLE_COLOUR_KEYS = {
+    ["bar-gutter"] = "focusedLeftBarColor", ["bar-right"] = "focusedRightBarColor",
     ["title-color"] = "focusedTitleColor", ["gradient"] = "focusedGradientColor", ["pointer"] = "focusedPointerColor",
 }
 addon.FOCUS_STYLE_COLOUR_KEYS = STYLE_COLOUR_KEYS

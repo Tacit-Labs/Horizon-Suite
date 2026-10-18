@@ -259,7 +259,7 @@ function OptionsData_NotifyMainAddon_Live(key)
         return
     end
 
-    if key == "highlightColor" or key == "focusedTitleColor" or key == "focusedGradientColor" or key == "focusedPointerColor" or key == "completedObjectiveColor" or key == "sectionColors"
+    if key == "highlightColor" or key == "focusedLeftBarColor" or key == "focusedRightBarColor" or key == "focusedTitleColor" or key == "focusedGradientColor" or key == "focusedPointerColor" or key == "completedObjectiveColor" or key == "sectionColors"
         or key == "progressBarFillColor" or key == "progressBarTextColor" or key == "colorMatrix" then
         if addon.ApplyFocusColors then addon.ApplyFocusColors() end
         return
