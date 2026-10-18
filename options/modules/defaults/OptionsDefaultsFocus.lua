@@ -153,6 +153,7 @@ addon.FOCUS_DEFAULTS = {
     showInZoneSuffix          = true,
     autoTrackIcon             = "radar1",
     activeQuestHighlight      = "bar-gutter",
+    focusHighlightProgress    = true,
     showQuestItemButtons      = false,
     showGroupFinderButton     = true,
     focusShowTooltipOnHover   = false,

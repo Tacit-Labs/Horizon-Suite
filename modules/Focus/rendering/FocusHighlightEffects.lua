@@ -1,7 +1,7 @@
 --[[
     Horizon Suite - Focus - Highlight Effects
-    Effects built into the focused quest highlight styles: the bars get a progress fill and grow
-    in when focus changes; the gradient slides in when focus changes and carries a sheen sweep.
+    Effects built into the focused quest highlight styles: the bars get a progress fill (unless
+    Show progress is off) and grow in when focus changes; the gradient slides in when focus changes and carries a sheen sweep.
     The animated parts follow the global Animations option.
 ]]
 
@@ -178,7 +178,7 @@ function addon.FocusHighlight_Apply(entry, questData, highlightStyle)
 
     if entry.trackBar:IsShown() then
         shown[#shown + 1] = entry.trackBar
-        if styleFx.progress then
+        if styleFx.progress and addon.GetDB("focusHighlightProgress", true) then
             ApplyProgress(fx, entry, questData, hc, entryH)
             if fx.fill:IsShown() then shown[#shown + 1] = fx.fill end
         end
