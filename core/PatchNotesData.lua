@@ -19,6 +19,22 @@ local addon = _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["6.10.0"] = {
+        date = "2026-10-18",
+        {
+            section = "New Features",
+            bullets = {
+                "Focus: Active quest highlight now offers Left bar, Right bar, Gradient fade, Pointer, Coloured title and None, and none of them push your quests out of line. Each style keeps its own colour and turns green when the quest is ready to turn in, and with Show progress on the bars light up in four steps as you complete objectives.",
+            },
+        },
+        {
+            section = "Improvements",
+            bullets = {
+                "Focus: Top bar, Bottom bar, Outline, Glow, Dual bars, Pill accent and Highlight have been retired. If you used one, you're moved to Left bar or Gradient fade automatically.",
+            },
+        },
+    },
+
     ["6.9.0"] = {
         date = "2026-10-16",
         {
