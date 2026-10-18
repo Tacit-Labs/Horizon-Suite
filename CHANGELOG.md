@@ -10,6 +10,16 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [6.10.0] – 2026-10-18
+
+### ✨ New Features
+- **(Focus) Focused quest highlights** — Active quest highlight now offers Left bar, Right bar, Gradient fade, Pointer, Coloured title and None, and none of them push your quests out of line. Each style keeps its own colour and turns green when the quest is ready to turn in, and with Show progress on the bars light up in four steps as you complete objectives.
+
+### 🔧 Improvements
+- **(Focus) Fewer, cleaner highlight styles** — Top bar, Bottom bar, Outline, Glow, Dual bars, Pill accent and Highlight have been retired. If you used one, you're moved to Left bar or Gradient fade automatically.
+
+---
+
 ## [6.9.0] – 2026-10-16
 
 ### ✨ New Features
