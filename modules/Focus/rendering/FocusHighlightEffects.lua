@@ -1,6 +1,6 @@
 --[[
     Horizon Suite - Focus - Highlight Effects
-    Effects built into the focused quest highlight styles: the bars get a progress fill (unless
+    Effects built into the focused quest highlight styles: the bars show progress in quarter steps (unless
     Show progress is off) and grow in when focus changes; the gradient slides in when focus
     changes and carries a sheen sweep; the pointer is an arrow left of the entry that nudges
     toward it. The animated parts follow the global Animations option.
@@ -16,8 +16,10 @@ local STYLE_FX = {
     ["pointer"]    = { pointer = true },
 }
 
-local TRACK_ALPHA = 0.25  -- bar alpha behind the progress fill
+local TRACK_ALPHA = 0.25  -- alpha of a progress step not yet reached
 local BAR_ALPHA = 0.70
+local PROGRESS_STEPS = 4  -- the bar lights a step at each 25% of progress
+local STEP_GAP = 2        -- gap between steps, px
 local SHEEN_W = 18        -- width of each half of the sheen band, px
 local SHEEN_ALPHA = 0.30
 local SHEEN_DURATION = 1.1
@@ -52,8 +54,11 @@ local function Ensure(entry)
     if fx then return fx end
     fx = {}
 
-    fx.fill = entry:CreateTexture(nil, "OVERLAY", nil, 1)
-    fx.fill:Hide()
+    fx.steps = {}
+    for i = 1, PROGRESS_STEPS do
+        fx.steps[i] = entry:CreateTexture(nil, "OVERLAY", nil, 1)
+        fx.steps[i]:Hide()
+    end
 
     fx.sheenL = entry:CreateTexture(nil, "ARTWORK")
     fx.sheenR = entry:CreateTexture(nil, "ARTWORK")
@@ -93,7 +98,8 @@ local function Ensure(entry)
         end
         fx.enter[tex] = ag
     end
-    for _, tex in ipairs({ entry.trackBar, fx.fill }) do
+    addEnter(entry.trackBar, true)
+    for _, tex in ipairs(fx.steps) do
         addEnter(tex, true)
     end
     addEnter(entry.highlightGradient, false)
@@ -106,6 +112,10 @@ local function StopGroups(groups)
     for _, ag in pairs(groups) do
         if ag:IsPlaying() then ag:Stop() end
     end
+end
+
+local function HideSteps(fx)
+    for _, tex in ipairs(fx.steps) do tex:Hide() end
 end
 
 local function HideSheen(fx)
@@ -200,26 +210,34 @@ end
 function addon.FocusHighlight_Clear(entry)
     local fx = entry and entry._highlightFx
     if not fx then return end
-    fx.fill:Hide()
+    HideSteps(fx)
     HideSheen(fx)
     HidePointer(fx)
     StopGroups(fx.enter)
 end
 
--- Bar becomes a faint track; the fill grows from the bottom with quest progress.
+-- The bar splits into steps stacked from the bottom; each lights at the next 25% of progress,
+-- and the rest show as a faint track. The bar itself stays as an invisible anchor.
 -- Quests with no objectives to measure keep the plain bar.
+-- @return boolean true when the steps are drawn
 local function ApplyProgress(fx, entry, questData, hc, entryH)
     local progress = addon.GetFocusQuestProgress(questData)
-    if not progress then return end
-    entry.trackBar:SetColorTexture(hc[1], hc[2], hc[3], TRACK_ALPHA)
-    fx.fill:SetColorTexture(hc[1], hc[2], hc[3], BAR_ALPHA)
-    fx.fill:ClearAllPoints()
-    fx.fill:SetPoint("BOTTOMLEFT", entry.trackBar, "BOTTOMLEFT", 0, 0)
-    fx.fill:SetPoint("BOTTOMRIGHT", entry.trackBar, "BOTTOMRIGHT", 0, 0)
-    if progress > 0 then
-        fx.fill:SetHeight(math.max(1, entryH * progress))
-        fx.fill:Show()
+    if not progress then return false end
+    entry.trackBar:SetColorTexture(hc[1], hc[2], hc[3], 0)
+    local lit = math.floor(progress * PROGRESS_STEPS + 1e-6)
+    local gap = S(STEP_GAP)
+    local stepH = math.max(1, (entryH - gap * (PROGRESS_STEPS - 1)) / PROGRESS_STEPS)
+    for i, tex in ipairs(fx.steps) do
+        local bottom = (i - 1) * (stepH + gap)
+        tex:ClearAllPoints()
+        tex:SetPoint("BOTTOMLEFT", entry.trackBar, "BOTTOMLEFT", 0, bottom)
+        tex:SetPoint("BOTTOMRIGHT", entry.trackBar, "BOTTOMRIGHT", 0, bottom)
+        tex:SetHeight(stepH)
+        tex._alpha = i <= lit and BAR_ALPHA or TRACK_ALPHA
+        tex:SetColorTexture(hc[1], hc[2], hc[3], tex._alpha)
+        tex:Show()
     end
+    return true
 end
 
 local function ApplySheen(fx, entry, hc, entryW)
@@ -260,17 +278,18 @@ function addon.FocusHighlight_Apply(entry, questData, highlightStyle)
         return
     end
     local fx = Ensure(entry)
-    fx.fill:Hide()
+    HideSteps(fx)
 
     local hc = addon.GetFocusHighlightColor(questData)
     local entryW, entryH = entry:GetWidth() or 0, entry:GetHeight() or 0
     local shown = {}  -- highlight textures drawn this pass, for the focus-change animation
 
     if entry.trackBar:IsShown() then
-        shown[#shown + 1] = entry.trackBar
-        if styleFx.progress and addon.GetDB("focusHighlightProgress", true) then
-            ApplyProgress(fx, entry, questData, hc, entryH)
-            if fx.fill:IsShown() then shown[#shown + 1] = fx.fill end
+        if styleFx.progress and addon.GetDB("focusHighlightProgress", true)
+            and ApplyProgress(fx, entry, questData, hc, entryH) then
+            for _, tex in ipairs(fx.steps) do shown[#shown + 1] = tex end
+        else
+            shown[#shown + 1] = entry.trackBar
         end
     elseif entry.highlightGradient:IsShown() then
         shown[#shown + 1] = entry.highlightGradient
@@ -306,8 +325,12 @@ end
 function addon.FocusHighlight_Recolour(entry, hc)
     local fx = entry and entry._highlightFx
     if not fx then return end
-    if fx.fill:IsShown() then
-        fx.fill:SetColorTexture(hc[1], hc[2], hc[3], BAR_ALPHA)
+    if fx.steps[1]:IsShown() then
+        -- The layout recolour sets the bar's alpha from its vertex colour; keep the anchor invisible.
+        entry.trackBar:SetColorTexture(hc[1], hc[2], hc[3], 0)
+        for _, tex in ipairs(fx.steps) do
+            tex:SetColorTexture(hc[1], hc[2], hc[3], tex._alpha or BAR_ALPHA)
+        end
     end
     if fx.pointer and fx.pointerOn then
         fx.pointer.tex:SetVertexColor(hc[1], hc[2], hc[3], 1)
