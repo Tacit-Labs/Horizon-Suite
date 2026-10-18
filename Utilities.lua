@@ -483,6 +483,42 @@ function addon.NormalizeHighlightStyle(style)
     return style
 end
 
+-- Focused quest highlight colour: the Focus class colour when set, else the saved highlight colour.
+-- @return table {r, g, b}
+function addon.GetFocusHighlightColor()
+    local fcc = addon.GetModuleClassColor and addon.GetModuleClassColor("focus")
+    if fcc then return { fcc[1], fcc[2], fcc[3] } end
+    local hc = addon.GetDB("highlightColor", nil)
+    if type(hc) ~= "table" or not hc[1] or not hc[2] or not hc[3] then
+        return { 0.40, 0.70, 1.00 }
+    end
+    return { hc[1], hc[2], hc[3] }
+end
+
+-- Title colour override for the "title-color" highlight style; nil when the style does not apply.
+-- @param isSuperTracked boolean
+-- @return table|nil {r, g, b}
+function addon.GetFocusedTitleHighlightColor(isSuperTracked)
+    if not isSuperTracked then return nil end
+    if addon.NormalizeHighlightStyle(addon.GetDB("activeQuestHighlight", "bar-left")) ~= "title-color" then return nil end
+    return addon.GetFocusHighlightColor()
+end
+
+-- Paint a texture as a left-to-right fade of the highlight colour (the "gradient" highlight style).
+-- @param tex Texture
+-- @param hc table {r, g, b}
+-- @param ha number highlight opacity, 0-1
+function addon.ApplyFocusHighlightGradient(tex, hc, ha)
+    if not tex or not hc then return end
+    local a = math.min(1, (tonumber(ha) or 0.25) * 2)
+    tex:SetColorTexture(1, 1, 1, 1)
+    if CreateColor and tex.SetGradient then
+        tex:SetGradient("HORIZONTAL", CreateColor(hc[1], hc[2], hc[3], a), CreateColor(hc[1], hc[2], hc[3], 0))
+    elseif tex.SetGradientAlpha then
+        tex:SetGradientAlpha("HORIZONTAL", hc[1], hc[2], hc[3], a, hc[1], hc[2], hc[3], 0)
+    end
+end
+
 -- ============================================================================
 -- QUEST / MAP HELPERS
 -- ============================================================================

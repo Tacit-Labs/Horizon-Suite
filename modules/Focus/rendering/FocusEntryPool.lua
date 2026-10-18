@@ -103,6 +103,16 @@ local function CreateQuestEntry(parent, index)
     e.highlightBorderR:SetColorTexture(0.40, 0.70, 1.00, 0.6)
     e.highlightBorderR:Hide()
 
+    -- Gradient fade (colour painted by addon.ApplyFocusHighlightGradient)
+    e.highlightGradient = e:CreateTexture(nil, "BACKGROUND")
+    e.highlightGradient:SetAllPoints(e)
+    e.highlightGradient:Hide()
+
+    -- Title underline (position set in Layout once the title width is known)
+    e.highlightUnderline = e:CreateTexture(nil, "OVERLAY")
+    e.highlightUnderline:SetColorTexture(0.40, 0.70, 1.00, 0.70)
+    e.highlightUnderline:Hide()
+
     local btnName = "HSItemBtn" .. index
     e.itemBtn = CreateFrame("Button", btnName, e)
     e.itemBtn:SetSize(_S(addon.ITEM_BTN_SIZE), _S(addon.ITEM_BTN_SIZE))
@@ -964,6 +974,9 @@ local function ClearEntry(entry, full)
     entry.isEventQuest = nil
     entry.isComplete = nil
     entry.isSuperTracked = nil
+    if entry.titleGlow then
+        for _, fs in ipairs(entry.titleGlow) do fs:Hide() end
+    end
     if entry.questTypeIcon then addon.ApplyDimToTrackerIconTexture(entry.questTypeIcon, true) end
     if entry.itemBtn and entry.itemBtn.icon then
         addon.ApplyDimToTrackerIconTexture(entry.itemBtn.icon, true)
