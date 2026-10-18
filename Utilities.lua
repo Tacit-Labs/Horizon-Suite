@@ -492,14 +492,23 @@ function addon.NormalizeHighlightStyle(style)
     return RETIRED_HIGHLIGHT_STYLES[style] or "bar-gutter"
 end
 
--- Focused quest highlight colour: the Focus class colour when set, else the saved highlight colour.
--- A quest that is ready to turn in uses the complete colour instead.
+-- Styles with their own colour picker, and the setting that holds it.
+local STYLE_COLOUR_KEYS = { ["title-color"] = "focusedTitleColor", ["gradient"] = "focusedGradientColor" }
+
+-- Focused quest highlight colour. A quest that is ready to turn in uses the complete colour;
+-- otherwise the current style's own colour when one is picked, then the Focus class colour,
+-- then the saved highlight colour.
 -- @param q table|nil quest data or Focus entry (reads isComplete)
 -- @return table {r, g, b}
 function addon.GetFocusHighlightColor(q)
     if q and q.isComplete then
         local cc = addon.QUEST_COLORS and addon.QUEST_COLORS.COMPLETE or { 0.20, 1.00, 0.40 }
         return { cc[1], cc[2], cc[3] }
+    end
+    local styleKey = STYLE_COLOUR_KEYS[addon.NormalizeHighlightStyle(addon.GetDB("activeQuestHighlight"))]
+    local sc = styleKey and addon.GetDB(styleKey, nil)
+    if type(sc) == "table" and sc[1] and sc[2] and sc[3] then
+        return { sc[1], sc[2], sc[3] }
     end
     local fcc = addon.GetModuleClassColor and addon.GetModuleClassColor("focus")
     if fcc then return { fcc[1], fcc[2], fcc[3] } end
@@ -511,16 +520,11 @@ function addon.GetFocusHighlightColor(q)
 end
 
 -- Title colour override for the "title-color" highlight style; nil when the style does not apply.
--- Uses the picked title colour when one is set, else the highlight colour; ready to turn in still wins.
 -- @param q table quest data or Focus entry (reads isSuperTracked, isComplete)
 -- @return table|nil {r, g, b}
 function addon.GetFocusedTitleHighlightColor(q)
     if not q or not q.isSuperTracked then return nil end
     if addon.NormalizeHighlightStyle(addon.GetDB("activeQuestHighlight")) ~= "title-color" then return nil end
-    local tc = addon.GetDB("focusedTitleColor", nil)
-    if not q.isComplete and type(tc) == "table" and tc[1] and tc[2] and tc[3] then
-        return { tc[1], tc[2], tc[3] }
-    end
     return addon.GetFocusHighlightColor(q)
 end
 
