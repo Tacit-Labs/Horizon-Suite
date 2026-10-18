@@ -1738,14 +1738,7 @@ L["FOCUS_THICK_OUTLINE"]                                      = "Contour épais"
 -- =====================================================================
 -- OptionsData.lua Dropdown options — Highlight style
 -- =====================================================================
-L["FOCUS_HIGHLIGHT_BAR_LEFT_EDGE"]                            = "Barre (bord gauche)"
 L["FOCUS_HIGHLIGHT_BAR_RIGHT_EDGE"]                           = "Barre (bord droit)"
-L["FOCUS_HIGHLIGHT_BAR_TOP_EDGE"]                             = "Barre (bord supérieur)"
-L["FOCUS_HIGHLIGHT_BAR_BOTTOM_EDGE"]                          = "Barre (bord inférieur)"
-L["FOCUS_HIGHLIGHT_OUTLINE_ONLY"]                             = "Contour uniquement"
-L["FOCUS_HIGHLIGHT_SOFT_GLOW"]                                = "Lueur douce"
-L["FOCUS_HIGHLIGHT_DUAL_EDGE_BARS"]                           = "Barres doubles"
-L["FOCUS_HIGHLIGHT_PILL_LEFT_ACCENT"]                         = "Accent pilule gauche"
 
 -- =====================================================================
 -- OptionsData.lua Dropdown options — M+ position

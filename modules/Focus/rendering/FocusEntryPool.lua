@@ -62,56 +62,10 @@ local function CreateQuestEntry(parent, index)
     e.trackBar:SetColorTexture(0.45, 0.75, 1.00, 0.70)
     e.trackBar:Hide()
 
-    -- Highlight inset
-    local highlightInset = 5
-    e.highlightBg = e:CreateTexture(nil, "BACKGROUND")
-    e.highlightBg:SetPoint("TOPLEFT", e, "TOPLEFT", highlightInset, -highlightInset)
-    e.highlightBg:SetPoint("BOTTOMRIGHT", e, "BOTTOMRIGHT", -highlightInset, highlightInset)
-    e.highlightBg:SetColorTexture(0.2, 0.4, 0.6, 0.25)
-    e.highlightBg:Hide()
-    -- Top strip
-    e.highlightTop = e:CreateTexture(nil, "BACKGROUND")
-    e.highlightTop:SetHeight(2)
-    e.highlightTop:SetPoint("TOPLEFT", e, "TOPLEFT", highlightInset, -highlightInset)
-    e.highlightTop:SetPoint("TOPRIGHT", e, "TOPRIGHT", -highlightInset, 0)
-    e.highlightTop:SetColorTexture(0.35, 0.55, 0.85, 0.4)
-    e.highlightTop:Hide()
-    -- 1px highlight border
-    local borderW = 1
-    e.highlightBorderT = e:CreateTexture(nil, "BORDER")
-    e.highlightBorderT:SetHeight(borderW)
-    e.highlightBorderT:SetPoint("TOPLEFT", e, "TOPLEFT", highlightInset, -highlightInset)
-    e.highlightBorderT:SetPoint("TOPRIGHT", e, "TOPRIGHT", -highlightInset, 0)
-    e.highlightBorderT:SetColorTexture(0.40, 0.70, 1.00, 0.6)
-    e.highlightBorderT:Hide()
-    e.highlightBorderB = e:CreateTexture(nil, "BORDER")
-    e.highlightBorderB:SetHeight(borderW)
-    e.highlightBorderB:SetPoint("BOTTOMLEFT", e, "BOTTOMLEFT", highlightInset, 0)
-    e.highlightBorderB:SetPoint("BOTTOMRIGHT", e, "BOTTOMRIGHT", -highlightInset, highlightInset)
-    e.highlightBorderB:SetColorTexture(0.40, 0.70, 1.00, 0.6)
-    e.highlightBorderB:Hide()
-    e.highlightBorderL = e:CreateTexture(nil, "BORDER")
-    e.highlightBorderL:SetWidth(borderW)
-    e.highlightBorderL:SetPoint("TOPLEFT", e, "TOPLEFT", highlightInset, -highlightInset)
-    e.highlightBorderL:SetPoint("BOTTOMLEFT", e, "BOTTOMLEFT", highlightInset, highlightInset)
-    e.highlightBorderL:SetColorTexture(0.40, 0.70, 1.00, 0.6)
-    e.highlightBorderL:Hide()
-    e.highlightBorderR = e:CreateTexture(nil, "BORDER")
-    e.highlightBorderR:SetWidth(borderW)
-    e.highlightBorderR:SetPoint("TOPRIGHT", e, "TOPRIGHT", -highlightInset, -highlightInset)
-    e.highlightBorderR:SetPoint("BOTTOMRIGHT", e, "BOTTOMRIGHT", -highlightInset, highlightInset)
-    e.highlightBorderR:SetColorTexture(0.40, 0.70, 1.00, 0.6)
-    e.highlightBorderR:Hide()
-
     -- Gradient fade (colour painted by addon.ApplyFocusHighlightGradient)
     e.highlightGradient = e:CreateTexture(nil, "BACKGROUND")
     e.highlightGradient:SetAllPoints(e)
     e.highlightGradient:Hide()
-
-    -- Title underline (position set in Layout once the title width is known)
-    e.highlightUnderline = e:CreateTexture(nil, "OVERLAY")
-    e.highlightUnderline:SetColorTexture(0.40, 0.70, 1.00, 0.70)
-    e.highlightUnderline:Hide()
 
     local btnName = "HSItemBtn" .. index
     e.itemBtn = CreateFrame("Button", btnName, e)
@@ -974,9 +928,6 @@ local function ClearEntry(entry, full)
     entry.isEventQuest = nil
     entry.isComplete = nil
     entry.isSuperTracked = nil
-    if entry.titleGlow then
-        for _, fs in ipairs(entry.titleGlow) do fs:Hide() end
-    end
     if entry.questTypeIcon then addon.ApplyDimToTrackerIconTexture(entry.questTypeIcon, true) end
     if entry.itemBtn and entry.itemBtn.icon then
         addon.ApplyDimToTrackerIconTexture(entry.itemBtn.icon, true)

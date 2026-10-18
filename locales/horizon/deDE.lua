@@ -1738,14 +1738,7 @@ L["FOCUS_SLUG_THICK_OUTLINE"]                                 = "Starke Kontur (
 -- =====================================================================
 -- OptionsData.lua Dropdown options — Highlight style
 -- =====================================================================
-L["FOCUS_HIGHLIGHT_BAR_LEFT_EDGE"]                            = "Leiste links"
 L["FOCUS_HIGHLIGHT_BAR_RIGHT_EDGE"]                           = "Leiste rechts"
-L["FOCUS_HIGHLIGHT_BAR_TOP_EDGE"]                             = "Leiste oben"
-L["FOCUS_HIGHLIGHT_BAR_BOTTOM_EDGE"]                          = "Leiste unten"
-L["FOCUS_HIGHLIGHT_OUTLINE_ONLY"]                             = "Umrandung"
-L["FOCUS_HIGHLIGHT_SOFT_GLOW"]                                = "Sanftes Leuchten"
-L["FOCUS_HIGHLIGHT_DUAL_EDGE_BARS"]                           = "Doppelrandleisten"
-L["FOCUS_HIGHLIGHT_PILL_LEFT_ACCENT"]                         = "Akzentpille links"
 
 -- =====================================================================
 -- OptionsData.lua Dropdown options — M+ position

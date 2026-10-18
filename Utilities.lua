@@ -477,10 +477,19 @@ end
 -- OPTION HELPERS
 -- ============================================================================
 
--- Normalize legacy "bar" to "bar-left". Returns valid highlight style for layout/options.
+-- Focused quest highlight styles, and where retired styles now land.
+local HIGHLIGHT_STYLES = { ["bar-gutter"] = true, ["bar-right"] = true, ["gradient"] = true, ["title-color"] = true, ["none"] = true }
+local RETIRED_HIGHLIGHT_STYLES = {
+    ["bar"] = "bar-gutter", ["bar-left"] = "bar-gutter", ["pill-left"] = "bar-gutter", ["bar-both"] = "bar-gutter",
+    ["bar-top"] = "bar-gutter", ["bar-bottom"] = "bar-gutter", ["underline"] = "bar-gutter",
+    ["outline"] = "gradient", ["glow"] = "gradient", ["highlight"] = "gradient",
+    ["text-glow"] = "title-color",
+}
+
+-- Map a saved highlight style to a current one: retired styles to their replacement, anything unknown to "bar-gutter".
 function addon.NormalizeHighlightStyle(style)
-    if style == "bar" then return "bar-left" end
-    return style
+    if HIGHLIGHT_STYLES[style] then return style end
+    return RETIRED_HIGHLIGHT_STYLES[style] or "bar-gutter"
 end
 
 -- Focused quest highlight colour: the Focus class colour when set, else the saved highlight colour.
@@ -500,7 +509,7 @@ end
 -- @return table|nil {r, g, b}
 function addon.GetFocusedTitleHighlightColor(isSuperTracked)
     if not isSuperTracked then return nil end
-    if addon.NormalizeHighlightStyle(addon.GetDB("activeQuestHighlight", "bar-left")) ~= "title-color" then return nil end
+    if addon.NormalizeHighlightStyle(addon.GetDB("activeQuestHighlight")) ~= "title-color" then return nil end
     return addon.GetFocusHighlightColor()
 end
 

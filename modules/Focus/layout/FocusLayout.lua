@@ -1399,13 +1399,7 @@ local function FullLayout()
                         entry.questTypeIcon:ClearAllPoints()
                         local showIcons = addon.GetDB("showQuestTypeIcons", true)
                         if showIcons then
-                            local iconX = 0
-                            local highlightStyle = addon.NormalizeHighlightStyle(addon.GetDB("activeQuestHighlight", "bar-left")) or "bar-left"
-                            if qData.isSuperTracked and (highlightStyle == "bar-left" or highlightStyle == "pill-left") then
-                                local trackBarW = math.max(2, math.min(6, tonumber(addon.GetDB("highlightBarWidth", 2)) or 2))
-                                iconX = addon.Scaled(trackBarW + 6)
-                            end
-                            entry.questTypeIcon:SetPoint("TOPLEFT", entry, "TOPLEFT", iconX, 0)
+                            entry.questTypeIcon:SetPoint("TOPLEFT", entry, "TOPLEFT", 0, 0)
                         else
                             -- Icons off: keep the legacy off-to-the-left placement so text alignment remains unchanged.
                             local iconRight = addon.Scaled((addon.BAR_LEFT_OFFSET or 12) + 2)
@@ -1830,24 +1824,9 @@ function addon.ApplyFocusColors()
             if entry.isSuperTracked then
                 local highlightColor = addon.GetFocusHighlightColor()
                 ApplyTextureColorKeepAlpha(entry.trackBar, highlightColor)
-                ApplyTextureColorKeepAlpha(entry.highlightUnderline, highlightColor)
-                if entry.highlightGradient and entry.highlightGradient:IsShown() then
+                if entry.highlightGradient:IsShown() then
                     addon.ApplyFocusHighlightGradient(entry.highlightGradient, highlightColor, addon.GetDB("highlightAlpha", 0.25))
                 end
-                if entry.titleGlow then
-                    for _, fs in ipairs(entry.titleGlow) do
-                        if fs:IsShown() then
-                            local _, _, _, a = fs:GetTextColor()
-                            fs:SetTextColor(highlightColor[1], highlightColor[2], highlightColor[3], a or 1)
-                        end
-                    end
-                end
-                ApplyTextureColorKeepAlpha(entry.highlightBg, highlightColor)
-                ApplyTextureColorKeepAlpha(entry.highlightTop, highlightColor)
-                ApplyTextureColorKeepAlpha(entry.highlightBorderT, highlightColor)
-                ApplyTextureColorKeepAlpha(entry.highlightBorderB, highlightColor)
-                ApplyTextureColorKeepAlpha(entry.highlightBorderL, highlightColor)
-                ApplyTextureColorKeepAlpha(entry.highlightBorderR, highlightColor)
             end
         end
     end

@@ -1871,17 +1871,8 @@ L["FOCUS_SLUG_THICK_OUTLINE"]                                 = "SLUG Thick Outl
 -- =====================================================================
 -- OptionsData.lua Dropdown options — Highlight style
 -- =====================================================================
-L["FOCUS_HIGHLIGHT_BAR_LEFT_EDGE"]                            = "Left bar"
 L["FOCUS_HIGHLIGHT_BAR_RIGHT_EDGE"]                           = "Right bar"
-L["FOCUS_HIGHLIGHT_BAR_TOP_EDGE"]                             = "Top bar"
-L["FOCUS_HIGHLIGHT_BAR_BOTTOM_EDGE"]                          = "Bottom bar"
-L["FOCUS_HIGHLIGHT_OUTLINE_ONLY"]                             = "Outline"
-L["FOCUS_HIGHLIGHT_SOFT_GLOW"]                                = "Glow"
-L["FOCUS_HIGHLIGHT_DUAL_EDGE_BARS"]                           = "Dual bars"
-L["FOCUS_HIGHLIGHT_PILL_LEFT_ACCENT"]                         = "Pill accent"
 L["FOCUS_HIGHLIGHT_BAR_GUTTER"]                               = "Left bar (no shift)"
-L["FOCUS_HIGHLIGHT_UNDERLINE"]                                = "Underline"
-L["FOCUS_HIGHLIGHT_TEXT_GLOW"]                                = "Text glow"
 L["FOCUS_HIGHLIGHT_TITLE_COLOUR"]                             = "Coloured title"
 L["FOCUS_HIGHLIGHT_GRADIENT"]                                 = "Gradient fade"
 L["FOCUS_HIGHLIGHT_NONE"]                                     = "None"

@@ -156,20 +156,10 @@ local function GetFontDropdownOptions()
 end
 
 local HIGHLIGHT_OPTIONS = {
-    { L["FOCUS_HIGHLIGHT_BAR_LEFT_EDGE"], "bar-left" },
     { L["FOCUS_HIGHLIGHT_BAR_GUTTER"], "bar-gutter" },
     { L["FOCUS_HIGHLIGHT_BAR_RIGHT_EDGE"], "bar-right" },
-    { L["FOCUS_HIGHLIGHT_BAR_TOP_EDGE"], "bar-top" },
-    { L["FOCUS_HIGHLIGHT_BAR_BOTTOM_EDGE"], "bar-bottom" },
-    { L["FOCUS_HIGHLIGHT_UNDERLINE"], "underline" },
-    { L["FOCUS_HIGHLIGHT_OUTLINE_ONLY"], "outline" },
-    { L["FOCUS_HIGHLIGHT_SOFT_GLOW"], "glow" },
-    { L["FOCUS_HIGHLIGHT_TEXT_GLOW"], "text-glow" },
     { L["FOCUS_HIGHLIGHT_TITLE_COLOUR"], "title-color" },
     { L["FOCUS_HIGHLIGHT_GRADIENT"], "gradient" },
-    { L["FOCUS_HIGHLIGHT_DUAL_EDGE_BARS"], "bar-both" },
-    { L["FOCUS_HIGHLIGHT_PILL_LEFT_ACCENT"], "pill-left" },
-    { L["FOCUS_HIGHLIGHT"], "highlight" },
     { L["FOCUS_HIGHLIGHT_NONE"], "none" },
 }
 local MPLUS_POSITION_OPTIONS = {
@@ -188,15 +178,8 @@ local TEXT_CASE_OPTIONS = {
     { L["FOCUS_TEXT_PROPER_CASE"], "proper" },
 }
 
-local VALID_HIGHLIGHT_STYLES = {
-    ["bar-left"] = true, ["bar-right"] = true, ["bar-top"] = true, ["bar-bottom"] = true,
-    ["outline"] = true, ["glow"] = true, ["bar-both"] = true, ["pill-left"] = true, ["highlight"] = true,
-    ["bar-gutter"] = true, ["underline"] = true, ["text-glow"] = true, ["title-color"] = true, ["gradient"] = true, ["none"] = true,
-}
 local function getActiveQuestHighlight()
-    local v = addon.NormalizeHighlightStyle(getDB("activeQuestHighlight", D.activeQuestHighlight))
-    if not VALID_HIGHLIGHT_STYLES[v] then return D.activeQuestHighlight end
-    return v
+    return addon.NormalizeHighlightStyle(getDB("activeQuestHighlight", D.activeQuestHighlight))
 end
 
 -- Frame strata dropdown options, built from the shared order in Config so the
