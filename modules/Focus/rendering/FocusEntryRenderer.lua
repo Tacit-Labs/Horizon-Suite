@@ -567,77 +567,35 @@ end
 
 local function hideAllHighlight(entry)
     entry.trackBar:Hide()
-    entry.highlightBg:Hide()
-    if entry.highlightTop then entry.highlightTop:Hide() end
-    entry.highlightBorderT:Hide()
-    entry.highlightBorderB:Hide()
-    entry.highlightBorderL:Hide()
-    entry.highlightBorderR:Hide()
+    entry.highlightGradient:Hide()
 end
 
 local function ApplyHighlightStyle(entry, questData)
-    local highlightStyle = addon.NormalizeHighlightStyle(addon.GetDB("activeQuestHighlight", "bar-left")) or "bar-left"
-    local hc = addon.GetDB("highlightColor", nil)
-    if not hc or #hc < 3 then hc = { 0.40, 0.70, 1.00 } end
-    local fcc = addon.GetModuleClassColor and addon.GetModuleClassColor("focus")
-    if fcc then
-        hc = { fcc[1], fcc[2], fcc[3] }
-    end
+    local highlightStyle = addon.NormalizeHighlightStyle(addon.GetDB("activeQuestHighlight"))
+    local hc = addon.GetFocusHighlightColor(questData)
     local ha = tonumber(addon.GetDB("highlightAlpha", 0.25)) or 0.25
     local barW = math.max(2, math.min(6, tonumber(addon.GetDB("highlightBarWidth", 2)) or 2))
-    local topPadding = (questData.isSuperTracked and highlightStyle == "bar-top") and barW or 0
-    local bottomPadding = (questData.isSuperTracked and highlightStyle == "bar-bottom") and barW or 0
 
     entry.titleText:ClearAllPoints()
-    -- Keep the pool's default left padding (1-space) and just apply topPadding.
-    local x, y = entry.titleText:GetPoint(1)
+    -- Keep the pool's default left padding (1-space).
+    local x = entry.titleText:GetPoint(1)
     local xOff = (type(x) == "number") and x or 4
-    entry.titleText:SetPoint("TOPLEFT", entry, "TOPLEFT", xOff, -topPadding)
+    entry.titleText:SetPoint("TOPLEFT", entry, "TOPLEFT", xOff, 0)
     entry.titleShadow:ClearAllPoints()
     entry.titleShadow:SetPoint("CENTER", entry.titleText, "CENTER", addon.SHADOW_OX, addon.SHADOW_OY)
 
     hideAllHighlight(entry)
+    -- title-color and none draw nothing here; title-color is applied with the title text.
     if questData.isSuperTracked then
-        local borderAlpha = math.min(1, (ha + 0.35))
-        if highlightStyle == "bar-left" or highlightStyle == "bar-right" or highlightStyle == "pill-left" then
+        if highlightStyle == "bar-gutter" or highlightStyle == "bar-right" then
             entry.trackBar:SetColorTexture(hc[1], hc[2], hc[3], 0.70)
             entry.trackBar:Show()
-        elseif highlightStyle == "bar-top" then
-            entry.highlightTop:SetColorTexture(hc[1], hc[2], hc[3], 0.70)
-            entry.highlightTop:SetHeight(barW)
-            entry.highlightTop:Show()
-        elseif highlightStyle == "bar-bottom" then
-            entry.highlightBorderB:SetColorTexture(hc[1], hc[2], hc[3], 0.70)
-            entry.highlightBorderB:SetHeight(barW)
-            entry.highlightBorderB:Show()
-        elseif highlightStyle == "outline" then
-            entry.highlightBorderB:SetHeight(1)
-            entry.highlightBorderL:SetWidth(1)
-            entry.highlightBorderR:SetWidth(1)
-            for _, tex in ipairs({ entry.highlightBorderT, entry.highlightBorderB, entry.highlightBorderL, entry.highlightBorderR }) do
-                tex:SetColorTexture(hc[1], hc[2], hc[3], borderAlpha)
-                tex:Show()
-            end
-        elseif highlightStyle == "bar-both" then
-            entry.highlightBorderL:SetColorTexture(hc[1], hc[2], hc[3], 0.70)
-            entry.highlightBorderL:SetWidth(2)
-            entry.highlightBorderL:Show()
-            entry.highlightBorderR:SetColorTexture(hc[1], hc[2], hc[3], 0.70)
-            entry.highlightBorderR:SetWidth(2)
-            entry.highlightBorderR:Show()
-        else
-            entry.highlightBg:SetColorTexture(hc[1], hc[2], hc[3], ha)
-            entry.highlightBg:Show()
-            entry.highlightTop:SetHeight(2)
-            entry.highlightTop:SetColorTexture(hc[1], hc[2], hc[3], math.min(1, ha + 0.2))
-            entry.highlightTop:Show()
-            for _, tex in ipairs({ entry.highlightBorderT, entry.highlightBorderB, entry.highlightBorderL, entry.highlightBorderR }) do
-                tex:SetColorTexture(hc[1], hc[2], hc[3], borderAlpha)
-                tex:Show()
-            end
+        elseif highlightStyle == "gradient" then
+            addon.ApplyFocusHighlightGradient(entry.highlightGradient, hc, ha)
+            entry.highlightGradient:Show()
         end
     end
-    return highlightStyle, hc, ha, barW, topPadding, bottomPadding
+    return highlightStyle, barW
 end
 
 local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, c, effectiveCat, effectiveTitleRowH, titleToContentSpacing)
@@ -1522,43 +1480,23 @@ local function ApplyScenarioOrWQTimerBar(entry, questData, textWidth, prevAnchor
     return totalH
 end
 
-local function ApplyShadowColors(entry, questData, highlightStyle, hc, ha)
+local function ApplyShadowColors(entry)
     local shadowA = addon.GetDB("showTextShadow", true) and (tonumber(addon.GetDB("shadowAlpha", 0.8)) or 0.8) or 0
-    local glowAlpha = math.min(1, ha + 0.4)
-    if questData.isSuperTracked and highlightStyle == "glow" then
-        entry.titleShadow:SetTextColor(hc[1], hc[2], hc[3], glowAlpha)
-        entry.zoneShadow:SetTextColor(hc[1], hc[2], hc[3], glowAlpha)
-        if entry.affixNameSegs then
-            local maxN = addon.DELVE_AFFIX_MAX_NAMES or 8
-            for ai = 1, maxN do
-                entry.affixNameSegs[ai].shadow:SetTextColor(hc[1], hc[2], hc[3], glowAlpha)
-            end
-            for si = 1, maxN - 1 do
-                entry.affixSepSegs[si].shadow:SetTextColor(hc[1], hc[2], hc[3], glowAlpha)
-            end
+    entry.titleShadow:SetTextColor(0, 0, 0, shadowA)
+    entry.zoneShadow:SetTextColor(0, 0, 0, shadowA)
+    if entry.affixNameSegs then
+        local maxN = addon.DELVE_AFFIX_MAX_NAMES or 8
+        for ai = 1, maxN do
+            entry.affixNameSegs[ai].shadow:SetTextColor(0, 0, 0, shadowA)
         end
-        if entry.delveLivesShadow then entry.delveLivesShadow:SetTextColor(hc[1], hc[2], hc[3], glowAlpha) end
-        if entry.delveGroupsShadow then entry.delveGroupsShadow:SetTextColor(hc[1], hc[2], hc[3], glowAlpha) end
-        for j = 1, addon.MAX_OBJECTIVES do
-            entry.objectives[j].shadow:SetTextColor(hc[1], hc[2], hc[3], glowAlpha)
+        for si = 1, maxN - 1 do
+            entry.affixSepSegs[si].shadow:SetTextColor(0, 0, 0, shadowA)
         end
-    else
-        entry.titleShadow:SetTextColor(0, 0, 0, shadowA)
-        entry.zoneShadow:SetTextColor(0, 0, 0, shadowA)
-        if entry.affixNameSegs then
-            local maxN = addon.DELVE_AFFIX_MAX_NAMES or 8
-            for ai = 1, maxN do
-                entry.affixNameSegs[ai].shadow:SetTextColor(0, 0, 0, shadowA)
-            end
-            for si = 1, maxN - 1 do
-                entry.affixSepSegs[si].shadow:SetTextColor(0, 0, 0, shadowA)
-            end
-        end
-        if entry.delveLivesShadow then entry.delveLivesShadow:SetTextColor(0, 0, 0, shadowA) end
-        if entry.delveGroupsShadow then entry.delveGroupsShadow:SetTextColor(0, 0, 0, shadowA) end
-        for j = 1, addon.MAX_OBJECTIVES do
-            entry.objectives[j].shadow:SetTextColor(0, 0, 0, shadowA)
-        end
+    end
+    if entry.delveLivesShadow then entry.delveLivesShadow:SetTextColor(0, 0, 0, shadowA) end
+    if entry.delveGroupsShadow then entry.delveGroupsShadow:SetTextColor(0, 0, 0, shadowA) end
+    for j = 1, addon.MAX_OBJECTIVES do
+        entry.objectives[j].shadow:SetTextColor(0, 0, 0, shadowA)
     end
 end
 
@@ -1749,34 +1687,9 @@ local function PopulateEntry(entry, questData, groupKey)
         local basePad = entry.__baseTitlePadPx or 0
         local extraTitlePad = 0
         if showQuestIcons then
-            local highlightStyle = addon.NormalizeHighlightStyle(addon.GetDB("activeQuestHighlight", "bar-left")) or "bar-left"
-            local iconW = S(addon.GetEffectiveQuestIconSize and addon.GetEffectiveQuestIconSize() or (addon.QUEST_TYPE_ICON_SIZE or 14))
-            local iconTitleGap = S(6)
-            if highlightStyle == "bar-left" or highlightStyle == "pill-left" then
-                -- Icon is left of bar; bar is left of entry (negative x).
-                -- Text starts at entry TOPLEFT — no indent needed to clear icon or bar.
-            else
-                extraTitlePad = iconW + iconTitleGap
-            end
-        end
-        if showQuestIcons then
             local iconW = S(addon.GetEffectiveQuestIconSize and addon.GetEffectiveQuestIconSize() or (addon.QUEST_TYPE_ICON_SIZE or 14))
             local iconTitleGap = S(6)
             extraTitlePad = iconW + iconTitleGap
-        end
-        local highlightStyle = addon.NormalizeHighlightStyle(addon.GetDB("activeQuestHighlight", "bar-left")) or "bar-left"
-        if questData.isSuperTracked and (highlightStyle == "bar-left" or highlightStyle == "pill-left") then
-            local trackBarW = (highlightStyle == "pill-left")
-                and math.max(2, math.min(6, tonumber(addon.GetDB("highlightBarWidth", 2)) or 2))
-                or 2
-            local highlightPad = S(trackBarW + 6)
-            if showQuestIcons then
-                local iconW = S(addon.GetEffectiveQuestIconSize and addon.GetEffectiveQuestIconSize() or (addon.QUEST_TYPE_ICON_SIZE or 14))
-                local iconTitleGap = S(6)
-                extraTitlePad = highlightPad + iconW + iconTitleGap
-            else
-                extraTitlePad = highlightPad
-            end
         end
         -- Shift title right to clear the left nav button.
         if showRsNav and rsNavLeftOffset > 0 then
@@ -2159,6 +2072,7 @@ local function PopulateEntry(entry, questData, groupKey)
         local qc = ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[questData.outputQuality]
         if qc then c = { qc.r, qc.g, qc.b } end
     end
+    c = addon.GetFocusedTitleHighlightColor(questData) or c
     local dimAlpha = addon.ShouldApplySuperTrackQuestDim(questData) and addon.GetDimAlpha() or 1
     local baseColor = { c[1], c[2], c[3], dimAlpha }
     entry._baseTitleColor = baseColor
@@ -2192,7 +2106,7 @@ local function PopulateEntry(entry, questData, groupKey)
         end
     end
 
-    local highlightStyle, hc, ha, barW, topPadding, bottomPadding = ApplyHighlightStyle(entry, questData)
+    local highlightStyle, barW = ApplyHighlightStyle(entry, questData)
 
     -- Re-apply icon-mode title offset because ApplyHighlightStyle resets the anchor.
     ApplyIconModeTitleOffset()
@@ -2489,26 +2403,30 @@ local function PopulateEntry(entry, questData, groupKey)
 
     -- Portrait frames extend downward from entry TOPRIGHT; a short entry (name +
     -- coords + timer) can be narrower than the model, clipping the separator below.
-    local finalH = totalH + topPadding + bottomPadding
+    local finalH = totalH
     if showSdModel then finalH = math.max(finalH, sdModelSize + S(4)) end
     if showRsModel then finalH = math.max(finalH, rsModelSize + S(4)) end
     entry.entryHeight = finalH
     entry:SetHeight(finalH)
 
-    ApplyShadowColors(entry, questData, highlightStyle, hc, ha)
+    ApplyShadowColors(entry)
 
-    local trackBarW = (highlightStyle == "pill-left") and barW or S(2)
-    if (highlightStyle == "bar-left" or highlightStyle == "bar-right" or highlightStyle == "pill-left") and entry.trackBar:IsShown() then
+    if entry.trackBar:IsShown() then
+        local trackBarW = S(barW)
         entry.trackBar:ClearAllPoints()
-        if highlightStyle == "bar-left" or highlightStyle == "pill-left" then
-            entry.trackBar:SetPoint("TOPLEFT", entry, "TOPLEFT", 0, 0)
-            entry.trackBar:SetPoint("BOTTOMRIGHT", entry, "BOTTOMLEFT", trackBarW, 0)
+        if highlightStyle == "bar-gutter" then
+            -- Sit in the gap just left of the title so the text does not move.
+            local right = math.max(S(2), (entry._titleXOffset or 0) - S(2))
+            local left = math.max(0, right - trackBarW)
+            entry.trackBar:SetPoint("TOPLEFT", entry, "TOPLEFT", left, 0)
+            entry.trackBar:SetPoint("BOTTOMRIGHT", entry, "BOTTOMLEFT", right, 0)
         else
             local barInsetRight = S(addon.ICON_COLUMN_WIDTH) - S(addon.PADDING) + S(4)
             entry.trackBar:SetPoint("TOPRIGHT", entry, "TOPRIGHT", -barInsetRight, 0)
             entry.trackBar:SetPoint("BOTTOMLEFT", entry, "BOTTOMRIGHT", -barInsetRight - trackBarW, 0)
         end
     end
+    addon.FocusHighlight_Apply(entry, questData, highlightStyle)
 
     entry.baseCategory = questData.baseCategory
     entry.isEventQuest = questData.isEventQuest and true or false

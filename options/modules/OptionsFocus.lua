@@ -156,15 +156,12 @@ local function GetFontDropdownOptions()
 end
 
 local HIGHLIGHT_OPTIONS = {
-    { L["FOCUS_HIGHLIGHT_BAR_LEFT_EDGE"], "bar-left" },
+    { L["FOCUS_HIGHLIGHT_BAR_LEFT_EDGE"], "bar-gutter" },
     { L["FOCUS_HIGHLIGHT_BAR_RIGHT_EDGE"], "bar-right" },
-    { L["FOCUS_HIGHLIGHT_BAR_TOP_EDGE"], "bar-top" },
-    { L["FOCUS_HIGHLIGHT_BAR_BOTTOM_EDGE"], "bar-bottom" },
-    { L["FOCUS_HIGHLIGHT_OUTLINE_ONLY"], "outline" },
-    { L["FOCUS_HIGHLIGHT_SOFT_GLOW"], "glow" },
-    { L["FOCUS_HIGHLIGHT_DUAL_EDGE_BARS"], "bar-both" },
-    { L["FOCUS_HIGHLIGHT_PILL_LEFT_ACCENT"], "pill-left" },
-    { L["FOCUS_HIGHLIGHT"], "highlight" },
+    { L["FOCUS_HIGHLIGHT_TITLE_COLOUR"], "title-color" },
+    { L["FOCUS_HIGHLIGHT_GRADIENT"], "gradient" },
+    { L["FOCUS_HIGHLIGHT_POINTER"], "pointer" },
+    { L["FOCUS_HIGHLIGHT_NONE"], "none" },
 }
 local MPLUS_POSITION_OPTIONS = {
     { L["FOCUS_MYTHICPLUS_POSITION_TOP"], "top" },
@@ -182,14 +179,12 @@ local TEXT_CASE_OPTIONS = {
     { L["FOCUS_TEXT_PROPER_CASE"], "proper" },
 }
 
-local VALID_HIGHLIGHT_STYLES = {
-    ["bar-left"] = true, ["bar-right"] = true, ["bar-top"] = true, ["bar-bottom"] = true,
-    ["outline"] = true, ["glow"] = true, ["bar-both"] = true, ["pill-left"] = true, ["highlight"] = true,
-}
 local function getActiveQuestHighlight()
-    local v = addon.NormalizeHighlightStyle(getDB("activeQuestHighlight", D.activeQuestHighlight))
-    if not VALID_HIGHLIGHT_STYLES[v] then return D.activeQuestHighlight end
-    return v
+    return addon.NormalizeHighlightStyle(getDB("activeQuestHighlight", D.activeQuestHighlight))
+end
+-- Saved-colour key for a highlight style, or nil when the style has no colour of its own.
+local function styleColourKey(style)
+    return addon.FOCUS_STYLE_COLOUR_KEYS and addon.FOCUS_STYLE_COLOUR_KEYS[style] or nil
 end
 
 -- Frame strata dropdown options, built from the shared order in Config so the
@@ -488,7 +483,24 @@ local categories = {
             Toggle(L["FOCUS_COLOUR_TIMER_REMAINING"], L["COLOUR_REMAINING"], "timerColorByRemaining", D.timerColorByRemaining, { tooltip = L["FOCUS_GREEN_PLENTY_OF_LEFT_YELLOW_RUNNING"], parent = "showTimerBars" }),
             -- Everything about how the focused quest stands out: highlight style, strength, dimming of the rest.
             Section(L["FOCUS_CARD_FOCUSED_QUEST"], { page = "tracked", card = "emphasis" }),
-            { type = "dropdown", name = L["FOCUS_ACTIVE_QUEST_HIGHLIGHT"], desc = L["FOCUS_FOCUSED_QUEST_HIGHLIGHTED"], dbKey = "activeQuestHighlight", options = HIGHLIGHT_OPTIONS, get = getActiveQuestHighlight, set = function(v) setDB("activeQuestHighlight", v) end },
+            { type = "dropdown", name = L["FOCUS_ACTIVE_QUEST_HIGHLIGHT"], desc = L["FOCUS_FOCUSED_QUEST_HIGHLIGHTED"], dbKey = "activeQuestHighlight", options = HIGHLIGHT_OPTIONS, get = getActiveQuestHighlight, set = function(v) setDB("activeQuestHighlight", v) end, refreshIds = { "focusedStyleColor" } },
+            -- One swatch for whichever style has a colour; each style keeps its own saved colour.
+            Color(L["FOCUS_STYLE_COLOUR"], L["FOCUS_STYLE_COLOUR_DESC"], "focusedStyleColor", addon.HIGHLIGHT_COLOR_DEFAULT or { 0.40, 0.70, 1.00 }, {
+                parent = "activeQuestHighlight", parentIs = function(v) return styleColourKey(v) ~= nil end,
+                get = function()
+                    local key = styleColourKey(getActiveQuestHighlight())
+                    local t = key and getDB(key, nil)
+                    if type(t) ~= "table" or not t[1] then
+                        t = addon.GetFocusHighlightColor and addon.GetFocusHighlightColor() or addon.HIGHLIGHT_COLOR_DEFAULT or { 0.40, 0.70, 1.00 }
+                    end
+                    return t[1], t[2], t[3], 1
+                end,
+                set = function(r, g, b)
+                    local key = styleColourKey(getActiveQuestHighlight())
+                    if key then setDB(key, { r, g, b }) end
+                end,
+            }),
+            Toggle(L["FOCUS_HIGHLIGHT_PROGRESS"], L["FOCUS_HIGHLIGHT_PROGRESS_DESC"], "focusHighlightProgress", D.focusHighlightProgress, { parent = "activeQuestHighlight", parentIs = function(v) return v == "bar-gutter" or v == "bar-right" end }),
             Toggle(L["FOCUS_DIM_UNFOCUSED_ENTRIES"], L["DIM_UNFOCUSED_TRACKER_ENTRIES"], "dimNonSuperTracked", D.dimNonSuperTracked, { tooltip = L["FOCUS_SLIGHTLY_DIM_TITLE_ZONE_OBJECTIVES_SECTION"] }),
             { type = "slider", name = L["DIM_STRENGTH"], desc = L["DIMMING_STRENGTH"], tooltip = L["FOCUS_DIM_UNFOCUSED_ENTRIES_DESC"], dbKey = "dimStrength", min = LIM.dimStrength.min, max = LIM.dimStrength.max, get = function() return math.max(LIM.dimStrength.min, math.min(LIM.dimStrength.max, tonumber(getDB("dimStrength", D.dimStrength)) or D.dimStrength)) end, set = function(v) setDB("dimStrength", clamp(v, "dimStrength")) end, parent = "dimNonSuperTracked" },
             { type = "slider", name = L["DIM_ALPHA"], desc = L["OPACITY_OF_UNFOCUSED_ENTRIES"], tooltip = L["REDUCE_OPACITY_OF_FOCUSED_ENTRIES_INVISIBLE"], dbKey = "dimAlpha", min = LIM.dimAlpha.min, max = LIM.dimAlpha.max, get = function() return math.max(LIM.dimAlpha.min, math.min(LIM.dimAlpha.max, tonumber(getDB("dimAlpha", D.dimAlpha)) or D.dimAlpha)) end, set = function(v) setDB("dimAlpha", clamp(v, "dimAlpha")) end, parent = "dimNonSuperTracked" },

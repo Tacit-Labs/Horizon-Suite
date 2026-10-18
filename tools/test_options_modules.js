@@ -146,6 +146,7 @@ function assemble(capsOff) {
       OptionsData_NotifyMainAddon = function() end,
       Platform = { Has = function(k) return not CAPS_OFF[k] end },
       GetModuleDisplayName = function(k) return k end,
+      NormalizeHighlightStyle = function(s) return s end,
       OptionCategories = {},
       SPACING_PRESETS = setmetatable({}, { __index = function() return {} end }),
       GROUP_ORDER_PRESETS = {},

@@ -1740,12 +1740,6 @@ L["FOCUS_THICK_OUTLINE"]                                      = "Contorno espess
 -- =====================================================================
 L["FOCUS_HIGHLIGHT_BAR_LEFT_EDGE"]                            = "Barra (borda esquerda)"
 L["FOCUS_HIGHLIGHT_BAR_RIGHT_EDGE"]                           = "Barra (borda direita)"
-L["FOCUS_HIGHLIGHT_BAR_TOP_EDGE"]                             = "Barra (borda superior)"
-L["FOCUS_HIGHLIGHT_BAR_BOTTOM_EDGE"]                          = "Barra (borda inferior)"
-L["FOCUS_HIGHLIGHT_OUTLINE_ONLY"]                             = "Apenas contorno"
-L["FOCUS_HIGHLIGHT_SOFT_GLOW"]                                = "Brilho suave"
-L["FOCUS_HIGHLIGHT_DUAL_EDGE_BARS"]                           = "Barras duplas nas bordas"
-L["FOCUS_HIGHLIGHT_PILL_LEFT_ACCENT"]                         = "Realce em pílula à esquerda"
 
 -- =====================================================================
 -- OptionsData.lua Dropdown options — M+ position

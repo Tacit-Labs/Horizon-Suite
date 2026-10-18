@@ -1739,12 +1739,6 @@ L["FOCUS_THICK_OUTLINE"]                                      = "粗轮廓"
 -- =====================================================================
 L["FOCUS_HIGHLIGHT_BAR_LEFT_EDGE"]                            = "条 (左边缘)"
 L["FOCUS_HIGHLIGHT_BAR_RIGHT_EDGE"]                           = "条 (右边缘)"
-L["FOCUS_HIGHLIGHT_BAR_TOP_EDGE"]                             = "条 (上边缘)"
-L["FOCUS_HIGHLIGHT_BAR_BOTTOM_EDGE"]                          = "条 (下边缘)"
-L["FOCUS_HIGHLIGHT_OUTLINE_ONLY"]                             = "仅轮廓"
-L["FOCUS_HIGHLIGHT_SOFT_GLOW"]                                = "柔和发光"
-L["FOCUS_HIGHLIGHT_DUAL_EDGE_BARS"]                           = "双边缘条"
-L["FOCUS_HIGHLIGHT_PILL_LEFT_ACCENT"]                         = "标签左侧强调"
 
 -- =====================================================================
 -- OptionsData.lua Dropdown options — M+ position

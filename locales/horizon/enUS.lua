@@ -1181,6 +1181,10 @@ L["FOCUS_ZONE_LABELS"]                                        = "Show Zone Label
 L["FOCUS_ZONE_NAME_UNDER_QUEST_TITLE"]                        = "Zone name under each quest title."
 L["FOCUS_ACTIVE_QUEST_HIGHLIGHT"]                             = "Active quest highlight"
 L["FOCUS_FOCUSED_QUEST_HIGHLIGHTED"]                          = "How the focused quest is highlighted."
+L["FOCUS_STYLE_COLOUR"]                                       = "Colour"
+L["FOCUS_STYLE_COLOUR_DESC"]                                  = "Colour for this highlight style. Each style remembers its own, and it still turns green when the quest is ready to turn in."
+L["FOCUS_HIGHLIGHT_PROGRESS"]                                 = "Show progress"
+L["FOCUS_HIGHLIGHT_PROGRESS_DESC"]                            = "Split the bar into four steps that light up at every 25% of the quest's objectives."
 L["FOCUS_QUEST_ITEM_BUTTONS"]                                 = "Show Quest Item Buttons"
 L["FOCUS_USABLE_QUEST_ITEM_BUTTON_NEXT_QUEST"]                = "Usable quest item button beside each quest."
 L["FOCUS_GROUP_FINDER_BUTTON"]                              = "Group finder button"
@@ -1873,12 +1877,10 @@ L["FOCUS_SLUG_THICK_OUTLINE"]                                 = "SLUG Thick Outl
 -- =====================================================================
 L["FOCUS_HIGHLIGHT_BAR_LEFT_EDGE"]                            = "Left bar"
 L["FOCUS_HIGHLIGHT_BAR_RIGHT_EDGE"]                           = "Right bar"
-L["FOCUS_HIGHLIGHT_BAR_TOP_EDGE"]                             = "Top bar"
-L["FOCUS_HIGHLIGHT_BAR_BOTTOM_EDGE"]                          = "Bottom bar"
-L["FOCUS_HIGHLIGHT_OUTLINE_ONLY"]                             = "Outline"
-L["FOCUS_HIGHLIGHT_SOFT_GLOW"]                                = "Glow"
-L["FOCUS_HIGHLIGHT_DUAL_EDGE_BARS"]                           = "Dual bars"
-L["FOCUS_HIGHLIGHT_PILL_LEFT_ACCENT"]                         = "Pill accent"
+L["FOCUS_HIGHLIGHT_TITLE_COLOUR"]                             = "Coloured title"
+L["FOCUS_HIGHLIGHT_GRADIENT"]                                 = "Gradient fade"
+L["FOCUS_HIGHLIGHT_POINTER"]                                  = "Pointer"
+L["FOCUS_HIGHLIGHT_NONE"]                                     = "None"
 
 -- =====================================================================
 -- OptionsData.lua Dropdown options — M+ position

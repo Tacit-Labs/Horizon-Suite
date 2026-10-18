@@ -477,10 +477,114 @@ end
 -- OPTION HELPERS
 -- ============================================================================
 
--- Normalize legacy "bar" to "bar-left". Returns valid highlight style for layout/options.
+-- Focused quest highlight styles, and where retired styles now land.
+local HIGHLIGHT_STYLES = { ["bar-gutter"] = true, ["bar-right"] = true, ["gradient"] = true, ["title-color"] = true, ["pointer"] = true, ["none"] = true }
+local RETIRED_HIGHLIGHT_STYLES = {
+    ["bar"] = "bar-gutter", ["bar-left"] = "bar-gutter", ["pill-left"] = "bar-gutter", ["bar-both"] = "bar-gutter",
+    ["bar-top"] = "bar-gutter", ["bar-bottom"] = "bar-gutter", ["underline"] = "bar-gutter",
+    ["outline"] = "gradient", ["glow"] = "gradient", ["highlight"] = "gradient",
+    ["text-glow"] = "title-color",
+}
+
+-- Map a saved highlight style to a current one: retired styles to their replacement, anything unknown to "bar-gutter".
 function addon.NormalizeHighlightStyle(style)
-    if style == "bar" then return "bar-left" end
-    return style
+    if HIGHLIGHT_STYLES[style] then return style end
+    return RETIRED_HIGHLIGHT_STYLES[style] or "bar-gutter"
+end
+
+-- Styles with their own colour, and the setting that holds it (read by the options swatch too).
+local STYLE_COLOUR_KEYS = {
+    ["bar-gutter"] = "focusedLeftBarColor", ["bar-right"] = "focusedRightBarColor",
+    ["title-color"] = "focusedTitleColor", ["gradient"] = "focusedGradientColor", ["pointer"] = "focusedPointerColor",
+}
+addon.FOCUS_STYLE_COLOUR_KEYS = STYLE_COLOUR_KEYS
+
+-- Focused quest highlight colour. A quest that is ready to turn in uses the complete colour;
+-- otherwise the current style's own colour when one is picked, then the Focus class colour,
+-- then the saved highlight colour.
+-- @param q table|nil quest data or Focus entry (reads isComplete)
+-- @return table {r, g, b}
+function addon.GetFocusHighlightColor(q)
+    if q and q.isComplete then
+        local cc = addon.QUEST_COLORS and addon.QUEST_COLORS.COMPLETE or { 0.20, 1.00, 0.40 }
+        return { cc[1], cc[2], cc[3] }
+    end
+    local styleKey = STYLE_COLOUR_KEYS[addon.NormalizeHighlightStyle(addon.GetDB("activeQuestHighlight"))]
+    local sc = styleKey and addon.GetDB(styleKey, nil)
+    if type(sc) == "table" and sc[1] and sc[2] and sc[3] then
+        return { sc[1], sc[2], sc[3] }
+    end
+    local fcc = addon.GetModuleClassColor and addon.GetModuleClassColor("focus")
+    if fcc then return { fcc[1], fcc[2], fcc[3] } end
+    local hc = addon.GetDB("highlightColor", nil)
+    if type(hc) ~= "table" or not hc[1] or not hc[2] or not hc[3] then
+        return { 0.40, 0.70, 1.00 }
+    end
+    return { hc[1], hc[2], hc[3] }
+end
+
+-- Title colour override for the "title-color" highlight style; nil when the style does not apply.
+-- @param q table quest data or Focus entry (reads isSuperTracked, isComplete)
+-- @return table|nil {r, g, b}
+function addon.GetFocusedTitleHighlightColor(q)
+    if not q or not q.isSuperTracked then return nil end
+    if addon.NormalizeHighlightStyle(addon.GetDB("activeQuestHighlight")) ~= "title-color" then return nil end
+    return addon.GetFocusHighlightColor(q)
+end
+
+-- White strip whose alpha runs from solid at the left edge to clear at the right.
+local FADE_TEXTURE = "Interface\\AddOns\\HorizonSuite\\media\\fade"
+
+-- Paint a texture as a one-colour horizontal fade. One side must be clear (alpha 0).
+-- Uses a fade image tinted with the vertex colour rather than SetGradient, so the fade
+-- holds however early it is applied.
+-- @param tex Texture
+-- @param c table {r, g, b}
+-- @param leftA number alpha at the left edge
+-- @param rightA number alpha at the right edge
+function addon.SetTextureFade(tex, c, leftA, rightA)
+    if not tex or not c then return end
+    tex:SetTexture(FADE_TEXTURE)
+    if leftA >= rightA then
+        tex:SetTexCoord(0, 1, 0, 1)
+        tex:SetVertexColor(c[1], c[2], c[3], leftA)
+    else
+        tex:SetTexCoord(1, 0, 0, 1)
+        tex:SetVertexColor(c[1], c[2], c[3], rightA)
+    end
+end
+
+-- Paint a texture as a left-to-right fade of the highlight colour (the "gradient" highlight style).
+-- @param tex Texture
+-- @param hc table {r, g, b}
+-- @param ha number highlight opacity, 0-1
+function addon.ApplyFocusHighlightGradient(tex, hc, ha)
+    addon.SetTextureFade(tex, hc, math.min(1, (tonumber(ha) or 0.25) * 2), 0)
+end
+
+-- How far through its objectives a quest is, 0-1; nil when it has no objectives to measure.
+-- Counts partial progress (x/y counts and percentages) within each objective.
+-- @param q table quest data
+-- @return number|nil
+function addon.GetFocusQuestProgress(q)
+    if not q then return nil end
+    if q.isComplete then return 1 end
+    local objs = q.objectives or {}
+    -- When finished objectives are hidden, the aggregator strips them and records the counts.
+    local total = q.objectivesTotalCount or #objs
+    if total == 0 then return nil end
+    local sum = q.objectivesDoneCount or 0
+    for _, o in ipairs(objs) do
+        if o.finished then
+            sum = sum + 1
+        elseif type(o.percent) == "number" then
+            local p = o.percent > 1 and o.percent / 100 or o.percent
+            sum = sum + math.max(0, math.min(1, p))
+        elseif type(o.numFulfilled) == "number" and type(o.numRequired) == "number" and o.numRequired > 0 then
+            sum = sum + math.max(0, math.min(1, o.numFulfilled / o.numRequired))
+        end
+    end
+    return math.max(0, math.min(1, sum / total))
 end
 
 -- ============================================================================

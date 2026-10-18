@@ -1740,12 +1740,6 @@ L["FOCUS_THICK_OUTLINE"]                                      = "두꺼운 외�
 -- =====================================================================
 L["FOCUS_HIGHLIGHT_BAR_LEFT_EDGE"]                            = "바 (왼쪽)"
 L["FOCUS_HIGHLIGHT_BAR_RIGHT_EDGE"]                           = "바 (오른쪽)"
-L["FOCUS_HIGHLIGHT_BAR_TOP_EDGE"]                             = "바 (위)"
-L["FOCUS_HIGHLIGHT_BAR_BOTTOM_EDGE"]                          = "바 (아래)"
-L["FOCUS_HIGHLIGHT_OUTLINE_ONLY"]                             = "외곽선만"
-L["FOCUS_HIGHLIGHT_SOFT_GLOW"]                                = "은은한 발광"
-L["FOCUS_HIGHLIGHT_DUAL_EDGE_BARS"]                           = "양쪽 바"
-L["FOCUS_HIGHLIGHT_PILL_LEFT_ACCENT"]                         = "알약형 왼쪽 강조"
 
 -- =====================================================================
 -- OptionsData.lua Dropdown options — M+ position

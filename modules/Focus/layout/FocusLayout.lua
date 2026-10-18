@@ -1399,15 +1399,7 @@ local function FullLayout()
                         entry.questTypeIcon:ClearAllPoints()
                         local showIcons = addon.GetDB("showQuestTypeIcons", true)
                         if showIcons then
-                            local iconX = 0
-                            local highlightStyle = addon.NormalizeHighlightStyle(addon.GetDB("activeQuestHighlight", "bar-left")) or "bar-left"
-                            if qData.isSuperTracked and (highlightStyle == "bar-left" or highlightStyle == "pill-left") then
-                                local trackBarW = (highlightStyle == "pill-left")
-                                    and math.max(2, math.min(6, tonumber(addon.GetDB("highlightBarWidth", 2)) or 2))
-                                    or 2
-                                iconX = addon.Scaled(trackBarW + 6)
-                            end
-                            entry.questTypeIcon:SetPoint("TOPLEFT", entry, "TOPLEFT", iconX, 0)
+                            entry.questTypeIcon:SetPoint("TOPLEFT", entry, "TOPLEFT", 0, 0)
                         else
                             -- Icons off: keep the legacy off-to-the-left placement so text alignment remains unchanged.
                             local iconRight = addon.Scaled((addon.BAR_LEFT_OFFSET or 12) + 2)
@@ -1761,6 +1753,7 @@ function addon.ApplyFocusColors()
                     local qc = ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[entry.outputQuality]
                     if qc then titleColor = { qc.r, qc.g, qc.b } end
                 end
+                titleColor = addon.GetFocusedTitleHighlightColor(entry) or titleColor
                 entry.titleText:SetTextColor(titleColor[1], titleColor[2], titleColor[3], dimAlpha)
             end
 
@@ -1829,21 +1822,12 @@ function addon.ApplyFocusColors()
             addon.ApplyDimToTrackerEntryIcons(entry)
 
             if entry.isSuperTracked then
-                local highlightColor = addon.GetDB("highlightColor", nil)
-                if type(highlightColor) ~= "table" or not highlightColor[1] or not highlightColor[2] or not highlightColor[3] then
-                    highlightColor = { 0.40, 0.70, 1.00 }
-                end
-                local fcc = addon.GetModuleClassColor and addon.GetModuleClassColor("focus")
-                if fcc then
-                    highlightColor = { fcc[1], fcc[2], fcc[3] }
-                end
+                local highlightColor = addon.GetFocusHighlightColor(entry)
                 ApplyTextureColorKeepAlpha(entry.trackBar, highlightColor)
-                ApplyTextureColorKeepAlpha(entry.highlightBg, highlightColor)
-                ApplyTextureColorKeepAlpha(entry.highlightTop, highlightColor)
-                ApplyTextureColorKeepAlpha(entry.highlightBorderT, highlightColor)
-                ApplyTextureColorKeepAlpha(entry.highlightBorderB, highlightColor)
-                ApplyTextureColorKeepAlpha(entry.highlightBorderL, highlightColor)
-                ApplyTextureColorKeepAlpha(entry.highlightBorderR, highlightColor)
+                if entry.highlightGradient:IsShown() then
+                    addon.ApplyFocusHighlightGradient(entry.highlightGradient, highlightColor, addon.GetDB("highlightAlpha", 0.25))
+                end
+                addon.FocusHighlight_Recolour(entry, highlightColor)
             end
         end
     end
