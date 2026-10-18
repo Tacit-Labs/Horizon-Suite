@@ -572,7 +572,7 @@ end
 
 local function ApplyHighlightStyle(entry, questData)
     local highlightStyle = addon.NormalizeHighlightStyle(addon.GetDB("activeQuestHighlight"))
-    local hc = addon.GetFocusHighlightColor()
+    local hc = addon.GetFocusHighlightColor(questData)
     local ha = tonumber(addon.GetDB("highlightAlpha", 0.25)) or 0.25
     local barW = math.max(2, math.min(6, tonumber(addon.GetDB("highlightBarWidth", 2)) or 2))
 
@@ -2072,7 +2072,7 @@ local function PopulateEntry(entry, questData, groupKey)
         local qc = ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[questData.outputQuality]
         if qc then c = { qc.r, qc.g, qc.b } end
     end
-    c = addon.GetFocusedTitleHighlightColor(questData.isSuperTracked) or c
+    c = addon.GetFocusedTitleHighlightColor(questData) or c
     local dimAlpha = addon.ShouldApplySuperTrackQuestDim(questData) and addon.GetDimAlpha() or 1
     local baseColor = { c[1], c[2], c[3], dimAlpha }
     entry._baseTitleColor = baseColor
@@ -2426,6 +2426,7 @@ local function PopulateEntry(entry, questData, groupKey)
             entry.trackBar:SetPoint("BOTTOMLEFT", entry, "BOTTOMRIGHT", -barInsetRight - trackBarW, 0)
         end
     end
+    addon.FocusHighlight_Apply(entry, questData, highlightStyle)
 
     entry.baseCategory = questData.baseCategory
     entry.isEventQuest = questData.isEventQuest and true or false

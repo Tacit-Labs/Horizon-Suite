@@ -89,6 +89,7 @@ modules/Focus/integrations/RareScannerFocus.lua
 modules/Focus/integrations/SilverDragonFocus.lua
 modules/Focus/integration/FocusAuctionCraftDialog.lua
 modules/Focus/rendering/FocusEntryPool.lua
+modules/Focus/rendering/FocusHighlightEffects.lua
 modules/Focus/rendering/FocusEntryRenderer.lua
 modules/Focus/rendering/FocusSectionHeaders.lua
 modules/Focus/layout/FocusAnimation.lua

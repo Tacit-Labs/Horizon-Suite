@@ -157,6 +157,7 @@ L["FOCUS_ZONE_SIZE_ALSO"]                                     = "Also sizes the 
 L["FOCUS_PAGE_HEADER"]                                        = "Header & sections"
 L["FOCUS_PAGE_MYTHIC_PLUS"]                                   = "Mythic+"
 L["FOCUS_CARD_FOCUSED_QUEST"]                                 = "Focused quest"
+L["FOCUS_CARD_HIGHLIGHT_EFFECTS"]                             = "Highlight effects"
 L["FOCUS_CARD_TEXT_STYLE"]                                     = "Text style"
 L["FOCUS_CARD_BUTTONS_TOOLTIPS"]                               = "Buttons & tooltips"
 L["FOCUS_CARD_PROGRESS_BARS"]                                  = "Progress bars"
@@ -1596,6 +1597,18 @@ L["FOCUS_HIGHLIGHT_ALPHA"]                                    = "Highlight opaci
 L["FOCUS_OPACITY_OF_FOCUSED_QUEST_HIGHLIGHT"]                 = "Opacity of focused quest highlight (0–1)."
 L["FOCUS_BAR_WIDTH"]                                          = "Bar width"
 L["FOCUS_WIDTH_OF_BAR_STYLE_HIGHLIGHTS_PX"]                   = "Width of bar-style highlights."
+L["FOCUS_HIGHLIGHT_STATE_COLOURS"]                            = "Colour by quest state"
+L["FOCUS_HIGHLIGHT_STATE_COLOURS_DESC"]                       = "Turn the highlight green when the focused quest is ready to turn in."
+L["FOCUS_HIGHLIGHT_SOFT_GLOW_BAR"]                            = "Soft glow"
+L["FOCUS_HIGHLIGHT_SOFT_GLOW_BAR_DESC"]                       = "Add a soft light either side of the bar."
+L["FOCUS_HIGHLIGHT_PROGRESS"]                                 = "Show progress"
+L["FOCUS_HIGHLIGHT_PROGRESS_DESC"]                            = "Fill the bar from the bottom as you complete the quest's objectives."
+L["FOCUS_HIGHLIGHT_ANIMATE_CHANGE"]                           = "Animate focus changes"
+L["FOCUS_HIGHLIGHT_ANIMATE_CHANGE_DESC"]                      = "Grow the bar or slide in the gradient when you focus a different quest."
+L["FOCUS_HIGHLIGHT_SHEEN"]                                    = "Sheen"
+L["FOCUS_HIGHLIGHT_SHEEN_DESC"]                               = "Sweep a soft band of light across the focused quest every few seconds."
+L["FOCUS_HIGHLIGHT_BREATHE"]                                  = "Breathing"
+L["FOCUS_HIGHLIGHT_BREATHE_DESC"]                             = "Slowly pulse the bar or gradient."
 
 -- =====================================================================
 -- OptionsData.lua Organisation
@@ -1871,8 +1884,8 @@ L["FOCUS_SLUG_THICK_OUTLINE"]                                 = "SLUG Thick Outl
 -- =====================================================================
 -- OptionsData.lua Dropdown options — Highlight style
 -- =====================================================================
+L["FOCUS_HIGHLIGHT_BAR_LEFT_EDGE"]                            = "Left bar"
 L["FOCUS_HIGHLIGHT_BAR_RIGHT_EDGE"]                           = "Right bar"
-L["FOCUS_HIGHLIGHT_BAR_GUTTER"]                               = "Left bar (no shift)"
 L["FOCUS_HIGHLIGHT_TITLE_COLOUR"]                             = "Coloured title"
 L["FOCUS_HIGHLIGHT_GRADIENT"]                                 = "Gradient fade"
 L["FOCUS_HIGHLIGHT_NONE"]                                     = "None"

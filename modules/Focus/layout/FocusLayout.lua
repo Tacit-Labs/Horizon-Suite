@@ -1753,7 +1753,7 @@ function addon.ApplyFocusColors()
                     local qc = ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[entry.outputQuality]
                     if qc then titleColor = { qc.r, qc.g, qc.b } end
                 end
-                titleColor = addon.GetFocusedTitleHighlightColor(entry.isSuperTracked) or titleColor
+                titleColor = addon.GetFocusedTitleHighlightColor(entry) or titleColor
                 entry.titleText:SetTextColor(titleColor[1], titleColor[2], titleColor[3], dimAlpha)
             end
 
@@ -1822,11 +1822,12 @@ function addon.ApplyFocusColors()
             addon.ApplyDimToTrackerEntryIcons(entry)
 
             if entry.isSuperTracked then
-                local highlightColor = addon.GetFocusHighlightColor()
+                local highlightColor = addon.GetFocusHighlightColor(entry)
                 ApplyTextureColorKeepAlpha(entry.trackBar, highlightColor)
                 if entry.highlightGradient:IsShown() then
                     addon.ApplyFocusHighlightGradient(entry.highlightGradient, highlightColor, addon.GetDB("highlightAlpha", 0.25))
                 end
+                addon.FocusHighlight_Recolour(entry, highlightColor)
             end
         end
     end

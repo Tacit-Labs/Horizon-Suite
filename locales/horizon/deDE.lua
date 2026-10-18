@@ -1738,6 +1738,7 @@ L["FOCUS_SLUG_THICK_OUTLINE"]                                 = "Starke Kontur (
 -- =====================================================================
 -- OptionsData.lua Dropdown options — Highlight style
 -- =====================================================================
+L["FOCUS_HIGHLIGHT_BAR_LEFT_EDGE"]                            = "Leiste links"
 L["FOCUS_HIGHLIGHT_BAR_RIGHT_EDGE"]                           = "Leiste rechts"
 
 -- =====================================================================

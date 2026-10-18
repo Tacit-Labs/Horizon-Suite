@@ -493,8 +493,14 @@ function addon.NormalizeHighlightStyle(style)
 end
 
 -- Focused quest highlight colour: the Focus class colour when set, else the saved highlight colour.
+-- With "Colour by quest state" on, a quest that is ready to turn in uses the complete colour instead.
+-- @param q table|nil quest data or Focus entry (reads isComplete)
 -- @return table {r, g, b}
-function addon.GetFocusHighlightColor()
+function addon.GetFocusHighlightColor(q)
+    if q and q.isComplete and addon.GetDB("focusHighlightStateColours", false) then
+        local cc = addon.QUEST_COLORS and addon.QUEST_COLORS.COMPLETE or { 0.20, 1.00, 0.40 }
+        return { cc[1], cc[2], cc[3] }
+    end
     local fcc = addon.GetModuleClassColor and addon.GetModuleClassColor("focus")
     if fcc then return { fcc[1], fcc[2], fcc[3] } end
     local hc = addon.GetDB("highlightColor", nil)
@@ -505,12 +511,28 @@ function addon.GetFocusHighlightColor()
 end
 
 -- Title colour override for the "title-color" highlight style; nil when the style does not apply.
--- @param isSuperTracked boolean
+-- @param q table quest data or Focus entry (reads isSuperTracked, isComplete)
 -- @return table|nil {r, g, b}
-function addon.GetFocusedTitleHighlightColor(isSuperTracked)
-    if not isSuperTracked then return nil end
+function addon.GetFocusedTitleHighlightColor(q)
+    if not q or not q.isSuperTracked then return nil end
     if addon.NormalizeHighlightStyle(addon.GetDB("activeQuestHighlight")) ~= "title-color" then return nil end
-    return addon.GetFocusHighlightColor()
+    return addon.GetFocusHighlightColor(q)
+end
+
+-- Paint a texture as a one-colour fade between two alphas.
+-- @param tex Texture
+-- @param orientation string "HORIZONTAL" (left to right) or "VERTICAL" (bottom to top)
+-- @param c table {r, g, b}
+-- @param fromA number alpha at the left/bottom
+-- @param toA number alpha at the right/top
+function addon.SetTextureFade(tex, orientation, c, fromA, toA)
+    if not tex or not c then return end
+    tex:SetColorTexture(1, 1, 1, 1)
+    if CreateColor and tex.SetGradient then
+        tex:SetGradient(orientation, CreateColor(c[1], c[2], c[3], fromA), CreateColor(c[1], c[2], c[3], toA))
+    elseif tex.SetGradientAlpha then
+        tex:SetGradientAlpha(orientation, c[1], c[2], c[3], fromA, c[1], c[2], c[3], toA)
+    end
 end
 
 -- Paint a texture as a left-to-right fade of the highlight colour (the "gradient" highlight style).
@@ -518,14 +540,32 @@ end
 -- @param hc table {r, g, b}
 -- @param ha number highlight opacity, 0-1
 function addon.ApplyFocusHighlightGradient(tex, hc, ha)
-    if not tex or not hc then return end
-    local a = math.min(1, (tonumber(ha) or 0.25) * 2)
-    tex:SetColorTexture(1, 1, 1, 1)
-    if CreateColor and tex.SetGradient then
-        tex:SetGradient("HORIZONTAL", CreateColor(hc[1], hc[2], hc[3], a), CreateColor(hc[1], hc[2], hc[3], 0))
-    elseif tex.SetGradientAlpha then
-        tex:SetGradientAlpha("HORIZONTAL", hc[1], hc[2], hc[3], a, hc[1], hc[2], hc[3], 0)
+    addon.SetTextureFade(tex, "HORIZONTAL", hc, math.min(1, (tonumber(ha) or 0.25) * 2), 0)
+end
+
+-- How far through its objectives a quest is, 0-1; nil when it has no objectives to measure.
+-- Counts partial progress (x/y counts and percentages) within each objective.
+-- @param q table quest data
+-- @return number|nil
+function addon.GetFocusQuestProgress(q)
+    if not q then return nil end
+    if q.isComplete then return 1 end
+    local objs = q.objectives or {}
+    -- When finished objectives are hidden, the aggregator strips them and records the counts.
+    local total = q.objectivesTotalCount or #objs
+    if total == 0 then return nil end
+    local sum = q.objectivesDoneCount or 0
+    for _, o in ipairs(objs) do
+        if o.finished then
+            sum = sum + 1
+        elseif type(o.percent) == "number" then
+            local p = o.percent > 1 and o.percent / 100 or o.percent
+            sum = sum + math.max(0, math.min(1, p))
+        elseif type(o.numFulfilled) == "number" and type(o.numRequired) == "number" and o.numRequired > 0 then
+            sum = sum + math.max(0, math.min(1, o.numFulfilled / o.numRequired))
+        end
     end
+    return math.max(0, math.min(1, sum / total))
 end
 
 -- ============================================================================

@@ -156,7 +156,7 @@ local function GetFontDropdownOptions()
 end
 
 local HIGHLIGHT_OPTIONS = {
-    { L["FOCUS_HIGHLIGHT_BAR_GUTTER"], "bar-gutter" },
+    { L["FOCUS_HIGHLIGHT_BAR_LEFT_EDGE"], "bar-gutter" },
     { L["FOCUS_HIGHLIGHT_BAR_RIGHT_EDGE"], "bar-right" },
     { L["FOCUS_HIGHLIGHT_TITLE_COLOUR"], "title-color" },
     { L["FOCUS_HIGHLIGHT_GRADIENT"], "gradient" },
@@ -180,6 +180,17 @@ local TEXT_CASE_OPTIONS = {
 
 local function getActiveQuestHighlight()
     return addon.NormalizeHighlightStyle(getDB("activeQuestHighlight", D.activeQuestHighlight))
+end
+-- Highlight extras that only apply to some styles, or need the global Animations option, grey out otherwise.
+local function highlightNotBar()
+    local s = getActiveQuestHighlight()
+    return s ~= "bar-gutter" and s ~= "bar-right"
+end
+local function highlightNotBarOrGradient()
+    return highlightNotBar() and getActiveQuestHighlight() ~= "gradient"
+end
+local function highlightAnimationsOff()
+    return getActiveQuestHighlight() == "none" or not getDB("animations", true)
 end
 
 -- Frame strata dropdown options, built from the shared order in Config so the
@@ -485,6 +496,14 @@ local categories = {
             Toggle(L["DESATURATE_FOCUSED_QUESTS"], L["DESATURATE_FOCUSED_ENTRIES"], "dimDesaturate", D.dimDesaturate, { tooltip = L["MAKE_FOCUSED_ENTRIES_GREYSCALE_PARTIALLY_DESATURATE"], parent = "dimNonSuperTracked" }),
             { type = "slider", name = L["FOCUS_HIGHLIGHT_ALPHA"], desc = L["OPACITY_OF_FOCUSED_QUEST_HIGHLIGHT"], dbKey = "highlightAlpha", min = LIM.highlightAlpha.min, max = LIM.highlightAlpha.max, get = function() local v = tonumber(getDB("highlightAlpha", D.highlightAlpha)) or D.highlightAlpha; if v <= 1 and v > 0 then return math.floor(v * 100 + 0.5) end; return math.max(LIM.highlightAlpha.min, math.min(LIM.highlightAlpha.max, v)) end, set = function(v) setDB("highlightAlpha", clamp(v, "highlightAlpha") / 100) end },
             { type = "slider", name = L["FOCUS_BAR_WIDTH"], desc = L["FOCUS_WIDTH_OF_BAR_STYLE_HIGHLIGHTS_PX"], dbKey = "highlightBarWidth", min = LIM.highlightBarWidth.min, max = LIM.highlightBarWidth.max, get = function() return math.max(LIM.highlightBarWidth.min, math.min(LIM.highlightBarWidth.max, tonumber(getDB("highlightBarWidth", D.highlightBarWidth)) or D.highlightBarWidth)) end, set = function(v) setDB("highlightBarWidth", clamp(v, "highlightBarWidth")) end },
+            -- Extras layered on the focused quest highlight.
+            Section(L["FOCUS_CARD_HIGHLIGHT_EFFECTS"], { page = "tracked", card = "highlightEffects" }),
+            Toggle(L["FOCUS_HIGHLIGHT_STATE_COLOURS"], L["FOCUS_HIGHLIGHT_STATE_COLOURS_DESC"], "focusHighlightStateColours", D.focusHighlightStateColours, { disabled = function() return getActiveQuestHighlight() == "none" end }),
+            Toggle(L["FOCUS_HIGHLIGHT_SOFT_GLOW_BAR"], L["FOCUS_HIGHLIGHT_SOFT_GLOW_BAR_DESC"], "focusHighlightSoftGlow", D.focusHighlightSoftGlow, { disabled = highlightNotBar }),
+            Toggle(L["FOCUS_HIGHLIGHT_PROGRESS"], L["FOCUS_HIGHLIGHT_PROGRESS_DESC"], "focusHighlightProgress", D.focusHighlightProgress, { disabled = highlightNotBar }),
+            Toggle(L["FOCUS_HIGHLIGHT_ANIMATE_CHANGE"], L["FOCUS_HIGHLIGHT_ANIMATE_CHANGE_DESC"], "focusHighlightAnimateChange", D.focusHighlightAnimateChange, { disabled = function() return highlightNotBarOrGradient() or highlightAnimationsOff() end }),
+            Toggle(L["FOCUS_HIGHLIGHT_SHEEN"], L["FOCUS_HIGHLIGHT_SHEEN_DESC"], "focusHighlightSheen", D.focusHighlightSheen, { disabled = highlightAnimationsOff }),
+            Toggle(L["FOCUS_HIGHLIGHT_BREATHE"], L["FOCUS_HIGHLIGHT_BREATHE_DESC"], "focusHighlightBreathe", D.focusHighlightBreathe, { disabled = function() return highlightNotBarOrGradient() or highlightAnimationsOff() end }),
         },
     },
     {

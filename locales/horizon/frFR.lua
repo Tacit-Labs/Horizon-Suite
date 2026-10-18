@@ -1738,6 +1738,7 @@ L["FOCUS_THICK_OUTLINE"]                                      = "Contour épais"
 -- =====================================================================
 -- OptionsData.lua Dropdown options — Highlight style
 -- =====================================================================
+L["FOCUS_HIGHLIGHT_BAR_LEFT_EDGE"]                            = "Barre (bord gauche)"
 L["FOCUS_HIGHLIGHT_BAR_RIGHT_EDGE"]                           = "Barre (bord droit)"
 
 -- =====================================================================
