@@ -124,11 +124,18 @@ local function EnsurePointer(entry, fx)
     p.tex:SetAllPoints(p)
     p.tex:SetTexture(POINTER_TEXTURE)
 
+    -- Out and back as two eased moves in one repeating group: the loop ends exactly where it
+    -- starts, so it runs seamlessly (BOUNCE hitches at each turn).
     p.nudge = p:CreateAnimationGroup()
-    p.nudge:SetLooping("BOUNCE")
-    p.nudge.move = p.nudge:CreateAnimation("Translation")
-    p.nudge.move:SetDuration(POINTER_NUDGE_DURATION)
-    p.nudge.move:SetSmoothing("IN_OUT")
+    p.nudge:SetLooping("REPEAT")
+    p.nudge.out = p.nudge:CreateAnimation("Translation")
+    p.nudge.out:SetDuration(POINTER_NUDGE_DURATION)
+    p.nudge.out:SetSmoothing("IN_OUT")
+    p.nudge.out:SetOrder(1)
+    p.nudge.back = p.nudge:CreateAnimation("Translation")
+    p.nudge.back:SetDuration(POINTER_NUDGE_DURATION)
+    p.nudge.back:SetSmoothing("IN_OUT")
+    p.nudge.back:SetOrder(2)
 
     -- Focus change: fade in while sliding toward the entry.
     p.enter = p.tex:CreateAnimationGroup()
@@ -163,16 +170,22 @@ local function ApplyPointer(entry, fx, hc)
     local _, fontSize = entry.titleText:GetFont()
     local _, _, _, _, titleY = entry.titleText:GetPoint(1)
     local midY = (type(titleY) == "number" and titleY or 0) - (tonumber(fontSize) or size) / 2
-    p:SetSize(size, size)
-    p:ClearAllPoints()
-    p:SetPoint("RIGHT", entry, "TOPLEFT", -S(POINTER_GAP) - S(POINTER_NUDGE), midY)
+    local x = -S(POINTER_GAP) - S(POINTER_NUDGE)
+    -- Re-anchor only when the spot moves, so tracker updates do not disturb the nudge.
+    if p._size ~= size or p._x ~= x or p._y ~= midY then
+        p:SetSize(size, size)
+        p:ClearAllPoints()
+        p:SetPoint("RIGHT", entry, "TOPLEFT", x, midY)
+        p._size, p._x, p._y = size, x, midY
+    end
     p.tex:SetVertexColor(hc[1], hc[2], hc[3], 1)
     fx.pointerOn = true
     if entry:IsShown() then p:Show() end
     if AnimationsOn() then
         local nudge = S(POINTER_NUDGE)
         if p.nudge._offset ~= nudge then
-            p.nudge.move:SetOffset(nudge, 0)
+            p.nudge.out:SetOffset(nudge, 0)
+            p.nudge.back:SetOffset(-nudge, 0)
             p.nudge._offset = nudge
         end
         -- Leave a running nudge alone so re-renders do not restart it.

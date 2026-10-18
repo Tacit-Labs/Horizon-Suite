@@ -492,8 +492,11 @@ function addon.NormalizeHighlightStyle(style)
     return RETIRED_HIGHLIGHT_STYLES[style] or "bar-gutter"
 end
 
--- Styles with their own colour picker, and the setting that holds it.
-local STYLE_COLOUR_KEYS = { ["title-color"] = "focusedTitleColor", ["gradient"] = "focusedGradientColor" }
+-- Styles with their own colour, and the setting that holds it (read by the options swatch too).
+local STYLE_COLOUR_KEYS = {
+    ["title-color"] = "focusedTitleColor", ["gradient"] = "focusedGradientColor", ["pointer"] = "focusedPointerColor",
+}
+addon.FOCUS_STYLE_COLOUR_KEYS = STYLE_COLOUR_KEYS
 
 -- Focused quest highlight colour. A quest that is ready to turn in uses the complete colour;
 -- otherwise the current style's own colour when one is picked, then the Focus class colour,

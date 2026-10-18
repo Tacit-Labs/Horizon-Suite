@@ -41,7 +41,7 @@ addon.COLOR_LIVE_KEYS = {
     backdropOpacity = true, backdropOpacityMouseover = true, backdropColorR = true, backdropColorG = true, backdropColorB = true,
     headerColor = true, headerDividerColor = true,
     colorMatrix = true,
-    highlightColor = true, focusedTitleColor = true, focusedGradientColor = true, completedObjectiveColor = true, sectionColors = true,
+    highlightColor = true, focusedTitleColor = true, focusedGradientColor = true, focusedPointerColor = true, completedObjectiveColor = true, sectionColors = true,
     objectiveProgressFlashColor = true, presenceBossEmoteColor = true, presenceDiscoveryColor = true,
     mplusDungeonColorR = true, mplusDungeonColorG = true, mplusDungeonColorB = true,
     mplusTimerColorR = true, mplusTimerColorG = true, mplusTimerColorB = true,
