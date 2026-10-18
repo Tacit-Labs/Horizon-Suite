@@ -139,12 +139,12 @@ local function ApplySheen(fx, entry, hc, entryW)
     fx.sheenL:SetPoint("TOPRIGHT", entry, "TOPLEFT", -w, 0)
     fx.sheenL:SetPoint("BOTTOMRIGHT", entry, "BOTTOMLEFT", -w, 0)
     fx.sheenL:SetWidth(w)
-    addon.SetTextureFade(fx.sheenL, "HORIZONTAL", tint, 0, SHEEN_ALPHA)
+    addon.SetTextureFade(fx.sheenL, tint, 0, SHEEN_ALPHA)
     fx.sheenR:ClearAllPoints()
     fx.sheenR:SetPoint("TOPLEFT", fx.sheenL, "TOPRIGHT", 0, 0)
     fx.sheenR:SetPoint("BOTTOMLEFT", fx.sheenL, "BOTTOMRIGHT", 0, 0)
     fx.sheenR:SetWidth(w)
-    addon.SetTextureFade(fx.sheenR, "HORIZONTAL", tint, SHEEN_ALPHA, 0)
+    addon.SetTextureFade(fx.sheenR, tint, SHEEN_ALPHA, 0)
     local travel = entryW + w * 2
     for _, ag in ipairs(fx.sheenAnims) do
         if ag._travel ~= travel then
@@ -212,7 +212,7 @@ function addon.FocusHighlight_Recolour(entry, hc)
     end
     if fx.sheenL:IsShown() then
         local tint = SheenTint(hc)
-        addon.SetTextureFade(fx.sheenL, "HORIZONTAL", tint, 0, SHEEN_ALPHA)
-        addon.SetTextureFade(fx.sheenR, "HORIZONTAL", tint, SHEEN_ALPHA, 0)
+        addon.SetTextureFade(fx.sheenL, tint, 0, SHEEN_ALPHA)
+        addon.SetTextureFade(fx.sheenR, tint, SHEEN_ALPHA, 0)
     end
 end

@@ -524,19 +524,25 @@ function addon.GetFocusedTitleHighlightColor(q)
     return addon.GetFocusHighlightColor(q)
 end
 
--- Paint a texture as a one-colour fade between two alphas.
+-- White strip whose alpha runs from solid at the left edge to clear at the right.
+local FADE_TEXTURE = "Interface\\AddOns\\HorizonSuite\\media\\fade"
+
+-- Paint a texture as a one-colour horizontal fade. One side must be clear (alpha 0).
+-- Uses a fade image tinted with the vertex colour rather than SetGradient, so the fade
+-- holds however early it is applied.
 -- @param tex Texture
--- @param orientation string "HORIZONTAL" (left to right) or "VERTICAL" (bottom to top)
 -- @param c table {r, g, b}
--- @param fromA number alpha at the left/bottom
--- @param toA number alpha at the right/top
-function addon.SetTextureFade(tex, orientation, c, fromA, toA)
+-- @param leftA number alpha at the left edge
+-- @param rightA number alpha at the right edge
+function addon.SetTextureFade(tex, c, leftA, rightA)
     if not tex or not c then return end
-    tex:SetColorTexture(1, 1, 1, 1)
-    if CreateColor and tex.SetGradient then
-        tex:SetGradient(orientation, CreateColor(c[1], c[2], c[3], fromA), CreateColor(c[1], c[2], c[3], toA))
-    elseif tex.SetGradientAlpha then
-        tex:SetGradientAlpha(orientation, c[1], c[2], c[3], fromA, c[1], c[2], c[3], toA)
+    tex:SetTexture(FADE_TEXTURE)
+    if leftA >= rightA then
+        tex:SetTexCoord(0, 1, 0, 1)
+        tex:SetVertexColor(c[1], c[2], c[3], leftA)
+    else
+        tex:SetTexCoord(1, 0, 0, 1)
+        tex:SetVertexColor(c[1], c[2], c[3], rightA)
     end
 end
 
@@ -545,7 +551,7 @@ end
 -- @param hc table {r, g, b}
 -- @param ha number highlight opacity, 0-1
 function addon.ApplyFocusHighlightGradient(tex, hc, ha)
-    addon.SetTextureFade(tex, "HORIZONTAL", hc, math.min(1, (tonumber(ha) or 0.25) * 2), 0)
+    addon.SetTextureFade(tex, hc, math.min(1, (tonumber(ha) or 0.25) * 2), 0)
 end
 
 -- How far through its objectives a quest is, 0-1; nil when it has no objectives to measure.
