@@ -1,21 +1,19 @@
 --[[
     Horizon Suite - Focus - Highlight Effects
-    Effects built into the focused quest highlight styles: the bars get a soft glow, a progress
-    fill and grow in when focus changes; the gradient slides in when focus changes and carries
-    a sheen sweep. The animated parts follow the global Animations option.
+    Effects built into the focused quest highlight styles: the bars get a progress fill and grow
+    in when focus changes; the gradient slides in when focus changes and carries a sheen sweep.
+    The animated parts follow the global Animations option.
 ]]
 
 local addon = _G.HorizonSuite
 
 -- Which effects each highlight style carries.
 local STYLE_FX = {
-    ["bar-gutter"] = { glow = true, progress = true, enter = true },
-    ["bar-right"]  = { glow = true, progress = true, enter = true },
+    ["bar-gutter"] = { progress = true, enter = true },
+    ["bar-right"]  = { progress = true, enter = true },
     ["gradient"]   = { enter = true, sheen = true },
 }
 
-local GLOW_W = 5          -- soft glow width either side of the bar, px
-local GLOW_ALPHA = 0.45
 local TRACK_ALPHA = 0.25  -- bar alpha behind the progress fill
 local BAR_ALPHA = 0.70
 local SHEEN_W = 18        -- width of each half of the sheen band, px
@@ -46,13 +44,6 @@ local function Ensure(entry)
     local fx = entry._highlightFx
     if fx then return fx end
     fx = {}
-
-    fx.glowL = entry:CreateTexture(nil, "BACKGROUND")
-    fx.glowR = entry:CreateTexture(nil, "BACKGROUND")
-    for _, tex in ipairs({ fx.glowL, fx.glowR }) do
-        tex:SetBlendMode("ADD")
-        tex:Hide()
-    end
 
     fx.fill = entry:CreateTexture(nil, "OVERLAY", nil, 1)
     fx.fill:Hide()
@@ -95,7 +86,7 @@ local function Ensure(entry)
         end
         fx.enter[tex] = ag
     end
-    for _, tex in ipairs({ entry.trackBar, fx.fill, fx.glowL, fx.glowR }) do
+    for _, tex in ipairs({ entry.trackBar, fx.fill }) do
         addEnter(tex, true)
     end
     addEnter(entry.highlightGradient, false)
@@ -120,24 +111,9 @@ end
 function addon.FocusHighlight_Clear(entry)
     local fx = entry and entry._highlightFx
     if not fx then return end
-    fx.glowL:Hide(); fx.glowR:Hide(); fx.fill:Hide()
+    fx.fill:Hide()
     HideSheen(fx)
     StopGroups(fx.enter)
-end
-
-local function ApplyGlow(fx, entry, hc)
-    local w = S(GLOW_W)
-    fx.glowL:ClearAllPoints()
-    fx.glowL:SetPoint("TOPRIGHT", entry.trackBar, "TOPLEFT", 0, 0)
-    fx.glowL:SetPoint("BOTTOMRIGHT", entry.trackBar, "BOTTOMLEFT", 0, 0)
-    fx.glowL:SetWidth(w)
-    addon.SetTextureFade(fx.glowL, "HORIZONTAL", hc, 0, GLOW_ALPHA)
-    fx.glowR:ClearAllPoints()
-    fx.glowR:SetPoint("TOPLEFT", entry.trackBar, "TOPRIGHT", 0, 0)
-    fx.glowR:SetPoint("BOTTOMLEFT", entry.trackBar, "BOTTOMRIGHT", 0, 0)
-    fx.glowR:SetWidth(w)
-    addon.SetTextureFade(fx.glowR, "HORIZONTAL", hc, GLOW_ALPHA, 0)
-    fx.glowL:Show(); fx.glowR:Show()
 end
 
 -- Bar becomes a faint track; the fill grows from the bottom with quest progress.
@@ -194,7 +170,7 @@ function addon.FocusHighlight_Apply(entry, questData, highlightStyle)
         return
     end
     local fx = Ensure(entry)
-    fx.glowL:Hide(); fx.glowR:Hide(); fx.fill:Hide()
+    fx.fill:Hide()
 
     local hc = addon.GetFocusHighlightColor(questData)
     local entryW, entryH = entry:GetWidth() or 0, entry:GetHeight() or 0
@@ -202,11 +178,6 @@ function addon.FocusHighlight_Apply(entry, questData, highlightStyle)
 
     if entry.trackBar:IsShown() then
         shown[#shown + 1] = entry.trackBar
-        if styleFx.glow then
-            ApplyGlow(fx, entry, hc)
-            shown[#shown + 1] = fx.glowL
-            shown[#shown + 1] = fx.glowR
-        end
         if styleFx.progress then
             ApplyProgress(fx, entry, questData, hc, entryH)
             if fx.fill:IsShown() then shown[#shown + 1] = fx.fill end
@@ -236,10 +207,6 @@ end
 function addon.FocusHighlight_Recolour(entry, hc)
     local fx = entry and entry._highlightFx
     if not fx then return end
-    if fx.glowL:IsShown() then
-        addon.SetTextureFade(fx.glowL, "HORIZONTAL", hc, 0, GLOW_ALPHA)
-        addon.SetTextureFade(fx.glowR, "HORIZONTAL", hc, GLOW_ALPHA, 0)
-    end
     if fx.fill:IsShown() then
         fx.fill:SetColorTexture(hc[1], hc[2], hc[3], BAR_ALPHA)
     end

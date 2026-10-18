@@ -511,11 +511,16 @@ function addon.GetFocusHighlightColor(q)
 end
 
 -- Title colour override for the "title-color" highlight style; nil when the style does not apply.
+-- Uses the picked title colour when one is set, else the highlight colour; ready to turn in still wins.
 -- @param q table quest data or Focus entry (reads isSuperTracked, isComplete)
 -- @return table|nil {r, g, b}
 function addon.GetFocusedTitleHighlightColor(q)
     if not q or not q.isSuperTracked then return nil end
     if addon.NormalizeHighlightStyle(addon.GetDB("activeQuestHighlight")) ~= "title-color" then return nil end
+    local tc = addon.GetDB("focusedTitleColor", nil)
+    if not q.isComplete and type(tc) == "table" and tc[1] and tc[2] and tc[3] then
+        return { tc[1], tc[2], tc[3] }
+    end
     return addon.GetFocusHighlightColor(q)
 end
 
