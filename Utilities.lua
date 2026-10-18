@@ -493,11 +493,11 @@ function addon.NormalizeHighlightStyle(style)
 end
 
 -- Focused quest highlight colour: the Focus class colour when set, else the saved highlight colour.
--- With "Colour by quest state" on, a quest that is ready to turn in uses the complete colour instead.
+-- A quest that is ready to turn in uses the complete colour instead.
 -- @param q table|nil quest data or Focus entry (reads isComplete)
 -- @return table {r, g, b}
 function addon.GetFocusHighlightColor(q)
-    if q and q.isComplete and addon.GetDB("focusHighlightStateColours", false) then
+    if q and q.isComplete then
         local cc = addon.QUEST_COLORS and addon.QUEST_COLORS.COMPLETE or { 0.20, 1.00, 0.40 }
         return { cc[1], cc[2], cc[3] }
     end

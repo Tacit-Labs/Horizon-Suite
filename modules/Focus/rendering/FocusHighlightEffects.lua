@@ -1,11 +1,18 @@
 --[[
     Horizon Suite - Focus - Highlight Effects
-    Extras layered on the focused quest highlight: soft glow and progress fill on the bars,
-    the slide-in when focus changes, the sheen sweep, and breathing.
-    Each is off unless its option is on; the animated ones also follow the global Animations option.
+    Effects built into the focused quest highlight styles: the bars get a soft glow, a progress
+    fill and grow in when focus changes; the gradient slides in when focus changes and carries
+    a sheen sweep. The animated parts follow the global Animations option.
 ]]
 
 local addon = _G.HorizonSuite
+
+-- Which effects each highlight style carries.
+local STYLE_FX = {
+    ["bar-gutter"] = { glow = true, progress = true, enter = true },
+    ["bar-right"]  = { glow = true, progress = true, enter = true },
+    ["gradient"]   = { enter = true, sheen = true },
+}
 
 local GLOW_W = 5          -- soft glow width either side of the bar, px
 local GLOW_ALPHA = 0.45
@@ -15,9 +22,7 @@ local SHEEN_W = 18        -- width of each half of the sheen band, px
 local SHEEN_ALPHA = 0.30
 local SHEEN_DURATION = 1.1
 local SHEEN_DELAY = 5
-local BREATHE_LOW = 0.45
-local BREATHE_DURATION = 1.6
-local SLIDE_DURATION = 0.3
+local ENTER_DURATION = 0.3
 local SLIDE_OFFSET = 24   -- how far the gradient slides in from, px
 
 -- Key of the quest that last played the focus-change animation, so it plays once per change.
@@ -27,12 +32,13 @@ local function S(v)
     return addon.Scaled and addon.Scaled(v) or v
 end
 
-local function AnimOn(dbKey)
-    return addon.GetDB(dbKey, false) and addon.GetDB("animations", true)
+local function AnimationsOn()
+    return addon.GetDB("animations", true)
 end
 
-local function IsBarStyle(style)
-    return style == "bar-gutter" or style == "bar-right"
+local function SheenTint(hc)
+    -- Tint toward white so the band reads as light, not as more highlight colour.
+    return { (hc[1] + 1) / 2, (hc[2] + 1) / 2, (hc[3] + 1) / 2 }
 end
 
 -- Lazily create the extra textures and their animation groups on an entry.
@@ -67,45 +73,32 @@ local function Ensure(entry)
         fx.sheenAnims[i] = ag
     end
 
-    -- One breathing group and one slide-in group per highlight texture.
-    fx.breathe, fx.slide = {}, {}
-    local function addBreathe(tex)
-        local ag = tex:CreateAnimationGroup()
-        ag:SetLooping("BOUNCE")
-        local a = ag:CreateAnimation("Alpha")
-        a:SetFromAlpha(1)
-        a:SetToAlpha(BREATHE_LOW)
-        a:SetDuration(BREATHE_DURATION)
-        a:SetSmoothing("IN_OUT")
-        fx.breathe[tex] = ag
-    end
-    local function addSlide(tex, vertical)
+    -- One focus-change group per highlight texture: bars grow out from their middle,
+    -- the gradient slides in from the left; both fade in.
+    fx.enter = {}
+    local function addEnter(tex, vertical)
         local ag = tex:CreateAnimationGroup()
         local hideA = ag:CreateAnimation("Alpha")
         hideA:SetFromAlpha(0); hideA:SetToAlpha(0); hideA:SetDuration(0); hideA:SetOrder(1)
         local showA = ag:CreateAnimation("Alpha")
-        showA:SetFromAlpha(0); showA:SetToAlpha(1); showA:SetDuration(SLIDE_DURATION); showA:SetOrder(2)
+        showA:SetFromAlpha(0); showA:SetToAlpha(1); showA:SetDuration(ENTER_DURATION); showA:SetOrder(2)
         if vertical then
-            -- Bars grow out from their middle.
             local squash = ag:CreateAnimation("Scale")
             squash:SetScale(1, 0.05); squash:SetDuration(0); squash:SetOrder(1)
             local grow = ag:CreateAnimation("Scale")
-            grow:SetScale(1, 20); grow:SetDuration(SLIDE_DURATION); grow:SetSmoothing("OUT"); grow:SetOrder(2)
+            grow:SetScale(1, 20); grow:SetDuration(ENTER_DURATION); grow:SetSmoothing("OUT"); grow:SetOrder(2)
         else
-            -- The gradient slides in from the left.
             local back = ag:CreateAnimation("Translation")
             back:SetOffset(-S(SLIDE_OFFSET), 0); back:SetDuration(0); back:SetOrder(1)
             local forward = ag:CreateAnimation("Translation")
-            forward:SetOffset(S(SLIDE_OFFSET), 0); forward:SetDuration(SLIDE_DURATION); forward:SetSmoothing("OUT"); forward:SetOrder(2)
+            forward:SetOffset(S(SLIDE_OFFSET), 0); forward:SetDuration(ENTER_DURATION); forward:SetSmoothing("OUT"); forward:SetOrder(2)
         end
-        fx.slide[tex] = ag
+        fx.enter[tex] = ag
     end
     for _, tex in ipairs({ entry.trackBar, fx.fill, fx.glowL, fx.glowR }) do
-        addBreathe(tex)
-        addSlide(tex, true)
+        addEnter(tex, true)
     end
-    addBreathe(entry.highlightGradient)
-    addSlide(entry.highlightGradient, false)
+    addEnter(entry.highlightGradient, false)
 
     entry._highlightFx = fx
     return fx
@@ -117,15 +110,19 @@ local function StopGroups(groups)
     end
 end
 
---- Hide every extra and stop its animations (entry no longer focused, or released to the pool).
+local function HideSheen(fx)
+    fx.sheenL:Hide(); fx.sheenR:Hide()
+    StopGroups(fx.sheenAnims)
+end
+
+--- Hide every effect and stop its animations (entry no longer focused, or released to the pool).
 -- @param entry Frame Focus entry
 function addon.FocusHighlight_Clear(entry)
     local fx = entry and entry._highlightFx
     if not fx then return end
-    fx.glowL:Hide(); fx.glowR:Hide(); fx.fill:Hide(); fx.sheenL:Hide(); fx.sheenR:Hide()
-    StopGroups(fx.sheenAnims)
-    StopGroups(fx.breathe)
-    StopGroups(fx.slide)
+    fx.glowL:Hide(); fx.glowR:Hide(); fx.fill:Hide()
+    HideSheen(fx)
+    StopGroups(fx.enter)
 end
 
 local function ApplyGlow(fx, entry, hc)
@@ -144,10 +141,10 @@ local function ApplyGlow(fx, entry, hc)
 end
 
 -- Bar becomes a faint track; the fill grows from the bottom with quest progress.
--- @return boolean true when the fill is drawn
+-- Quests with no objectives to measure keep the plain bar.
 local function ApplyProgress(fx, entry, questData, hc, entryH)
     local progress = addon.GetFocusQuestProgress(questData)
-    if not progress then return false end
+    if not progress then return end
     entry.trackBar:SetColorTexture(hc[1], hc[2], hc[3], TRACK_ALPHA)
     fx.fill:SetColorTexture(hc[1], hc[2], hc[3], BAR_ALPHA)
     fx.fill:ClearAllPoints()
@@ -157,12 +154,10 @@ local function ApplyProgress(fx, entry, questData, hc, entryH)
         fx.fill:SetHeight(math.max(1, entryH * progress))
         fx.fill:Show()
     end
-    return true
 end
 
 local function ApplySheen(fx, entry, hc, entryW)
-    -- Tint toward white so the band reads as light, not as more highlight colour.
-    local tint = { (hc[1] + 1) / 2, (hc[2] + 1) / 2, (hc[3] + 1) / 2 }
+    local tint = SheenTint(hc)
     local w = S(SHEEN_W)
     fx.sheenL:ClearAllPoints()
     fx.sheenL:SetPoint("TOPRIGHT", entry, "TOPLEFT", -w, 0)
@@ -182,72 +177,60 @@ local function ApplySheen(fx, entry, hc, entryW)
         end
     end
     fx.sheenL:Show(); fx.sheenR:Show()
+    -- Leave a running sweep alone so re-renders do not restart it.
     for _, ag in ipairs(fx.sheenAnims) do
         if not ag:IsPlaying() then ag:Play() end
     end
 end
 
---- Apply the highlight extras after the entry has its final size and the track bar is placed.
+--- Apply the style's effects after the entry has its final size and the track bar is placed.
 -- @param entry Frame Focus entry
 -- @param questData table
 -- @param highlightStyle string normalised style
 function addon.FocusHighlight_Apply(entry, questData, highlightStyle)
-    if not questData.isSuperTracked or highlightStyle == "none" then
+    local styleFx = STYLE_FX[highlightStyle]
+    if not questData.isSuperTracked or not styleFx then
         addon.FocusHighlight_Clear(entry)
         return
     end
     local fx = Ensure(entry)
-    -- Hide the extras but leave running loops alone, so a re-render does not restart them.
     fx.glowL:Hide(); fx.glowR:Hide(); fx.fill:Hide()
 
     local hc = addon.GetFocusHighlightColor(questData)
     local entryW, entryH = entry:GetWidth() or 0, entry:GetHeight() or 0
-    local bar = IsBarStyle(highlightStyle) and entry.trackBar:IsShown()
-    local shown = {}  -- highlight textures drawn this pass, for breathing and the slide-in
+    local shown = {}  -- highlight textures drawn this pass, for the focus-change animation
 
-    if bar then
+    if entry.trackBar:IsShown() then
         shown[#shown + 1] = entry.trackBar
-        if addon.GetDB("focusHighlightSoftGlow", false) then
+        if styleFx.glow then
             ApplyGlow(fx, entry, hc)
             shown[#shown + 1] = fx.glowL
             shown[#shown + 1] = fx.glowR
         end
-        if addon.GetDB("focusHighlightProgress", false) and ApplyProgress(fx, entry, questData, hc, entryH) then
+        if styleFx.progress then
+            ApplyProgress(fx, entry, questData, hc, entryH)
             if fx.fill:IsShown() then shown[#shown + 1] = fx.fill end
         end
-    elseif highlightStyle == "gradient" and entry.highlightGradient:IsShown() then
+    elseif entry.highlightGradient:IsShown() then
         shown[#shown + 1] = entry.highlightGradient
     end
 
-    if AnimOn("focusHighlightSheen") and entryW > 0 then
+    if styleFx.sheen and AnimationsOn() and entryW > 0 then
         ApplySheen(fx, entry, hc, entryW)
     else
-        fx.sheenL:Hide(); fx.sheenR:Hide()
-        StopGroups(fx.sheenAnims)
-    end
-
-    local breathing = {}
-    if AnimOn("focusHighlightBreathe") then
-        for _, tex in ipairs(shown) do breathing[tex] = true end
-    end
-    for tex, ag in pairs(fx.breathe) do
-        if breathing[tex] then
-            if not ag:IsPlaying() then ag:Play() end
-        elseif ag:IsPlaying() then
-            ag:Stop()
-        end
+        HideSheen(fx)
     end
 
     local key = questData.questID or questData.title
     if key ~= nil and key ~= lastFocusKey then
         lastFocusKey = key
-        if AnimOn("focusHighlightAnimateChange") then
-            for _, tex in ipairs(shown) do fx.slide[tex]:Play() end
+        if styleFx.enter and AnimationsOn() then
+            for _, tex in ipairs(shown) do fx.enter[tex]:Play() end
         end
     end
 end
 
---- Recolour the extras live (colour picker drag, class colour toggle) without a full layout.
+--- Recolour the effects live (colour picker drag, class colour toggle) without a full layout.
 -- @param entry Frame Focus entry
 -- @param hc table {r, g, b}
 function addon.FocusHighlight_Recolour(entry, hc)
@@ -261,7 +244,7 @@ function addon.FocusHighlight_Recolour(entry, hc)
         fx.fill:SetColorTexture(hc[1], hc[2], hc[3], BAR_ALPHA)
     end
     if fx.sheenL:IsShown() then
-        local tint = { (hc[1] + 1) / 2, (hc[2] + 1) / 2, (hc[3] + 1) / 2 }
+        local tint = SheenTint(hc)
         addon.SetTextureFade(fx.sheenL, "HORIZONTAL", tint, 0, SHEEN_ALPHA)
         addon.SetTextureFade(fx.sheenR, "HORIZONTAL", tint, SHEEN_ALPHA, 0)
     end
