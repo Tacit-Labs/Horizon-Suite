@@ -20,6 +20,10 @@ local rareProviders = {}
 -- Entry sort mode: alpha, questType, zone, level, proximity (DB key entrySortMode, default questType)
 local VALID_ENTRY_SORT = { alpha = true, questType = true, zone = true, level = true, proximity = true }
 
+-- Sort modes whose order the player can flip with entrySortReverse. Quest type and proximity
+-- have no meaningful reverse, so the toggle leaves them alone.
+local REVERSIBLE_ENTRY_SORT = { alpha = true, zone = true, level = true }
+
 local currentSortGroup  -- set before each table.sort so comparator knows its group
 
 -- Current entry sort mode from DB (alpha, questType, zone, level, or proximity).
@@ -338,6 +342,19 @@ local function CompareEntriesBySortMode(a, b)
 
     local mode = GetSortMode()
     local ta, tb = (a.title or ""):lower(), (b.title or ""):lower()
+
+    -- Reverse flips the mode's primary key only; the alphabetical tie-break stays A to Z.
+    if REVERSIBLE_ENTRY_SORT[mode] and addon.GetDB("entrySortReverse", false) then
+        if mode == "alpha" then return ta > tb end
+        if mode == "zone" then
+            local za, zb = (a.zoneName or ""):lower(), (b.zoneName or ""):lower()
+            if za ~= zb then return za > zb end
+            return ta < tb
+        end
+        local la, lb = a.level or 0, b.level or 0
+        if la ~= lb then return la < lb end
+        return ta < tb
+    end
 
     if mode == "alpha" then return ta < tb end
     if mode == "questType" then

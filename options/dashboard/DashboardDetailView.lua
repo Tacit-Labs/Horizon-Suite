@@ -269,6 +269,7 @@ function addon.DashboardDetailView_Init(env)
             if card.anim and card.anim:IsPlaying() then card.anim:Stop() end
             if card.relayoutAnimFrame then card.relayoutAnimFrame:SetScript("OnUpdate", nil) end
             card.relayoutAnim = nil
+            card._entranceDy = nil
             card:Hide()
         end
         wipe(currentDetailCards)
@@ -288,7 +289,8 @@ function addon.DashboardDetailView_Init(env)
                 visibleIndex = visibleIndex + 1
                 card:ClearAllPoints()
                 local topExtra = (visibleIndex == 1) and firstPad or 0
-                card:SetPoint("TOPLEFT", detailContent, "TOPLEFT", 0, -(yOffset + topExtra))
+                -- _entranceDy: the page-open cascade's drop, which slides back to 0.
+                card:SetPoint("TOPLEFT", detailContent, "TOPLEFT", 0, -(yOffset + topExtra) + (card._entranceDy or 0))
                 card:SetPoint("RIGHT", detailContent, "RIGHT", 0, 0)
                 yOffset = yOffset + topExtra + card:GetHeight() + cardGap
             end
@@ -310,6 +312,30 @@ function addon.DashboardDetailView_Init(env)
                 end
             end
         end
+    end
+
+    -- Page-open cascade: each card starts 20 below its slot, transparent, then rises and fades
+    -- in one after another. The drop is an offset UpdateDetailLayout adds rather than a saved
+    -- position, so rows that settle their height while the cascade runs (text measured on the
+    -- first frame) still restack the page; restoring a saved y here left later cards stranded
+    -- below the scroll range.
+    local function PlayCardEntranceCascade()
+        for i, card in ipairs(currentDetailCards) do
+            if not card:IsShown() then
+                card:SetAlpha(1)
+            elseif C_Timer and C_Timer.After then
+                card:SetAlpha(0)
+                card._entranceDy = -20
+                C_Timer.After(i * 0.05, function()
+                    card._entranceDy = nil
+                    if card:IsShown() then
+                        UpdateDetailLayout()
+                        UIFrameFadeIn(card, 0.2, 0, 1)
+                    end
+                end)
+            end
+        end
+        UpdateDetailLayout()
     end
 
     -- Exposed so fixed header buttons can show/hide cards after a module toggle.
@@ -1209,7 +1235,7 @@ function addon.DashboardDetailView_Init(env)
         if f.detailEnableBtn then f.detailEnableBtn:Hide() end
     end
 
-    --- @param skipEntranceCascade boolean|nil When true, skip staggered card entrance (search navigation expands accordions and must not snapshot pre-expand Y positions).
+    --- @param skipEntranceCascade boolean|nil When true, skip staggered card entrance (search navigation scrolls straight to a row, so the cards must already be in place).
     f.OpenCategoryDetail = function(modName, catName, options, skipEntranceCascade)
         -- A search jump reveals its row for this one page; any other navigation clears it.
         local Assemble = addon.OptionsAssemble
@@ -1262,27 +1288,7 @@ function addon.DashboardDetailView_Init(env)
 
         if not skipEntranceCascade then
             -- Cascade effect (faster per UX feedback)
-            for i, card in ipairs(currentDetailCards) do
-                if not card:IsShown() then
-                    card:SetAlpha(1)
-                else
-                    card:SetAlpha(0)
-                    local _, _, _, xVal, yVal = card:GetPoint()
-                    if yVal then
-                        card:SetPoint("TOPLEFT", detailContent, "TOPLEFT", xVal or 0, yVal - 20)
-                        if C_Timer and C_Timer.After then
-                            C_Timer.After(i * 0.05, function()
-                                if card:IsShown() then
-                                    card:SetPoint("TOPLEFT", detailContent, "TOPLEFT", xVal or 0, yVal)
-                                    UIFrameFadeIn(card, 0.2, 0, 1)
-                                end
-                            end)
-                        else
-                            card:SetAlpha(1)
-                        end
-                    end
-                end
-            end
+            PlayCardEntranceCascade()
         end
     end
 
@@ -1482,27 +1488,7 @@ function addon.DashboardDetailView_Init(env)
                 f.BuildAccordionDetail(cats[1].name, options)
 
                 -- Cascade effect (faster per UX feedback)
-                for i, card in ipairs(currentDetailCards) do
-                    if not card:IsShown() then
-                        card:SetAlpha(1)
-                    else
-                        card:SetAlpha(0)
-                        local _, _, _, xVal, yVal = card:GetPoint()
-                        if yVal then
-                            card:SetPoint("TOPLEFT", detailContent, "TOPLEFT", xVal or 0, yVal - 20)
-                            if C_Timer and C_Timer.After then
-                                C_Timer.After(i * 0.05, function()
-                                    if card:IsShown() then
-                                        card:SetPoint("TOPLEFT", detailContent, "TOPLEFT", xVal or 0, yVal)
-                                        UIFrameFadeIn(card, 0.2, 0, 1)
-                                    end
-                                end)
-                            else
-                                card:SetAlpha(1)
-                            end
-                        end
-                    end
-                end
+                PlayCardEntranceCascade()
             end
         end
     end
