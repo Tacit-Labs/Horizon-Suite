@@ -669,6 +669,7 @@ local categories = {
             Section(L["FOCUS_SORTING"], { page = "tracked", card = "grouping" }),
             { type = "reorderList", name = L["FOCUS_CATEGORY_ORDER"], labelMap = addon.SECTION_LABELS, presets = addon.GROUP_ORDER_PRESETS, get = function() return addon.GetGroupOrder() end, set = function(order) addon.SetGroupOrder(order) end, desc = L["FOCUS_CATEGORIES_REORDER_EXCEPT_DELVES_SCENARIOS_TIP"] },
             { type = "dropdown", name = L["SORT_MODE"], desc = L["FOCUS_ENTRY_NUMBER_IN_CATEGORY"], dbKey = "entrySortMode", options = { { L["FOCUS_ALPHABETICAL"], "alpha" }, { L["FOCUS_QUEST_TYPE"], "questType" }, { L["FOCUS_ZONE"], "zone" }, { L["FOCUS_QUEST_LEVEL"], "level" }, { L["FOCUS_PROXIMITY"], "proximity" } }, get = function() return getDB("entrySortMode", D.entrySortMode) end, set = function(v) setDB("entrySortMode", v); if addon.ScheduleRefresh then addon.ScheduleRefresh() end end },
+            Toggle(L["FOCUS_SORT_REVERSE"], L["FOCUS_SORT_REVERSE_DESC"], "entrySortReverse", D.entrySortReverse, { tooltip = L["FOCUS_SORT_REVERSE_TIP"], isNew = "6.11.0", parent = "entrySortMode", parentIs = function(v) return v == "alpha" or v == "zone" or v == "level" end, set = function(v) setDB("entrySortReverse", v); if addon.ScheduleRefresh then addon.ScheduleRefresh() end end }),
         },
     },
     {

@@ -1918,6 +1918,9 @@ L["FOCUS_ALPHABETICAL"]                                       = "Alphabetical"
 L["FOCUS_QUEST_TYPE"]                                         = "Quest type"
 L["FOCUS_QUEST_LEVEL"]                                        = "Quest level"
 L["FOCUS_PROXIMITY"]                                          = "Closest first"
+L["FOCUS_SORT_REVERSE"]                                       = "Reverse order"
+L["FOCUS_SORT_REVERSE_DESC"]                                  = "Flip the sort: Z to A, or lowest quest level first."
+L["FOCUS_SORT_REVERSE_TIP"]                                   = "Works with the Alphabetical, Zone and Quest level sort modes. Quest type and Closest first have no reverse, so the option is hidden for them."
 
 -- =====================================================================
 -- OptionsData.lua Misc

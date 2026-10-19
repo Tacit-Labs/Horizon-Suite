@@ -199,6 +199,7 @@ addon.FOCUS_DEFAULTS = {
     keepCampaignInCategory    = false,
     keepImportantInCategory   = false,
     entrySortMode             = "questType",
+    entrySortReverse          = false,
     -- Typography
     usePerElementFonts        = false,
     globalFontSizeOffset      = 0,
