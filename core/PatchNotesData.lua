@@ -19,6 +19,22 @@ local addon = _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["6.11.0"] = {
+        date = "2026-10-19",
+        {
+            section = "New Features",
+            bullets = {
+                "Focus: a new Reverse order switch under Sorting flips the Quest level, Alphabetical and Zone sorts, so you can work through your lowest-level quests first or read your list Z to A. Quests that tie stay in A to Z order.",
+            },
+        },
+        {
+            section = "Fixes",
+            bullets = {
+                "Axis: the bottom of a settings page is no longer cut off after it opens; Focus > Layout scrolls all the way down to the Spacing options again.",
+            },
+        },
+    },
+
     ["6.10.0"] = {
         date = "2026-10-18",
         {
