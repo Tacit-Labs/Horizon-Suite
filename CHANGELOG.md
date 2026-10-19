@@ -10,6 +10,16 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [6.11.0] – 2026-10-19
+
+### ✨ New Features
+- **(Focus) Reverse sort order** — A new Reverse order switch under Sorting flips the Quest level, Alphabetical and Zone sorts, so you can work through your lowest-level quests first or read your list Z to A. Quests that tie stay in A to Z order.
+
+### 🐛 Fixes
+- **(Axis)** The bottom of a settings page is no longer cut off after it opens; Focus → Layout scrolls all the way down to the Spacing options again.
+
+---
+
 ## [6.10.0] – 2026-10-18
 
 ### ✨ New Features
