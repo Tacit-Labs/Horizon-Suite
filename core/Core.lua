@@ -409,6 +409,28 @@ function addon.ApplyHeaderChromeColors()
     if addon.optionsLabel and addon.optionsLabel.SetTextColor then
         addon.optionsLabel:SetTextColor(c[1], c[2], c[3], 1)
     end
+    -- A colour or font pass can restore the chevron's alpha, so re-hide it in Minimal mode.
+    if addon.SyncMinimalHeaderChrome then addon.SyncMinimalHeaderChrome() end
+end
+
+-- Minimal mode shows the chevron and Options button only while the cursor is over the
+-- header or the Options button. Alpha, not Hide, keeps them anchored and clickable.
+-- Derived from the cursor on every call so no path can leave them stuck visible.
+-- @return nil
+function addon.SyncMinimalHeaderChrome()
+    local chevron, optionsBtn = addon.chevron, addon.optionsBtn
+    if not chevron or not optionsBtn then return end
+    if not addon.GetDB("hideObjectivesHeader", false) then
+        chevron:SetAlpha(1)
+        optionsBtn:SetAlpha(1)
+        return
+    end
+    local headerBtn = addon.headerBtn
+    local hovered = (headerBtn and headerBtn:IsMouseOver())
+        or (optionsBtn:IsShown() and optionsBtn:IsMouseOver())
+    local a = hovered and 1 or 0
+    chevron:SetAlpha(a)
+    optionsBtn:SetAlpha(a)
 end
 
 -- Refresh all UI that depends on per-module class colour toggles (batch Axis toggle).
@@ -1424,11 +1446,8 @@ optionsBtn:SetScript("OnEnter", function(self)
     optionsTooltipHideRequested = false
     local hi = addon.GetHeaderChromeHoverColor and addon.GetHeaderChromeHoverColor() or { 0.85, 0.85, 0.90 }
     optionsLabel:SetTextColor(hi[1], hi[2], hi[3], 1)
-    -- Super-minimal: keep chevron and options visible when hovering options (header OnLeave fires when we move here)
-    if addon.GetDB("hideObjectivesHeader", false) and not addon.GetDB("hideOptionsButton", false) then
-        addon.chevron:SetAlpha(1)
-        addon.optionsBtn:SetAlpha(1)
-    end
+    -- Minimal: keep chevron and options visible when hovering options (header OnLeave fires when we move here)
+    addon.SyncMinimalHeaderChrome()
     if GameTooltip then
         GameTooltip:SetOwner(self, "ANCHOR_LEFT")
         GameTooltip:SetText(L["PRESENCE_OPTIONS"], nil, nil, nil, nil, true)
