@@ -176,21 +176,10 @@ headerBtn:SetScript("OnClick", function()
     addon.ToggleCollapse()
 end)
 headerBtn:SetScript("OnEnter", function()
-    if addon.GetDB("hideObjectivesHeader", false) then
-        addon.chevron:SetAlpha(1)
-        if not addon.GetDB("hideOptionsButton", false) then
-            addon.optionsBtn:SetAlpha(1)
-        end
-    end
+    addon.SyncMinimalHeaderChrome()
 end)
 headerBtn:SetScript("OnLeave", function()
-    if addon.GetDB("hideObjectivesHeader", false) then
-        if addon.optionsBtn:IsMouseOver() then return end
-        addon.chevron:SetAlpha(0)
-        if not addon.GetDB("hideOptionsButton", false) then
-            addon.optionsBtn:SetAlpha(0)
-        end
-    end
+    addon.SyncMinimalHeaderChrome()
 end)
 headerBtn:RegisterForDrag("LeftButton")
 headerBtn:SetScript("OnDragStart", function()
@@ -340,7 +329,6 @@ local function CollectAllEntries(rares, treasures)
     return quests
 end
 
-local lastMinimal = false
 local function HideAllItemButtons()
     for i = 1, addon.POOL_SIZE do
         local e = pool[i]
@@ -470,16 +458,12 @@ local function FullLayout()
             addon.SetTextWithShadow(addon.optionsLabel, addon.optionsShadow, L["PRESENCE_OPTIONS"])
             addon.optionsBtn:SetWidth(math.max(addon.optionsLabel:GetStringWidth() + 4, 44))
             addon.optionsBtn:Show()
-            -- Visible on hover only: use alpha so frames stay in layout and remain clickable
-            if not lastMinimal then
-                addon.chevron:SetAlpha(headerBtn:IsMouseOver() and 1 or 0)
-                addon.optionsBtn:SetAlpha(headerBtn:IsMouseOver() and 1 or 0)
-            end
         end
+        addon.SyncMinimalHeaderChrome()
     else
         addon.optionsBtn:SetFrameLevel(headerBtn:GetFrameLevel() + 1)
         addon.optionsBtn:SetParent(addon.HS)
-        addon.chevron:SetAlpha(1)
+        addon.SyncMinimalHeaderChrome()
         addon.headerText:Show()
         addon.headerShadow:Show()
         local headerStr = addon.ApplyTextCase(L["PRESENCE_OBJECTIVES"], "headerTextCase", "upper")
@@ -489,7 +473,6 @@ local function FullLayout()
         if hideOptBtn then
             addon.optionsBtn:Hide()
         else
-            addon.optionsBtn:SetAlpha(1)
             addon.optionsBtn:Show()
             addon.SetTextWithShadow(addon.optionsLabel, addon.optionsShadow, L["PRESENCE_OPTIONS"])
             addon.optionsBtn:SetWidth(math.max(addon.optionsLabel:GetStringWidth() + 4, 44))
@@ -502,7 +485,6 @@ local function FullLayout()
         end
         headerBtn:SetHeight(addon.GetScaledPadding() + addon.GetHeaderHeight())
     end
-    lastMinimal = minimal
 
     local contentTop = addon.GetContentTop()
 
