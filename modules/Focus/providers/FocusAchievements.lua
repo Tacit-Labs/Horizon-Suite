@@ -19,7 +19,7 @@ local MAX_LEGACY_TRACKED_ACHIEVEMENTS = 10
 local function GetAchievementCriteria(achievementID)
     local objectives = {}
     local criteriaDone, criteriaTotal = 0, 0
-    local onlyMissing = addon.GetDB and addon.GetDB("achievementOnlyMissingRequirements", false)
+    local onlyMissing = addon.GetDB and addon.GetDB("achievementOnlyMissingRequirements", true)
     if not GetAchievementCriteriaInfo then return objectives, criteriaDone, criteriaTotal end
     -- pcall: GetAchievementNumCriteria and GetAchievementCriteriaInfo can throw on invalid ID.
     local numCriteria = 0
