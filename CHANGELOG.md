@@ -10,6 +10,14 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [6.11.1] – 2026-10-20
+
+### 🐛 Fixes
+- **(Focus)** Tracked achievements now list only the criteria you still need by default, as Blizzard's tracker does. Turn off Missing Criteria Only to see every criterion.
+- **(Focus)** In Minimal mode the header chevron and Options text stay hidden after a reload, and they disappear again when the cursor leaves the tracker.
+
+---
+
 ## [6.11.0] – 2026-10-19
 
 ### ✨ New Features

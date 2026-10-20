@@ -19,6 +19,17 @@ local addon = _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["6.11.1"] = {
+        date = "2026-10-20",
+        {
+            section = "Fixes",
+            bullets = {
+                "Focus: tracked achievements now list only the criteria you still need by default. Turn off Missing Criteria Only to see them all.",
+                "Focus: in Minimal mode the header chevron and Options text stay hidden after a reload, and hide again when the cursor leaves.",
+            },
+        },
+    },
+
     ["6.11.0"] = {
         date = "2026-10-19",
         {
