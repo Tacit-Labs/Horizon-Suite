@@ -5064,8 +5064,8 @@ run(`
   local db = { echoWhisperSound = "blizzard", echoSoundInCombat = true, echoSoundBnet = true }
   HorizonSuite.ECHO_DEFAULTS = { echoWhisperSound = "blizzard", echoSoundInCombat = true, echoSoundBnet = true }
   HorizonSuite.GetDB = function(k, d) if db[k] ~= nil then return db[k] end return d end
-  local played
-  PlaySound = function(id) played = id end
+  local played, playedChannel
+  PlaySound = function(id, channel) played = id; playedChannel = channel end
   local now = 1000
   GetTime = function() return now end
   InCombatLockdown = function() return false end
@@ -5073,6 +5073,7 @@ run(`
 
   Echo.Sound.Whisper(false)
   check("blizzard choice plays TELL_MESSAGE", played == 3081, played)
+  check("whisper sound plays on the SFX channel", playedChannel == "SFX", playedChannel)
 
   now = now + 2; played = nil
   db.echoWhisperSound = "toast"
