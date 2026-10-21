@@ -64,6 +64,7 @@ Card.STAMP_GAP = 4  -- between a conversation bubble and its time beside it (ech
 Card.FEED_GAP = 2
 Card.PREFIX_SHARE = 0.4  -- an All line's prefix takes at most this share of the line
 Card.PREFIX_GAP = 4      -- between an All line's prefix and its text
+Card.WHO_SHARE = 0.2     -- an All line's secret sender (combat) takes this share of the line
 Card.TAB_HEIGHT = 18
 Card.TAB_GAP = 4
 Card.TAB_STRIP = Card.TAB_HEIGHT + Card.TAB_GAP  -- how far a group card's area moves down
@@ -532,6 +533,13 @@ local function Bubble(i)
     b.prefix:SetWordWrap(false)
     b.prefix:SetMaxLines(1)
     b.prefix:Hide()
+    -- An All line's secret sender (combat): never joined with the prefix either.
+    b.who = Echo.NewText(b, Card.TEXT_SIZE, "")
+    b.who:SetJustifyH("LEFT")
+    b.who:SetJustifyV("TOP")
+    b.who:SetWordWrap(false)
+    b.who:SetMaxLines(1)
+    b.who:Hide()
     -- The pin marker, placed by Mark once the bubble's side is known.
     b.pin = b:CreateTexture(nil, "OVERLAY")
     b.pin:SetTexture(Card.PIN_TEXTURE)
@@ -621,6 +629,7 @@ local function SizeBubble(b, text, secret, markSide)
     local maxWidth = Card.BUBBLE_MAX - extra
     b.time:Hide()
     b.prefix:Hide()
+    b.who:Hide()
     b.text:ClearAllPoints()
     b.text:SetPoint("TOPLEFT", b, "TOPLEFT", Card.BUBBLE_PAD + (markSide == "left" and extra or 0), -Card.BUBBLE_PAD)
     local inner = maxWidth - Card.BUBBLE_PAD * 2
@@ -652,23 +661,39 @@ end
 -- Returns how far the text moves right. The prefix is readable, so it is measured; it
 -- never takes more than Card.PREFIX_SHARE of the room.
 local function PlacePrefix(b, msg, left, room)
+    local shift = 0
     local prefix = msg.prefix
     if Echo.IsSecret(prefix) or type(prefix) ~= "string" or prefix == "" then
         b.prefix:SetText("")
         b.prefix:Hide()
-        return 0
+    else
+        local most = math.floor(room * Card.PREFIX_SHARE)
+        b.prefix:ClearAllPoints()
+        b.prefix:SetPoint("TOPLEFT", b, "TOPLEFT", left, -3)
+        b.prefix:SetText(prefix)
+        local measured
+        if b.prefix.GetUnboundedStringWidth then measured = b.prefix:GetUnboundedStringWidth() end
+        if Echo.IsSecret(measured) or type(measured) ~= "number" or measured <= 0 then measured = most end
+        local width = math.min(most, math.ceil(measured) + 1)
+        b.prefix:SetWidth(width)
+        b.prefix:Show()
+        shift = width + Card.PREFIX_GAP
     end
-    local most = math.floor(room * Card.PREFIX_SHARE)
-    b.prefix:ClearAllPoints()
-    b.prefix:SetPoint("TOPLEFT", b, "TOPLEFT", left, -3)
-    b.prefix:SetText(prefix)
-    local measured
-    if b.prefix.GetUnboundedStringWidth then measured = b.prefix:GetUnboundedStringWidth() end
-    if Echo.IsSecret(measured) or type(measured) ~= "number" or measured <= 0 then measured = most end
-    local width = math.min(most, math.ceil(measured) + 1)
-    b.prefix:SetWidth(width)
-    b.prefix:Show()
-    return width + Card.PREFIX_GAP
+    -- A secret sender (combat) follows in its own FontString. It can't be measured, so it
+    -- takes a fixed Card.WHO_SHARE of the room.
+    if Echo.IsSecret(msg.who) then
+        local width = math.floor(room * Card.WHO_SHARE)
+        b.who:ClearAllPoints()
+        b.who:SetPoint("TOPLEFT", b, "TOPLEFT", left + shift, -3)
+        b.who:SetText(msg.who)
+        b.who:SetWidth(width)
+        b.who:Show()
+        shift = shift + width + Card.PREFIX_GAP
+    else
+        b.who:SetText("")
+        b.who:Hide()
+    end
+    return shift
 end
 
 -- Lay out one feed line across the card: time, then (when pinned) the pin marker, then an
@@ -778,6 +803,7 @@ local function RenderMessages(conv)
             local lr, lg, lb = View.LineColor(conv, msg)
             line.text:SetTextColor(lr, lg, lb, 1)
             line.prefix:SetTextColor(lr, lg, lb, 1)
+            line.who:SetTextColor(lr, lg, lb, 1)
             line:Show()
             y = y + height + Card.FEED_GAP
         end
@@ -863,7 +889,7 @@ local function RenderMessages(conv)
             bubble:Show()
             y = y + height
             local startsGroup = View.StartsGroup(messages, i)
-            local name = isGroup and not msg.outgoing and View.SenderName(msg) or nil
+            local name = isGroup and not msg.outgoing and View.SenderLabel(msg) or nil
             if startsGroup and name then
                 usedLabels = usedLabels + 1
                 local label = Label(usedLabels)
