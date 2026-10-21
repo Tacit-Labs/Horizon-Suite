@@ -4,6 +4,8 @@
     All of Echo's secret-value handling lives here (spec: Intake and secret values):
       - sender readable, text secret: routed, flagged secret, never persisted
       - sender secret on a whisper: no conversation; counted as unrouted
+      - sender secret elsewhere (a group or channel in combat): routed, the secret name
+        kept as the sender for SetText only, never compared, joined or stored
     Other addons' message filters run over each line before it is filed (plan 12), as they
     do for Blizzard's chat windows: a blocked line is dropped, a rewritten one filed as
     rewritten.
@@ -290,6 +292,10 @@ function Events.BuildRecord(event, text, sender, _, _, _, _, zoneChannelID, chan
         if kind == "bnet" then
             -- Protected |K display string: safe to SetText, never stored.
             if not IsSecret(sender) then record.sender = sender end
+        elseif senderKey == nil and IsSecret(sender) then
+            -- A secret name (combat): kept so the line can still show who spoke, through
+            -- SetText on its own FontString. Never compared, joined or stored.
+            record.sender = sender
         else
             record.sender = senderKey
         end

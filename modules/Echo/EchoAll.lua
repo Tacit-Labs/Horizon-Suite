@@ -7,7 +7,8 @@
     Blizzard's chat windows are hidden (Echo.FeedEnabled).
     Its sources, all built into lines by one builder (NewLine):
       - Echo's records, through a Store listener: each becomes an All line with its chat's
-        short name and sender in a separate prefix field, and the record's outgoing flag.
+        short name and sender in a separate prefix field (a secret sender in a field of
+        its own, who), and the record's outgoing flag.
         The line keeps its source (sourceKey, sourceRecord), so its menu pins the source.
         A secret text is kept as it is and never joined with the prefix.
       - Other text, through a post-hook on DEFAULT_CHAT_FRAME.AddMessage. A call from
@@ -168,6 +169,11 @@ function All.LineFor(conv, record)
     local line = NewLine(record.text, All.PrefixFor(conv, record), r, g, b, record.time)
     if not line then return nil end
     line.secret = (line.secret or record.secret) and true or false
+    -- A secret sender can't join the prefix: the card draws it in a FontString of its own.
+    if not record.outgoing and Echo.IsSecret(record.sender) and not Store.FEED_KINDS[conv.kind]
+        and conv.kind ~= "whisper" and conv.kind ~= "bnet" and not NAMED_STYLES[record.style] then
+        line.who = record.sender
+    end
     line.outgoing = record.outgoing and true or false
     line.sourceKey = record.convKey
     line.sourceRecord = record

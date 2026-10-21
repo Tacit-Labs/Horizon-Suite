@@ -302,6 +302,17 @@ function View.SenderName(msg)
     return sender:match("^([^-]+)") or sender
 end
 
+--- Who spoke, for a FontString of its own: the readable short name, else a secret one
+-- (a sender in combat), which only SetText may take.
+-- @param msg table
+-- @return string|any|nil
+function View.SenderLabel(msg)
+    local name = View.SenderName(msg)
+    if name then return name end
+    if msg and Echo.IsSecret(msg.sender) then return msg.sender end
+    return nil
+end
+
 local FIRST_CHAR = "^[\1-\127\194-\244][\128-\191]*"
 local UTF8_CHAR = "[\1-\127\194-\244][\128-\191]*"
 
