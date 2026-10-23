@@ -10,6 +10,13 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [6.12.0] – 2026-10-23
+
+### ✨ New Features
+- **(Insight) Cursor, fixed in combat** — A new Tooltip Anchor choice follows the cursor out of combat and moves tooltips to your fixed anchor while you are in combat.
+
+---
+
 ## [6.11.1] – 2026-10-20
 
 ### 🐛 Fixes
