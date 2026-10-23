@@ -724,6 +724,7 @@ L["AXIS_TOOLTIP_ANCHOR_MODE"]                                 = "툴팁 고정 �
 L["AXIS_WHERE_TOOLTIPS_APPEAR_FOLLOW_CURSOR_FIXED"]           = "툴팁 표시 위치: 커서 추적 또는 고정 위치."
 L["AXIS_CURSOR"]                                              = "커서"
 L["AXIS_FIXED"]                                               = "고정"
+-- L["AXIS_CURSOR_COMBAT_FIXED"]                              = "Cursor, fixed in combat"
 -- L["INSIGHT_CURSOR_SIDE"]                                   = "Cursor Side"
 -- L["INSIGHT_CURSOR_SIDE_DESC"]                              = "Which side of the cursor the tooltip appears on."
 -- L["INSIGHT_CURSOR_SIDE_CENTER"]                            = "Center"

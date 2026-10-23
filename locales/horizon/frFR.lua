@@ -724,6 +724,7 @@ L["AXIS_TOOLTIP_ANCHOR_MODE"]                                 = "Mode d'ancrage 
 L["AXIS_WHERE_TOOLTIPS_APPEAR_FOLLOW_CURSOR_FIXED"]           = "Où les infobulles s'affichent : suivre le curseur ou position fixe."
 L["AXIS_CURSOR"]                                              = "Curseur"
 L["AXIS_FIXED"]                                               = "Fixe"
+-- L["AXIS_CURSOR_COMBAT_FIXED"]                              = "Cursor, fixed in combat"
 -- L["INSIGHT_CURSOR_SIDE"]                                   = "Cursor Side"
 -- L["INSIGHT_CURSOR_SIDE_DESC"]                              = "Which side of the cursor the tooltip appears on."
 -- L["INSIGHT_CURSOR_SIDE_CENTER"]                            = "Center"

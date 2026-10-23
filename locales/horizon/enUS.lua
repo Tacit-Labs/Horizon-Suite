@@ -850,6 +850,7 @@ L["AXIS_TOOLTIP_ANCHOR_MODE"]                                 = "Tooltip Anchor 
 L["AXIS_WHERE_TOOLTIPS_APPEAR_FOLLOW_CURSOR_FIXED"]           = "Follow the cursor or sit in a fixed spot."
 L["AXIS_CURSOR"]                                              = "Cursor"
 L["AXIS_FIXED"]                                               = "Fixed"
+L["AXIS_CURSOR_COMBAT_FIXED"]                                 = "Cursor, fixed in combat"
 L["INSIGHT_CURSOR_SIDE"]                                      = "Cursor side"
 L["INSIGHT_CURSOR_SIDE_DESC"]                                 = "Side of the cursor the tooltip appears on."
 L["INSIGHT_CURSOR_SIDE_CENTER"]                               = "Centre"
