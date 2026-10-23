@@ -19,6 +19,16 @@ local addon = _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["6.12.0"] = {
+        date = "2026-10-23",
+        {
+            section = "New Features",
+            bullets = {
+                "Insight: a new Tooltip Anchor choice, Cursor, fixed in combat, follows the cursor out of combat and moves tooltips to your fixed anchor while you are in combat.",
+            },
+        },
+    },
+
     ["6.11.1"] = {
         date = "2026-10-20",
         {
