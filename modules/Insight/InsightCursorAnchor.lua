@@ -1,6 +1,7 @@
 --[[
     Horizon Suite - Insight Cursor Anchor
     Hook GameTooltip_SetDefaultAnchor and apply cursor-side or fixed positioning.
+    "cursor_combat_fixed" follows the cursor out of combat and uses the fixed anchor in combat.
     No per-frame updates, no manual line clearing, no state tracking.
 ]]
 
@@ -13,8 +14,13 @@ local FIXED_POINT = Insight.FIXED_POINT
 local FIXED_X     = Insight.FIXED_X
 local FIXED_Y     = Insight.FIXED_Y
 
+-- Resolves the stored anchor mode to "cursor" or "fixed" for the tooltip being shown now.
 local function GetAnchorMode()
-    return addon.GetDB("insightAnchorMode", Insight.DEFAULT_ANCHOR)
+    local mode = addon.GetDB("insightAnchorMode", Insight.DEFAULT_ANCHOR)
+    if mode == "cursor_combat_fixed" then
+        return InCombatLockdown() and "fixed" or "cursor"
+    end
+    return mode
 end
 
 local function GetFixedPoint()

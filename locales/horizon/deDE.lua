@@ -724,6 +724,7 @@ L["AXIS_TOOLTIP_ANCHOR_MODE"]                                 = "Tooltip-Ankermo
 L["AXIS_WHERE_TOOLTIPS_APPEAR_FOLLOW_CURSOR_FIXED"]           = "Tooltip-Position: Mauszeiger folgen oder feste Position."
 L["AXIS_CURSOR"]                                              = "Mauszeiger"
 L["AXIS_FIXED"]                                               = "Fixiert"
+-- L["AXIS_CURSOR_COMBAT_FIXED"]                              = "Cursor, fixed in combat"
 L["INSIGHT_CURSOR_SIDE"]                                      = "Mauszeigerseite"
 L["INSIGHT_CURSOR_SIDE_DESC"]                                 = "Seite des Mauszeigers, auf der Tooltips eingeblendet werden."
 L["INSIGHT_CURSOR_SIDE_CENTER"]                               = "Zentriert"

@@ -723,6 +723,7 @@ L["AXIS_TOOLTIP_ANCHOR_MODE"]                                 = "提示锚定模
 L["AXIS_WHERE_TOOLTIPS_APPEAR_FOLLOW_CURSOR_FIXED"]           = "提示显示位置：跟随光标或固定位置"
 L["AXIS_CURSOR"]                                              = "光标"
 L["AXIS_FIXED"]                                               = "固定"
+-- L["AXIS_CURSOR_COMBAT_FIXED"]                              = "Cursor, fixed in combat"
 -- L["INSIGHT_CURSOR_SIDE"]                                   = "Cursor Side"
 -- L["INSIGHT_CURSOR_SIDE_DESC"]                              = "Which side of the cursor the tooltip appears on."
 -- L["INSIGHT_CURSOR_SIDE_CENTER"]                            = "Center"
