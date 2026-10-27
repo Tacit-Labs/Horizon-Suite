@@ -10,6 +10,13 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [6.12.1] – 2026-10-27
+
+### 🐛 Fixes
+- **(Echo)** Chat lines from other players show who said them again during boss fights and Mythic+, in conversations and in the All feed, and boss yells name the boss.
+
+---
+
 ## [6.12.0] – 2026-10-23
 
 ### ✨ New Features
