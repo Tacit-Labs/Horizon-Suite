@@ -508,8 +508,14 @@ run(`
   check("secret whisper sender is unrouted", none == nil and reason == "unrouted", reason)
   none, reason = E.BuildRecord("CHAT_MSG_BN_WHISPER", payload("hi", "|Kq1|k", nil, nil, SECRET(77)))
   check("secret bnet id is unrouted", none == nil and reason == "unrouted", reason)
-  r = E.BuildRecord("CHAT_MSG_RAID", payload("go", SECRET("Lead-Horizon")))
-  check("secret sender in a group channel still routes", r and r.convKey == "raid" and r.sender == nil, r and r.convKey)
+  local V, SECRET_LEAD = HorizonSuite.Echo.View, SECRET("Lead-Horizon")
+  r = E.BuildRecord("CHAT_MSG_RAID", payload("go", SECRET_LEAD))
+  check("secret sender in a group channel still routes", r and r.convKey == "raid", r and r.convKey)
+  check("a secret group sender is kept to show, as it is", r and rawequal(r.sender, SECRET_LEAD), r and tostring(r.sender))
+  check("a secret group sender's label is the secret itself", rawequal(V.SenderLabel(r), r.sender), "dropped")
+  check("a secret group sender has no readable name", V.SenderName(r) == nil, "named")
+  check("a readable sender's label is its short name", V.SenderLabel({ sender = "Tank-Horizon" }) == "Tank", "?")
+  check("no sender, no label", V.SenderLabel({}) == nil, "?")
   r = E.BuildRecord("CHAT_MSG_WHISPER", payload("hi", "Brisa-Horizon", nil, SECRET("Player-1-DRUID")))
   check("secret GUID gives no class", r.class == nil, r.class)
   local savedInfo = GetPlayerInfoByGUID
@@ -6749,7 +6755,7 @@ run(`
   r = E.BuildRecord("CHAT_MSG_MONSTER_YELL", payload("Intruders!", "Hogger"))
   check("nearby: an NPC line keeps the NPC's name", r.sender == "Hogger", r.sender)
   r = E.BuildRecord("CHAT_MSG_MONSTER_SAY", payload("Hmm.", SECRET("Hogger")))
-  check("nearby: a secret NPC name is not kept", r.sender == nil, tostring(r.sender))
+  check("nearby: a secret NPC name is kept only to show", HorizonSuite.Echo.IsSecret(r.sender) and HorizonSuite.Echo.View.SenderName(r) == nil, tostring(r.sender))
   r = E.BuildRecord("CHAT_MSG_MONSTER_EMOTE", payload("%s goes into a frenzy!", "Hogger"))
   check("nearby: an NPC emote names its speaker", r.text == "Hogger goes into a frenzy!", r.text)
   r = E.BuildRecord("CHAT_MSG_MONSTER_EMOTE", payload("%s roars!", SECRET("Hogger")))
@@ -8864,6 +8870,14 @@ run(`
   check("all: a secret record stays secret", line.secret == true and rawequal(line.text, secretText), tostring(line.secret))
   check("all: a secret line still has its prefix, apart", line.prefix == "[ECHO_KIND_PARTY] Brisa:", tostring(line.prefix))
   check("all: a secret line's text is never joined", rawequal(V.LineText(all, line), secretText), "joined")
+  check("all: a readable sender needs no field of its own", line.who == nil, "who")
+
+  local secretWho = SECRET("Brisa-Horizon")
+  S.Add({ convKey = "party", text = "pull", sender = secretWho })
+  line = all.messages[3] or {}
+  check("all: a secret sender keeps the chat's prefix, unjoined", line.prefix == "[ECHO_KIND_PARTY]", tostring(line.prefix))
+  check("all: a secret sender is shown in a field of its own", rawequal(line.who, secretWho), "dropped")
+  table.remove(all.messages, 3)
 
   S.Add({ convKey = "w:Brisa-Horizon", text = "hi", sender = "Brisa-Horizon" })
   line = all.messages[3] or {}
