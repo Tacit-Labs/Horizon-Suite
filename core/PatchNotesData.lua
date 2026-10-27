@@ -19,6 +19,16 @@ local addon = _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["6.12.1"] = {
+        date = "2026-10-27",
+        {
+            section = "Fixes",
+            bullets = {
+                "Echo: chat lines from other players show who said them again during boss fights and Mythic+, and boss yells name the boss.",
+            },
+        },
+    },
+
     ["6.12.0"] = {
         date = "2026-10-23",
         {
