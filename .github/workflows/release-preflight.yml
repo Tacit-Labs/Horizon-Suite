@@ -34,7 +34,7 @@ jobs:
     name: Version metadata is complete
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Read the addon version
         id: toc
