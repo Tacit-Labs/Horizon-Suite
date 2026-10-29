@@ -14,6 +14,7 @@ The most direct way to do so is through our Discord server. We do check our Curs
 |Contribution Type|Corresponding File for More Information|
 |----------------------|--------------------------------------------------|
 For coding conventions, see `Docs/Contributions/Code.md`.
+For adding a new module, see `Docs/Contributions/AddingAModule.md`.
 For GitHub contributions, see `Docs/Contributions/Repository/Repository.md`.
 For locale guidelines, see `Docs/Contributions/Translate.md`.
 
