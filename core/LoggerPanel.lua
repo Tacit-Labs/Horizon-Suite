@@ -287,3 +287,5 @@ local function createPanel(tag, title, opts)
 end
 
 addon.Log.createPanel = createPanel
+-- Shows any text in the shared copy dialog (for debug reports players paste back to us).
+addon.Log.showCopyText = ShowCopyFallback
