@@ -41,20 +41,30 @@ const STUBS = `
 
   local TIERS = {
     {
-      dungeons = { { id = 63, name = "The Deadmines" } },
-      raids    = { { id = 741, name = "Molten Core" } },
+      dungeons = { { id = 63, name = "The Deadmines" }, { id = 236, name = "Stratholme - Main Gate" } },
+      raids    = { { id = 741, name = "Molten Core" }, { id = 745, name = "Karazhan" }, { id = 749, name = "The Eye" } },
     },
     {
-      dungeons = { { id = 64, name = "Shadowfang Keep" } },
-      raids    = {},
+      dungeons = { { id = 64, name = "Shadowfang Keep" }, { id = 716, name = "Eye of Azshara" },
+                   { id = 1067, name = "The Deadmines" } },
+      raids    = { { id = 322, name = "Pandaria" }, { id = 860, name = "Return to Karazhan" } },
     },
   }
+  -- [journalInstanceID] = dungeonAreaMapID; 424 is a continent (world-boss page).
+  local AREA_MAP = { [322] = 424, [63] = 291 }
+  local MAP_TYPE = { [424] = 2, [291] = 4 }
   -- [journalInstanceID] = { { name, dungeonEncounterID, mapID, creatures } }
   local ENCOUNTERS = {
     [63]  = { { "Glubtok", 1064, 36 }, { "Edwin VanCleef", 2001, 36 } },
     [741] = { { "Ragnaros", 672, 409 }, { "Ook", 673, 409 } },
     [64]  = { { "Lord Godfrey", 1072, 33, { "Lord Godfrey", "Baron Ashbury" } } },
+    [236] = { { "Balnazzar", 484, 329 } },
+    [322] = { { "Sha of Anger", 691, 870 } },
+    [1067] = { { "Edwin VanCleef", 2001, 36 } },
   }
+  selectedInstance = nil
+  EJ_SelectInstance = function(id) selectedInstance = id end
+  EJ_GetInstanceInfo = function(id) return "", "", 0, 0, 0, 0, AREA_MAP[id] or 0 end
   selectedTier = 2
   EJ_GetNumTiers = function() return #TIERS end
   EJ_GetCurrentTier = function() return selectedTier end
@@ -64,8 +74,10 @@ const STUBS = `
     local e = list[i]
     if e then return e.id, e.name end
   end
-  EJ_GetEncounterInfoByIndex = function(i, journalID)
-    local e = ENCOUNTERS[journalID] and ENCOUNTERS[journalID][i]
+  -- Like the live client: the ID argument is ignored and the selected instance is read.
+  EJ_GetEncounterInfoByIndex = function(i, _)
+    local journalID = selectedInstance
+    local e = journalID and ENCOUNTERS[journalID] and ENCOUNTERS[journalID][i]
     if not e then return nil end
     -- name, description, journalEncounterID, rootSectionID, link, journalInstanceID, dungeonEncounterID, instanceID
     return e[1], "", journalID * 100 + i, 0, "", journalID, e[2], e[3]
@@ -81,7 +93,10 @@ const STUBS = `
 
   PLAYER = { name = "Orgrimmar", type = "none", map = 1, uiMap = 85 }
   GetInstanceInfo = function() return PLAYER.name, PLAYER.type, 2, "Heroic", 5, 0, false, PLAYER.map end
-  C_Map = { GetBestMapForUnit = function() return PLAYER.uiMap end }
+  C_Map = {
+    GetBestMapForUnit = function() return PLAYER.uiMap end,
+    GetMapInfo = function(id) if MAP_TYPE[id] then return { mapType = MAP_TYPE[id] } end end,
+  }
 
   local CATEGORIES = {
     [168]   = { "Dungeons & Raids", -1 },
@@ -90,7 +105,7 @@ const STUBS = `
     [92]    = { "General", -1 },
   }
   local CATEGORY_ACHIEVEMENTS = {
-    [14808] = { 100, 101, 102, 103, 104, 105 },
+    [14808] = { 100, 101, 102, 103, 104, 105, 107, 108, 109, 110, 111 },
     [9001]  = { 106 },
     [92]    = { 200 },
     [168]   = {},
@@ -105,6 +120,11 @@ const STUBS = `
     [105] = { "Glory of the Classic Hero", "Complete the Deadmines and Molten Core achievements listed below.",
               { { "Heroic: Deadmines", 8, 100 } } },
     [106] = { "Keep Explorer", "Explore every room.", {} },
+    [107] = { "Stratholme", "Defeat Baron Rivendare in Stratholme.", {} },
+    [108] = { "Mythic: Eye of Azshara", "Defeat Wrath of Azshara in the Eye of Azshara on Mythic.", {} },
+    [109] = { "Took the Red Eye Down", "Defeat something with a red eye.", {} },
+    [110] = { "Heroic: Return to Karazhan", "Defeat Viz'aduum in Return to Karazhan on Heroic.", {} },
+    [111] = { "Minutes to Midnight", "Defeat Pandaria's champions before midnight.", {} },
     [200] = { "Level 10", "Reach level 10.", {} },
   }
   local ACH_CATEGORY = {}
@@ -147,7 +167,7 @@ const HELPERS = `
     local out = {}
     for _, m in ipairs(AI.FindInstances(AI.GetAchievementFacts(achID))) do
       local s = {}
-      for _, k in ipairs({ "encounter", "name", "boss", "category" }) do
+      for _, k in ipairs({ "encounter", "name", "boss", "category" }) do -- signal order
         if m.hit[k] then s[#s + 1] = k end
       end
       out[#out + 1] = m.inst.name .. "[" .. table.concat(s, "+") .. "]"
@@ -160,6 +180,10 @@ const HELPERS = `
     AI.ResetIndex()
     local idx = AI.GetInstanceIndex()
     return #idx.list .. " instances, tier " .. selectedTier
+  end
+
+  function indexLine()
+    return AI.IndexSummary(AI.GetInstanceIndex())
   end
 
   function tracked(where)
@@ -218,8 +242,14 @@ function checkHas(label, text, needle) {
   }
 }
 
-check('index walks every tier and restores the selected tier', call('indexInfo'), '3 instances, tier 2');
-check('instance name in title/description ("the" ignored)', call('links', 100), 'The Deadmines[name+boss]');
+check('index walks every tier, skips world-boss pages, restores the tier', call('indexInfo'), '9 instances, tier 2');
+checkHas('index reads bosses of every instance', call('indexLine'), '9 instances, 7 encounters');
+check('instance name in title/description ("the" ignored); same-name entries count once', call('links', 100), 'The Deadmines[name+boss]');
+check('"Name - Wing" journal entry still matches the bare name', call('links', 107), 'Stratholme - Main Gate[name]');
+check('"The Eye" does not match inside "Eye of Azshara"', call('links', 108), 'Eye of Azshara[name]');
+check('one-word "The Eye" keeps its "the"', call('links', 109), 'none');
+check('"Karazhan" is dropped when "Return to Karazhan" matches', call('links', 110), 'Return to Karazhan[name]');
+check('world-boss pages are not instances', call('links', 111), 'none');
 check('Defeat Encounter criterion matches by DungeonEncounter ID', call('links', 101), 'Molten Core[encounter]');
 check('kill-creature asset that collides with an encounter ID is ignored', call('links', 102), 'none');
 check('criterion text naming a boss matches', call('links', 103), 'Shadowfang Keep[boss]');
@@ -240,12 +270,13 @@ checkHas('outside an instance there is no verdict', outside, 'Current instance: 
 checkHas('outside an instance links are still listed', outside, '[101] Hot Pursuit\n    Molten Core [encounter]');
 
 const summary = call('scan');
-checkHas('scan covers only Dungeons & Raids categories', summary, 'Scanned 7 Dungeons & Raids achievements');
-checkHas('scan counts single links', summary, 'one instance:  4 (57%)');
-checkHas('scan counts multiple links', summary, 'several:       1 (14%)');
-checkHas('scan counts misses', summary, 'no link:       2 (29%)');
+checkHas('scan covers only Dungeons & Raids categories', summary, 'Scanned 12 Dungeons & Raids achievements');
+checkHas('scan counts single links', summary, 'one instance:  7 (58%)');
+checkHas('scan counts multiple links', summary, 'several:       1 (8%)');
+checkHas('scan counts misses', summary, 'no link:       4 (33%)');
 checkHas('scan lists the misses', summary, '[104] Brute Force');
-checkHas('scan breaks down signals', summary, 'by signal: encounter 1, name 2, boss 2, category 1; boss/category only 2');
+checkHas('scan reports the journal index', summary, '1 world-boss pages skipped');
+checkHas('scan breaks down signals', summary, 'by signal: encounter 1, name 5, boss 2, category 1; boss/category only 2');
 
 console.log(failures ? failures + ' failed' : 'all passed');
 process.exit(failures ? 1 : 0);

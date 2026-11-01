@@ -37,13 +37,16 @@ local SCAN_BATCH = 20
 -- Text helpers
 -- ============================================================================
 
--- Lowercase, strip colour codes, punctuation and a leading "the", collapse spaces.
+-- Lowercase, strip colour codes and punctuation, collapse spaces. A leading "the" is
+-- dropped only when two or more words remain, so "The Eye" stays "the eye" and does
+-- not match every "eye" in other text.
 local function Normalize(s)
     if type(s) ~= "string" or s == "" then return nil end
     s = s:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""):lower()
     s = s:gsub("%p", "")
     s = s:gsub("%s+", " "):gsub("^ ", ""):gsub(" $", "")
-    s = s:gsub("^the ", "")
+    local rest = s:match("^the (.+)$")
+    if rest and rest:find(" ", 1, true) then s = rest end
     if s == "" then return nil end
     return s
 end
@@ -66,17 +69,38 @@ end
 
 local instanceIndex = nil  -- { list = { inst... }, byJournalID = {}, byMapID = {} }
 
+-- Journal pages for world bosses ("Pandaria", "Draenor", "Midnight") sit in the raid
+-- list but point at a continent map; they are not instances.
+local function IsWorldBossPage(journalID)
+    local ok, _, _, _, _, _, _, dungeonAreaMapID = SafeCall(EJ_GetInstanceInfo, journalID)
+    if not ok or type(dungeonAreaMapID) ~= "number" or dungeonAreaMapID <= 0 then return false end
+    if not (C_Map and C_Map.GetMapInfo) then return false end
+    local mOk, info = pcall(C_Map.GetMapInfo, dungeonAreaMapID)
+    if not mOk or not info or type(info.mapType) ~= "number" then return false end
+    local continent = (Enum and Enum.UIMapType and Enum.UIMapType.Continent) or 2
+    return info.mapType <= continent
+end
+
 local function BuildInstanceRecord(journalID, name, isRaid)
     local inst = {
         journalID    = journalID,
         name         = name,
         norm         = Normalize(name),
+        aliases      = {},
         isRaid       = isRaid and true or false,
         mapID        = nil,
         encounterIDs = {},
         bossNames    = {},  -- norm -> display name
         numBosses    = 0,
     }
+    if inst.norm then inst.aliases[#inst.aliases + 1] = inst.norm end
+    -- "Stratholme - Main Gate" is still "Stratholme" in older achievement text.
+    local base = type(name) == "string" and name:match("^(.-)%s+[-:]%s+")
+    local baseNorm = Normalize(base)
+    if baseNorm and baseNorm ~= inst.norm then inst.aliases[#inst.aliases + 1] = baseNorm end
+
+    -- EJ_GetEncounterInfoByIndex reads the selected instance even when given an ID.
+    SafeCall(EJ_SelectInstance, journalID)
     for i = 1, MAX_ENCOUNTERS do
         local ok, encName, _, journalEncounterID, _, _, _, dungeonEncounterID, mapID =
             SafeCall(EJ_GetEncounterInfoByIndex, i, journalID)
@@ -105,11 +129,15 @@ end
 function AI.GetInstanceIndex()
     if instanceIndex then return instanceIndex end
     local idx = { list = {}, byJournalID = {}, byMapID = {} }
+    if C_AddOns and C_AddOns.LoadAddOn then
+        pcall(C_AddOns.LoadAddOn, "Blizzard_EncounterJournal")
+    end
     if type(EJ_GetNumTiers) ~= "function" or type(EJ_SelectTier) ~= "function"
         or type(EJ_GetInstanceByIndex) ~= "function" then
         instanceIndex = idx
         return idx
     end
+    idx.numEncounters, idx.numBossNames, idx.skipped = 0, 0, {}
     local _, savedTier = SafeCall(EJ_GetCurrentTier)
     local _, numTiers = SafeCall(EJ_GetNumTiers)
     for tier = 1, (tonumber(numTiers) or 0) do
@@ -118,12 +146,18 @@ function AI.GetInstanceIndex()
             for i = 1, 200 do
                 local ok, journalID, name = SafeCall(EJ_GetInstanceByIndex, i, isRaid)
                 if not ok or not journalID then break end
-                if not idx.byJournalID[journalID] then
-                    local inst = BuildInstanceRecord(journalID, name, isRaid)
-                    inst.tier = tier
-                    idx.list[#idx.list + 1] = inst
-                    idx.byJournalID[journalID] = inst
-                    if inst.mapID then idx.byMapID[inst.mapID] = inst end
+                if not idx.byJournalID[journalID] and not idx.skipped[journalID] then
+                    if isRaid and IsWorldBossPage(journalID) then
+                        idx.skipped[journalID] = name or true
+                    else
+                        local inst = BuildInstanceRecord(journalID, name, isRaid)
+                        inst.tier = tier
+                        idx.list[#idx.list + 1] = inst
+                        idx.byJournalID[journalID] = inst
+                        if inst.mapID then idx.byMapID[inst.mapID] = inst end
+                        idx.numEncounters = idx.numEncounters + inst.numBosses
+                        for _ in pairs(inst.bossNames) do idx.numBossNames = idx.numBossNames + 1 end
+                    end
                 end
             end
         end
@@ -233,9 +267,13 @@ function AI.Match(facts, inst)
         end
     end
 
-    if inst.norm and (ContainsWords(facts.titleNorm, inst.norm) or ContainsWords(facts.descNorm, inst.norm)) then
-        hit.name = true; any = true
-        hit.detail[#hit.detail + 1] = "name \"" .. tostring(inst.name) .. "\""
+    for _, alias in ipairs(inst.aliases or {}) do
+        if ContainsWords(facts.titleNorm, alias) or ContainsWords(facts.descNorm, alias) then
+            hit.name = true; any = true
+            hit.nameNorm = alias
+            hit.detail[#hit.detail + 1] = "name \"" .. alias .. "\""
+            break
+        end
     end
 
     for _, c in ipairs(facts.criteria) do
@@ -269,20 +307,64 @@ function AI.Match(facts, inst)
     return hit
 end
 
--- All instances an achievement links to: list of { inst = , hit = }.
+local SIGNALS = { "encounter", "name", "boss", "category" }
+
+-- All instances an achievement links to: list of { inst = , hit = , journalIDs = set }.
+-- Journal entries sharing a name count once, and a name-only match is dropped when a
+-- longer matched name contains it ("karazhan" inside "return to karazhan").
 function AI.FindInstances(facts)
     local out = {}
     if not facts then return out end
+    local byNorm = {}
     for _, inst in ipairs(AI.GetInstanceIndex().list) do
         local hit = AI.Match(facts, inst)
-        if hit then out[#out + 1] = { inst = inst, hit = hit } end
+        if hit then
+            local key = inst.norm or tostring(inst.journalID)
+            local m = byNorm[key]
+            if m then
+                m.journalIDs[inst.journalID] = true
+                for _, k in ipairs(SIGNALS) do
+                    if hit[k] and not m.hit[k] then
+                        m.hit[k] = true
+                        for _, d in ipairs(hit.detail) do m.hit.detail[#m.hit.detail + 1] = d end
+                    end
+                end
+                m.hit.nameNorm = m.hit.nameNorm or hit.nameNorm
+            else
+                m = { inst = inst, hit = hit, journalIDs = { [inst.journalID] = true } }
+                byNorm[key] = m
+                out[#out + 1] = m
+            end
+        end
     end
-    return out
+    if #out < 2 then return out end
+    local text = (facts.titleNorm or "") .. " | " .. (facts.descNorm or "")
+    local kept = {}
+    for _, m in ipairs(out) do
+        local h = m.hit
+        local nameOnly = h.name and not h.encounter and not h.boss and not h.category
+        local shadowed = false
+        if nameOnly and h.nameNorm then
+            -- Blank out every longer matched name (and a "the" in front of it), then see
+            -- whether this name still appears anywhere on its own.
+            local rest = " " .. text .. " "
+            for _, other in ipairs(out) do
+                local on = other.hit.nameNorm
+                if other ~= m and on and #on > #h.nameNorm then
+                    rest = rest:gsub(" the " .. on:gsub("%p", "%%%0") .. " ", " # ")
+                    rest = rest:gsub(" " .. on:gsub("%p", "%%%0") .. " ", " # ")
+                end
+            end
+            shadowed = not rest:find(" " .. h.nameNorm .. " ", 1, true)
+        end
+        if not shadowed then kept[#kept + 1] = m end
+    end
+    return kept
 end
 
 local function SignalList(hit)
     local s = {}
-    for _, k in ipairs({ "encounter", "name", "boss", "category" }) do
+    for _, k in ipairs(SIGNALS) do
         if hit[k] then s[#s + 1] = k end
     end
     return table.concat(s, "+")
@@ -291,6 +373,13 @@ end
 -- ============================================================================
 -- Reports (lines of plain text)
 -- ============================================================================
+
+function AI.IndexSummary(idx)
+    local skipped = 0
+    for _ in pairs(idx.skipped or {}) do skipped = skipped + 1 end
+    return ("Encounter Journal: %d instances, %d encounters, %d boss names (%d world-boss pages skipped)"):format(
+        #idx.list, idx.numEncounters or 0, idx.numBossNames or 0, skipped)
+end
 
 local function GetTrackedAchievementIDs()
     local ids = {}
@@ -317,7 +406,7 @@ AI.GetTrackedAchievementIDs = GetTrackedAchievementIDs
 function AI.TrackedReport(trackedIDs)
     local lines = {}
     local idx = AI.GetInstanceIndex()
-    lines[#lines + 1] = ("Encounter Journal: %d instances indexed"):format(#idx.list)
+    lines[#lines + 1] = AI.IndexSummary(idx)
     local current, reason, info = AI.GetCurrentInstance()
     if current then
         lines[#lines + 1] = ("Current instance: %s (journal %s, map %s, %s, %d bosses)"):format(
@@ -341,7 +430,7 @@ function AI.TrackedReport(trackedIDs)
             if current then
                 local keep = false
                 for _, m in ipairs(matches) do
-                    if m.inst == current then keep = true; break end
+                    if m.journalIDs[current.journalID] then keep = true; break end
                 end
                 verdict = keep and "  -> SHOW here" or "  -> HIDE here"
             end
@@ -457,7 +546,7 @@ function AI.RunScan(onDone, onProgress)
             if onProgress then onProgress(pos - 1, #ids) end
             C_Timer.After(0, step)
         else
-            local lines = { ("Encounter Journal: %d instances indexed"):format(#idx.list) }
+            local lines = { AI.IndexSummary(idx) }
             for _, l in ipairs(ScanSummary(results)) do lines[#lines + 1] = l end
             onDone(lines, results)
         end

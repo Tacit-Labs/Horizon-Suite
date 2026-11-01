@@ -297,6 +297,8 @@ read_globals = {
     "EJ_GetEncounterInfoByIndex",
     "EJ_GetCreatureInfo",
     "EJ_GetInstanceForMap",
+    "EJ_SelectInstance",
+    "EJ_GetInstanceInfo",
     "GetNumCompletedAchievements",
     "GetProfessions",
     "GetProfessionInfo",
