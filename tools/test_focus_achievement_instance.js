@@ -41,13 +41,22 @@ const STUBS = `
 
   local TIERS = {
     {
-      dungeons = { { id = 63, name = "The Deadmines" }, { id = 236, name = "Stratholme - Main Gate" } },
+      name     = "Burning Crusade",
+      dungeons = { { id = 63, name = "The Deadmines" }, { id = 236, name = "Stratholme - Main Gate" },
+                   { id = 237, name = "Stratholme - Service Entrance" }, { id = 249, name = "Magisters' Terrace" } },
       raids    = { { id = 741, name = "Molten Core" }, { id = 745, name = "Karazhan" }, { id = 749, name = "The Eye" } },
     },
     {
+      name     = "Shadowlands",
       dungeons = { { id = 64, name = "Shadowfang Keep" }, { id = 716, name = "Eye of Azshara" },
                    { id = 1067, name = "The Deadmines" } },
-      raids    = { { id = 322, name = "Pandaria" }, { id = 860, name = "Return to Karazhan" } },
+      raids    = { { id = 322, name = "Pandaria" }, { id = 860, name = "Return to Karazhan" },
+                   { id = 78, name = "Firelands" }, { id = 1190, name = "Castle Nathria" } },
+    },
+    {
+      name     = "Wrath of the Lich King",
+      dungeons = { { id = 276, name = "Halls of Reflection" } },
+      raids    = { { id = 758, name = "Icecrown Citadel" } },
     },
   }
   -- [journalInstanceID] = dungeonAreaMapID; 424 is a continent (world-boss page).
@@ -61,12 +70,19 @@ const STUBS = `
     [236] = { { "Balnazzar", 484, 329 } },
     [322] = { { "Sha of Anger", 691, 870 } },
     [1067] = { { "Edwin VanCleef", 2001, 36 } },
+    [237] = { { "Baron Rivendare", 456, 329 } },
+    [78]  = { { "Ragnaros", 1203, 720 } },
+    [249] = { { "Kael'thas Sunstrider", 1894, 585 } },
+    [1190] = { { "Sun King's Salvation", 2402, 2296, { "Kael'thas Sunstrider" } } },
+    [276] = { { "The Lich King", 1990, 668 } },
+    [758] = { { "The Lich King", 856, 631 } },
   }
   selectedInstance = nil
   EJ_SelectInstance = function(id) selectedInstance = id end
   EJ_GetInstanceInfo = function(id) return "", "", 0, 0, 0, 0, AREA_MAP[id] or 0 end
   selectedTier = 2
   EJ_GetNumTiers = function() return #TIERS end
+  EJ_GetTierInfo = function(t) return TIERS[t] and TIERS[t].name, "" end
   EJ_GetCurrentTier = function() return selectedTier end
   EJ_SelectTier = function(t) selectedTier = t end
   EJ_GetInstanceByIndex = function(i, isRaid)
@@ -103,11 +119,15 @@ const STUBS = `
     [14808] = { "Classic", 168 },
     [9001]  = { "Shadowfang Keep", 168 },
     [92]    = { "General", -1 },
+    [14805] = { "The Burning Crusade", 168 },
+    [14823] = { "Lich King Raid", 168 },
   }
   local CATEGORY_ACHIEVEMENTS = {
     [14808] = { 100, 101, 102, 103, 104, 105, 107, 108, 109, 110, 111 },
     [9001]  = { 106 },
     [92]    = { 200 },
+    [14805] = { 112, 113 },
+    [14823] = { 114, 115 },
     [168]   = {},
   }
   -- [id] = { title, description, criteria = { { text, type, assetID } } }
@@ -125,6 +145,11 @@ const STUBS = `
     [109] = { "Took the Red Eye Down", "Defeat something with a red eye.", {} },
     [110] = { "Heroic: Return to Karazhan", "Defeat Viz'aduum in Return to Karazhan on Heroic.", {} },
     [111] = { "Minutes to Midnight", "Defeat Pandaria's champions before midnight.", {} },
+    [112] = { "Molten Core", "Defeat Ragnaros.", {} },
+    [113] = { "Prince of Fire", "Defeat Kael'thas Sunstrider.", {} },
+    [114] = { "Neck-Deep in Vile", "Defeat The Lich King without anyone dying.", {} },
+    [115] = { "Glory of the Icecrown Raider", "Complete the achievements listed below.",
+              { { "Neck-Deep in Vile", 8, 114 } } },
     [200] = { "Level 10", "Reach level 10.", {} },
   }
   local ACH_CATEGORY = {}
@@ -167,10 +192,10 @@ const HELPERS = `
     local out = {}
     for _, m in ipairs(AI.FindInstances(AI.GetAchievementFacts(achID))) do
       local s = {}
-      for _, k in ipairs({ "encounter", "name", "boss", "category" }) do -- signal order
+      for _, k in ipairs({ "encounter", "name", "boss", "category", "meta" }) do
         if m.hit[k] then s[#s + 1] = k end
       end
-      out[#out + 1] = m.inst.name .. "[" .. table.concat(s, "+") .. "]"
+      out[#out + 1] = m.label .. "[" .. table.concat(s, "+") .. "]"
     end
     table.sort(out)
     return #out > 0 and table.concat(out, ", ") or "none"
@@ -242,10 +267,14 @@ function checkHas(label, text, needle) {
   }
 }
 
-check('index walks every tier, skips world-boss pages, restores the tier', call('indexInfo'), '9 instances, tier 2');
-checkHas('index reads bosses of every instance', call('indexLine'), '9 instances, 7 encounters');
+check('index walks every tier, skips world-boss pages, restores the tier', call('indexInfo'), '15 instances, tier 2');
+checkHas('index reads bosses of every instance', call('indexLine'), '15 instances, 13 encounters');
 check('instance name in title/description ("the" ignored); same-name entries count once', call('links', 100), 'The Deadmines[name+boss]');
-check('"Name - Wing" journal entry still matches the bare name', call('links', 107), 'Stratholme - Main Gate[name]');
+check('wings of one instance merge and match the bare name', call('links', 107), 'Stratholme[name+boss]');
+check('instance name beats a boss shared with another instance', call('links', 112), 'Molten Core[name+boss]');
+check('expansion category picks between instances sharing a boss', call('links', 113), "Magisters' Terrace[boss]");
+check('raid category picks the raid when a dungeon shares the boss', call('links', 114), 'Icecrown Citadel[boss]');
+check('meta links through its sub-achievements', call('links', 115), 'Icecrown Citadel[meta]');
 check('"The Eye" does not match inside "Eye of Azshara"', call('links', 108), 'Eye of Azshara[name]');
 check('one-word "The Eye" keeps its "the"', call('links', 109), 'none');
 check('"Karazhan" is dropped when "Return to Karazhan" matches', call('links', 110), 'Return to Karazhan[name]');
@@ -270,13 +299,13 @@ checkHas('outside an instance there is no verdict', outside, 'Current instance: 
 checkHas('outside an instance links are still listed', outside, '[101] Hot Pursuit\n    Molten Core [encounter]');
 
 const summary = call('scan');
-checkHas('scan covers only Dungeons & Raids categories', summary, 'Scanned 12 Dungeons & Raids achievements');
-checkHas('scan counts single links', summary, 'one instance:  7 (58%)');
-checkHas('scan counts multiple links', summary, 'several:       1 (8%)');
-checkHas('scan counts misses', summary, 'no link:       4 (33%)');
+checkHas('scan covers only Dungeons & Raids categories', summary, 'Scanned 16 Dungeons & Raids achievements');
+checkHas('scan counts single links', summary, 'one instance:  11 (69%)');
+checkHas('scan counts multiple links', summary, 'several:       1 (6%)');
+checkHas('scan counts misses', summary, 'no link:       4 (25%)');
 checkHas('scan lists the misses', summary, '[104] Brute Force');
 checkHas('scan reports the journal index', summary, '1 world-boss pages skipped');
-checkHas('scan breaks down signals', summary, 'by signal: encounter 1, name 5, boss 2, category 1; boss/category only 2');
+checkHas('scan breaks down signals', summary, 'by signal: encounter 1, name 6, boss 6, category 1, meta 1; boss/category only 4');
 
 console.log(failures ? failures + ' failed' : 'all passed');
 process.exit(failures ? 1 : 0);

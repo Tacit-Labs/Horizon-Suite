@@ -12,6 +12,9 @@
       boss       a criterion's text is one of the instance's boss/creature names, or
                  a boss name appears as whole words in the description
       category   an ancestor achievement category carries the instance name
+      meta       no direct link, but its sub-achievements link (Glory of the ... metas)
+    When several instances match, the strongest evidence wins, then the achievement's
+    expansion category and dungeon/raid type break ties.
 
     Not wired into the tracker. Driven by /h debug focus achinstdebug [scan].
 ]]
@@ -58,6 +61,22 @@ local function ContainsWords(haystack, needle)
     return (" " .. haystack .. " "):find(" " .. needle .. " ", 1, true) ~= nil
 end
 
+-- Words that say nothing about which expansion an achievement belongs to.
+local STOP_WORDS = {
+    ["the"] = true, ["of"] = true, ["for"] = true, ["and"] = true,
+    ["dungeon"] = true, ["dungeons"] = true, ["raid"] = true, ["raids"] = true,
+}
+
+function AI.WordSet(norm)
+    local set = {}
+    if norm then
+        for w in norm:gmatch("%S+") do
+            if not STOP_WORDS[w] then set[w] = true end
+        end
+    end
+    return set
+end
+
 local function SafeCall(fn, ...)
     if type(fn) ~= "function" then return false end
     return pcall(fn, ...)
@@ -95,9 +114,14 @@ local function BuildInstanceRecord(journalID, name, isRaid)
     }
     if inst.norm then inst.aliases[#inst.aliases + 1] = inst.norm end
     -- "Stratholme - Main Gate" is still "Stratholme" in older achievement text.
-    local base = type(name) == "string" and name:match("^(.-)%s+[-:]%s+")
+    local base = type(name) == "string" and name:match("^(.-)%s+%-%s+")
     local baseNorm = Normalize(base)
-    if baseNorm and baseNorm ~= inst.norm then inst.aliases[#inst.aliases + 1] = baseNorm end
+    if baseNorm and baseNorm ~= inst.norm then
+        inst.aliases[#inst.aliases + 1] = baseNorm
+        inst.baseName = base
+    end
+    -- Wings of one instance ("Dire Maul - Capital Gardens", "... - Gordok Commons") count once.
+    inst.key = baseNorm or inst.norm or tostring(journalID)
 
     -- EJ_GetEncounterInfoByIndex reads the selected instance even when given an ID.
     SafeCall(EJ_SelectInstance, journalID)
@@ -142,6 +166,7 @@ function AI.GetInstanceIndex()
     local _, numTiers = SafeCall(EJ_GetNumTiers)
     for tier = 1, (tonumber(numTiers) or 0) do
         SafeCall(EJ_SelectTier, tier)
+        local _, tierName = SafeCall(EJ_GetTierInfo, tier)
         for _, isRaid in ipairs({ false, true }) do
             for i = 1, 200 do
                 local ok, journalID, name = SafeCall(EJ_GetInstanceByIndex, i, isRaid)
@@ -152,6 +177,7 @@ function AI.GetInstanceIndex()
                     else
                         local inst = BuildInstanceRecord(journalID, name, isRaid)
                         inst.tier = tier
+                        inst.tierWords = AI.WordSet(Normalize(tierName))
                         idx.list[#idx.list + 1] = inst
                         idx.byJournalID[journalID] = inst
                         if inst.mapID then idx.byMapID[inst.mapID] = inst end
@@ -307,37 +333,54 @@ function AI.Match(facts, inst)
     return hit
 end
 
-local SIGNALS = { "encounter", "name", "boss", "category" }
+local SIGNALS = { "encounter", "name", "boss", "category", "meta" }
+-- An encounter ID outranks the instance name, which outranks a boss name: bosses such as
+-- Ragnaros, Nefarian, Kael'thas or the Lich King appear in more than one instance.
+local SIGNAL_WEIGHT = { encounter = 8, name = 4, boss = 2, category = 1, meta = 1 }
+local MAX_META_CRITERIA = 60
 
--- All instances an achievement links to: list of { inst = , hit = , journalIDs = set }.
--- Journal entries sharing a name count once, and a name-only match is dropped when a
--- longer matched name contains it ("karazhan" inside "return to karazhan").
-function AI.FindInstances(facts)
-    local out = {}
-    if not facts then return out end
-    local byNorm = {}
+local function Score(hit)
+    local n = 0
+    for k, w in pairs(SIGNAL_WEIGHT) do
+        if hit[k] then n = n + w end
+    end
+    return n
+end
+
+local function MergeHit(m, hit, journalID)
+    m.journalIDs[journalID] = true
+    for _, k in ipairs(SIGNALS) do
+        if hit[k] and not m.hit[k] then
+            m.hit[k] = true
+            for _, d in ipairs(hit.detail) do m.hit.detail[#m.hit.detail + 1] = d end
+        end
+    end
+    m.hit.nameNorm = m.hit.nameNorm or hit.nameNorm
+end
+
+-- Every instance (merged by key) that any signal links to.
+local function CollectDirect(facts)
+    local out, byKey = {}, {}
     for _, inst in ipairs(AI.GetInstanceIndex().list) do
         local hit = AI.Match(facts, inst)
         if hit then
-            local key = inst.norm or tostring(inst.journalID)
-            local m = byNorm[key]
+            local m = byKey[inst.key]
             if m then
-                m.journalIDs[inst.journalID] = true
-                for _, k in ipairs(SIGNALS) do
-                    if hit[k] and not m.hit[k] then
-                        m.hit[k] = true
-                        for _, d in ipairs(hit.detail) do m.hit.detail[#m.hit.detail + 1] = d end
-                    end
-                end
-                m.hit.nameNorm = m.hit.nameNorm or hit.nameNorm
+                MergeHit(m, hit, inst.journalID)
             else
-                m = { inst = inst, hit = hit, journalIDs = { [inst.journalID] = true } }
-                byNorm[key] = m
+                m = { inst = inst, hit = hit, journalIDs = { [inst.journalID] = true },
+                      label = inst.baseName or inst.name }
+                byKey[inst.key] = m
                 out[#out + 1] = m
             end
         end
     end
-    if #out < 2 then return out end
+    return out
+end
+
+-- Drops a name-only match whose name only appears inside a longer matched name
+-- ("karazhan" inside "return to karazhan", "the eye" inside "the eye of azshara").
+local function DropShadowedNames(facts, out)
     local text = (facts.titleNorm or "") .. " | " .. (facts.descNorm or "")
     local kept = {}
     for _, m in ipairs(out) do
@@ -345,8 +388,6 @@ function AI.FindInstances(facts)
         local nameOnly = h.name and not h.encounter and not h.boss and not h.category
         local shadowed = false
         if nameOnly and h.nameNorm then
-            -- Blank out every longer matched name (and a "the" in front of it), then see
-            -- whether this name still appears anywhere on its own.
             local rest = " " .. text .. " "
             for _, other in ipairs(out) do
                 local on = other.hit.nameNorm
@@ -360,6 +401,87 @@ function AI.FindInstances(facts)
         if not shadowed then kept[#kept + 1] = m end
     end
     return kept
+end
+
+-- Keeps only the matches with the strongest evidence.
+local function KeepStrongest(out)
+    local best = 0
+    for _, m in ipairs(out) do best = math.max(best, Score(m.hit)) end
+    local kept = {}
+    for _, m in ipairs(out) do
+        if Score(m.hit) == best then kept[#kept + 1] = m end
+    end
+    return kept
+end
+
+-- Applies filter only when it leaves something.
+local function Narrow(out, keep)
+    local kept = {}
+    for _, m in ipairs(out) do
+        if keep(m) then kept[#kept + 1] = m end
+    end
+    if #kept > 0 then return kept end
+    return out
+end
+
+-- Breaks ties with the achievement's category: its expansion against the journal tier
+-- ("Lich King Raid" vs "Wrath of the Lich King"), then dungeon vs raid.
+local function PreferExpansion(facts, out)
+    local catWords, wantRaid = {}, nil
+    for _, cat in ipairs(facts.categories or {}) do
+        if cat.id ~= DUNGEONS_AND_RAIDS_CATEGORY and cat.norm then
+            for w in pairs(AI.WordSet(cat.norm)) do catWords[w] = true end
+            if ContainsWords(cat.norm, "raid") or ContainsWords(cat.norm, "raids") then
+                wantRaid = true
+            elseif wantRaid == nil and (ContainsWords(cat.norm, "dungeon") or ContainsWords(cat.norm, "dungeons")) then
+                wantRaid = false
+            end
+        end
+    end
+    out = Narrow(out, function(m)
+        for w in pairs(m.inst.tierWords or {}) do
+            if catWords[w] then return true end
+        end
+        return false
+    end)
+    if wantRaid ~= nil and #out > 1 then
+        out = Narrow(out, function(m) return m.inst.isRaid == wantRaid end)
+    end
+    return out
+end
+
+-- Meta achievements ("Glory of the Icecrown Raider") link to every instance their
+-- sub-achievements link to.
+local function FromSubAchievements(facts)
+    local out, byKey, seen = {}, {}, 0
+    for _, c in ipairs(facts.criteria) do
+        if c.type == CRITERIA_TYPE_ACHIEVEMENT and c.assetID and seen < MAX_META_CRITERIA then
+            seen = seen + 1
+            local sub = AI.GetAchievementFacts(c.assetID)
+            for _, sm in ipairs(AI.FindInstances(sub, 1)) do
+                local m = byKey[sm.inst.key]
+                if not m then
+                    m = { inst = sm.inst, journalIDs = {}, label = sm.label,
+                          hit = { meta = true, detail = { "via [" .. tostring(sub.id) .. "] " .. tostring(sub.title) } } }
+                    byKey[sm.inst.key] = m
+                    out[#out + 1] = m
+                end
+                for id in pairs(sm.journalIDs) do m.journalIDs[id] = true end
+            end
+        end
+    end
+    return out
+end
+
+-- All instances an achievement links to: list of { inst, label, hit, journalIDs = set }.
+function AI.FindInstances(facts, depth)
+    if not facts then return {} end
+    local out = CollectDirect(facts)
+    if #out > 1 then out = DropShadowedNames(facts, out) end
+    if #out > 1 then out = KeepStrongest(out) end
+    if #out > 1 then out = PreferExpansion(facts, out) end
+    if #out == 0 and (depth or 0) == 0 then out = FromSubAchievements(facts) end
+    return out
 end
 
 local function SignalList(hit)
@@ -443,7 +565,7 @@ function AI.TrackedReport(trackedIDs)
                         lines[#lines + 1] = ("    ... %d more"):format(#matches - 6)
                         break
                     end
-                    lines[#lines + 1] = ("    %s [%s] %s"):format(m.inst.name, SignalList(m.hit), table.concat(m.hit.detail, "; "))
+                    lines[#lines + 1] = ("    %s [%s] %s"):format(m.label, SignalList(m.hit), table.concat(m.hit.detail, "; "))
                 end
             end
         end
@@ -479,7 +601,7 @@ end
 local function ScanSummary(results)
     local lines = {}
     local total, one, multi, none = #results, 0, 0, 0
-    local bySignal = { encounter = 0, name = 0, boss = 0, category = 0 }
+    local bySignal = { encounter = 0, name = 0, boss = 0, category = 0, meta = 0 }
     local onlyWeak = 0
     local unmatched, ambiguous = {}, {}
     for _, r in ipairs(results) do
@@ -500,15 +622,15 @@ local function ScanSummary(results)
             end
         end
         for k in pairs(seenSignal) do bySignal[k] = bySignal[k] + 1 end
-        if n > 0 and not seenSignal.encounter and not seenSignal.name then onlyWeak = onlyWeak + 1 end
+        if n > 0 and not seenSignal.encounter and not seenSignal.name and not seenSignal.meta then onlyWeak = onlyWeak + 1 end
     end
     local function pct(x) return total > 0 and math.floor(100 * x / total + 0.5) or 0 end
     lines[#lines + 1] = ("Scanned %d Dungeons & Raids achievements"):format(total)
     lines[#lines + 1] = ("  one instance:  %d (%d%%)"):format(one, pct(one))
     lines[#lines + 1] = ("  several:       %d (%d%%)"):format(multi, pct(multi))
     lines[#lines + 1] = ("  no link:       %d (%d%%)"):format(none, pct(none))
-    lines[#lines + 1] = ("  by signal: encounter %d, name %d, boss %d, category %d; boss/category only %d"):format(
-        bySignal.encounter, bySignal.name, bySignal.boss, bySignal.category, onlyWeak)
+    lines[#lines + 1] = ("  by signal: encounter %d, name %d, boss %d, category %d, meta %d; boss/category only %d"):format(
+        bySignal.encounter, bySignal.name, bySignal.boss, bySignal.category, bySignal.meta, onlyWeak)
     lines[#lines + 1] = "No link (first 40):"
     for i = 1, math.min(40, #unmatched) do
         lines[#lines + 1] = ("  [%d] %s"):format(unmatched[i].id, unmatched[i].title)
@@ -518,7 +640,7 @@ local function ScanSummary(results)
         local names = {}
         for j, m in ipairs(ambiguous[i].matches) do
             if j > 4 then names[#names + 1] = "..."; break end
-            names[#names + 1] = m.inst.name .. " [" .. SignalList(m.hit) .. "]"
+            names[#names + 1] = m.label .. " [" .. SignalList(m.hit) .. "]"
         end
         lines[#lines + 1] = ("  [%d] %s: %s"):format(ambiguous[i].id, ambiguous[i].title, table.concat(names, ", "))
     end

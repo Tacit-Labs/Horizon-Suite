@@ -299,6 +299,7 @@ read_globals = {
     "EJ_GetInstanceForMap",
     "EJ_SelectInstance",
     "EJ_GetInstanceInfo",
+    "EJ_GetTierInfo",
     "GetNumCompletedAchievements",
     "GetProfessions",
     "GetProfessionInfo",
