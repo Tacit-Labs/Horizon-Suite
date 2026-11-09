@@ -24,7 +24,7 @@ jobs:
     name: Lint (luacheck)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: News feed is up to date
         run: |
           python3 tools/build_news.py --check
@@ -34,10 +34,10 @@ jobs:
           python3 -m pip install --quiet --user --break-system-packages Pillow==12.3.0
           python3 tools/make_module_icons.py --check
           python3 tools/test_make_module_icons.py
-      - uses: leafo/gh-actions-lua@6919171ccf181b826f44b9bca76307b577217377 # v13
+      - uses: leafo/gh-actions-lua@32909a2dea0a48c433aec79e7fcd31b4cd55800f # v13
         with:
           luaVersion: "5.1"
-      - uses: leafo/gh-actions-luarocks@35d062def313a7699a0d513e996bcf4352f05389 # v6
+      - uses: leafo/gh-actions-luarocks@1c4a92caecc8f6850f673cbadfd57b3e555417ce # v6
       - name: Install luacheck
         run: luarocks install luacheck
       - name: Lint (fail on parse errors; warnings informational)
