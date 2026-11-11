@@ -133,13 +133,23 @@ local function SDNotInstalledTooltip()
 end
 
 -- ============================================================================
+-- CRAFTPROFIT GUARDS
+-- ============================================================================
+
+--- True when the CraftProfit addon (with its calculator) is loaded.
+local function CraftProfitLoaded()
+    local cp = rawget(_G, "CraftProfit")
+    return type(cp) == "table" and type(cp.Calc) == "table"
+end
+
+-- ============================================================================
 -- CATEGORY
 -- ============================================================================
 
 addon.RegisterModulePages("focus", {
     { key = "integrations", name = L["FOCUS_INTEGRATION"], desc = L["FOCUS_INTEGRATION_DESC"],
-      -- Hide the page entirely when neither bridge addon is installed.
-      hidden = function() return not RareScannerIntegrationLoaded() and not SilverDragonIntegrationLoaded() end },
+      -- Hide the page entirely when no integrated addon is installed.
+      hidden = function() return not RareScannerIntegrationLoaded() and not SilverDragonIntegrationLoaded() and not CraftProfitLoaded() end },
 })
 
 addon.OptionCategories[#addon.OptionCategories + 1] = {
@@ -549,6 +559,26 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             {
                 disabled    = RSDisabled,
                 visibleWhen = RSEnabled,
+            }
+        ),
+
+        -- ----------------------------------------------------------------
+        -- CraftProfit — card hidden when CraftProfit is absent.
+        -- ----------------------------------------------------------------
+        Section(L["FOCUS_INTEGRATION_CRAFTPROFIT"], { visibleWhen = CraftProfitLoaded, page = "integrations", card = "craftProfit", desc = L["FOCUS_INTEGRATION_CRAFTPROFIT_DESC"] }),
+
+        Toggle(
+            L["FOCUS_INTEGRATION_CRAFTPROFIT_PANEL"],
+            L["FOCUS_INTEGRATION_CRAFTPROFIT_PANEL_DESC"],
+            "cp_craftPanel",
+            true,
+            {
+                id          = "cp_craftPanel",
+                visibleWhen = CraftProfitLoaded,
+                set         = function(v)
+                    setDB("cp_craftPanel", v)
+                    if addon.RefreshCraftProfitPanel then addon.RefreshCraftProfitPanel() end
+                end,
             }
         ),
 

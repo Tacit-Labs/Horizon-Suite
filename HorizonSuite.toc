@@ -4,7 +4,7 @@
 ## Author: Crystilac
 ## Version: 6.12.1
 ## SavedVariables: HorizonDB
-## OptionalDeps: Auctionator, IconBrowser, Horizon-RareScanner, Horizon-SilverDragon
+## OptionalDeps: Auctionator, CraftProfit, IconBrowser, Horizon-RareScanner, Horizon-SilverDragon
 ## IconTexture: Interface\AddOns\HorizonSuite\Docs\Branding\HorizonLogo.blp
 ## X-Curse-Project-ID: 1457844
 ## X-Wago-ID: jK8gY56y
@@ -88,6 +88,7 @@ modules/Focus/rendering/FocusAggregator.lua
 modules/Focus/integrations/RareScannerFocus.lua
 modules/Focus/integrations/SilverDragonFocus.lua
 modules/Focus/integration/FocusAuctionCraftDialog.lua
+modules/Focus/integration/FocusCraftProfitPanel.lua
 modules/Focus/rendering/FocusEntryPool.lua
 modules/Focus/rendering/FocusHighlightEffects.lua
 modules/Focus/rendering/FocusEntryRenderer.lua

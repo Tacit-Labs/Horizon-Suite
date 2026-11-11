@@ -2865,6 +2865,27 @@ L["FOCUS_INTEGRATION_SILVERDRAGON_SHOW_LOOT_DESC"]            = "Alerts for ches
 L["FOCUS_INTEGRATION_SILVERDRAGON_TEST_BTN"]                  = "Test alert"
 L["FOCUS_INTEGRATION_SILVERDRAGON_TEST_BTN_DESC"]             = "Fires a sample SilverDragon rare alert."
 
+-- CraftProfit-specific keys.
+L["FOCUS_INTEGRATION_CRAFTPROFIT"]                           = "CraftProfit"
+L["FOCUS_INTEGRATION_CRAFTPROFIT_DESC"]                      = "CraftProfit prices beside the profession window."
+L["FOCUS_INTEGRATION_CRAFTPROFIT_PANEL"]                     = "Profit panel"
+L["FOCUS_INTEGRATION_CRAFTPROFIT_PANEL_DESC"]                = "Docks a panel to the profession window (Blizzard's or Daylight UI's) with your tracked recipes and the most profitable recipes, priced by CraftProfit."
+L["FOCUS_CRAFTPROFIT_PANEL_TITLE"]                           = "Craft profit"
+L["FOCUS_CRAFTPROFIT_TRACKED"]                               = "TRACKED RECIPES"
+L["FOCUS_CRAFTPROFIT_TRACKED_EMPTY"]                         = "No tracked recipes. Click a recipe below to track it."
+L["FOCUS_CRAFTPROFIT_TOP"]                                   = "MOST PROFITABLE"
+L["FOCUS_CRAFTPROFIT_TOP_EMPTY"]                             = "No profitable recipes found. Scan the Auction House with CraftProfit, or check its price source."
+L["FOCUS_CRAFTPROFIT_COST"]                                  = "Craft cost"
+L["FOCUS_CRAFTPROFIT_SALE"]                                  = "Sale price"
+L["FOCUS_CRAFTPROFIT_AH_CUT"]                                = "Auction House cut"
+L["FOCUS_CRAFTPROFIT_VENDOR"]                                = "Vendor price"
+L["FOCUS_CRAFTPROFIT_NET"]                                   = "Net profit"
+L["FOCUS_CRAFTPROFIT_NET_VENDOR"]                            = "Vendor net"
+L["FOCUS_CRAFTPROFIT_NO_PRICE"]                              = "No price"
+L["FOCUS_CRAFTPROFIT_MISSING_PRICES"]                        = "%d reagent price(s) missing."
+L["FOCUS_CRAFTPROFIT_HINT_TRACK"]                            = "Click to track this recipe."
+L["FOCUS_CRAFTPROFIT_HINT_UNTRACK"]                          = "Click to stop tracking this recipe."
+
 -- Dashboard Integrations feed — RareScanner and SilverDragon cards.
 L["DASH_INT_RS_DESC"]                                         = "Replaces Focus built-in rare alerts with RareScanner data, complete with loot previews, coordinates, and waypoints."
 L["DASH_INT_RS_WHAT"]                                         = "Rich rare NPC, treasure, and event alerts with loot item icons, coordinates, TomTom waypoints, and click-to-target support. Also requires the Horizon - RareScanner companion addon."
