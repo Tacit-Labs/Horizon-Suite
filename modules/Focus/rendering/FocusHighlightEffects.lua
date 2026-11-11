@@ -125,38 +125,64 @@ end
 
 -- The pointer sits in the tracker's left padding, outside the entry, so it is parented to the
 -- entry's parent (the entry clips its children) and follows the entry's visibility by hooks.
+--
+-- Its motion is worked out each frame from its anchor (base spot + nudge + focus-change slide)
+-- rather than with Translation animations. A looping Translation on a frame that is re-anchored
+-- while it plays can keep its offset and drift, which walked the arrow across the quest title.
+-- This way the arrow can never be more than the nudge away from its spot.
+local POINTER_ENTER_SLIDE = 8  -- how far the arrow slides in from on a focus change, px
+
+local function PlacePointer(p)
+    local x = p._x or 0
+    if p._nudgeOn then
+        -- Smooth out and back: 0 -> nudge -> 0 over two nudge durations.
+        local phase = (p._nudgeT or 0) / POINTER_NUDGE_DURATION * math.pi
+        x = x + (p._nudge or 0) * (1 - math.cos(phase)) / 2
+    end
+    if p._enterT then
+        local t = math.min(1, p._enterT / ENTER_DURATION)
+        local remain = 1 - t
+        x = x - S(POINTER_ENTER_SLIDE) * remain * remain  -- eased out
+    end
+    p:ClearAllPoints()
+    p:SetPoint("RIGHT", p._entry, "TOPLEFT", x, p._y or 0)
+end
+
+local function PointerOnUpdate(p, elapsed)
+    if p._nudgeOn then
+        p._nudgeT = ((p._nudgeT or 0) + elapsed) % (POINTER_NUDGE_DURATION * 2)
+    end
+    if p._enterT then
+        p._enterT = p._enterT + elapsed
+        if p._enterT >= ENTER_DURATION then
+            p._enterT = nil
+            p.tex:SetAlpha(1)
+        else
+            p.tex:SetAlpha(p._enterT / ENTER_DURATION)
+        end
+    end
+    PlacePointer(p)
+    if not p._nudgeOn and not p._enterT then p:SetScript("OnUpdate", nil) end
+end
+
+local function RunPointer(p)
+    if p._nudgeOn or p._enterT then
+        p:SetScript("OnUpdate", PointerOnUpdate)
+    else
+        p:SetScript("OnUpdate", nil)
+    end
+    PlacePointer(p)
+end
+
 local function EnsurePointer(entry, fx)
     if fx.pointer then return fx.pointer end
     local p = CreateFrame("Frame", nil, entry:GetParent())
     p:SetFrameLevel(entry:GetFrameLevel() + 2)
     p:Hide()
+    p._entry = entry
     p.tex = p:CreateTexture(nil, "OVERLAY")
     p.tex:SetAllPoints(p)
     p.tex:SetTexture(POINTER_TEXTURE)
-
-    -- Out and back as two eased moves in one repeating group: the loop ends exactly where it
-    -- starts, so it runs seamlessly (BOUNCE hitches at each turn).
-    p.nudge = p:CreateAnimationGroup()
-    p.nudge:SetLooping("REPEAT")
-    p.nudge.out = p.nudge:CreateAnimation("Translation")
-    p.nudge.out:SetDuration(POINTER_NUDGE_DURATION)
-    p.nudge.out:SetSmoothing("IN_OUT")
-    p.nudge.out:SetOrder(1)
-    p.nudge.back = p.nudge:CreateAnimation("Translation")
-    p.nudge.back:SetDuration(POINTER_NUDGE_DURATION)
-    p.nudge.back:SetSmoothing("IN_OUT")
-    p.nudge.back:SetOrder(2)
-
-    -- Focus change: fade in while sliding toward the entry.
-    p.enter = p.tex:CreateAnimationGroup()
-    local hideA = p.enter:CreateAnimation("Alpha")
-    hideA:SetFromAlpha(0); hideA:SetToAlpha(0); hideA:SetDuration(0); hideA:SetOrder(1)
-    local back = p.enter:CreateAnimation("Translation")
-    back:SetOffset(-S(8), 0); back:SetDuration(0); back:SetOrder(1)
-    local showA = p.enter:CreateAnimation("Alpha")
-    showA:SetFromAlpha(0); showA:SetToAlpha(1); showA:SetDuration(ENTER_DURATION); showA:SetOrder(2)
-    local forward = p.enter:CreateAnimation("Translation")
-    forward:SetOffset(S(8), 0); forward:SetDuration(ENTER_DURATION); forward:SetSmoothing("OUT"); forward:SetOrder(2)
 
     entry:HookScript("OnHide", function() p:Hide() end)
     entry:HookScript("OnShow", function() if fx.pointerOn then p:Show() end end)
@@ -169,8 +195,16 @@ local function HidePointer(fx)
     local p = fx.pointer
     if not p then return end
     p:Hide()
-    if p.nudge:IsPlaying() then p.nudge:Stop() end
-    if p.enter:IsPlaying() then p.enter:Stop() end
+    p:SetScript("OnUpdate", nil)
+    p._nudgeOn, p._nudgeT, p._enterT = false, 0, nil
+    p.tex:SetAlpha(1)
+end
+
+-- Focus change: fade in while sliding toward the entry.
+local function PlayPointerEnter(p)
+    p._enterT = 0
+    p.tex:SetAlpha(0)
+    RunPointer(p)
 end
 
 -- Arrow just left of the entry, level with the middle of the title's first line.
@@ -180,29 +214,20 @@ local function ApplyPointer(entry, fx, hc)
     local _, fontSize = entry.titleText:GetFont()
     local _, _, _, _, titleY = entry.titleText:GetPoint(1)
     local midY = (type(titleY) == "number" and titleY or 0) - (tonumber(fontSize) or size) / 2
-    local x = -S(POINTER_GAP) - S(POINTER_NUDGE)
-    -- Re-anchor only when the spot moves, so tracker updates do not disturb the nudge.
-    if p._size ~= size or p._x ~= x or p._y ~= midY then
-        p:SetSize(size, size)
-        p:ClearAllPoints()
-        p:SetPoint("RIGHT", entry, "TOPLEFT", x, midY)
-        p._size, p._x, p._y = size, x, midY
-    end
+    p:SetSize(size, size)
+    p._x = -S(POINTER_GAP) - S(POINTER_NUDGE)
+    p._y = midY
+    p._nudge = S(POINTER_NUDGE)
     p.tex:SetVertexColor(hc[1], hc[2], hc[3], 1)
     fx.pointerOn = true
     if entry:IsShown() then p:Show() end
-    if AnimationsOn() then
-        local nudge = S(POINTER_NUDGE)
-        if p.nudge._offset ~= nudge then
-            p.nudge.out:SetOffset(nudge, 0)
-            p.nudge.back:SetOffset(-nudge, 0)
-            p.nudge._offset = nudge
-        end
-        -- Leave a running nudge alone so re-renders do not restart it.
-        if not p.nudge:IsPlaying() then p.nudge:Play() end
-    elseif p.nudge:IsPlaying() then
-        p.nudge:Stop()
+    -- Keep the nudge's phase across re-renders so tracker updates do not restart it.
+    p._nudgeOn = AnimationsOn()
+    if not p._nudgeOn then
+        p._nudgeT, p._enterT = 0, nil
+        p.tex:SetAlpha(1)
     end
+    RunPointer(p)
 end
 
 --- Hide every effect and stop its animations (entry no longer focused, or released to the pool).
@@ -314,7 +339,7 @@ function addon.FocusHighlight_Apply(entry, questData, highlightStyle)
             for _, tex in ipairs(shown) do fx.enter[tex]:Play() end
         end
         if styleFx.pointer and AnimationsOn() then
-            fx.pointer.enter:Play()
+            PlayPointerEnter(fx.pointer)
         end
     end
 end
