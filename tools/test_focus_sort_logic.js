@@ -93,6 +93,23 @@ const SORT = `
   end
 
   function noQuests(byZone) return sections(byZone, {}) end
+
+  -- Retail quest log topic headers ("Upgrade System") are not zones: the grouping resolver
+  -- rejects them and falls back to the quest's own map, or to none.
+  function topicHeaders()
+    local mapZone = { [2] = "Voidstorm" }
+    HorizonSuite.GetQuestGroupingZoneName = function(questID, header)
+      if header == "Voidstorm" then return header end
+      return mapZone[questID]
+    end
+    local out = sections(true, {
+      { title = "Veteran Equipment", zoneName = "Upgrade System", category = "DEFAULT", questID = 1 },
+      { title = "The Time to Strike", zoneName = "Void Assaults", category = "DEFAULT", questID = 2 },
+      { title = "Harvest of Darkness", zoneName = "Voidstorm",    category = "DEFAULT", questID = 3 },
+    })
+    HorizonSuite.GetQuestGroupingZoneName = nil
+    return out
+  end
 `;
 
 const L = lauxlib.luaL_newstate();
@@ -148,6 +165,8 @@ check('group by zone off: one Quests section', call('zoneSections', false),
 check('group by zone on: a section per zone, unknown zone under Quests', call('zoneSections', true),
   'ZONE:Azj-Kahet=1.Delta ZONE:Dornogal=1.Alpha,2.Echo ZONE:hallowfall=1.Bravo,2.Charlie DEFAULT=1.Foxtrot');
 check('group by zone on with no quests: no sections', call('noQuests', true), '');
+check('group by zone: topic headers are not sections', call('topicHeaders', true),
+  'ZONE:Voidstorm=1.Harvest of Darkness,2.The Time to Strike DEFAULT=1.Veteran Equipment');
 
 console.log(failures ? failures + ' failed' : 'all passed');
 process.exit(failures ? 1 : 0);

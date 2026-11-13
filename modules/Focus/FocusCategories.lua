@@ -181,7 +181,80 @@ local function IsGroupQuest(questID)
     return false
 end
 
+-- ============================================================================
+-- ZONE FOR GROUP BY ZONE
+-- ============================================================================
+-- Group by zone needs a real zone. GetQuestZoneName returns the quest log header, which on
+-- Retail is sometimes a topic ("Upgrade System", "Void Assaults") rather than a place, so the
+-- grouping resolves its own: the header when it names a zone, else the quest's map.
+
+local UIMAPTYPE_ZONE = 3
+local ROOT_WALK_DEPTH = 10
+
+-- Names of every zone-type map in the world, built once from the player's map up to the root.
+-- Nil until a build finds any, so a build before the map data is ready is retried.
+local zoneNameSet
+
+local function GetZoneNameSet()
+    if zoneNameSet then return zoneNameSet end
+    if not (C_Map and C_Map.GetBestMapForUnit and C_Map.GetMapInfo and C_Map.GetMapChildrenInfo) then return nil end
+    local mapID = C_Map.GetBestMapForUnit("player")
+    local info = mapID and C_Map.GetMapInfo(mapID)
+    local depth = 0
+    while info and info.parentMapID and info.parentMapID ~= 0 and depth < ROOT_WALK_DEPTH do
+        mapID = info.parentMapID
+        info = C_Map.GetMapInfo(mapID)
+        depth = depth + 1
+    end
+    if not mapID then return nil end
+    local ok, children = pcall(C_Map.GetMapChildrenInfo, mapID, UIMAPTYPE_ZONE, true)
+    if not ok or type(children) ~= "table" or #children == 0 then return nil end
+    local set = {}
+    for _, child in ipairs(children) do
+        if child and type(child.name) == "string" and child.name ~= "" then set[child.name] = true end
+    end
+    zoneNameSet = set
+    return set
+end
+
+-- The zone (mapType Zone) a map sits in, walking up from sub-zones; nil above zone level.
+-- @param mapID number|nil
+-- @return string|nil
+local function GetZoneNameForMap(mapID)
+    if not mapID or mapID == 0 or not (C_Map and C_Map.GetMapInfo) then return nil end
+    local info = C_Map.GetMapInfo(mapID)
+    local depth = 0
+    while info and info.mapType ~= UIMAPTYPE_ZONE and info.parentMapID and info.parentMapID ~= 0 and depth < ROOT_WALK_DEPTH do
+        info = C_Map.GetMapInfo(info.parentMapID)
+        depth = depth + 1
+    end
+    if info and info.mapType == UIMAPTYPE_ZONE and type(info.name) == "string" and info.name ~= "" then
+        return info.name
+    end
+    return nil
+end
+
+-- The zone a quest is grouped under by Group by zone: the quest log header when it names a
+-- zone (always on Forever, whose headers are zones), else the zone of the quest's own map.
+-- Nil when neither is known; the quest then stays in the Quests section.
+-- @param questID number
+-- @param headerName string|nil The quest's zone label (quest log header or map name)
+-- @return string|nil
+local function GetQuestGroupingZoneName(questID, headerName)
+    local zones = GetZoneNameSet()
+    if type(headerName) == "string" and headerName ~= "" and (not zones or zones[headerName]) then
+        return headerName
+    end
+    if questID and type(GetQuestUiMapID) == "function" then
+        local ok, mapID = pcall(GetQuestUiMapID, questID)
+        local name = ok and GetZoneNameForMap(mapID)
+        if name then return name end
+    end
+    return nil
+end
+
 addon.GetQuestCategory     = GetQuestCategory
 addon.GetQuestTypeAtlas    = GetQuestTypeAtlas
 addon.GetQuestZoneName     = GetQuestZoneName
+addon.GetQuestGroupingZoneName = GetQuestGroupingZoneName
 addon.IsGroupQuest         = IsGroupQuest

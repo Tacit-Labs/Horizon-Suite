@@ -385,7 +385,8 @@ local function CompareEntriesBySortMode(a, b)
 end
 
 -- Splits the plain Quests section into one section per zone, zones A to Z, and appends them to
--- result. Quests whose zone is unknown stay in a Quests section after the zones. The quests
+-- result. The zone comes from addon.GetQuestGroupingZoneName, so quest log topic headers do not
+-- become sections. Quests whose zone is unknown stay in a Quests section after the zones. The quests
 -- arrive already sorted, so each zone keeps the chosen sort; numbering restarts per zone.
 -- @param result table Ordered { key, quests } array being built
 -- @param quests table Sorted entries of the DEFAULT group
@@ -393,8 +394,10 @@ local function AppendZoneGroups(result, quests)
     if #quests == 0 then return end
     local prefix = addon.ZONE_GROUP_PREFIX or "ZONE:"
     local byZone, zoneNames, unzoned = {}, {}, {}
+    local resolveZone = addon.GetQuestGroupingZoneName
     for _, q in ipairs(quests) do
         local zone = q.zoneName
+        if resolveZone then zone = resolveZone(q.questID, zone) end
         if type(zone) == "string" and zone ~= "" then
             if not byZone[zone] then
                 byZone[zone] = {}
