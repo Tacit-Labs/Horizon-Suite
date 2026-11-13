@@ -19,6 +19,30 @@ local addon = _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["6.13.0"] = {
+        date = "2026-11-13",
+        {
+            section = "New Features",
+            bullets = {
+                "Focus: a new Group by zone switch under Grouping splits the Quests section into one section per zone, so quests spread across the world are listed under the zone they belong to.",
+                "Focus: choose a sound for completed objectives and another for quests that are ready to turn in, from any LibSharedMedia sound, including ones added by other addons.",
+                "Focus: a new Level position choice shows the quest level in front of the title instead of after it.",
+            },
+        },
+        {
+            section = "Improvements",
+            bullets = {
+                "Echo: close a muted conversation and new messages no longer reopen it; they still appear in All, and it opens again when you message it or start it from Echo.",
+            },
+        },
+        {
+            section = "Fixes",
+            bullets = {
+                "Focus: the Pointer highlight stays just left of the focused quest instead of drifting across the title.",
+            },
+        },
+    },
+
     ["6.12.1"] = {
         date = "2026-10-27",
         {
