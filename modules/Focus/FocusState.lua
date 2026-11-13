@@ -93,6 +93,8 @@ addon.focus = {
 
     -- Objective signature cache for reliable quest-update flash (FocusEvents)
     lastQuestObjectiveSignature       = {},
+    -- [questID] = { finished = n, complete = bool } at the last signature change, for the progress sounds
+    lastQuestCompletionState          = {},
 
     -- Current Quest category: [questID] = GetTime() when progress was last detected
     recentlyProgressedQuests          = {},

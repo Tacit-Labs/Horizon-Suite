@@ -1904,8 +1904,10 @@ local function PopulateEntry(entry, questData, groupKey)
     end
 
     -- Entry numbering (per category): apply when option is on.
+    local entryNumberPrefix
     if addon.GetDB("showCategoryEntryNumbers", true) and questData.categoryIndex and type(questData.categoryIndex) == "number" and not questData.noEntryNumber then
-        displayTitle = ("%d. %s"):format(questData.categoryIndex, displayTitle)
+        entryNumberPrefix = ("%d. "):format(questData.categoryIndex)
+        displayTitle = entryNumberPrefix .. displayTitle
     end
 
     -- Tier in title
@@ -1954,7 +1956,17 @@ local function PopulateEntry(entry, questData, groupKey)
                     math.floor(c.r * 255 + 0.5), math.floor(c.g * 255 + 0.5), math.floor(c.b * 255 + 0.5), levelStr)
             end
         end
-        displayTitle = displayTitle .. " " .. levelStr
+        if addon.GetDB("questLevelPosition", "after") == "before" then
+            -- Between the entry number and the title: "1. [12] Title".
+            local prefix = entryNumberPrefix
+            if prefix and displayTitle:sub(1, #prefix) == prefix then
+                displayTitle = prefix .. levelStr .. " " .. displayTitle:sub(#prefix + 1)
+            else
+                displayTitle = levelStr .. " " .. displayTitle
+            end
+        else
+            displayTitle = displayTitle .. " " .. levelStr
+        end
     end
     if showVignetteIcon and vignetteIconAtlas then
         if not entry.vignetteIconTex then
@@ -2202,7 +2214,9 @@ local function PopulateEntry(entry, questData, groupKey)
     local inCurrentZone = questData.isNearby or (questData.zoneName and playerZone and questData.zoneName:lower() == playerZone:lower())
     -- Prey activities: "Activity" is a semantic label, not a zone—always show it even when in-zone
     local isActivityLabel = questData.zoneName == L["FOCUS_ACTIVITY"]
-    local shouldShowZone = showZoneLabels and questData.zoneName and (not inCurrentZone or isActivityLabel)
+    -- Under a zone section the header already names the zone.
+    local inZoneSection = addon.GetZoneGroupName and addon.GetZoneGroupName(groupKey) ~= nil
+    local shouldShowZone = showZoneLabels and questData.zoneName and (not inCurrentZone or isActivityLabel) and not inZoneSection
     local shouldShowScenarioStage = questData.stageName and (questData.category == "SCENARIO" or questData.isScenarioMain)
         and (questData.title ~= questData.stageName)
     if shouldShowZone then

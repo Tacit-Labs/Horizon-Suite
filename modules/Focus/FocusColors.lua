@@ -167,6 +167,8 @@ local function GetQuestColor(category)
 end
 
 local function GetSectionColor(groupKey)
+    -- Zone sections are the Quests section split up, so they wear its colour.
+    if addon.GetZoneGroupName and addon.GetZoneGroupName(groupKey) then groupKey = "DEFAULT" end
     local cm = GetColorMatrix()
     if cm and cm.categories and groupKey and cm.categories[groupKey] and cm.categories[groupKey].section then
         return SanitizeColor(cm.categories[groupKey].section, addon.SECTION_COLORS[groupKey] or addon.SECTION_COLORS.DEFAULT)
