@@ -36,7 +36,7 @@ Platform.projectID        = WOW_PROJECT_ID
 --     carries no Classic interface number, so they only reach this file with
 --     "load out-of-date addons" ticked, and must not be mistaken for Forever.
 --   - Forever: anything else that loaded this Retail-API package, which the TOC
---     limits to 120100 and 16001. A WOW_PROJECT_*FOREVER* constant, should
+--     limits to 120105 and 16001. A WOW_PROJECT_*FOREVER* constant, should
 --     Blizzard add one, is taken at its word first.
 -- Inputs are arguments so tools/test_platform_logic.js can feed it each
 -- client's values without a game client.

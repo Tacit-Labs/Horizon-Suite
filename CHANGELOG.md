@@ -10,6 +10,21 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [6.13.0] – 2026-11-13
+
+### ✨ New Features
+- **(Focus) Group by zone** — A new Group by zone switch under Grouping splits the Quests section into one section per zone, so quests spread across the world are listed under the zone they belong to.
+- **(Focus) Quest sounds** — Choose a sound for completed objectives and another for quests that are ready to turn in, from any LibSharedMedia sound, including ones added by other addons.
+- **(Focus) Level before title** — A new Level position choice shows the quest level in front of the title instead of after it.
+
+### 🔧 Improvements
+- **(Echo) Muted conversations stay closed** — Close a muted conversation and new messages no longer reopen it; they still appear in All, and it opens again when you message it or start it from Echo.
+
+### 🐛 Fixes
+- **(Focus)** The Pointer highlight stays just left of the focused quest instead of drifting across the title.
+
+---
+
 ## [6.12.1] – 2026-10-27
 
 ### 🐛 Fixes
