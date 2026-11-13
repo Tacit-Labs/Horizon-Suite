@@ -333,6 +333,7 @@ end
 -- @return string|nil change  "toast" | "count" | "quiet" | "silent"; nil when rejected
 function Store.Add(record)
     if type(record) ~= "table" or not Store.KindOf(record.convKey) then return nil end
+    local isNew = conversations[record.convKey] == nil
     local conv = GetOrCreate(record.convKey)
     -- Saving was off, or the guild was unknown, when this conversation was created; try
     -- again now, so a saved guild history still arrives once both are true.
@@ -349,9 +350,19 @@ function Store.Add(record)
         Notify(record.convKey, "silent", record)
         return "silent"
     end
-    conv.open = true
 
     local tier = Store.TierOf(record.convKey)
+    -- A muted conversation the player closed, or never had open, stays closed: its lines
+    -- are filed (All still shows them) but never bring the tile back. One already open
+    -- keeps taking lines. Sending to it, or starting it from Echo (Store.Start), opens it.
+    -- Feeds are left alone: closing one already keeps it shut (conv.dismissed above).
+    if tier == "muted" and not record.outgoing and not Store.FEED_KINDS[conv.kind]
+       and (isNew or not conv.open) then
+        conv.open = false
+        Notify(record.convKey, "silent", record)
+        return "silent"
+    end
+    conv.open = true
     local change
     if record.outgoing then
         change = "silent"
