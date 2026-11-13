@@ -384,6 +384,38 @@ local function CompareEntriesBySortMode(a, b)
     return ta < tb
 end
 
+-- Splits the plain Quests section into one section per zone, zones A to Z, and appends them to
+-- result. Quests whose zone is unknown stay in a Quests section after the zones. The quests
+-- arrive already sorted, so each zone keeps the chosen sort; numbering restarts per zone.
+-- @param result table Ordered { key, quests } array being built
+-- @param quests table Sorted entries of the DEFAULT group
+local function AppendZoneGroups(result, quests)
+    if #quests == 0 then return end
+    local prefix = addon.ZONE_GROUP_PREFIX or "ZONE:"
+    local byZone, zoneNames, unzoned = {}, {}, {}
+    for _, q in ipairs(quests) do
+        local zone = q.zoneName
+        if type(zone) == "string" and zone ~= "" then
+            if not byZone[zone] then
+                byZone[zone] = {}
+                zoneNames[#zoneNames + 1] = zone
+            end
+            byZone[zone][#byZone[zone] + 1] = q
+        else
+            unzoned[#unzoned + 1] = q
+        end
+    end
+    table.sort(zoneNames, function(a, b) return a:lower() < b:lower() end)
+    local function append(key, list)
+        for i = 1, #list do list[i].categoryIndex = i end
+        result[#result + 1] = { key = key, quests = list }
+    end
+    for _, zone in ipairs(zoneNames) do
+        append(prefix .. zone, byZone[zone])
+    end
+    if #unzoned > 0 then append(DEFAULT_GROUP, unzoned) end
+end
+
 -- Buckets entries by group key, sorts each group, and returns ordered { key, quests } array.
 -- @param quests table Array of normalized entry tables
 -- @return table Array of { key = string, quests = table }
@@ -531,7 +563,9 @@ local function SortAndGroupQuests(quests)
 
     local result = {}
     for _, key in ipairs(order) do
-        if #groups[key] > 0 then
+        if key == DEFAULT_GROUP and addon.GetDB("groupQuestsByZone", false) then
+            AppendZoneGroups(result, groups[key])
+        elseif #groups[key] > 0 then
             result[#result + 1] = { key = key, quests = groups[key] }
         end
     end

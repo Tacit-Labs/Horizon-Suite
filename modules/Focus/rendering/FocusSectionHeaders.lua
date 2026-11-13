@@ -136,7 +136,8 @@ local function AcquireSectionHeader(groupKey, focusedGroupKey)
     elseif groupKey == "SILVERDRAGON" and addon.GetDB("sd_sectionTitleRares", false) then
         labelKey = "FOCUS_INTEGRATION_RARE_SECTION_TITLE_LABEL"
     end
-    local label = addon.L[labelKey]
+    -- A zone section is titled by the zone itself, which the game has already localised.
+    local label = (addon.GetZoneGroupName and addon.GetZoneGroupName(groupKey)) or addon.L[labelKey]
     label = addon.ApplyTextCase(label, "sectionHeaderTextCase", "upper")
     local color = addon.GetSectionHeaderDisplayColor(groupKey, focusedGroupKey)
     addon.SetTextWithShadow(s.text, s.shadow, label)

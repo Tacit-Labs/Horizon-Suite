@@ -240,6 +240,45 @@ local function RecordQuestProgress(questID)
     addon.focus.recentlyProgressedQuests[questID] = GetTime()
 end
 
+-- Number of finished objectives and whether the quest is ready to turn in.
+-- @param questID number
+-- @return number, boolean
+local function ReadQuestCompletionState(questID)
+    local finished = 0
+    local objectives = C_QuestLog.GetQuestObjectives and C_QuestLog.GetQuestObjectives(questID) or {}
+    for i = 1, #objectives do
+        if objectives[i] and objectives[i].finished then finished = finished + 1 end
+    end
+    local complete = (C_QuestLog.IsComplete and C_QuestLog.IsComplete(questID)) and true or false
+    return finished, complete
+end
+
+-- Plays the chosen sound when a quest becomes ready to turn in, or when one of its objectives
+-- finishes. One sound per change: a quest's last objective plays the quest sound only, unless
+-- that is set to None. The first sighting of a quest only records its state, so logging in,
+-- reloading or accepting a quest plays nothing.
+-- @param questID number
+-- @param isFirstSighting boolean True when the quest had no cached signature yet
+local function PlayQuestProgressSound(questID, isFirstSighting)
+    local cache = addon.focus.lastQuestCompletionState
+    if not cache then
+        cache = {}
+        addon.focus.lastQuestCompletionState = cache
+    end
+    local finished, complete = ReadQuestCompletionState(questID)
+    local prior = cache[questID]
+    cache[questID] = { finished = finished, complete = complete }
+    if isFirstSighting or not prior then return end
+
+    if complete and not prior.complete
+        and addon.PlaySharedMediaSound(addon.GetDB("questCompleteSound", "none")) then
+        return
+    end
+    if finished > prior.finished then
+        addon.PlaySharedMediaSound(addon.GetDB("objectiveCompleteSound", "none"))
+    end
+end
+
 -- Checks if a quest's objectives changed vs cache; if so, records progress and optionally triggers flash.
 -- Records progress for Current Quest category regardless of flash setting.
 -- @param questID number
@@ -253,6 +292,10 @@ local function CheckQuestObjectiveChangeAndFlash(questID)
 
     local prior = cache[questID]
     cache[questID] = current
+
+    if prior ~= current and addon.PlaySharedMediaSound then
+        PlayQuestProgressSound(questID, prior == nil)
+    end
 
     -- First time seeing this quest: no "change" to record or flash.
     if prior == nil then return false end

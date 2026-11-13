@@ -225,7 +225,8 @@ addon.PRESENCE_DISCOVERY_COLOR  = { 0.4, 1, 0.5 }
 addon.SECTION_SIZE      = 10
 addon.SECTION_SPACING   = 10
 addon.SECTION_COLOR_A   = 1
-addon.SECTION_POOL_SIZE = 10
+-- Room for one header per zone when quests are grouped by zone, on top of the fixed categories.
+addon.SECTION_POOL_SIZE = 30
 
 function addon.GetDefaultFontPath()
     local path = GameFontNormal and GameFontNormal:GetFont()
@@ -329,6 +330,23 @@ addon.SECTION_COLORS = {
     DEFAULT   = { 0.90, 0.90, 0.90 },  -- matches QUEST_COLORS.DEFAULT so section/title/objective share same default
     COMPLETE  = { 0.20, 1.00, 0.40 },
 }
+
+-- Group by zone (groupQuestsByZone) splits the plain Quests section into one section per zone.
+-- Each takes a key of this prefix plus the zone's name, in the slot DEFAULT holds in the order,
+-- so collapse state is remembered per zone and colours fall back to DEFAULT's.
+addon.ZONE_GROUP_PREFIX = "ZONE:"
+
+-- The zone a section key names, or nil when the key is not a zone section.
+-- @param groupKey string|nil
+-- @return string|nil
+function addon.GetZoneGroupName(groupKey)
+    if type(groupKey) ~= "string" then return nil end
+    local prefix = addon.ZONE_GROUP_PREFIX
+    if groupKey:sub(1, #prefix) ~= prefix then return nil end
+    local name = groupKey:sub(#prefix + 1)
+    if name == "" then return nil end
+    return name
+end
 
 addon.GROUP_ORDER = { "FOCUSED", "RARESCANNER", "SILVERDRAGON", "CURRENT_EVENT", "CURRENT", "DELVES", "SCENARIO", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "APPEARANCES", "RECIPES", "ADVENTURE", "DUNGEON", "RAID", "NEARBY", "COMPLETE", "WORLD", "WEEKLY", "PREY", "DAILY", "RARES", "RARE_LOOT", "AVAILABLE", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "DEFAULT" }
 
@@ -589,6 +607,41 @@ function addon.GetSoundDropdownOptions()
         list[#list + 1] = { name, name }
     end
     return list
+end
+
+-- Dropdown options for the quest progress sounds: None first, then every LibSharedMedia sound A to Z.
+-- LSM's own "None" entry is dropped so None appears once.
+-- @return table Array of { label, value }
+function addon.GetQuestSoundDropdownOptions()
+    local list = { { (addon.L and addon.L["FOCUS_OUTLINE_NONE"]) or "None", "none" } }
+    local LSM = (LibStub and LibStub("LibSharedMedia-3.0", true)) or nil
+    if not (LSM and LSM.HashTable) then return list end
+    local hash = LSM:HashTable("sound")
+    if type(hash) ~= "table" then return list end
+    local names = {}
+    for name in pairs(hash) do
+        if type(name) == "string" and name ~= "" and name ~= "None" then
+            names[#names + 1] = name
+        end
+    end
+    table.sort(names, function(a, b) return a:lower() < b:lower() end)
+    for _, name in ipairs(names) do
+        list[#list + 1] = { name, name }
+    end
+    return list
+end
+
+-- Play a LibSharedMedia sound by name on the Master channel. "none", nil, or a name LSM
+-- no longer knows (its addon was removed) plays nothing.
+-- @param name string|nil LSM sound name
+-- @return boolean True when a sound was played
+function addon.PlaySharedMediaSound(name)
+    if type(name) ~= "string" or name == "" or name == "none" or name == "None" then return false end
+    local LSM = (LibStub and LibStub("LibSharedMedia-3.0", true)) or nil
+    if not (LSM and LSM.IsValid and LSM:IsValid("sound", name)) then return false end
+    local path = LSM:Fetch("sound", name, true)
+    if not path or not PlaySoundFile then return false end
+    return pcall(PlaySoundFile, path, "Master") and true or false
 end
 
 -- ============================================================================

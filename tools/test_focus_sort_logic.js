@@ -8,6 +8,9 @@
  * from /run to fake levels did not reach the tracker on Midnight. These checks run the
  * real SortAndGroupQuests over quests at mixed levels instead.
  *
+ * Group by zone (groupQuestsByZone) splits the same group into one section per zone; those
+ * checks run the real SortAndGroupQuests too.
+ *
  * Usage:
  *   npm install fengari     # one dependency, not vendored
  *   node tools/test_focus_sort_logic.js
@@ -65,6 +68,31 @@ const SORT = `
     end
     return table.concat(out, " ")
   end
+
+  -- Sections and their entries with numbering, e.g. "ZONE:Dornogal=1.Alpha,2.Echo".
+  function sections(byZone, quests)
+    DB.entrySortMode, DB.entrySortReverse, DB.groupQuestsByZone = "alpha", false, byZone
+    local out = {}
+    for _, g in ipairs(HorizonSuite.SortAndGroupQuests(quests)) do
+      local titles = {}
+      for _, q in ipairs(g.quests) do titles[#titles + 1] = q.categoryIndex .. "." .. q.title end
+      out[#out + 1] = g.key .. "=" .. table.concat(titles, ",")
+    end
+    return table.concat(out, " ")
+  end
+
+  function zoneSections(byZone)
+    return sections(byZone, {
+      { title = "Bravo",   zoneName = "hallowfall", category = "DEFAULT", questID = 1 },
+      { title = "Alpha",   zoneName = "Dornogal",   category = "DEFAULT", questID = 2 },
+      { title = "Charlie", zoneName = "hallowfall", category = "DEFAULT", questID = 3 },
+      { title = "Delta",   zoneName = "Azj-Kahet",  category = "DEFAULT", questID = 4 },
+      { title = "Echo",    zoneName = "Dornogal",   category = "DEFAULT", questID = 5 },
+      { title = "Foxtrot",                          category = "DEFAULT", questID = 6 },
+    })
+  end
+
+  function noQuests(byZone) return sections(byZone, {}) end
 `;
 
 const L = lauxlib.luaL_newstate();
@@ -104,6 +132,22 @@ check('zone reversed: Z to A by zone, titles still A to Z', order('zone', true),
 // One category and no distance ranks, so both fall through to titles A to Z, reversed or not.
 check('questType ignores reverse', order('questType', true), 'Alpha Bravo Charlie Delta Echo');
 check('proximity ignores reverse', order('proximity', true), 'Alpha Bravo Charlie Delta Echo');
+
+function call(fn, byZone) {
+  lua.lua_getglobal(L, to_luastring(fn));
+  lua.lua_pushboolean(L, byZone);
+  if (lua.lua_pcall(L, 1, 1, 0) !== 0) return 'ERROR ' + to_jsstring(lua.lua_tostring(L, -1));
+  const s = to_jsstring(lua.lua_tostring(L, -1));
+  lua.lua_pop(L, 1);
+  return s;
+}
+
+check('group by zone off: one Quests section', call('zoneSections', false),
+  'DEFAULT=1.Alpha,2.Bravo,3.Charlie,4.Delta,5.Echo,6.Foxtrot');
+// Zones A to Z ignoring case, entries keep the sort, numbering restarts per zone, unknown zone last.
+check('group by zone on: a section per zone, unknown zone under Quests', call('zoneSections', true),
+  'ZONE:Azj-Kahet=1.Delta ZONE:Dornogal=1.Alpha,2.Echo ZONE:hallowfall=1.Bravo,2.Charlie DEFAULT=1.Foxtrot');
+check('group by zone on with no quests: no sections', call('noQuests', true), '');
 
 console.log(failures ? failures + ' failed' : 'all passed');
 process.exit(failures ? 1 : 0);
