@@ -1935,6 +1935,9 @@ L["FOCUS_OBJECTIVE_COMPLETE_SOUND_DESC"]                      = "Sound to play w
 L["FOCUS_QUEST_COMPLETE_SOUND"]                               = "Quest complete"
 L["FOCUS_QUEST_COMPLETE_SOUND_DESC"]                          = "Sound to play when a quest is ready to turn in."
 L["FOCUS_PROGRESS_SOUNDS_TIP"]                                = "Lists every sound from LibSharedMedia, so sounds added by other addons appear here. When a quest's last objective completes, only the quest sound plays."
+L["FOCUS_COMPACT_COMPLETED_QUESTS"]                           = "Compact completed quests"
+L["FOCUS_COMPACT_COMPLETED_QUESTS_DESC"]                      = "Show quests ready to turn in on one line, with a checkmark after the title."
+L["FOCUS_COMPACT_COMPLETED_QUESTS_TIP"]                       = "Hides the Ready to Turn In line and the quest's objectives. Quests you complete by clicking them in the tracker keep their lines."
 
 -- =====================================================================
 -- OptionsData.lua Misc
