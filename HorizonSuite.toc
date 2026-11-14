@@ -79,6 +79,7 @@ modules/Focus/scenarios/FocusRunTracker.lua
 modules/Focus/scenarios/FocusRunBlock.lua
 modules/Focus/scenarios/FocusBlocks.lua
 modules/Focus/providers/FocusAchievements.lua
+modules/Focus/providers/FocusAchievementInstance.lua
 modules/Focus/providers/FocusEndeavors.lua
 modules/Focus/providers/FocusDecor.lua
 modules/Focus/providers/FocusAppearances.lua
