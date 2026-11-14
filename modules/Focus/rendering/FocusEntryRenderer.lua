@@ -397,6 +397,26 @@ local function StripLeadingDashes(s)
     return (s:gsub("^[%s%-]*%-+%s*", ""))
 end
 
+-- Compact completed quests (compactCompletedQuests): a quest ready to turn in shows only its
+-- title with a checkmark at the end, no "Ready to Turn In" line and no objective rows.
+-- Click-to-complete quests keep their lines, since those tell the player to click.
+-- Achievements, endeavors and other trackables keep theirs too: this is for quests only.
+-- @param questData table
+-- @return boolean
+local function IsCompactCompletedQuest(questData)
+    if not (questData and questData.isComplete) or questData.isAutoComplete then return false end
+    if not addon.GetDB("compactCompletedQuests", false) then return false end
+    if type(questData.questID) ~= "number" then return false end
+    if questData.isAchievement or questData.isEndeavor or questData.isRecipe or questData.isAppearance
+        or questData.isDecor or questData.isAdventureGuide or questData.isScenarioMain or questData.isRare then
+        return false
+    end
+    return true
+end
+
+-- Inline checkmark for the end of a compact completed quest's title; sized to the title font.
+local COMPACT_COMPLETE_CHECK = " |TInterface\\Buttons\\UI-CheckBox-Check:0:0|t"
+
 local function IsProgressBarEnabled(questData)
     -- Achievements use showAchievementProgressBars + provider flag, not quest/scenario toggles.
     if questData.isAchievement then
@@ -719,6 +739,7 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
     if not progTextColor or type(progTextColor) ~= "table" then progTextColor = { 0.95, 0.95, 0.95 } end
 
     local shownObjs = 0
+    local compactComplete = IsCompactCompletedQuest(questData)
     local entryKey = questData.entryKey or entry.entryKey
     local hideScenarioHeaderCurrencies = addon.GetDB("showScenarioHeaderCurrenciesInTitle", true)
         and questData.category == "SCENARIO"
@@ -759,6 +780,8 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
 
         -- Auto-complete quests: always show "Quest Complete / Click to complete" block, overwriting objectives.
         if oData and questData.isComplete and (questData.isAutoComplete and true or false) then oData = nil end
+        -- Compact completed quests: the title's checkmark says it all.
+        if oData and compactComplete then oData = nil end
 
         -- First objective row is anchored with OBJ_EXTRA_LEFT_PAD; narrow SetWidth by the same amount so text wraps inside the panel.
         -- Subtract any vignette icon shift so objectives align with the un-shifted baseline, not the pushed title.
@@ -1016,7 +1039,7 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
         end
     end
 
-    if questData.isComplete and shownObjs == 0 then
+    if questData.isComplete and shownObjs == 0 and not compactComplete then
         local obj = entry.objectives[1]
         local isAutoComplete = questData.isAutoComplete and true or false
         local readyToTurnIn = StripLeadingDashes(L["UI_READY_TO_TURN_IN"])
@@ -1967,6 +1990,9 @@ local function PopulateEntry(entry, questData, groupKey)
         else
             displayTitle = displayTitle .. " " .. levelStr
         end
+    end
+    if IsCompactCompletedQuest(questData) then
+        displayTitle = displayTitle .. COMPACT_COMPLETE_CHECK
     end
     if showVignetteIcon and vignetteIconAtlas then
         if not entry.vignetteIconTex then
