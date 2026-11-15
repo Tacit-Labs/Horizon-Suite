@@ -64,6 +64,14 @@ local function easeOut(t) return 1 - (1 - t) * (1 - t) end
 -- Proxy frame for taint-free Minimap manipulation
 local proxy = CreateFrame("Frame")
 
+-- The visible map area. Everything Vista lays out around the map (border, texts, buttons) anchors
+-- here instead of to Minimap. It always matches the visible square, so when a rotating square map
+-- grows the Minimap frame past the visible area (see mapGeo.Apply), nothing moves.
+local mapView = CreateFrame("Frame", nil, Minimap)
+mapView:SetPoint("CENTER", mapView, "CENTER", 0, 0)
+mapView:SetSize(256, 256)
+Vista.mapView = mapView
+
 -- ============================================================================
 -- DB HELPERS
 -- ============================================================================
@@ -625,35 +633,99 @@ local function ApplyMapIconScale(pct)
     end
 end
 
+-- ============================================================================
+-- ROTATING SQUARE MAP
+-- ============================================================================
+-- With Rotate Minimap on, the engine draws the map as a square the size of the Minimap frame and
+-- turns it. A round mask always hides the corners of that square, but a square mask shows them
+-- empty as it turns. So while a square map rotates, the Minimap frame grows until the turning
+-- square always covers the visible area, and a mask that is opaque only in its centre hides the
+-- extra margin. mapView stays the visible size, so everything laid out around the map stays put.
+--
+-- The mask is 512px with an opaque centre of 360px. The turning square's inscribed circle has a
+-- radius of 0.711 of the visible side, just more than the visible square's half-diagonal (0.707).
+-- Shift(pt), Place(pt, rp, x, y), PlaceFromDB(), Apply(): one table, as this file is at Lua's
+-- 200-locals limit.
+local mapGeo = {}
+do
+    local ROTATE_MASK  = "Interface\\AddOns\\HorizonSuite\\media\\minimap_rotate_mask.tga"
+    local ROTATE_INNER = 360 / 512
+
+    local function IsMinimapRotating()
+        local v
+        if C_CVar and C_CVar.GetCVar then v = C_CVar.GetCVar("rotateMinimap")
+        elseif GetCVar then v = GetCVar("rotateMinimap") end
+        return v == "1"
+    end
+
+    local function IsRotatingSquare()
+        return IsMinimapRotating() and not G.Circular()
+    end
+
+    -- Margin, in Minimap units, that the Minimap frame extends past the visible area on each side.
+    local function MinimapOverscan()
+        if not IsRotatingSquare() then return 0 end
+        return (MINIMAP_BASE_SIZE / ROTATE_INNER - MINIMAP_BASE_SIZE) / 2
+    end
+
+    -- How far the Minimap's anchor point sits from the visible area's same point.
+    function mapGeo.Shift(pt)
+        local m = MinimapOverscan()
+        if m == 0 or not pt then return 0, 0 end
+        local dx = (pt:find("RIGHT") and m) or (pt:find("LEFT") and -m) or 0
+        local dy = (pt:find("TOP") and m) or (pt:find("BOTTOM") and -m) or 0
+        return dx, dy
+    end
+
+    -- Saved positions describe the visible area; this places the (possibly larger) Minimap frame.
+    function mapGeo.Place(pt, rp, x, y)
+        local dx, dy = mapGeo.Shift(pt)
+        proxy.ClearAllPoints(Minimap)
+        proxy.SetPoint(Minimap, pt, UIParent, rp or pt, (x or 0) + dx, (y or 0) + dy)
+    end
+
+    function mapGeo.PlaceFromDB()
+        local pt = DB("vistaPoint", nil)
+        if pt then
+            mapGeo.Place(pt, DB("vistaRelPoint", pt), DB("vistaX", 0), DB("vistaY", 0))
+        else
+            mapGeo.Place(DEFAULT_POINT, DEFAULT_RELPOINT, DEFAULT_X, DEFAULT_Y)
+        end
+    end
+
+    -- Size, mask, mouse area and screen clamp of the Minimap frame, then its position.
+    function mapGeo.Apply()
+        if InCombatLockdown() then Vista._geometryPending = true; return end
+        Vista._geometryPending = false
+        local m = MinimapOverscan()
+        local full = MINIMAP_BASE_SIZE + m * 2
+        Minimap:SetSize(full, full)
+        mapView:SetSize(MINIMAP_BASE_SIZE, MINIMAP_BASE_SIZE)
+        if m > 0 then
+            Minimap:SetMaskTexture(ROTATE_MASK)
+        else
+            Minimap:SetMaskTexture(G.Circular() and G.MaskCircular or G.MaskSquare)
+        end
+        -- The hidden margin should not take clicks or the mouse wheel, or stop the map at the screen edge.
+        pcall(Minimap.SetHitRectInsets, Minimap, m, m, m, m)
+        pcall(Minimap.SetClampRectInsets, Minimap, m, -m, -m, m)
+        mapGeo.PlaceFromDB()
+    end
+    Vista.ApplyMinimapGeometry = mapGeo.Apply
+end
+
 local function SetupMinimap()
-    local pt    = DB("vistaPoint",    nil)
-    local rp    = DB("vistaRelPoint", nil)
-    local vx    = DB("vistaX",        nil)
-    local vy    = DB("vistaY",        nil)
     local scale = DB("vistaScale",    1.0)
 
     local sz = GetMapSize()
     local mapScale = sz / MINIMAP_BASE_SIZE
-    Minimap:SetSize(MINIMAP_BASE_SIZE, MINIMAP_BASE_SIZE)
-    Minimap:SetMaskTexture(G.Circular() and G.MaskCircular or G.MaskSquare)
-
-    if pt then
-        proxy.ClearAllPoints(Minimap)
-        proxy.SetPoint(Minimap, pt, UIParent, rp or pt, vx or 0, vy or 0)
-    else
-        proxy.ClearAllPoints(Minimap)
-        proxy.SetPoint(Minimap, DEFAULT_POINT, UIParent, DEFAULT_RELPOINT, DEFAULT_X, DEFAULT_Y)
-    end
+    mapGeo.Apply()
 
     if hooksecurefunc and not Vista._setPointHooked then
         Vista._setPointHooked = true
         hooksecurefunc(Minimap, "SetPoint", function()
             if not addon:IsModuleEnabled("vista") then return end
-            local dpt = DB("vistaPoint", nil)
-            if dpt then
-                proxy.ClearAllPoints(Minimap)
-                proxy.SetPoint(Minimap, dpt, UIParent, DB("vistaRelPoint", dpt) or dpt, DB("vistaX", 0) or 0, DB("vistaY", 0) or 0)
-            end
+            if DB("vistaPoint", nil) then mapGeo.PlaceFromDB() end
         end)
     end
 
@@ -685,7 +757,7 @@ local function ApplyBorderTextures()
             local sz = GetMapSize()
             circularBorderFrame:SetSize(sz + bw * 2, sz + bw * 2)
             circularBorderFrame:ClearAllPoints()
-            circularBorderFrame:SetPoint("CENTER", Minimap, "CENTER", 0, 0)
+            circularBorderFrame:SetPoint("CENTER", mapView, "CENTER", 0, 0)
             circularBorderFrame._tex:SetColorTexture(r, g, b, a)
             circularBorderFrame:Show()
         else
@@ -707,26 +779,26 @@ local function ApplyBorderTextures()
     if borderTextures.top then
         borderTextures.top:ClearAllPoints()
         borderTextures.top:SetHeight(bw)
-        borderTextures.top:SetPoint("TOPLEFT",  Minimap, "TOPLEFT",  0,  bw)
-        borderTextures.top:SetPoint("TOPRIGHT", Minimap, "TOPRIGHT", 0,  bw)
+        borderTextures.top:SetPoint("TOPLEFT",  mapView, "TOPLEFT",  0,  bw)
+        borderTextures.top:SetPoint("TOPRIGHT", mapView, "TOPRIGHT", 0,  bw)
     end
     if borderTextures.bottom then
         borderTextures.bottom:ClearAllPoints()
         borderTextures.bottom:SetHeight(bw)
-        borderTextures.bottom:SetPoint("BOTTOMLEFT",  Minimap, "BOTTOMLEFT",  0, -bw)
-        borderTextures.bottom:SetPoint("BOTTOMRIGHT", Minimap, "BOTTOMRIGHT", 0, -bw)
+        borderTextures.bottom:SetPoint("BOTTOMLEFT",  mapView, "BOTTOMLEFT",  0, -bw)
+        borderTextures.bottom:SetPoint("BOTTOMRIGHT", mapView, "BOTTOMRIGHT", 0, -bw)
     end
     if borderTextures.left then
         borderTextures.left:ClearAllPoints()
         borderTextures.left:SetWidth(bw)
-        borderTextures.left:SetPoint("TOPLEFT",    Minimap, "TOPLEFT",    -bw,  bw)
-        borderTextures.left:SetPoint("BOTTOMLEFT", Minimap, "BOTTOMLEFT", -bw, -bw)
+        borderTextures.left:SetPoint("TOPLEFT",    mapView, "TOPLEFT",    -bw,  bw)
+        borderTextures.left:SetPoint("BOTTOMLEFT", mapView, "BOTTOMLEFT", -bw, -bw)
     end
     if borderTextures.right then
         borderTextures.right:ClearAllPoints()
         borderTextures.right:SetWidth(bw)
-        borderTextures.right:SetPoint("TOPRIGHT",    Minimap, "TOPRIGHT",    bw,  bw)
-        borderTextures.right:SetPoint("BOTTOMRIGHT", Minimap, "BOTTOMRIGHT", bw, -bw)
+        borderTextures.right:SetPoint("TOPRIGHT",    mapView, "TOPRIGHT",    bw,  bw)
+        borderTextures.right:SetPoint("BOTTOMRIGHT", mapView, "BOTTOMRIGHT", bw, -bw)
     end
 end
 
@@ -736,7 +808,7 @@ end
 
 local function CreateDecor()
     decor = CreateFrame("Frame", "HorizonSuiteVistaDecor", Minimap)
-    decor:SetAllPoints(Minimap)
+    decor:SetAllPoints(mapView)
     decor:SetFrameLevel(Minimap:GetFrameLevel() + 5)
 
     local function MakeBorderTex(name)
@@ -754,7 +826,7 @@ local function CreateDecor()
         circularBorderFrame = CreateFrame("Frame", "HorizonSuiteVistaCircularBorder", minimapParent)
         circularBorderFrame:SetFrameStrata(Minimap:GetFrameStrata())
         circularBorderFrame:SetFrameLevel(math.max((Minimap:GetFrameLevel() or 1) - 1, 0))
-        circularBorderFrame:SetPoint("CENTER", Minimap, "CENTER", 0, 0)
+        circularBorderFrame:SetPoint("CENTER", mapView, "CENTER", 0, 0)
         circularBorderFrame:SetSize(GetMapSize(), GetMapSize())
         local cbt = circularBorderFrame:CreateTexture(nil, "OVERLAY")
         cbt:SetColorTexture(1, 1, 1, 1)
@@ -785,8 +857,9 @@ local function CreateDecor()
         self:StopMovingOrSizing()
         if not addon.SetDB then return end
         local p, _, rp, x, y = self:GetPoint()
+        local dx, dy = mapGeo.Shift(p)
         SetDB("vistaPoint", p); SetDB("vistaRelPoint", rp)
-        SetDB("vistaX", x);     SetDB("vistaY", y)
+        SetDB("vistaX", x - dx); SetDB("vistaY", y - dy)
     end)
 
     -- Mouse wheel zoom (Blizzard +/- are suppressed; do not rely on their :Click)
@@ -816,9 +889,9 @@ local function CreateDecor()
     local zoneContainer = CreateFrame("Frame", nil, decor)
     zoneContainer:SetSize(GetMapSize(), 20)
     local zAp, zRp = G.ZoneAnchors()
-    zoneContainer:SetPoint(zAp, Minimap, zRp, G.ZoneOffsetX(), G.ZoneOffsetY())
+    zoneContainer:SetPoint(zAp, mapView, zRp, G.ZoneOffsetX(), G.ZoneOffsetY())
     zoneContainer:SetFrameLevel(decor:GetFrameLevel() + 1)
-    MakeDraggable(zoneContainer, "zone", "zone", "zone", G.ZoneAnchors, Minimap)
+    MakeDraggable(zoneContainer, "zone", "zone", "zone", G.ZoneAnchors, mapView)
 
     -- Primary line (zone name, or subzone in subzone-only mode)
     zoneShadow = zoneContainer:CreateFontString(nil, "BORDER")
@@ -857,9 +930,9 @@ local function CreateDecor()
     local diffContainer = CreateFrame("Frame", nil, decor)
     diffContainer:SetSize(GetMapSize(), 20)
     local dAp, dRp = G.DiffAnchors()
-    diffContainer:SetPoint(dAp, Minimap, dRp, G.DiffOffsetX(), G.DiffOffsetY())
+    diffContainer:SetPoint(dAp, mapView, dRp, G.DiffOffsetX(), G.DiffOffsetY())
     diffContainer:SetFrameLevel(decor:GetFrameLevel() + 1)
-    MakeDraggable(diffContainer, "diff", "diff", "diff", G.DiffAnchors, Minimap)
+    MakeDraggable(diffContainer, "diff", "diff", "diff", G.DiffAnchors, mapView)
 
     diffShadow = diffContainer:CreateFontString(nil, "BORDER")
     diffShadow:SetFont(G.DiffFont(), G.DiffSize(), "OUTLINE")
@@ -881,9 +954,9 @@ local function CreateDecor()
     local coordContainer = CreateFrame("Frame", nil, decor)
     coordContainer:SetSize(120, 16)
     local cAp, cRp = G.CoordAnchors()
-    coordContainer:SetPoint(cAp, Minimap, cRp, G.CoordOffsetX(), G.CoordOffsetY())
+    coordContainer:SetPoint(cAp, mapView, cRp, G.CoordOffsetX(), G.CoordOffsetY())
     coordContainer:SetFrameLevel(decor:GetFrameLevel() + 1)
-    MakeDraggable(coordContainer, "coord", "coord", "coord", G.CoordAnchors, Minimap)
+    MakeDraggable(coordContainer, "coord", "coord", "coord", G.CoordAnchors, mapView)
 
     coordShadow = coordContainer:CreateFontString(nil, "BORDER")
     coordShadow:SetFont(G.CoordFont(), G.CoordSize(), "OUTLINE")
@@ -903,9 +976,9 @@ local function CreateDecor()
     local timeContainer = CreateFrame("Button", nil, decor)
     timeContainer:SetSize(60, 16)
     local tAp, tRp = G.TimeAnchors()
-    timeContainer:SetPoint(tAp, Minimap, tRp, G.TimeOffsetX(), G.TimeOffsetY())
+    timeContainer:SetPoint(tAp, mapView, tRp, G.TimeOffsetX(), G.TimeOffsetY())
     timeContainer:SetFrameLevel(decor:GetFrameLevel() + 1)
-    MakeDraggable(timeContainer, "time", "time", "time", G.TimeAnchors, Minimap)
+    MakeDraggable(timeContainer, "time", "time", "time", G.TimeAnchors, mapView)
 
     timeShadow = timeContainer:CreateFontString(nil, "BORDER")
     timeShadow:SetFont(G.TimeFont(), G.TimeSize(), "OUTLINE")
@@ -969,9 +1042,9 @@ local function CreateDecor()
     local perfContainer = CreateFrame("Button", nil, decor)
     perfContainer:SetSize(120, 16)
     local pAp, pRp = G.PerfAnchors()
-    perfContainer:SetPoint(pAp, Minimap, pRp, G.PerfOffsetX(), G.PerfOffsetY())
+    perfContainer:SetPoint(pAp, mapView, pRp, G.PerfOffsetX(), G.PerfOffsetY())
     perfContainer:SetFrameLevel(decor:GetFrameLevel() + 1)
-    MakeDraggable(perfContainer, "perf", "perf", "perf", G.PerfAnchors, Minimap)
+    MakeDraggable(perfContainer, "perf", "perf", "perf", G.PerfAnchors, mapView)
     if perfContainer.SetMouseMotionEnabled then
         perfContainer:SetMouseMotionEnabled(true)
     end
@@ -1315,10 +1388,10 @@ local function CreateMailIndicator()
     local savedX = tonumber(DB("vistaEX_proxy_mail", nil))
     local savedY = tonumber(DB("vistaEY_proxy_mail", nil))
     if savedX and savedY then
-        mailAnchor:SetPoint("CENTER", Minimap, "CENTER", savedX, savedY)
+        mailAnchor:SetPoint("CENTER", mapView, "CENTER", savedX, savedY)
     else
         local inset = VISTA_MINIMAP_CORNER_INSET
-        mailAnchor:SetPoint("TOPLEFT", Minimap, "TOPLEFT", inset, -inset)
+        mailAnchor:SetPoint("TOPLEFT", mapView, "TOPLEFT", inset, -inset)
     end
 
     -- Drag-handle placeholder shown when unlocked and no mail — semi-transparent
@@ -1347,7 +1420,7 @@ local function CreateMailIndicator()
         SetDB("vistaEX_proxy_mail", ox)
         SetDB("vistaEY_proxy_mail", oy)
         self:ClearAllPoints()
-        self:SetPoint("CENTER", Minimap, "CENTER", ox, oy)
+        self:SetPoint("CENTER", mapView, "CENTER", ox, oy)
     end)
 
     -- Mail frame as child of anchor
@@ -1553,11 +1626,11 @@ local function CreateCraftingOrderIndicator()
     local savedX = tonumber(DB("vistaEX_proxy_craftingOrder", nil))
     local savedY = tonumber(DB("vistaEY_proxy_craftingOrder", nil))
     if savedX and savedY then
-        craftingOrderAnchor:SetPoint("CENTER", Minimap, "CENTER", savedX, savedY)
+        craftingOrderAnchor:SetPoint("CENTER", mapView, "CENTER", savedX, savedY)
     else
         local inset = VISTA_MINIMAP_CORNER_INSET
         local mailStack = G.MailIconSize() + MAIL_ANCHOR_PAD * 2 + 2
-        craftingOrderAnchor:SetPoint("TOPLEFT", Minimap, "TOPLEFT", inset, -(inset + mailStack))
+        craftingOrderAnchor:SetPoint("TOPLEFT", mapView, "TOPLEFT", inset, -(inset + mailStack))
     end
 
     -- Icon texture sits on the anchor itself. Alpha is driven by state:
@@ -1583,7 +1656,7 @@ local function CreateCraftingOrderIndicator()
         SetDB("vistaEX_proxy_craftingOrder", ox)
         SetDB("vistaEY_proxy_craftingOrder", oy)
         self:ClearAllPoints()
-        self:SetPoint("CENTER", Minimap, "CENTER", ox, oy)
+        self:SetPoint("CENTER", mapView, "CENTER", ox, oy)
     end)
 
     craftingOrderAnchor:RegisterForClicks("AnyUp")
@@ -2394,11 +2467,11 @@ RefreshDefaultButtonProxiesFromDB = function()
         local savedY = tonumber(DB("vistaEY_" .. lockKey, nil))
         proxy:ClearAllPoints()
         if savedX and savedY then
-            proxy:SetPoint("CENTER", Minimap, "CENTER", savedX, savedY)
+            proxy:SetPoint("CENTER", mapView, "CENTER", savedX, savedY)
         else
             for _, def in ipairs(DEFAULT_BTN_DEFS) do
                 if def.key == key then
-                    proxy:SetPoint(def.anchor, Minimap, def.anchor, def.xOff, def.yOff)
+                    proxy:SetPoint(def.anchor, mapView, def.anchor, def.xOff, def.yOff)
                     break
                 end
             end
@@ -2456,9 +2529,9 @@ CreateDefaultButtonProxies = function()
         local savedX = tonumber(DB("vistaEX_" .. lockKey, nil))
         local savedY = tonumber(DB("vistaEY_" .. lockKey, nil))
         if savedX and savedY then
-            proxy:SetPoint("CENTER", Minimap, "CENTER", savedX, savedY)
+            proxy:SetPoint("CENTER", mapView, "CENTER", savedX, savedY)
         else
-            proxy:SetPoint(def.anchor, Minimap, def.anchor, def.xOff, def.yOff)
+            proxy:SetPoint(def.anchor, mapView, def.anchor, def.xOff, def.yOff)
         end
 
         -- Draggable
@@ -2476,7 +2549,7 @@ CreateDefaultButtonProxies = function()
             SetDB("vistaEX_" .. lockKey, ox)
             SetDB("vistaEY_" .. lockKey, oy)
             self:ClearAllPoints()
-            self:SetPoint("CENTER", Minimap, "CENTER", ox, oy)
+            self:SetPoint("CENTER", mapView, "CENTER", ox, oy)
         end)
 
         -- Icon — use NormalTexture slot so it's always full-brightness
@@ -2690,14 +2763,14 @@ do
         local savedX = tonumber(DB("vistaEX_proxy_queue", nil))
         local savedY = tonumber(DB("vistaEY_proxy_queue", nil))
         if savedX and savedY then
-            queueAnchor:SetPoint("CENTER", Minimap, "CENTER", savedX, savedY)
+            queueAnchor:SetPoint("CENTER", mapView, "CENTER", savedX, savedY)
         else
             local inset = VISTA_MINIMAP_CORNER_INSET
-            local mmW = Minimap:GetWidth() or 200
-            local mmH = Minimap:GetHeight() or mmW
+            local mmW = mapView:GetWidth() or 200
+            local mmH = mapView:GetHeight() or mmW
             local halfW, halfH = mmW * 0.5, mmH * 0.5
             local pad = inset + anchorSz * 0.5
-            queueAnchor:SetPoint("CENTER", Minimap, "CENTER", halfW - pad, -halfH + pad)
+            queueAnchor:SetPoint("CENTER", mapView, "CENTER", halfW - pad, -halfH + pad)
         end
 
         -- Visible placeholder when unlocked and not queued (drag handle): LFG eye, semi-transparent
@@ -2723,7 +2796,7 @@ do
             SetDB("vistaEX_proxy_queue", ox)
             SetDB("vistaEY_proxy_queue", oy)
             self:ClearAllPoints()
-            self:SetPoint("CENTER", Minimap, "CENTER", ox, oy)
+            self:SetPoint("CENTER", mapView, "CENTER", ox, oy)
         end)
 
         -- Attach the real button into the anchor now
@@ -2876,7 +2949,7 @@ do
         SetDB("vistaEX_proxy_landing", ox)
         SetDB("vistaEY_proxy_landing", oy)
         landingPageAnchor:ClearAllPoints()
-        landingPageAnchor:SetPoint("CENTER", Minimap, "CENTER", ox, oy)
+        landingPageAnchor:SetPoint("CENTER", mapView, "CENTER", ox, oy)
         AttachLandingButtonToAnchor()
     end
 
@@ -2962,15 +3035,15 @@ do
         local savedX = tonumber(DB("vistaEX_proxy_landing", nil))
         local savedY = tonumber(DB("vistaEY_proxy_landing", nil))
         if savedX and savedY then
-            landingPageAnchor:SetPoint("CENTER", Minimap, "CENTER", savedX, savedY)
+            landingPageAnchor:SetPoint("CENTER", mapView, "CENTER", savedX, savedY)
         else
             -- Default: top-left corner (tracking is top-right; calendar bottom-left)
             local inset = VISTA_MINIMAP_CORNER_INSET
-            local mmW = Minimap:GetWidth() or 200
-            local mmH = Minimap:GetHeight() or mmW
+            local mmW = mapView:GetWidth() or 200
+            local mmH = mapView:GetHeight() or mmW
             local halfW, halfH = mmW * 0.5, mmH * 0.5
             local pad = inset + anchorSz * 0.5
-            landingPageAnchor:SetPoint("CENTER", Minimap, "CENTER", -halfW + pad, halfH - pad)
+            landingPageAnchor:SetPoint("CENTER", mapView, "CENTER", -halfW + pad, halfH - pad)
         end
 
         local border = landingPageAnchor:CreateTexture(nil, "OVERLAY")
@@ -3613,9 +3686,9 @@ local function CreateCollectorBar()
     local savedX = G.MouseoverBarX()
     local savedY = G.MouseoverBarY()
     if savedX and savedY then
-        collectorBar:SetPoint("CENTER", Minimap, "CENTER", savedX, savedY)
+        collectorBar:SetPoint("CENTER", mapView, "CENTER", savedX, savedY)
     else
-        collectorBar:SetPoint("TOP", Minimap, "BOTTOM", 0, -8)
+        collectorBar:SetPoint("TOP", mapView, "BOTTOM", 0, -8)
     end
     collectorBar:Show()
 
@@ -3679,7 +3752,7 @@ local function CreateCollectorBar()
         SetDB("vistaMouseoverBarX", ox)
         SetDB("vistaMouseoverBarY", oy)
         self:ClearAllPoints()
-        self:SetPoint("CENTER", Minimap, "CENTER", ox, oy)
+        self:SetPoint("CENTER", mapView, "CENTER", ox, oy)
         PositionBarAnchor()
     end)
 
@@ -3752,7 +3825,7 @@ local function CreateCollectorBar()
             else                       ox = ancOffX + ancW/2 + gap + cbW/2; oy = ancOffY end
             -- Move collectorBar without creating a circular anchor dependency
             collectorBar:ClearAllPoints()
-            collectorBar:SetPoint("CENTER", Minimap, "CENTER", ox, oy)
+            collectorBar:SetPoint("CENTER", mapView, "CENTER", ox, oy)
         end)
     end)
     barAnchor:SetScript("OnDragStop", function(self)
@@ -3794,7 +3867,7 @@ local function CreateCollectorBar()
         SetDB("vistaMouseoverBarX", ox)
         SetDB("vistaMouseoverBarY", oy)
         collectorBar:ClearAllPoints()
-        collectorBar:SetPoint("CENTER", Minimap, "CENTER", ox, oy)
+        collectorBar:SetPoint("CENTER", mapView, "CENTER", ox, oy)
         PositionBarAnchor()
     end)
 end
@@ -3961,9 +4034,9 @@ local function CreateDrawerButton()
     local dby = DB("vistaDrawerBtnY", nil)
     if dbx and dby then
         -- Saved as CENTER offset relative to Minimap CENTER
-        drawerButton:SetPoint("CENTER", Minimap, "CENTER", dbx, dby)
+        drawerButton:SetPoint("CENTER", mapView, "CENTER", dbx, dby)
     else
-        drawerButton:SetPoint("BOTTOMRIGHT", Minimap, "BOTTOMRIGHT", 0, 0)
+        drawerButton:SetPoint("BOTTOMRIGHT", mapView, "BOTTOMRIGHT", 0, 0)
     end
 
     -- Visuals
@@ -4008,7 +4081,7 @@ local function CreateDrawerButton()
         SetDB("vistaDrawerBtnX", ox)
         SetDB("vistaDrawerBtnY", oy)
         self:ClearAllPoints()
-        self:SetPoint("CENTER", Minimap, "CENTER", ox, oy)
+        self:SetPoint("CENTER", mapView, "CENTER", ox, oy)
     end)
 
     -- Click to toggle the drawer (only fires when not dragging)
@@ -4104,9 +4177,9 @@ local function CreateRightClickPanel()
     local savedX = G.RightClickPanelX()
     local savedY = G.RightClickPanelY()
     if savedX and savedY then
-        rightClickPanel:SetPoint("CENTER", Minimap, "CENTER", savedX, savedY)
+        rightClickPanel:SetPoint("CENTER", mapView, "CENTER", savedX, savedY)
     else
-        rightClickPanel:SetPoint("TOPRIGHT", Minimap, "BOTTOMRIGHT", 0, -4)
+        rightClickPanel:SetPoint("TOPRIGHT", mapView, "BOTTOMRIGHT", 0, -4)
     end
 
     local rcBgFrame = CreateFrame("Frame", nil, rightClickPanel)
@@ -4140,7 +4213,7 @@ local function CreateRightClickPanel()
         SetDB("vistaRightClickPanelX", ox)
         SetDB("vistaRightClickPanelY", oy)
         self:ClearAllPoints()
-        self:SetPoint("CENTER", Minimap, "CENTER", ox, oy)
+        self:SetPoint("CENTER", mapView, "CENTER", ox, oy)
     end)
 
     -- Auto-close polling: instead of OnLeave (which fires on child entry), poll every 0.1s
@@ -4607,7 +4680,7 @@ do
         local sz = GetMapSize()
         hit:SetSize(sz, sz)
         hit:ClearAllPoints()
-        hit:SetPoint("CENTER", Minimap, "CENTER", 0, 0)
+        hit:SetPoint("CENTER", mapView, "CENTER", 0, 0)
         -- Minimap is LOW (special widget). A blank Frame at LOW loses the mouse
         -- to the world once the map is hidden; HIGH intercepts hover.
         hit:SetFrameStrata("HIGH")
@@ -4786,8 +4859,7 @@ local function ApplyOptions_Minimap()
     Minimap:SetMovable(not DB("vistaLock", true))
     local sz       = GetMapSize()
     local mapScale = sz / MINIMAP_BASE_SIZE
-    Minimap:SetSize(MINIMAP_BASE_SIZE, MINIMAP_BASE_SIZE)
-    Minimap:SetMaskTexture(G.Circular() and G.MaskCircular or G.MaskSquare)
+    mapGeo.Apply()
     pcall(function() local z = Minimap:GetZoom(); if z then Minimap:SetZoom(z) end end)
     local vistaScale  = DB("vistaScale", 1.0) or 1.0
     local moduleScale = (addon.GetModuleScale and addon.GetModuleScale("vista")) or 1
@@ -4832,7 +4904,7 @@ local function ApplyOptions_Texts(sz)
         decor._zoneContainer:SetShown(show);  decor._zoneContainer:SetWidth(sz)
         local ap, rp = G.ZoneAnchors()
         decor._zoneContainer:ClearAllPoints()
-        decor._zoneContainer:SetPoint(ap, Minimap, rp, G.ZoneOffsetX(), G.ZoneOffsetY())
+        decor._zoneContainer:SetPoint(ap, mapView, rp, G.ZoneOffsetX(), G.ZoneOffsetY())
         UpdateZoneText()
     end
     if coordText and decor._coordContainer then
@@ -4844,7 +4916,7 @@ local function ApplyOptions_Texts(sz)
         decor._coordContainer:SetShown(show)
         local ap, rp = G.CoordAnchors()
         decor._coordContainer:ClearAllPoints()
-        decor._coordContainer:SetPoint(ap, Minimap, rp, G.CoordOffsetX(), G.CoordOffsetY())
+        decor._coordContainer:SetPoint(ap, mapView, rp, G.CoordOffsetX(), G.CoordOffsetY())
     end
     if timeText and decor._timeContainer then
         local show = G.ShowTime()
@@ -4855,7 +4927,7 @@ local function ApplyOptions_Texts(sz)
         decor._timeContainer:SetShown(show)
         local ap, rp = G.TimeAnchors()
         decor._timeContainer:ClearAllPoints()
-        decor._timeContainer:SetPoint(ap, Minimap, rp, G.TimeOffsetX(), G.TimeOffsetY())
+        decor._timeContainer:SetPoint(ap, mapView, rp, G.TimeOffsetX(), G.TimeOffsetY())
     end
     if perf.num1 and decor._perfContainer then
         local show = G.ShowPerf()
@@ -4874,7 +4946,7 @@ local function ApplyOptions_Texts(sz)
         decor._perfContainer:SetShown(show)
         local ap, rp = G.PerfAnchors()
         decor._perfContainer:ClearAllPoints()
-        decor._perfContainer:SetPoint(ap, Minimap, rp, G.PerfOffsetX(), G.PerfOffsetY())
+        decor._perfContainer:SetPoint(ap, mapView, rp, G.PerfOffsetX(), G.PerfOffsetY())
         if Vista.ResizePerfContainer then
             Vista.ResizePerfContainer()
         end
@@ -4886,7 +4958,7 @@ local function ApplyOptions_Texts(sz)
         decor._diffContainer:SetWidth(sz)
         local dAp, dRp = G.DiffAnchors()
         decor._diffContainer:ClearAllPoints()
-        decor._diffContainer:SetPoint(dAp, Minimap, dRp, G.DiffOffsetX(), G.DiffOffsetY())
+        decor._diffContainer:SetPoint(dAp, mapView, dRp, G.DiffOffsetX(), G.DiffOffsetY())
         UpdateDifficultyText()
     end
     if collectorBar then
@@ -4894,9 +4966,9 @@ local function ApplyOptions_Texts(sz)
         local savedY = G.MouseoverBarY()
         collectorBar:ClearAllPoints()
         if savedX and savedY then
-            collectorBar:SetPoint("CENTER", Minimap, "CENTER", savedX, savedY)
+            collectorBar:SetPoint("CENTER", mapView, "CENTER", savedX, savedY)
         else
-            collectorBar:SetPoint("TOP", Minimap, "BOTTOM", 0, -8)
+            collectorBar:SetPoint("TOP", mapView, "BOTTOM", 0, -8)
         end
     end
     ApplyOptions_TextDraggableLocks()
@@ -5091,7 +5163,7 @@ function Vista.Init()
 
     if MinimapBackdrop then
         MinimapBackdrop:ClearAllPoints()
-        MinimapBackdrop:SetPoint("CENTER", Minimap, "CENTER", 0, 0)
+        MinimapBackdrop:SetPoint("CENTER", mapView, "CENTER", 0, 0)
     end
 
 
@@ -5172,6 +5244,7 @@ function Vista.Init()
     eventFrame:RegisterEvent("ADDON_LOADED")
     eventFrame:RegisterEvent("PLAYER_REGEN_DISABLED")
     eventFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
+    eventFrame:RegisterEvent("CVAR_UPDATE")
     pcall(function() eventFrame:RegisterEvent("CRAFTINGORDERS_UPDATE_PERSONAL_ORDER_COUNTS") end)
     pcall(function() eventFrame:RegisterEvent("CRAFTINGORDERS_UPDATE_ORDER_COUNT") end)
 
@@ -5225,8 +5298,17 @@ function Vista.Init()
             elseif addon:IsModuleEnabled("vista") then
                 Minimap:Show()
             end
+        elseif event == "CVAR_UPDATE" then
+            -- Rotate Minimap toggled (options or keybind). Older clients name it ROTATE_MINIMAP.
+            local name = type(arg1) == "string" and arg1:lower() or ""
+            if name == "rotateminimap" or name == "rotate_minimap" then
+                mapGeo.Apply()
+                ApplyBorderTextures()
+                if addon.MinimapButton_ApplyPosition then addon.MinimapButton_ApplyPosition() end
+            end
         elseif event == "PLAYER_REGEN_DISABLED" or event == "PLAYER_REGEN_ENABLED" then
             if Vista.ApplyClusterOpacity then Vista.ApplyClusterOpacity(false) end
+            if event == "PLAYER_REGEN_ENABLED" and Vista._geometryPending then mapGeo.Apply() end
         end
     end)
 
@@ -5399,8 +5481,7 @@ end
 -- Called from options Reset button and slash command.
 function Vista.ResetMinimapPosition()
     if not InCombatLockdown() then
-        proxy.ClearAllPoints(Minimap)
-        proxy.SetPoint(Minimap, DEFAULT_POINT, UIParent, DEFAULT_RELPOINT, DEFAULT_X, DEFAULT_Y)
+        mapGeo.Place(DEFAULT_POINT, DEFAULT_RELPOINT, DEFAULT_X, DEFAULT_Y)
     end
     SetDB("vistaPoint", nil)
     SetDB("vistaRelPoint", nil)

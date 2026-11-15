@@ -261,8 +261,10 @@ end
 -- Round case: button center sits on the circular edge (half the icon overlaps the minimap, half
 -- overhangs — matches Blizzard's calendar/clock placement). Square case: angle ray clamped to box.
 local function GetEdgePosition(angle)
-    local mw = (Minimap and Minimap:GetWidth()) or 140
-    local mh = (Minimap and Minimap:GetHeight()) or 140
+    -- Vista's mapView is the visible map; the Minimap frame can be larger while a square map rotates.
+    local ref = (addon.Vista and addon.Vista.mapView and addon.IsModuleEnabled and addon:IsModuleEnabled("vista") and addon.Vista.mapView) or Minimap
+    local mw = (ref and ref:GetWidth()) or 140
+    local mh = (ref and ref:GetHeight()) or 140
     local cosA, sinA = math.cos(angle), math.sin(angle)
     local hw, hh = mw / 2, mh / 2
     if MinimapIsRoundShape() then
