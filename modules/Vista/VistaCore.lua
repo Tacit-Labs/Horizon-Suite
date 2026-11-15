@@ -68,7 +68,7 @@ local proxy = CreateFrame("Frame")
 -- here instead of to Minimap. It always matches the visible square, so when a rotating square map
 -- grows the Minimap frame past the visible area (see mapGeo.Apply), nothing moves.
 local mapView = CreateFrame("Frame", nil, Minimap)
-mapView:SetPoint("CENTER", mapView, "CENTER", 0, 0)
+mapView:SetPoint("CENTER", Minimap, "CENTER", 0, 0)
 mapView:SetSize(256, 256)
 Vista.mapView = mapView
 
