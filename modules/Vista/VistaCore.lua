@@ -693,6 +693,16 @@ do
         end
     end
 
+    function mapGeo.RefreshRender()
+        pcall(function()
+            local z = Minimap:GetZoom()
+            if not z then return end
+            local maxZ = (Minimap.GetZoomLevels and Minimap:GetZoomLevels()) or 5
+            Minimap:SetZoom(z < maxZ and z + 1 or z - 1)
+            Minimap:SetZoom(z)
+        end)
+    end
+
     -- Size, mask, mouse area and screen clamp of the Minimap frame, then its position.
     function mapGeo.Apply()
         if InCombatLockdown() then Vista._geometryPending = true; return end
@@ -710,6 +720,14 @@ do
         pcall(Minimap.SetHitRectInsets, Minimap, m, m, m, m)
         pcall(Minimap.SetClampRectInsets, Minimap, m, -m, -m, m)
         mapGeo.PlaceFromDB()
+        -- The engine keeps drawing the map at the old size, pinned to the frame's bottom-left,
+        -- until the zoom level changes. Setting the same zoom is ignored, so step away and back,
+        -- now and again next frame once the new size has been laid out.
+        if Vista._mapGeoSize ~= full then
+            Vista._mapGeoSize = full
+            mapGeo.RefreshRender()
+            if C_Timer and C_Timer.After then C_Timer.After(0, mapGeo.RefreshRender) end
+        end
     end
     Vista.ApplyMinimapGeometry = mapGeo.Apply
 end
