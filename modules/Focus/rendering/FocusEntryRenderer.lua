@@ -414,8 +414,15 @@ local function IsCompactCompletedQuest(questData)
     return true
 end
 
--- Inline checkmark for the end of a compact completed quest's title; sized to the title font.
-local COMPACT_COMPLETE_CHECK = " |TInterface\\Buttons\\UI-CheckBox-Check:0:0|t"
+-- Inline checkmark for the end of a compact completed quest's title, sized to the title font and
+-- tinted with the completed-objective colour (green by default). The texture is 32x32 and gold,
+-- so the tint multiplies it toward green.
+-- @return string
+local function GetCompactCompleteCheck()
+    local c = (addon.GetCompletedObjectiveColor and addon.GetCompletedObjectiveColor()) or addon.OBJ_DONE_COLOR or { 0.30, 0.80, 0.30 }
+    local function b(v) return math.floor(math.max(0, math.min(1, tonumber(v) or 0)) * 255 + 0.5) end
+    return (" |TInterface\\Buttons\\UI-CheckBox-Check:0:0:0:0:32:32:0:32:0:32:%d:%d:%d|t"):format(b(c[1]), b(c[2]), b(c[3]))
+end
 
 local function IsProgressBarEnabled(questData)
     -- Achievements use showAchievementProgressBars + provider flag, not quest/scenario toggles.
@@ -1992,7 +1999,7 @@ local function PopulateEntry(entry, questData, groupKey)
         end
     end
     if IsCompactCompletedQuest(questData) then
-        displayTitle = displayTitle .. COMPACT_COMPLETE_CHECK
+        displayTitle = displayTitle .. GetCompactCompleteCheck()
     end
     if showVignetteIcon and vignetteIconAtlas then
         if not entry.vignetteIconTex then
