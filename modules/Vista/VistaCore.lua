@@ -642,14 +642,15 @@ end
 -- square always covers the visible area, and a mask that is opaque only in its centre hides the
 -- extra margin. mapView stays the visible size, so everything laid out around the map stays put.
 --
--- The mask is 512px with an opaque centre of 360px. The turning square's inscribed circle has a
--- radius of 0.711 of the visible side, just more than the visible square's half-diagonal (0.707).
+-- The mask is an uncompressed 256px TGA with an opaque centre of 180px. The turning square's
+-- inscribed circle has a radius of 0.711 of the visible side, just more than the visible square's
+-- half-diagonal (0.707). A new media file only loads after a full game restart, not a /reload.
 -- Shift(pt), Place(pt, rp, x, y), PlaceFromDB(), Apply(): one table, as this file is at Lua's
 -- 200-locals limit.
 local mapGeo = {}
 do
     local ROTATE_MASK  = "Interface\\AddOns\\HorizonSuite\\media\\minimap_rotate_mask.tga"
-    local ROTATE_INNER = 360 / 512
+    local ROTATE_INNER = 180 / 256
 
     local function IsMinimapRotating()
         local v
