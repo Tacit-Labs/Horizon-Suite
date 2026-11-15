@@ -704,6 +704,23 @@ do
         end)
     end
 
+    -- Vista's mask, kept: anything else that sets the minimap's mask (Blizzard's minimap code
+    -- re-applies its own) is put back to Vista's straight away.
+    local settingMask = false
+    function mapGeo.SetMask(tex)
+        Vista._mapMask = tex
+        settingMask = true
+        Minimap:SetMaskTexture(tex)
+        settingMask = false
+        if hooksecurefunc and not Vista._maskHooked then
+            Vista._maskHooked = true
+            hooksecurefunc(Minimap, "SetMaskTexture", function(_, other)
+                if settingMask or not addon:IsModuleEnabled("vista") then return end
+                if Vista._mapMask and other ~= Vista._mapMask then mapGeo.SetMask(Vista._mapMask) end
+            end)
+        end
+    end
+
     -- Size, mask, mouse area and screen clamp of the Minimap frame, then its position.
     function mapGeo.Apply()
         if InCombatLockdown() then Vista._geometryPending = true; return end
@@ -712,11 +729,7 @@ do
         local full = MINIMAP_BASE_SIZE + m * 2
         Minimap:SetSize(full, full)
         mapView:SetSize(MINIMAP_BASE_SIZE, MINIMAP_BASE_SIZE)
-        if m > 0 then
-            Minimap:SetMaskTexture(ROTATE_MASK)
-        else
-            Minimap:SetMaskTexture(G.Circular() and G.MaskCircular or G.MaskSquare)
-        end
+        mapGeo.SetMask(m > 0 and ROTATE_MASK or (G.Circular() and G.MaskCircular or G.MaskSquare))
         -- The hidden margin should not take clicks or the mouse wheel, or stop the map at the screen edge.
         pcall(Minimap.SetHitRectInsets, Minimap, m, m, m, m)
         pcall(Minimap.SetClampRectInsets, Minimap, m, -m, -m, m)
@@ -5286,6 +5299,7 @@ function Vista.Init()
             reStrip()
             C_Timer.After(2.0, function()
                 reStrip()
+                mapGeo.Apply()
                 CollectMinimapButtons()
                 CreateLandingPageAnchor()
                 SyncCraftingOrderFromNative()
