@@ -55,6 +55,18 @@ local categories = {
               set = function(v) setDB("vistaMapIconScale", clamp(v, "vistaMapIconScale")) end,
               preview = function(v) if addon.Vista and addon.Vista.PreviewMapIconScale then addon.Vista.PreviewMapIconScale(v) end end },
             Toggle(L["VISTA_CIRCULAR_SHAPE"], L["VISTA_A_CIRCULAR_MINIMAP_INSTEAD_OF_SQUARE"], "vistaCircular", D.vistaCircular),
+            -- Backed by the game's rotateMinimap CVar, not the profile, so it always matches the
+            -- game's own setting and keybind. Vista reacts to the CVar change itself.
+            Toggle(L["VISTA_ROTATE_MINIMAP"], L["VISTA_ROTATE_MINIMAP_DESC"], "vistaRotateMinimap", false, {
+                get = function()
+                    local v = (C_CVar and C_CVar.GetCVar and C_CVar.GetCVar("rotateMinimap")) or (GetCVar and GetCVar("rotateMinimap"))
+                    return v == "1"
+                end,
+                set = function(v)
+                    local set = (C_CVar and C_CVar.SetCVar) or SetCVar
+                    if set then set("rotateMinimap", v and "1" or "0") end
+                end,
+            }),
             Section(L["AXIS_POSITION"], { page = "layout", card = "position" }),
             Toggle(L["LOCK_MINIMAP"], L["VISTA_PREVENT_DRAGGING_MINIMAP"], "vistaLock", D.vistaLock),
             Button(L["VISTA_RESET_MINIMAP_POSITION"], L["VISTA_RESET_MINIMAP_DEFAULT_POSITION_TOP_RIGHT"], function()
