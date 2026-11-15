@@ -440,6 +440,7 @@ local categories = {
             Toggle(L["COMPLETED_COUNT"], L["FOCUS_X_Y_PROGRESS_QUEST_TITLE"], "showCompletedCount", D.showCompletedCount),
             { type = "dropdown", name = L["FOCUS_COMPLETED_OBJECTIVES"], desc = L["DISPLAY_COMPLETED_OBJECTIVES"], tooltip = L["FOCUS_MULTI_OBJECTIVE_QUESTS_DISPLAY_OBJECTIVES"], dbKey = "questCompletedObjectiveDisplay", options = { { L["FOCUS_ALL"], "off" }, { L["FOCUS_FADE_COMPLETED"], "fade" }, { L["FOCUS_HIDE_COMPLETED"], "hide" } }, get = function() return getDB("questCompletedObjectiveDisplay", D.questCompletedObjectiveDisplay) end, set = function(v) setDB("questCompletedObjectiveDisplay", v) end },
             Toggle(L["FOCUS_CHECKMARK_COMPLETED"], L["CHECKMARK_COMPLETED_OBJECTIVES"], "useTickForCompletedObjectives", D.useTickForCompletedObjectives, { tooltip = L["FOCUS_COMPLETED_CHECKMARK"] }),
+            Toggle(L["FOCUS_COMPACT_COMPLETED_QUESTS"], L["FOCUS_COMPACT_COMPLETED_QUESTS_DESC"], "compactCompletedQuests", D.compactCompletedQuests, { tooltip = L["FOCUS_COMPACT_COMPLETED_QUESTS_TIP"], isNew = "6.14.0", id = "compactCompletedQuests" }),
             Section(L["FOCUS_ENTRY_DETAILS"], { page = "tracked", card = "entryDetails" }),
             Toggle(L["QUEST_LEVEL"], L["FOCUS_QUEST_LEVEL_NEXT_TITLE"], "showQuestLevel", D.showQuestLevel),
             Toggle(L["FOCUS_QUEST_LEVEL_DIFFICULTY_COLOUR"], L["FOCUS_QUEST_LEVEL_DIFFICULTY_COLOUR_DESC"], "questLevelDifficultyColor", D.questLevelDifficultyColor, { isNew = "6.3.0", id = "questLevelDifficultyColor", parent = "showQuestLevel" }),
