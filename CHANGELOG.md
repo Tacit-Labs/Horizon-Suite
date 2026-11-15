@@ -10,6 +10,14 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [6.14.0] – 2026-11-15
+
+### ✨ New Features
+- **(Focus) Compact completed quests** — A new option under Objectives shows quests that are ready to turn in on a single line, with a green checkmark after the title; quests you complete by clicking them keep their instructions.
+- **(Vista) Rotate minimap** — Turn minimap rotation on or off under Size & shape, and it stays in step with the game's own Toggle Minimap Rotation keybind.
+
+---
+
 ## [6.13.0] – 2026-11-13
 
 ### ✨ New Features
