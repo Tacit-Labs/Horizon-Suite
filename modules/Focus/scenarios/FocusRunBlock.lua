@@ -1,7 +1,8 @@
 --[[
     Horizon Suite - Focus - Dungeon Run Block
 
-    Cinematic banner for an ordinary party dungeon: elapsed time, experience and
+    Cinematic banner for an ordinary party dungeon (and, with the Scenarios option
+    on, a Delve, Labyrinth, Ritual Site or other scenario): elapsed time, experience and
     money earned, the per-hour rates, and bosses defeated. Hover shows the boss
     list, the projection to the next level, and a reset button.
 
@@ -507,15 +508,6 @@ local function UpdateDungeonRunBlock()
 
     -- The M+ banner owns the screen in a keystone run; never stack the two.
     if addon.mplusBlock and addon.mplusBlock:IsShown() then
-        runBlock:Hide()
-        return
-    end
-
-    -- Belt and braces on Retail. A Delve reports instanceType "scenario", so the
-    -- tracker's "party" gate should already exclude it and this has never been
-    -- seen to fire — but the delve UI owns the screen the same way a keystone
-    -- does, and this block draws on UIParent where a false positive is loud.
-    if addon.IsDelveActive and addon.IsDelveActive() then
         runBlock:Hide()
         return
     end
