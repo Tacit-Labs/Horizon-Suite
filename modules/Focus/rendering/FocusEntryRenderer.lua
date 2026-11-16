@@ -417,11 +417,14 @@ end
 -- Inline checkmark for the end of a compact completed quest's title, sized to the title font and
 -- tinted with the completed-objective colour (green by default). The texture is 32x32 and gold,
 -- so the tint multiplies it toward green.
+-- Joined to the title with a non-breaking space: with a plain space, a title that nearly fills its
+-- line wrapped at that space and the checkmark, alone on the new line, was not drawn. The
+-- non-breaking space makes the last word and the checkmark wrap together.
 -- @return string
 local function GetCompactCompleteCheck()
     local c = (addon.GetCompletedObjectiveColor and addon.GetCompletedObjectiveColor()) or addon.OBJ_DONE_COLOR or { 0.30, 0.80, 0.30 }
     local function b(v) return math.floor(math.max(0, math.min(1, tonumber(v) or 0)) * 255 + 0.5) end
-    return (" |TInterface\\Buttons\\UI-CheckBox-Check:0:0:0:0:32:32:0:32:0:32:%d:%d:%d|t"):format(b(c[1]), b(c[2]), b(c[3]))
+    return ("\194\160|TInterface\\Buttons\\UI-CheckBox-Check:0:0:0:0:32:32:0:32:0:32:%d:%d:%d|t"):format(b(c[1]), b(c[2]), b(c[3]))
 end
 
 local function IsProgressBarEnabled(questData)
@@ -2102,7 +2105,7 @@ local function PopulateEntry(entry, questData, groupKey)
         entry._inlineTimerOnOwnLine = nil
     end
 
-    local effectiveCat = (addon.GetEffectiveColorCategory and addon.GetEffectiveColorCategory(questData.category, groupKey, questData.baseCategory, questData.isEventQuest)) or questData.category
+    local effectiveCat = (addon.GetEffectiveColorCategory and addon.GetEffectiveColorCategory(questData.category, groupKey, questData.baseCategory, questData.isEventQuest, questData.isComplete)) or questData.category
     local c = (addon.GetTitleColor and addon.GetTitleColor(effectiveCat)) or questData.color
     if not c or type(c) ~= "table" or not c[1] or not c[2] or not c[3] then
         c = addon.QUEST_COLORS and addon.QUEST_COLORS.DEFAULT or { 0.9, 0.9, 0.9 }

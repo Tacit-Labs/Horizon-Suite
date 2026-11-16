@@ -1719,7 +1719,7 @@ function addon.ApplyFocusColors()
             if not category and entry.groupKey == "DECOR" then category = "DECOR" end
             if not category and entry.groupKey == "APPEARANCES" then category = "APPEARANCE" end
             if not category and entry.groupKey == "RECIPES" then category = "RECIPE" end
-            local effectiveCat = (addon.GetEffectiveColorCategory and addon.GetEffectiveColorCategory(category, entry.groupKey, entry.baseCategory, entry.isEventQuest)) or category
+            local effectiveCat = (addon.GetEffectiveColorCategory and addon.GetEffectiveColorCategory(category, entry.groupKey, entry.baseCategory, entry.isEventQuest, entry.isComplete)) or category
 
             local titleColor = (addon.GetTitleColor and addon.GetTitleColor(effectiveCat)) or addon.QUEST_COLORS and addon.QUEST_COLORS.DEFAULT
             if titleColor and type(titleColor) == "table" and titleColor[1] and titleColor[2] and titleColor[3] then

@@ -55,15 +55,25 @@ end
 -- When override toggles are on, Completed and Current Zone sections use their row colours for all elements.
 -- When off, COMPLETE/NEARBY use baseCategory (the underlying quest type) for colours.
 -- isEventQuest: when true and groupKey is NEARBY, use AVAILABLE colour so event quests keep it when accepted.
-local function GetEffectiveColorCategory(category, groupKey, baseCategory, isEventQuest)
+-- isComplete: the quest is ready to turn in. With the dedicated Ready to Turn In section off, such quests
+-- stay in their zone/category sections, and the Ready to Turn In override still colours them there.
+local function GetEffectiveColorCategory(category, groupKey, baseCategory, isEventQuest, isComplete)
     if not category then return groupKey or "DEFAULT" end
     local cm = GetColorMatrix()
     local ov = cm and cm.overrides and type(cm.overrides) == "table" and cm.overrides or {}
-    if groupKey == "COMPLETE" and (ov.useCompletedOverride == nil or ov.useCompletedOverride) then
-        return "COMPLETE"  -- Default true when not explicitly set to false
+    local completedOverride = (ov.useCompletedOverride == nil or ov.useCompletedOverride)  -- Default true
+    if groupKey == "COMPLETE" and completedOverride then
+        return "COMPLETE"
     end
     if groupKey == "COMPLETE" and baseCategory then
         return baseCategory  -- Use underlying category when override is off
+    end
+    -- Ready-to-turn-in quests outside the dedicated section. The Current Quest, Current Zone and
+    -- event sections keep their own colour rules below.
+    if isComplete and groupKey ~= "CURRENT" and groupKey ~= "CURRENT_EVENT" and groupKey ~= "AVAILABLE"
+        and not (groupKey == "NEARBY" and (isEventQuest or ov.useCurrentZoneOverride)) then
+        if completedOverride then return "COMPLETE" end
+        if category == "COMPLETE" and baseCategory then return baseCategory end
     end
     -- NEARBY: event quests (moved from Events in Zone when accepted) keep the same colour.
     if groupKey == "NEARBY" and isEventQuest then
