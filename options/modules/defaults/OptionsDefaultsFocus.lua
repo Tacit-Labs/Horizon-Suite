@@ -266,6 +266,7 @@ addon.FOCUS_DEFAULTS = {
     showRunBlock              = true,
     runBlockPosition          = "top",
     runAlwaysShow             = false,
+    runShowInScenarios        = true,
     runShowXP                 = true,
     runShowGold               = true,
     runShowBosses             = true,

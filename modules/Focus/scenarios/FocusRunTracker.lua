@@ -1,7 +1,8 @@
 --[[
     Horizon Suite - Focus - Dungeon Run Tracker (data)
 
-    Accumulates what a party-dungeon run earned: elapsed time, experience, money
+    Accumulates what a run earned (a party dungeon, or with the Scenarios option
+    on, a Delve, Labyrinth, Ritual Site or other scenario): elapsed time, experience, money
     and bosses defeated, plus the per-hour rates derived from them. Pure data with
     an isolated API boundary; FocusRunBlock renders it.
 
@@ -9,7 +10,8 @@
     counts are out of scope: COMBAT_LOG_EVENT_UNFILTERED fires constantly and would
     be this addon's first consumer of it. Everything below costs one event per gain.
 
-    Run identity is the instanceID from GetInstanceInfo(). Re-entering the same
+    Run identity is the instanceID from GetInstanceInfo(), or the scenario name
+    for a scenario out in the open world. Re-entering the same
     instance within RESUME_WINDOW resumes the run rather than starting a fresh one,
     because a corpse run on a Classic-era client drops you outside the instance and
     back in, which would otherwise reset the numbers mid-dungeon. Elapsed stays on
@@ -182,11 +184,53 @@ end
 -- Run lifecycle
 -- ---------------------------------------------------------------------------
 
--- @return name, instanceID, difficultyName, isPartyDungeon
+-- Name of the scenario the player is in, or nil.
+local function ScenarioName()
+    if not (C_Scenario and C_Scenario.GetInfo) then return nil end
+    local ok, name = pcall(C_Scenario.GetInfo)
+    if ok and type(name) == "string" and name ~= "" then return name end
+    return nil
+end
+
+-- True in a formal scenario out in the open world (a Ritual Site, for one).
+-- Widget-only world events are left out on purpose: some zones carry an
+-- objective-tracker widget for as long as you stand in them, and a run that
+-- starts the moment you fly over one is noise.
+local function InWorldScenario()
+    if not (C_Scenario and C_Scenario.IsInScenario) then return false end
+    local ok, inScenario = pcall(C_Scenario.IsInScenario)
+    return ok and inScenario == true
+end
+
+-- What the tracker should be timing right now.
+--
+-- Party dungeons always count. With "Scenarios" on (the default), so do
+-- instanced scenarios (Delves, Labyrinths and other instanced scenarios all
+-- report instanceType "scenario") and formal scenarios in the open world.
+--
+-- In the open world GetInstanceInfo names the continent, so the run takes its
+-- name and identity from the scenario instead; otherwise every Ritual Site on a
+-- continent would read as the same run.
+-- @return name, runKey, difficultyName, trackable
 local function ReadInstance()
     local ok, name, instanceType, _, difficultyName, _, _, _, instanceID = pcall(GetInstanceInfo)
     if not ok then return nil, nil, nil, false end
-    return name, instanceID, difficultyName, instanceType == "party"
+    if instanceType == "party" then
+        return name, instanceID, difficultyName, true
+    end
+    if not addon.GetDB("runShowInScenarios", true) then
+        return name, instanceID, difficultyName, false
+    end
+    if instanceType == "scenario" then
+        return (name ~= nil and name ~= "") and name or ScenarioName(), instanceID, difficultyName, true
+    end
+    if instanceType == "none" and InWorldScenario() then
+        local scenarioName = ScenarioName()
+        if scenarioName then
+            return scenarioName, "scenario:" .. scenarioName, "", true
+        end
+    end
+    return name, instanceID, difficultyName, false
 end
 
 local function NewRun(name, instanceID, difficultyName)
@@ -215,8 +259,8 @@ local function NewRun(name, instanceID, difficultyName)
 end
 
 local function StartOrResume()
-    local name, instanceID, difficultyName, isParty = ReadInstance()
-    if not isParty then return false end
+    local name, instanceID, difficultyName, trackable = ReadInstance()
+    if not trackable then return false end
 
     if run and run.instanceID == instanceID then
         -- Already running in this instance (a reload of the zone, not a new run).
@@ -395,7 +439,7 @@ end
 -- has not yet proved it is back in its own instance.
 -- @return table
 function addon.GetDungeonRunDebugSnapshot()
-    local name, instanceID, difficultyName, isParty = ReadInstance()
+    local name, instanceID, difficultyName, trackable = ReadInstance()
     local store, charKey = RunStore()
     local saved = (store and charKey) and store[charKey] or nil
 
@@ -415,8 +459,8 @@ function addon.GetDungeonRunDebugSnapshot()
     end
 
     local lines = {
-        ("client: instance=%s (id=%s, %s) partyDungeon=%s"):format(
-            tostring(name), tostring(instanceID), tostring(difficultyName), tostring(isParty)),
+        ("client: instance=%s (id=%s, %s) trackable=%s"):format(
+            tostring(name), tostring(instanceID), tostring(difficultyName), tostring(trackable)),
         ("persistence: charKey=%s hydrated=%s storeReachable=%s"):format(
             tostring(charKey), tostring(hydrated), tostring(store ~= nil)),
         ("rules: resumeWindow=%ds rateMinElapsed=%ds resetPattern=%s"):format(
@@ -452,6 +496,34 @@ end
 -- Events
 -- ---------------------------------------------------------------------------
 
+-- Start, resume or stop the run to match where the player is now.
+-- @param quiet boolean  Skip the block repaint (the caller does its own layout).
+local function EvaluateRun(quiet)
+    local _, instanceID, _, trackable = ReadInstance()
+    if trackable then
+        StartOrResume()
+    else
+        StopRun()
+    end
+    -- A restored live run we did not land back inside is over: the player
+    -- reloaded and came up somewhere else. Demote it so the corpse-run path
+    -- cannot resume it either, since they plainly did not leave as a corpse.
+    if pendingLive and pendingLive.instanceID ~= instanceID then
+        pendingLive.stoppedAt = pendingLive.stoppedAt or Now()
+        pendingLive.leftDead = false
+        lastRun = pendingLive
+        pendingLive = nil
+        Persist()
+    end
+    if not quiet and addon.UpdateDungeonRunBlock then addon.UpdateDungeonRunBlock() end
+end
+
+-- Re-check after a setting that changes what counts as a run.
+function addon.RefreshDungeonRunEligibility()
+    Hydrate()
+    EvaluateRun(true)
+end
+
 local eventFrame = CreateFrame("Frame")
 eventFrame:RegisterEvent("PLAYER_LOGIN")
 eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
@@ -460,6 +532,8 @@ eventFrame:RegisterEvent("PLAYER_MONEY")
 pcall(function() eventFrame:RegisterEvent("PLAYER_XP_UPDATE") end)
 pcall(function() eventFrame:RegisterEvent("PLAYER_LEVEL_UP") end)
 pcall(function() eventFrame:RegisterEvent("ENCOUNTER_END") end)
+pcall(function() eventFrame:RegisterEvent("SCENARIO_UPDATE") end)
+pcall(function() eventFrame:RegisterEvent("SCENARIO_COMPLETED") end)
 if instanceResetPattern then eventFrame:RegisterEvent("CHAT_MSG_SYSTEM") end
 
 eventFrame:SetScript("OnEvent", function(_, event, ...)
@@ -467,23 +541,15 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
         Hydrate()
     elseif event == "PLAYER_ENTERING_WORLD" or event == "ZONE_CHANGED_NEW_AREA" then
         Hydrate()
-        local _, instanceID, _, isParty = ReadInstance()
-        if isParty then
-            StartOrResume()
-        else
-            StopRun()
-        end
-        -- A restored live run we did not land back inside is over: the player
-        -- reloaded and came up somewhere else. Demote it so the corpse-run path
-        -- cannot resume it either, since they plainly did not leave as a corpse.
-        if pendingLive and pendingLive.instanceID ~= instanceID then
-            pendingLive.stoppedAt = pendingLive.stoppedAt or Now()
-            pendingLive.leftDead = false
-            lastRun = pendingLive
-            pendingLive = nil
-            Persist()
-        end
-        if addon.UpdateDungeonRunBlock then addon.UpdateDungeonRunBlock() end
+        EvaluateRun()
+    elseif event == "SCENARIO_UPDATE" or event == "SCENARIO_COMPLETED" then
+        -- An open-world scenario starts and ends without a loading screen, so
+        -- the zone events above never see it. Inside an instance this is a
+        -- no-op: the run is already keyed to the instance it is in.
+        local wasRunning = run ~= nil
+        Hydrate()
+        EvaluateRun(true)
+        if (run ~= nil) ~= wasRunning and addon.FullLayout then addon.FullLayout() end
     elseif event == "PLAYER_XP_UPDATE" then
         OnXPUpdate()
     elseif event == "PLAYER_LEVEL_UP" then
