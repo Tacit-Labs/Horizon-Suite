@@ -983,6 +983,7 @@ local function ClearEntry(entry, full)
         if addon.focus.sd then
             addon.focus.sd.ClearNavWidgets(entry)
         end
+        if addon.focus.spoken then addon.focus.spoken.Clear(entry) end
         if entry.questIconBtn then entry.questIconBtn:Hide() end
         if entry.trackBar then entry.trackBar:Hide() end
         if entry.affixNameSegs then

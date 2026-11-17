@@ -159,6 +159,7 @@ While Echo is on it replaces Blizzard's chat windows, so it starts switched off.
 *   [World Quest Tracker](https://www.curseforge.com/wow/addons/world-quest-tracker)
 *   [RareScanner](https://www.curseforge.com/wow/addons/rarescanner), with [Horizon Suite - RareScanner](https://www.curseforge.com/wow/addons/horizon-suite-rarescanner)
 *   [SilverDragon](https://www.curseforge.com/wow/addons/silver-dragon), with [Horizon Suite - SilverDragon](https://www.curseforge.com/wow/addons/horizon-suite-silverdragon)
+*   [Spoken](https://www.curseforge.com/wow/addons/spoken): its quest Play button shows on Focus
 
 **Send us a message about which AddOns you'd like integrated into Horizon Suite!**
 

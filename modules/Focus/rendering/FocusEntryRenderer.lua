@@ -1601,6 +1601,12 @@ local function PopulateEntry(entry, questData, groupKey)
     if showAhBtn then
         gutterW = ahBtnSize + gutterGap
     end
+    -- Spoken's quest Play button: leftmost in the gutter, delegated to the Spoken integration module.
+    local showSpokenBtn = addon.focus.spoken and addon.focus.spoken.ShouldShow(questData) or false
+    local spokenRightOffset = gutterW
+    if showSpokenBtn then
+        gutterW = gutterW + addon.focus.spoken.GetButtonSize() + gutterGap
+    end
     if gutterW > 0 then
         textWidth = textWidth - gutterW
     end
@@ -2164,6 +2170,10 @@ local function PopulateEntry(entry, questData, groupKey)
         entry.ahBtn:Show()
     elseif entry.ahBtn then
         entry.ahBtn:Hide()
+    end
+
+    if addon.focus.spoken then
+        addon.focus.spoken.Render(entry, questData, showSpokenBtn, spokenRightOffset)
     end
 
     -- RS navigation arrows, model, and name-click button: delegated to the RareScanner integration module.
