@@ -2457,7 +2457,13 @@ local function PopulateEntry(entry, questData, groupKey)
     if showSdModel then finalH = math.max(finalH, sdModelSize + S(4)) end
     if showRsModel then finalH = math.max(finalH, rsModelSize + S(4)) end
     entry.entryHeight = finalH
-    entry:SetHeight(finalH)
+    -- The entry clips its children, and GetStringHeight() stops at the line box, so the
+    -- last line's descenders (g, y, p), outline and drop shadow were cut off, most visibly
+    -- at larger scales. Let the frame hang below its layout height by the shadow drop (an
+    -- unscaled offset) plus scaled outline slack; layout still advances by entryHeight, so
+    -- row spacing is unchanged.
+    local bottomBleed = math.abs(addon.SHADOW_OY or 0) + S(2)
+    entry:SetHeight(finalH + bottomBleed)
 
     ApplyShadowColors(entry)
 
