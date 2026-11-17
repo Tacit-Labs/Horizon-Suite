@@ -91,6 +91,8 @@ addon.RUN_EMBEDDED_MARKUP_KEYS = {
     runShowXP     = true,
     runShowGold   = true,
     runShowBosses = true,
+    runShowCurrencies = true,
+    runShowLives  = true,
 }
 
 addon.FOCUS_DEFAULTS = {
@@ -270,6 +272,8 @@ addon.FOCUS_DEFAULTS = {
     runShowXP                 = true,
     runShowGold               = true,
     runShowBosses             = true,
+    runShowCurrencies         = true,
+    runShowLives              = true,
     runNameSize               = 14,
     runTimerSize              = 13,
     runStatSize               = 12,

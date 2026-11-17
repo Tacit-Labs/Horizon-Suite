@@ -3,7 +3,8 @@
 
     Accumulates what a run earned (a party dungeon, or with the Scenarios option
     on, a Delve, Labyrinth, Ritual Site or other scenario): elapsed time, experience, money
-    and bosses defeated, plus the per-hour rates derived from them. Pure data with
+    bosses defeated and other currencies earned, plus the per-hour rates derived
+    from them; in a Delve, also the tier and lives lost. Pure data with
     an isolated API boundary; FocusRunBlock renders it.
 
     Deliberately event-driven only. Nothing here reads the combat log, so mob kill
@@ -110,6 +111,19 @@ local function CopyList(list)
     return out
 end
 
+-- Currencies are kept as an ordered list of { id, amount } so the block can show
+-- them in the order they were first earned.
+local function CopyCurrencies(list)
+    local out = {}
+    for i = 1, #(list or {}) do
+        local c = list[i]
+        if type(c) == "table" and tonumber(c.id) and tonumber(c.amount) then
+            out[#out + 1] = { id = tonumber(c.id), amount = tonumber(c.amount) }
+        end
+    end
+    return out
+end
+
 local function Persist()
     local store, charKey = RunStore()
     if not store then return end
@@ -132,6 +146,10 @@ local function Persist()
         moneyPending    = record.moneyPending,
         moneyAwayAdjust = record.moneyAwayAdjust,
         bosses          = CopyList(record.bosses),
+        currencies      = CopyCurrencies(record.currencies),
+        delveTier       = record.delveTier,
+        livesPeak       = record.livesPeak,
+        livesNow        = record.livesNow,
     }
 end
 
@@ -166,6 +184,10 @@ local function Hydrate()
         moneyPending    = saved.moneyPending == true,
         moneyAwayAdjust = tonumber(saved.moneyAwayAdjust),
         bosses          = CopyList(saved.bosses),
+        currencies      = CopyCurrencies(saved.currencies),
+        delveTier       = tonumber(saved.delveTier),
+        livesPeak       = tonumber(saved.livesPeak),
+        livesNow        = tonumber(saved.livesNow),
         -- Experience did not move while the client was down, so the bookkeeping
         -- baselines re-anchor to what the player has right now.
         lastXP          = CurrentXP(),
@@ -251,6 +273,10 @@ local function NewRun(name, instanceID, difficultyName)
         -- first gain of the run.
         moneyPending   = CurrentMoney() == 0,
         bosses         = {},
+        currencies     = {},
+        delveTier      = nil,   -- Delves only, read from the delve header
+        livesPeak      = nil,   -- most lives seen this run (Delves only)
+        livesNow       = nil,   -- lives at the last read (Delves only)
         -- XP bookkeeping: lastXPMax is the max *before* the most recent update,
         -- which is what makes the level-up wrap below correct.
         lastXP         = CurrentXP(),
@@ -359,6 +385,104 @@ local function OnEncounterEnd(_, encounterName, _, _, success)
     Persist()
 end
 
+-- Whether a currency is one a player would recognise. The currency event also
+-- fires for hidden bookkeeping currencies (renown trackers, quest counters),
+-- which have no name, no icon or the question-mark icon. Cached per ID.
+local QUESTION_MARK_ICON = 134400
+local currencyVisible = {}
+local function IsVisibleCurrency(id)
+    if currencyVisible[id] ~= nil then return currencyVisible[id] end
+    local visible = false
+    if C_CurrencyInfo and C_CurrencyInfo.GetCurrencyInfo then
+        local ok, info = pcall(C_CurrencyInfo.GetCurrencyInfo, id)
+        if ok and type(info) == "table" then
+            local icon = info.iconFileID
+            visible = type(info.name) == "string" and info.name ~= ""
+                and type(icon) == "number" and icon > 0 and icon ~= QUESTION_MARK_ICON
+                and not info.isHeader
+                and not info.isTypeUnused
+        end
+    end
+    currencyVisible[id] = visible
+    return visible
+end
+
+-- CURRENCY_DISPLAY_UPDATE: currencyType, quantity, quantityChange, ...
+-- Only gains count. Spending a Coffer Key on the chest at the end is not a loss
+-- of what the run earned, and netting it out would hide the key you got.
+-- @return boolean  True when this added a currency the run had not earned before.
+local function OnCurrencyUpdate(currencyID, _, quantityChange)
+    if not run then return false end
+    -- Arguments can arrive as secret values inside an instance on clients with
+    -- that system; any arithmetic on one throws, so the whole read is guarded.
+    local ok, id, change = pcall(function()
+        local i, c = tonumber(currencyID), tonumber(quantityChange)
+        if not i or not c or c <= 0 then return nil, nil end
+        return i, c
+    end)
+    if not ok or not id then return false end
+    if not IsVisibleCurrency(id) then return false end
+    run.currencies = run.currencies or {}
+    for _, entry in ipairs(run.currencies) do
+        if entry.id == id then
+            entry.amount = entry.amount + change
+            Persist()
+            return false
+        end
+    end
+    run.currencies[#run.currencies + 1] = { id = id, amount = change }
+    Persist()
+    return true
+end
+
+-- Read the tier and lives from the delve header. Called from the read side, so
+-- it runs at the block's one-second repaint and only while in a Delve.
+-- A reading of zero lives is ignored: the header reports zero before the server
+-- has filled it in, and a real zero ends the delve anyway.
+local function RefreshDelveState()
+    if not run then return end
+    if not (addon.IsDelveActive and addon.IsDelveActive()) then return end
+    local changed = false
+
+    local tier = addon.GetActiveDelveTier and addon.GetActiveDelveTier()
+    if type(tier) == "number" and tier ~= run.delveTier then
+        run.delveTier = tier
+        changed = true
+    end
+
+    local meta = addon.GetDelveScenarioHeaderMetadata and addon.GetDelveScenarioHeaderMetadata()
+    local lives = meta and meta.livesRemaining
+    if type(lives) == "number" and lives > 0 then
+        if not run.livesPeak or lives > run.livesPeak then
+            run.livesPeak = lives
+            changed = true
+        end
+        if lives ~= run.livesNow then
+            run.livesNow = lives
+            changed = true
+        end
+    end
+
+    if changed then Persist() end
+end
+
+-- Currencies earned this run, newest information resolved at read time.
+-- @return table[] { id, amount, name, icon }
+local function CurrencyList()
+    local out = {}
+    for _, entry in ipairs(run and run.currencies or {}) do
+        local name, icon
+        if C_CurrencyInfo and C_CurrencyInfo.GetCurrencyInfo then
+            local ok, info = pcall(C_CurrencyInfo.GetCurrencyInfo, entry.id)
+            if ok and type(info) == "table" then
+                name, icon = info.name, info.iconFileID
+            end
+        end
+        out[#out + 1] = { id = entry.id, amount = entry.amount, name = name or "", icon = icon }
+    end
+    return out
+end
+
 -- ---------------------------------------------------------------------------
 -- Read side
 -- ---------------------------------------------------------------------------
@@ -370,9 +494,11 @@ end
 
 -- Snapshot of the live run, or nil when there is none.
 -- @return table|nil { instanceName, difficultyName, elapsed, xpGained, xpPerHour,
---                     moneyGained, moneyPerHour, bosses, levelsGained, hasRates, xpCapped }
+--                     moneyGained, moneyPerHour, bosses, levelsGained, hasRates, xpCapped,
+--                     currencies, delveTier, livesLost, livesLeft }
 function addon.GetDungeonRunData()
     if not run then return nil end
+    RefreshDelveState()
 
     local elapsed = math.max(0, Now() - run.startEpoch)
     -- A provisional baseline would read the player's whole purse as run income
@@ -393,6 +519,10 @@ function addon.GetDungeonRunData()
         moneyPerHour   = hasRates and (moneyGained / elapsed * 3600) or nil,
         bosses         = run.bosses,
         hasRates       = hasRates,
+        currencies     = CurrencyList(),
+        delveTier      = run.delveTier,
+        livesLost      = (run.livesPeak and run.livesNow) and math.max(0, run.livesPeak - run.livesNow) or nil,
+        livesLeft      = run.livesNow,
     }
 end
 
@@ -485,6 +615,13 @@ function addon.GetDungeonRunDebugSnapshot()
             math.floor(data.elapsed), tostring(data.xpGained), tostring(data.moneyGained),
             data.hasRates and "live" or ("held until " .. RATE_MIN_ELAPSED .. "s"),
             tostring(data.xpCapped))
+        local currencyParts = {}
+        for _, c in ipairs(data.currencies or {}) do
+            currencyParts[#currencyParts + 1] = ("%s=%s"):format(tostring(c.id), tostring(c.amount))
+        end
+        lines[#lines + 1] = ("delve: tier=%s livesPeak=%s livesNow=%s | currencies: %s"):format(
+            tostring(run and run.delveTier), tostring(run and run.livesPeak), tostring(run and run.livesNow),
+            #currencyParts > 0 and table.concat(currencyParts, " ") or "none")
     else
         lines[#lines + 1] = "derived: no live run"
     end
@@ -533,6 +670,7 @@ pcall(function() eventFrame:RegisterEvent("PLAYER_XP_UPDATE") end)
 pcall(function() eventFrame:RegisterEvent("PLAYER_LEVEL_UP") end)
 pcall(function() eventFrame:RegisterEvent("ENCOUNTER_END") end)
 pcall(function() eventFrame:RegisterEvent("SCENARIO_UPDATE") end)
+pcall(function() eventFrame:RegisterEvent("CURRENCY_DISPLAY_UPDATE") end)
 pcall(function() eventFrame:RegisterEvent("SCENARIO_COMPLETED") end)
 if instanceResetPattern then eventFrame:RegisterEvent("CHAT_MSG_SYSTEM") end
 
@@ -564,6 +702,12 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
             addon.FullLayout()
         elseif addon.UpdateDungeonRunBlock then
             addon.UpdateDungeonRunBlock()
+        end
+    elseif event == "CURRENCY_DISPLAY_UPDATE" then
+        -- The first currency of a run adds a row, so the panel re-measures;
+        -- after that it is a number change the one-second repaint picks up.
+        if OnCurrencyUpdate(...) and #run.currencies == 1 and addon.FullLayout then
+            addon.FullLayout()
         end
     elseif event == "CHAT_MSG_SYSTEM" then
         if IsInstanceResetMessage(...) then
