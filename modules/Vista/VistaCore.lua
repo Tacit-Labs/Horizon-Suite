@@ -5052,6 +5052,53 @@ function Vista.FlashMouseoverBar()
 end
 
 -- ============================================================================
+-- ROTATE MINIMAP
+-- ============================================================================
+-- The game keeps "Rotate Minimap" in the rotateMinimap CVar, but Edit Mode owns it too: each
+-- layout stores its own copy and writes it back to the CVar when layouts load at login. A plain
+-- SetCVar therefore lasts only until the next login. Vista keeps the player's choice in the
+-- profile (vistaRotateMinimap) and reapplies it after Edit Mode has applied its layout.
+-- nil means the player has never chosen in Horizon, so the game's own value is left alone.
+
+local ROTATE_CVAR = "rotateMinimap"
+local rotateApplying = false   -- true while Vista itself is writing the CVar
+local rotateSettled  = false   -- false until login's Edit Mode writes are over
+
+local function GetRotateCVar()
+    local v = (C_CVar and C_CVar.GetCVar and C_CVar.GetCVar(ROTATE_CVAR)) or (GetCVar and GetCVar(ROTATE_CVAR))
+    return v == "1"
+end
+
+local function SetRotateCVar(on)
+    if GetRotateCVar() == on then return end
+    local set = (C_CVar and C_CVar.SetCVar) or SetCVar
+    if not set then return end
+    rotateApplying = true
+    pcall(set, ROTATE_CVAR, on and "1" or "0")
+    rotateApplying = false
+end
+
+--- Push the saved choice to the game, if the player has made one.
+function Vista.ApplyRotateMinimap()
+    local saved = DB("vistaRotateMinimap", nil)
+    if saved == nil then return end
+    SetRotateCVar(saved and true or false)
+end
+
+--- Save the choice and apply it now. Used by the options toggle.
+-- @param on boolean
+function Vista.SetRotateMinimap(on)
+    on = on and true or false
+    SetDB("vistaRotateMinimap", on)
+    SetRotateCVar(on)
+end
+
+--- @return boolean whether the minimap rotates right now
+function Vista.IsRotateMinimap()
+    return GetRotateCVar()
+end
+
+-- ============================================================================
 -- INIT / DISABLE
 -- ============================================================================
 
@@ -5174,6 +5221,8 @@ function Vista.Init()
     eventFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
     pcall(function() eventFrame:RegisterEvent("CRAFTINGORDERS_UPDATE_PERSONAL_ORDER_COUNTS") end)
     pcall(function() eventFrame:RegisterEvent("CRAFTINGORDERS_UPDATE_ORDER_COUNT") end)
+    pcall(function() eventFrame:RegisterEvent("EDIT_MODE_LAYOUTS_UPDATED") end)
+    pcall(function() eventFrame:RegisterEvent("CVAR_UPDATE") end)
 
     eventFrame:SetScript("OnEvent", function(_, event, arg1)
         if event == "ADDON_LOADED" then
@@ -5184,7 +5233,32 @@ function Vista.Init()
             end)
             return
         end
+        if event == "EDIT_MODE_LAYOUTS_UPDATED" then
+            -- Edit Mode has just written its layout's rotation to the CVar; put ours back.
+            Vista.ApplyRotateMinimap()
+            C_Timer.After(0, Vista.ApplyRotateMinimap)
+            return
+        end
+        if event == "CVAR_UPDATE" then
+            -- Keep the profile in step when rotation is changed outside Horizon (key binding,
+            -- Edit Mode). Ignore our own writes and the login window, when Edit Mode resets it.
+            if rotateApplying or not rotateSettled then return end
+            if type(arg1) ~= "string" or arg1:lower() ~= "rotateminimap" then return end
+            local saved = DB("vistaRotateMinimap", nil)
+            local live = GetRotateCVar()
+            if saved == nil or (saved and true or false) ~= live then
+                SetDB("vistaRotateMinimap", live)
+            end
+            return
+        end
         if event == "PLAYER_ENTERING_WORLD" then
+            Vista.ApplyRotateMinimap()
+            if not rotateSettled then
+                C_Timer.After(3.0, function()
+                    Vista.ApplyRotateMinimap()
+                    rotateSettled = true
+                end)
+            end
             local function reStrip()
                 StripBlizzardChrome()
                 SuppressDefaultBlizzardButtons()
