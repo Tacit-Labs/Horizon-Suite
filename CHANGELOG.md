@@ -10,6 +10,18 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [6.15.0] – 2026-11-18
+
+### ✨ New Features
+- **(Focus) Run tracker in scenarios** — The run tracker now also runs in Delves, Labyrinths and Ritual Sites. Turn off the new Scenarios switch under Run tracker to keep it to party dungeons.
+
+### 🐛 Fixes
+- **(Focus)** With the Ready to Turn In section off, completed quests use the Ready to Turn In colours in whichever section they appear, and the compact checkmark stays with the last word of a long title.
+- **(Focus)** The last line of a quest no longer loses the bottoms of letters like g, y and p at larger scales.
+- **(Vista)** Rotate minimap stays on across logins instead of resetting to off.
+
+---
+
 ## [6.14.0] – 2026-11-15
 
 ### ✨ New Features

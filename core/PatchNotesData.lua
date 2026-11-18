@@ -19,6 +19,24 @@ local addon = _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["6.15.0"] = {
+        date = "2026-11-18",
+        {
+            section = "New Features",
+            bullets = {
+                "Focus: the run tracker now also runs in Delves, Labyrinths and Ritual Sites. Turn off the new Scenarios switch under Run tracker to keep it to party dungeons.",
+            },
+        },
+        {
+            section = "Fixes",
+            bullets = {
+                "Focus: with the Ready to Turn In section off, completed quests use the Ready to Turn In colours in whichever section they appear, and the compact checkmark stays with the last word of a long title.",
+                "Focus: the last line of a quest no longer loses the bottoms of letters like g, y and p at larger scales.",
+                "Vista: Rotate minimap stays on across logins instead of resetting to off.",
+            },
+        },
+    },
+
     ["6.14.0"] = {
         date = "2026-11-15",
         {
