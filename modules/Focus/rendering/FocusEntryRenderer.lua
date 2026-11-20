@@ -2648,7 +2648,11 @@ local function BuildEntrySignature(qData, groupKey)
         qData.zoneName or "",
         qData.itemLink or "",
         tostring(qData.itemTexture or ""),
-        tostring(qData.questLevel or ""),
+        -- The level tag's difficulty colour depends on both the quest level and the
+        -- player's: without the player's level here, a level-up leaves every row that
+        -- didn't otherwise change painted with the old colour.
+        tostring(qData.level or ""),
+        tostring(UnitLevel and UnitLevel("player") or ""),
         qData.isComplete and "1" or "0",
         qData.isSuperTracked and "1" or "0",
         qData.isTracked and "1" or "0",
