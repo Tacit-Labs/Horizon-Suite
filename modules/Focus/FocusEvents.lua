@@ -68,6 +68,8 @@ eventFrame:RegisterEvent("WORLD_MAP_OPEN")
 -- AUCTION_HOUSE_SHOW/CLOSED: show/hide the AH search button on recipe entries.
 pcall(function() eventFrame:RegisterEvent("AUCTION_HOUSE_SHOW") end)
 pcall(function() eventFrame:RegisterEvent("AUCTION_HOUSE_CLOSED") end)
+-- PLAYER_LEVEL_UP: quest level tags are coloured by difficulty relative to the player.
+pcall(function() eventFrame:RegisterEvent("PLAYER_LEVEL_UP") end)
 
 local VIGNETTE_DEBOUNCE          = 0.5
 local UPDATE_UI_WIDGET_DEBOUNCE  = 0.2
@@ -646,6 +648,17 @@ local eventHandlers = {
         ScheduleRefresh()
     end,
     QUEST_LOG_UPDATE         = function() OnQuestLogUpdate() end,
+    -- Recolour quest level tags. UnitLevel and the server's per-quest difficulty can
+    -- still report the old level while this event fires, so repaint again once they settle.
+    PLAYER_LEVEL_UP          = function()
+        if addon.focus.InvalidatePopulateCache then addon.focus.InvalidatePopulateCache() end
+        ScheduleRefresh()
+        C_Timer.After(1, function()
+            if not addon.focus.enabled then return end
+            if addon.focus.InvalidatePopulateCache then addon.focus.InvalidatePopulateCache() end
+            ScheduleRefresh()
+        end)
+    end,
     UNIT_QUEST_LOG_CHANGED   = function(_, unitToken) OnUnitQuestLogChanged(_, unitToken) end,
     QUEST_WATCH_UPDATE       = function(_, questID) OnQuestWatchUpdate(questID) end,
     QUEST_WATCH_LIST_CHANGED = function(_, questID, added) OnQuestWatchListChanged(questID, added) end,
