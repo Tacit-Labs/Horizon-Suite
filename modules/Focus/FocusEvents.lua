@@ -369,6 +369,13 @@ local function OnAddonLoaded(addonName)
         local db = _G[addon.DATABASE]
         addon._dbRestoredFromDisk = not (db and db._preRestoreMarker)
         if db then db._preRestoreMarker = nil end
+        -- Anything read or written before this point ran against the empty
+        -- file-load placeholder, not the player's saved DB. An early-load profile
+        -- seeded then carries a first-install module map (all off) that would be
+        -- synced over the saved one, and migrations marked as run never ran on
+        -- the real DB. Start both again from the restored data.
+        addon._earlyLoadProfile = nil
+        addon._migrationsRan = nil
         if addon.IsCharacterProfileKeyReady and not addon.IsCharacterProfileKeyReady() then
             addon._deferModuleEnable = true
         else
