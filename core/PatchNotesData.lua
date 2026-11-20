@@ -19,6 +19,17 @@ local addon = _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["6.15.1"] = {
+        date = "2026-11-20",
+        {
+            section = "Fixes",
+            bullets = {
+                "Core (Forever): your settings and enabled modules now survive a reload now that the game no longer reports which realm you're on.",
+                "Focus: quest level tags change to their new difficulty colour as soon as you level up, including on quests whose objectives haven't changed.",
+            },
+        },
+    },
+
     ["6.15.0"] = {
         date = "2026-11-18",
         {

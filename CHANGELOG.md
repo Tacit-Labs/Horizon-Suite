@@ -10,6 +10,14 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [6.15.1] – 2026-11-20
+
+### 🐛 Fixes
+- **(Core · Forever)** Your settings and enabled modules now survive a reload now that the game no longer reports which realm you're on.
+- **(Focus)** Quest level tags change to their new difficulty colour as soon as you level up, including on quests whose objectives haven't changed.
+
+---
+
 ## [6.15.0] – 2026-11-18
 
 ### ✨ New Features
