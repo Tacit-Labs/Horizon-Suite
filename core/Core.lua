@@ -565,21 +565,125 @@ local function GetSpecIndexSafe()
 end
 
 local _cachedCharKey = nil
+local _guidRecorded = false
+
+local function IsSecret(v)
+    return _G.issecretvalue ~= nil and _G.issecretvalue(v) == true
+end
+
+-- A usable string from a Blizzard getter, or nil for nil, secret or empty.
+local function PlainString(v)
+    if v == nil or IsSecret(v) or type(v) ~= "string" or v == "" then return nil end
+    return v
+end
+
+local function ReadPlayerName()
+    return PlainString(_G.UnitName and _G.UnitName("player"))
+end
+
+-- GetNormalizedRealmName first, GetRealmName when that is empty. Either can come
+-- back "" for a whole session: WoW Forever blanks realm names so addons cannot
+-- steer layer hops.
+local function ReadRealm()
+    local realm = PlainString(_G.GetNormalizedRealmName and _G.GetNormalizedRealmName())
+    if realm then return realm end
+    return PlainString(_G.GetRealmName and _G.GetRealmName())
+end
+
+local function ReadPlayerGUID()
+    return PlainString(_G.UnitGUID and _G.UnitGUID("player"))
+end
+
+-- The character-name half of a "Name-Realm" key (character names have no hyphen).
+local function KeyName(key)
+    return type(key) == "string" and key:match("^([^%-]+)") or nil
+end
+
+-- The saved DB is only trustworthy once the client has restored it: before
+-- ADDON_LOADED, HorizonDB is the empty file-load placeholder.
+local function SavedDBReady()
+    return addon._dbRestoredFromDisk ~= nil and type(_G[addon.DATABASE]) == "table"
+end
+
+-- The one saved "Name-Realm" key for this character name, or nil when there is
+-- none or several (the same name on more than one realm).
+local function FindSavedKeyForName(db, name)
+    local found
+    for _, map in ipairs({ db.charProfileKeys, db.charPerSpecKeys }) do
+        if type(map) == "table" then
+            for key in pairs(map) do
+                if type(key) == "string" and key:find("-", 1, true) and KeyName(key) == name then
+                    if found and found ~= key then return nil end
+                    found = key
+                end
+            end
+        end
+    end
+    return found
+end
+
+-- Find this character's key when the client gives no realm. Prefers the key
+-- this character's GUID was last seen under, then the only saved key with this
+-- name, and only then the bare name (a character new to Horizon, or a name
+-- shared across realms with no GUID on file yet).
+local function ResolveKeyWithoutRealm(name)
+    local db = _G[addon.DATABASE]
+    local guid = ReadPlayerGUID()
+    local byGuid = guid and type(db.charGuids) == "table" and db.charGuids[guid]
+    if type(byGuid) == "string" and KeyName(byGuid) == name then return byGuid end
+    return FindSavedKeyForName(db, name) or name
+end
+
+-- Remember which key this character uses, by GUID, so a later session without a
+-- realm (or with a different one) can find it again.
+local function RecordCharacterGUID(key)
+    if _guidRecorded or not SavedDBReady() then return end
+    local guid = ReadPlayerGUID()
+    if not guid then return end
+    _guidRecorded = true
+    local db = _G[addon.DATABASE]
+    db.charGuids = type(db.charGuids) == "table" and db.charGuids or {}
+    local previous = db.charGuids[guid]
+    -- The realm is back after sessions keyed without it: carry the profile choice
+    -- over so the character does not land on a fresh profile.
+    if type(previous) == "string" and previous ~= key and KeyName(previous) == KeyName(key) then
+        db.charProfileKeys = db.charProfileKeys or {}
+        if db.charProfileKeys[key] == nil and db.charProfileKeys[previous] ~= nil then
+            db.charProfileKeys[key] = db.charProfileKeys[previous]
+        end
+        db.charPerSpecKeys = db.charPerSpecKeys or {}
+        if db.charPerSpecKeys[key] == nil and type(db.charPerSpecKeys[previous]) == "table" then
+            local specs = {}
+            for i, v in pairs(db.charPerSpecKeys[previous]) do specs[i] = v end
+            db.charPerSpecKeys[key] = specs
+        end
+    end
+    db.charGuids[guid] = key
+end
 
 local function GetCurrentCharacterProfileKey()
-    if _cachedCharKey then return _cachedCharKey end
-    local name = _G.UnitName and _G.UnitName("player")
-    local realm = _G.GetNormalizedRealmName and _G.GetNormalizedRealmName() or (_G.GetRealmName and _G.GetRealmName())
-    if type(name) ~= "string" or name == "" then return nil end
-    realm = (type(realm) == "string" and realm ~= "") and realm or nil
-    -- No realm, no key. A bare "Name" key minted at ADDON_LOADED is a different
-    -- profile from the "Name-Realm" one the rest of the session writes to, and its
-    -- seeded all-off module map would overwrite the saved one on every load. Retail
-    -- has the realm at ADDON_LOADED; the Forever beta resolves it later, so callers
-    -- get nil and fall back to the early-load profile until PLAYER_LOGIN.
-    if not realm then return nil end
-    local key = (name .. "-" .. realm):gsub("%s+", "")
+    if _cachedCharKey then
+        RecordCharacterGUID(_cachedCharKey)
+        return _cachedCharKey
+    end
+    local name = ReadPlayerName()
+    if not name then return nil end
+    local realm = ReadRealm()
+    local key
+    if realm then
+        key = (name .. "-" .. realm):gsub("%s+", "")
+    elseif SavedDBReady() then
+        -- No realm (WoW Forever since the layering change). Returning nil here
+        -- would strand the whole session on the early-load profile: every setting
+        -- reads as default and nothing the player changes is saved.
+        key = ResolveKeyWithoutRealm(name)
+    else
+        -- Before ADDON_LOADED there is nothing saved to match against; callers
+        -- fall back to the early-load profile and retry later.
+        return nil
+    end
     _cachedCharKey = key
+    RecordCharacterGUID(key)
     return key
 end
 addon._GetCurrentCharacterProfileKey = GetCurrentCharacterProfileKey  -- exposed for ProfileIO.lua
@@ -829,6 +933,7 @@ EnsureProfilesAndMigrateLegacy = function()
         profileKey = true,
         charProfileKeys = true,
         charPerSpecKeys = true,
+        charGuids = true,
         _profilesMigrated = true,
 
         -- profile mode state
