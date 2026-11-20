@@ -39,18 +39,22 @@ end
 function addon.Dashboard_BuildMainFrame()
             -- Read saved resize ratio FIRST — needed for initial SetSize and sidebar width.
             -- Accessed via raw _G[DATABASE] (not profile-routed GetDB) because it is a root key.
-            local _initRatio = (function()
+            -- Width and height ratios are independent; a missing height ratio (saves from
+            -- before free resizing) falls back to the width ratio, i.e. the old 16:9 shape.
+            local _initRatio, _initRatioH = (function()
                 local db = _G[addon.DATABASE]
                 local r = db and tonumber(db.dashboardSizeRatio)
-                if r and r >= 0.5 and r <= 2.0 then return r end
-                return 1.0
+                if not (r and r >= 0.5 and r <= 2.0) then r = 1.0 end
+                local rh = db and tonumber(db.dashboardSizeRatioH)
+                if not (rh and rh >= 0.5 and rh <= 2.0) then rh = r end
+                return r, rh
             end)()
 
     local f = CreateFrame("Frame", "HorizonSuiteDashboard", UIParent, "BackdropTemplate")
             -- Shared by ApplyDashboardClassColor (before sidebar exists) and sidebar selection.
             local dashSession = { activeSidebarBtn = nil }
-            -- Size is driven by the saved ratio; default 1280×720 at ratio 1.0.
-            f:SetSize(DC.NATIVE_W * _initRatio, DC.NATIVE_H * _initRatio)
+            -- Size is driven by the saved ratios; default 1280×720 at ratio 1.0.
+            f:SetSize(DC.NATIVE_W * _initRatio, DC.NATIVE_H * _initRatioH)
             f:SetPoint("CENTER")
             f:SetFrameStrata("HIGH")
             f:SetToplevel(true)
@@ -419,7 +423,7 @@ function addon.Dashboard_BuildMainFrame()
 
             -- Content geometry (ratio-aware via DC.GetLayoutConstants so initial layout
             -- matches the saved resize ratio without needing a CommitResize on first open).
-            local _lc0 = DC.GetLayoutConstants(_initRatio)
+            local _lc0 = DC.GetLayoutConstants(_initRatio, _initRatioH)
             local viewWidth   = _lc0.viewWidth
             local viewCenterX = _lc0.viewCenterX
             local contentWidth = _lc0.contentWidth
@@ -2254,16 +2258,19 @@ function addon.Dashboard_BuildMainFrame()
                 searchView, welcomeView, guideView, patchNotesView, newsView,
             }
 
-            --- Resize + reflow the dashboard to a new size ratio without navigating.
-            --- ratio: 0.5 – 2.0 (1.0 = native 1280×720)
+            --- Resize + reflow the dashboard to new size ratios without navigating.
+            --- ratio: width ratio 0.5 – 2.0 (1.0 = native 1280 wide)
             --- skipHeavy: when true, skips typography walk and detail card reflow (used during
             ---   live drag to reduce per-frame cost; always false on DragStop and panel open).
+            --- ratioH: height ratio 0.5 – 2.0 (1.0 = native 720 tall); defaults to ratio.
             --- @param ratio number
             --- @param skipHeavy boolean|nil
-            local function Dashboard_CommitResize(ratio, skipHeavy)
-                ratio = math.max(0.5, math.min(2.0, ratio or 1.0))
+            --- @param ratioH number|nil
+            local function Dashboard_CommitResize(ratio, skipHeavy, ratioH)
+                ratio = DC.ClampRatio(ratio, 1.0)
+                ratioH = DC.ClampRatio(ratioH, ratio)
 
-                local lc = DC.GetLayoutConstants(ratio)
+                local lc = DC.GetLayoutConstants(ratio, ratioH)
                 local newW = lc.frameW
                 local newH = lc.frameH
 
@@ -2397,6 +2404,7 @@ function addon.Dashboard_BuildMainFrame()
             grabber:EnableMouse(true)
             f._resizeGrabber = grabber
 
+            -- Free resize: width follows cursor X and height follows cursor Y independently.
             -- Traditional resize grip: three parallel diagonal lines pointing toward the corner.
             -- Lines run at 45° from upper-left to lower-right (toward the bottom-right corner).
             local _gripLines = {}
@@ -2420,14 +2428,37 @@ function addon.Dashboard_BuildMainFrame()
 
             -- Drag state
             local _dragPinX, _dragPinY   -- frame TOPLEFT in UIParent-space at DragStart
+            local _dragOffX, _dragOffY   -- cursor offset from the frame's BOTTOMRIGHT at DragStart
             local _dragActive  = false
             local _lastReflow  = 0       -- throttle: GetTime() of last reflow during drag
+
+            --- Width / height ratios for the current cursor position.  The pinned
+            --- TOPLEFT stays fixed; the BOTTOMRIGHT corner follows the cursor on both
+            --- axes (keeping the grab offset so the frame does not jump on DragStart).
+            local function RatiosFromCursor()
+                local uiScale = UIParent:GetEffectiveScale()
+                local cx, cy  = GetCursorPosition()
+                local curX    = cx / uiScale
+                local curY    = cy / uiScale
+                local targetW = (curX - _dragOffX) - _dragPinX
+                local targetH = _dragPinY - (curY - _dragOffY)
+                local ratio   = DC.ClampRatio(targetW / DC.NATIVE_W, 1.0)
+                local ratioH  = DC.ClampRatio(targetH / DC.NATIVE_H, 1.0)
+                return ratio, ratioH
+            end
 
             grabber:SetScript("OnDragStart", function(self)
                 if InCombatLockdown() then return end
                 local fl = f:GetLeft()
                 local ft = f:GetTop()
-                if not fl or not ft then return end  -- frame not yet laid out; abort
+                local fr = f:GetRight()
+                local fb = f:GetBottom()
+                if not fl or not ft or not fr or not fb then return end  -- frame not yet laid out; abort
+
+                local uiScale = UIParent:GetEffectiveScale()
+                local cx, cy  = GetCursorPosition()
+                _dragOffX = cx / uiScale - fr
+                _dragOffY = cy / uiScale - fb
 
                 -- Pin the anchor to TOPLEFT so SetSize grows bottom-right only.
                 -- The top-left corner stays perfectly still throughout the drag.
@@ -2445,29 +2476,27 @@ function addon.Dashboard_BuildMainFrame()
                 if not _dragActive then return end
                 _dragActive = false
 
-                -- Final ratio from cursor position at release.
-                local uiScale = UIParent:GetEffectiveScale()
-                local cx      = select(1, GetCursorPosition())
-                local curX    = cx / uiScale
-                local targetW = math.max(640, curX - _dragPinX)
-                local ratio   = math.max(0.5, math.min(2.0, targetW / DC.NATIVE_W))
+                -- Final ratios from cursor position at release.
+                local ratio, ratioH = RatiosFromCursor()
 
-                -- Auto-shrink: clamp so the frame fits within UIParent.
+                -- Auto-shrink: clamp each axis so the frame fits within UIParent.
                 local maxW = UIParent:GetWidth()
                 local maxH = UIParent:GetHeight()
-                if maxW and maxW > 0 then ratio = math.min(ratio, maxW / DC.NATIVE_W) end
-                if maxH and maxH > 0 then ratio = math.min(ratio, maxH / DC.NATIVE_H) end
-                ratio = math.max(0.5, ratio)
+                if maxW and maxW > 0 then ratio  = math.min(ratio,  maxW / DC.NATIVE_W) end
+                if maxH and maxH > 0 then ratioH = math.min(ratioH, maxH / DC.NATIVE_H) end
+                ratio  = math.max(DC.MIN_RATIO, ratio)
+                ratioH = math.max(DC.MIN_RATIO, ratioH)
 
                 -- Persist to DB (root-level keys, raw access).
                 local db = _G[addon.DATABASE]
                 if db then
-                    db.dashboardSizeRatio = ratio
-                    db.dashboardTopLeftX  = _dragPinX
-                    db.dashboardTopLeftY  = _dragPinY
+                    db.dashboardSizeRatio  = ratio
+                    db.dashboardSizeRatioH = ratioH
+                    db.dashboardTopLeftX   = _dragPinX
+                    db.dashboardTopLeftY   = _dragPinY
                 end
 
-                Dashboard_CommitResize(ratio)
+                Dashboard_CommitResize(ratio, false, ratioH)
                 setGripAlpha(0.6)
             end)
 
@@ -2480,19 +2509,14 @@ function addon.Dashboard_BuildMainFrame()
                 if now - _lastReflow < 0.05 then return end
                 _lastReflow = now
 
-                -- Target width = distance from the pinned left edge to the cursor.
+                -- Width follows cursor X, height follows cursor Y (independent axes).
                 -- No SetScale; the frame is TOPLEFT-anchored so SetSize inside
                 -- CommitResize grows it right and down with no anchor drift.
-                -- Frame is always 16:9; height is derived from ratio, not cursor Y.
-                local uiScale = UIParent:GetEffectiveScale()
-                local cx      = select(1, GetCursorPosition())
-                local curX    = cx / uiScale
-                local targetW = math.max(640, curX - _dragPinX)
-                local ratio   = math.max(0.5, math.min(2.0, targetW / DC.NATIVE_W))
+                local ratio, ratioH = RatiosFromCursor()
 
                 -- skipHeavy=true: skip font walk + detail card reflow during live drag.
                 -- Both are applied in full on DragStop.
-                Dashboard_CommitResize(ratio, true)
+                Dashboard_CommitResize(ratio, true, ratioH)
             end)
 
             grabber:SetScript("OnEnter", function(self)
@@ -2516,6 +2540,7 @@ function addon.Dashboard_BuildMainFrame()
                 local db = _G[addon.DATABASE]
                 if db then
                     db.dashboardSizeRatio = nil
+                    db.dashboardSizeRatioH = nil
                     db.dashboardTopLeftX  = nil
                     db.dashboardTopLeftY  = nil
                 end

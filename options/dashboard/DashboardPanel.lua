@@ -8,9 +8,11 @@ local addon = _G.HorizonSuite
 local f = _G.HorizonSuiteDashboard
 
 -- ---------------------------------------------------------------------------
--- ApplyDashboardSizeFromDB: reads dashboardSizeRatio / TopLeftX / TopLeftY
--- from the root DB, applies auto-shrink clamping, and positions the frame.
--- Returns the resolved ratio (nil if native 1.0 with no saved position).
+-- ApplyDashboardSizeFromDB: reads dashboardSizeRatio / dashboardSizeRatioH /
+-- TopLeftX / TopLeftY from the root DB, applies auto-shrink clamping, and
+-- positions the frame.
+-- Returns the resolved width and height ratios (nil if native 1.0 with no
+-- saved size). A missing height ratio falls back to the width ratio (16:9).
 -- Must be called AFTER the frame is built but BEFORE Show().
 -- The caller is responsible for the single deferred Dashboard_CommitResize call.
 -- ---------------------------------------------------------------------------
@@ -22,6 +24,7 @@ local function ApplyDashboardSizeFromDB(frame)
 
     local db    = _G[addon.DATABASE]
     local ratio = db and tonumber(db.dashboardSizeRatio)
+    local ratioH = db and tonumber(db.dashboardSizeRatioH) or ratio
     local pinX  = db and tonumber(db.dashboardTopLeftX)
     local pinY  = db and tonumber(db.dashboardTopLeftY)
 
@@ -42,15 +45,17 @@ local function ApplyDashboardSizeFromDB(frame)
     end
     if parentH and parentH > 0 and DC.NATIVE_H and DC.NATIVE_H > 0 then
         local maxRatioH = parentH / DC.NATIVE_H
-        if ratio then
-            ratio = math.min(ratio, maxRatioH)
+        if ratioH then
+            ratioH = math.min(ratioH, maxRatioH)
         else
-            if maxRatioH < 1.0 then ratio = maxRatioH end
+            if maxRatioH < 1.0 then ratioH = maxRatioH end
         end
     end
 
-    if ratio then
-        ratio = math.max(0.5, math.min(2.0, ratio))
+    -- Either axis needing a non-native size means both need resolving.
+    if ratio or ratioH then
+        ratio  = math.max(0.5, math.min(2.0, ratio or 1.0))
+        ratioH = math.max(0.5, math.min(2.0, ratioH or 1.0))
     end
 
     -- Position
@@ -60,9 +65,8 @@ local function ApplyDashboardSizeFromDB(frame)
         -- even after a screen resolution change or ratio adjustment.
         -- Use ratio if saved; fall back to 1.0 (native size) for bounds math when
         -- only position was saved (user moved but never resized).
-        local effectiveRatio = ratio or 1.0
-        local finalW = DC.NATIVE_W * effectiveRatio
-        local finalH = DC.NATIVE_H * effectiveRatio
+        local finalW = DC.NATIVE_W * (ratio or 1.0)
+        local finalH = DC.NATIVE_H * (ratioH or 1.0)
         local pw = parentW or DC.NATIVE_W
         local ph = parentH or DC.NATIVE_H
         -- Coordinates are relative to UIParent BOTTOMLEFT (X right, Y up).
@@ -75,8 +79,8 @@ local function ApplyDashboardSizeFromDB(frame)
         frame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
     end
 
-    -- Return the resolved ratio for the caller to use in a single deferred CommitResize.
-    return ratio
+    -- Return the resolved ratios for the caller to use in a single deferred CommitResize.
+    return ratio, ratioH
 end
 
 addon.ShowDashboard = function()
@@ -274,14 +278,15 @@ SlashCmdList["HSDASH"] = function(msg)
         if f then
             -- Apply saved size/position before showing; capture the resolved ratio
             -- (includes auto-shrink for small screens) for the single deferred reflow.
-            local savedRatio = ApplyDashboardSizeFromDB(f)
+            local savedRatio, savedRatioH = ApplyDashboardSizeFromDB(f)
             f:Show()
             -- Single deferred CommitResize: fires after the engine has completed the
             -- frame's first layout pass so all child frames report correct dimensions.
             if savedRatio then
                 C_Timer.After(0, function()
                     if f and f:IsShown() and f.Dashboard_CommitResize then
-                        f.Dashboard_CommitResize(math.max(0.5, math.min(2.0, savedRatio)))
+                        f.Dashboard_CommitResize(math.max(0.5, math.min(2.0, savedRatio)), false,
+                            math.max(0.5, math.min(2.0, savedRatioH or savedRatio)))
                     end
                 end)
             end

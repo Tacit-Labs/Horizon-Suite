@@ -61,6 +61,17 @@ addon.DashboardConstants = {
 local DC = addon.DashboardConstants
 DC.VIEW_H = DC.FRAME_H - 20
 
+-- Resize bounds (independent width / height ratios of NATIVE_W / NATIVE_H).
+DC.MIN_RATIO = 0.5
+DC.MAX_RATIO = 2.0
+
+--- Clamp a resize ratio to [MIN_RATIO, MAX_RATIO]; nil/non-numeric -> fallback.
+function DC.ClampRatio(r, fallback)
+    r = tonumber(r)
+    if not r then return fallback end
+    return math.max(DC.MIN_RATIO, math.min(DC.MAX_RATIO, r))
+end
+
 -- ---------------------------------------------------------------------------
 -- DC.Scaled(value, ratio) — scale a native-pixel value by a resize ratio.
 -- ratio defaults to 1.0 when omitted.
@@ -71,14 +82,17 @@ function DC.Scaled(value, ratio)
 end
 
 -- ---------------------------------------------------------------------------
--- DC.GetLayoutConstants(ratio) — returns a table of all frame-level pixel
--- values scaled by ratio.  Consumers should call this once per resize event
--- and read fields rather than calling individual helpers per-pixel.
+-- DC.GetLayoutConstants(ratio, ratioH) — returns a table of all frame-level
+-- pixel values scaled by ratio (width) and ratioH (height).  ratioH defaults
+-- to ratio, so single-ratio callers keep the native 16:9 aspect.  Consumers
+-- should call this once per resize event and read fields rather than calling
+-- individual helpers per-pixel.
 -- ---------------------------------------------------------------------------
-function DC.GetLayoutConstants(ratio)
+function DC.GetLayoutConstants(ratio, ratioH)
     ratio = ratio or 1.0
+    ratioH = ratioH or ratio
     local nw = DC.NATIVE_W * ratio
-    local nh = DC.NATIVE_H * ratio
+    local nh = DC.NATIVE_H * ratioH
     local sw = DC.SIDEBAR_NATIVE_W  -- sidebar is fixed-size; does not scale with ratio
     local contentOffset = sw + 10
     local viewWidth     = nw - sw - 10
@@ -90,6 +104,7 @@ function DC.GetLayoutConstants(ratio)
     local scrollTopOff  = -(math.abs(DC.SEARCH_Y) + DC.SEARCH_BOX_H + 8 - viewTopInset)
     return {
         ratio          = ratio,
+        ratioH         = ratioH,
         frameW         = nw,
         frameH         = nh,
         viewH          = viewH,
