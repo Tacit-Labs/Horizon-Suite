@@ -918,6 +918,7 @@ EnsureProfilesAndMigrateLegacy = function()
 
         -- Dashboard resize state (root-level: not per-profile, per-character, or migrated)
         dashboardSizeRatio = true,
+        dashboardSizeRatioH = true,
         dashboardTopLeftX  = true,
         dashboardTopLeftY  = true,
 
