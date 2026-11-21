@@ -304,7 +304,10 @@ function T.ClassColor(class)
     return 1, 1, 1
 end
 
-local function PlayerLine(p)
+--- A player's name in their class colour, with "(you)" on your own.
+--- @param p table  { name, class, isSelf }
+--- @return string
+function T.FormatPlayerName(p)
     local r, g, b = T.ClassColor(p.class)
     local name = p.name ~= "" and p.name or "?"
     if p.isSelf then
@@ -334,9 +337,9 @@ end
 local function AddPlayerLines(tooltip, list)
     for _, p in ipairs(list) do
         if p.roll then
-            tooltip:AddDoubleLine(PlayerLine(p), tostring(p.roll), 1, 1, 1, 0.8, 0.8, 0.8)
+            tooltip:AddDoubleLine(T.FormatPlayerName(p), tostring(p.roll), 1, 1, 1, 0.8, 0.8, 0.8)
         else
-            tooltip:AddLine(PlayerLine(p), 1, 1, 1)
+            tooltip:AddLine(T.FormatPlayerName(p), 1, 1, 1)
         end
     end
     return #list

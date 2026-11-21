@@ -630,6 +630,7 @@ function R.ShowRoll(roll)
     row.frame:Show()
     Frame:Show()
     Restack()
+    if R.Window and R.Window.OnRollShown then R.Window.OnRollShown(roll.rollID) end
     return true
 end
 
@@ -668,6 +669,8 @@ function R.RefreshAllTallies()
     for i = 1, R.POOL_SIZE do
         if pool[i].active then R.RefreshRowInfoLine(pool[i]) end
     end
+
+    if R.Window and R.Window.Refresh then R.Window.Refresh() end
 
     -- A tooltip open over a roll keeps listing names as they come in, rather
     -- than freezing on whatever was true when the mouse arrived.
@@ -748,6 +751,31 @@ function R.ReleaseRoll(rollID)
     if R.HasActiveRows and not R.HasActiveRows() and not R.IsEditing() then
         Frame:Hide()
     end
+    if R.Window and R.Window.Refresh then R.Window.Refresh() end
+end
+
+--- Open rolls, oldest first, as { name, quality, summary, demo } — what the
+--- roll list window draws. Read from the rows rather than kept separately, so
+--- the window can never list a roll the frames have already let go of.
+--- @return table
+function R.GetActiveRolls()
+    local out = {}
+    if not framesCreated then return out end
+    for i = 1, R.POOL_SIZE do
+        local row = pool[i]
+        if row.active then
+            out[#out + 1] = {
+                rollID    = row.rollID,
+                name      = row.roll and row.roll.name or "",
+                quality   = row.quality,
+                summary   = row.summary,
+                demo      = row.demo,
+                startedAt = row.startedAt or 0,
+            }
+        end
+    end
+    table.sort(out, function(a, b) return a.startedAt < b.startedAt end)
+    return out
 end
 
 --- @return boolean
@@ -773,6 +801,7 @@ function R.ClearAllRolls()
         end
     end
     if not R.IsEditing() then Frame:Hide() end
+    if R.Window and R.Window.Refresh then R.Window.Refresh() end
 end
 
 -- ============================================================================

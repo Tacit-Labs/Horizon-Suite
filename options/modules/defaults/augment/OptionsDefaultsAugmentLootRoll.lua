@@ -56,6 +56,9 @@ D.lootRollShowTally            = true
 D.lootRollShowBadgeAppearance  = true
 D.lootRollShowBadgeItemLevel   = true
 D.lootRollShowBadgeBind        = true
+-- Roll list window: opt-in. The button and tally-line tooltips already name
+-- who rolled; the window is for players who want it on screen all the time.
+D.lootRollShowWindow           = false
 
 D.lootRollEditModeShow         = true
 D.lootRollDebugLive            = false

@@ -32,6 +32,17 @@ local function HandleRollSlash(msg)
         return
     end
 
+    if cmd == "list" then
+        if R.Window then R.Window.Toggle() end
+        return
+    end
+
+    if cmd == "list reset" then
+        if R.Window then R.Window.ResetPosition() end
+        HSPrint("Roll list window position reset to default.")
+        return
+    end
+
     if cmd == "reset" then
         R.ResetPosition()
         HSPrint("Loot roll position reset to default.")
@@ -68,6 +79,8 @@ local function HandleRollSlash(msg)
         HSPrint("  /h roll clear    - Clear every roll frame on screen")
         HSPrint("  /h roll edit     - Toggle edit mode to reposition the stack")
         HSPrint("  /h roll reset    - Reset position to default")
+        HSPrint("  /h roll list     - Show / hide the roll list window")
+        HSPrint("  /h roll list reset - Reset the roll list window position")
         HSPrint("  /h roll toggle   - Enable / disable the loot roll frames")
         HSPrint("  /h roll status   - Print client capabilities and module state")
         HSPrint("  /h platform probe - Ask this client what group loot reports")

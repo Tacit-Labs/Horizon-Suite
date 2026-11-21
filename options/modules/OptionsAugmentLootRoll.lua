@@ -96,6 +96,14 @@ local category = {
               if R and R.ToggleEditMode then R.ToggleEditMode() end
           end,
         },
+        { type = "button",
+          name = L["LOOT_ROLL_WINDOW_TOGGLE"], desc = L["LOOT_ROLL_WINDOW_TOGGLE_DESC"],
+          requires = "lootHistory",
+          onClick = function()
+              local R = addon.Augment and addon.Augment.Roll
+              if R and R.Window then R.Window.Toggle() end
+          end,
+        },
 
         Section(L["LOOT_ROLL_INFORMATION"], { page = "lootRoll" }),
         { type = "columns",
@@ -107,6 +115,13 @@ local category = {
                       requires = "lootHistory",
                       get = function() return getDB("lootRollShowTally", D.lootRollShowTally) end,
                       set = function(v) setDB("lootRollShowTally", v); applyRoll() end,
+                    },
+                    { type = "toggle",
+                      name = L["LOOT_ROLL_SHOW_WINDOW"], desc = L["LOOT_ROLL_SHOW_WINDOW_DESC"],
+                      dbKey = "lootRollShowWindow",
+                      requires = "lootHistory",
+                      get = function() return getDB("lootRollShowWindow", D.lootRollShowWindow) end,
+                      set = function(v) setDB("lootRollShowWindow", v); applyRoll() end,
                     },
                     { type = "toggle",
                       name = L["LOOT_ROLL_BADGE_APPEARANCE"], desc = L["LOOT_ROLL_BADGE_APPEARANCE_DESC"],

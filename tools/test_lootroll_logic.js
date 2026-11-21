@@ -78,6 +78,7 @@ run(read('locales/horizon/enUS.lua'), 'enUS');
 run(read('modules/Augment/LootRoll/AugmentRollState.lua'),  'RollState');
 run(read('modules/Augment/LootRoll/AugmentRollTally.lua'),  'RollTally');
 run(read('modules/Augment/LootRoll/AugmentRollBadges.lua'), 'RollBadges');
+run(read('modules/Augment/LootRoll/AugmentRollWindow.lua'), 'RollWindow');
 run(read('modules/Augment/LootRoll/AugmentRollFrames.lua'), 'RollFrames');
 run(read('modules/Augment/LootRoll/AugmentRollDemo.lua'), 'RollDemo');
 
@@ -278,6 +279,65 @@ run(`
   tip = FakeTooltip()
   T.AddButtonRollers(tip, withRolls, R.ROLL_NEED)
   check("roll number shown beside name", tip:Text():find("Gil.*| 73") ~= nil, tip:Text())
+
+  -- Roll list window model (feature request: movable window, collapsible lists)
+  local W = R.Window
+  local function kinds(lines)
+    local out = {}
+    for _, l in ipairs(lines) do
+      out[#out + 1] = l.kind == "header" and ("H:" .. l.section .. (l.collapsed and "+" or "-"))
+        or l.kind == "player" and ("P:" .. l.player.name)
+        or (l.kind .. ":" .. tostring(l.text))
+    end
+    return table.concat(out, ",")
+  end
+  local open = {}
+  local function isCollapsed(k) return open[k] == false or (open[k] == nil and (k == "pass" or k == "waiting")) end
+
+  local m = W.BuildModel({ { name = "Sword", quality = 4, summary = s } }, isCollapsed)
+  local got = kinds(m)
+  check("window: item, need, greed, collapsed pass and waiting",
+        got == "item:Sword,H:need-,P:Ana,P:Bo,H:greed-,P:Cy,H:pass+,H:waiting+", got)
+
+  open.need = false
+  got = kinds(W.BuildModel({ { name = "Sword", quality = 4, summary = s } }, isCollapsed))
+  check("window: collapsing Need hides its names only",
+        got == "item:Sword,H:need+,H:greed-,P:Cy,H:pass+,H:waiting+", got)
+  open.need = nil
+
+  open.pass = true
+  got = kinds(W.BuildModel({ { name = "Sword", quality = 4, summary = s } }, isCollapsed))
+  check("window: expanding Pass lists passers", got:find("H:pass%-,P:Di") ~= nil, got)
+  open.pass = nil
+
+  got = kinds(W.BuildModel({ { name = "Ring", summary = offspec } }, isCollapsed))
+  check("window: empty Greed still shown, says nobody yet",
+        got == "item:Ring,H:need-,P:Fi,H:greed-,note:Nobody yet", got)
+
+  got = kinds(W.BuildModel({ { name = "Cloak", summary = nil } }, isCollapsed))
+  check("window: unmatched roll says no data, no empty headers", got == "item:Cloak,note:No roll data yet", got)
+
+  got = kinds(W.BuildModel({ { name = "Bar", summary = T.Summarise({ rollInfos = {}, allPassed = true }) } }, isCollapsed))
+  check("window: all passed", got == "item:Bar,note:Everyone passed", got)
+
+  got = kinds(W.BuildModel({}, isCollapsed))
+  check("window: nothing open", got == "note:No rolls in progress", got)
+
+  local two = W.BuildModel({ { name = "A", summary = withRolls }, { name = "B", summary = offspec } }, isCollapsed)
+  local items = 0
+  for _, l in ipairs(two) do if l.kind == "item" then items = items + 1 end end
+  check("window: one block per open roll", items == 2, items)
+
+  local needHeader
+  for _, l in ipairs(m) do if l.section == "need" then needHeader = l end end
+  check("window: header carries count", needHeader and needHeader.count == 2, needHeader and needHeader.count)
+
+  -- Collapse defaults when nothing is saved: Pass and the undecided start closed.
+  check("window default: need open", W.IsCollapsed("need") == false)
+  check("window default: pass collapsed", W.IsCollapsed("pass") == true)
+  HorizonSuite.db.lootRollWindowCollapsed_pass = false
+  check("window: saved choice beats default", W.IsCollapsed("pass") == false)
+  HorizonSuite.db.lootRollWindowCollapsed_pass = nil
 
   -- Formatting
   local line = T.FormatLine(s)
