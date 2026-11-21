@@ -771,6 +771,31 @@ local function HandleFocusDebugSlash(msg)
         end
         HSPrint("|cFF00CCFF--- End Achievement Debug ---|r")
 
+    elseif cmd == "achinstdebug" or cmd == "achinstdebug scan" then
+        -- Probe for an instance-only achievement filter (modules/Focus/providers/FocusAchievementInstance.lua).
+        local AI = addon.AchievementInstance
+        if not AI then
+            HSPrint("Achievement instance probe not loaded.")
+            return
+        end
+        local function Show(title, lines)
+            for _, line in ipairs(lines) do HSPrint(line) end
+            if addon.Log and addon.Log.showCopyText then
+                addon.Log.showCopyText(table.concat(lines, "\n"), title)
+            end
+        end
+        if cmd == "achinstdebug scan" then
+            HSPrint("|cFF00CCFF--- Achievement / instance scan (takes a few seconds) ---|r")
+            AI.RunScan(function(lines)
+                Show("Achievement instance scan", lines)
+                HSPrint("|cFF00CCFF--- End scan ---|r")
+            end)
+        else
+            HSPrint("|cFF00CCFF--- Tracked achievements vs instance ---|r")
+            Show("Achievement instance check", AI.TrackedReport())
+            HSPrint("|cFF00CCFF--- End ---|r")
+        end
+
     elseif cmd == "endeavordebug" then
         HSPrint("|cFF00CCFF--- Endeavor API debug ---|r")
         HSPrint("C_ContentTracking: " .. (C_ContentTracking and "yes" or "no"))
