@@ -5,6 +5,7 @@
     chat frames to silence it. Three settings drive it: echoWhisperSound (which sound, or
     "off"), echoSoundInCombat and echoSoundBnet. The options page's preview button calls
     Echo.Sound.Whisper(false, true) to bypass the combat/Battle.net/throttle checks.
+    It plays on the SFX channel, so the game's Sound Effects volume governs it.
 ]]
 
 local addon = _G.HorizonSuite
@@ -60,6 +61,6 @@ function Sound.Whisper(isBnet, preview)
 
     local id = ResolveId(choice)
     if id then
-        pcall(PlaySound, id, "Master")
+        pcall(PlaySound, id, "SFX")
     end
 end
