@@ -121,29 +121,44 @@ local EMPTY_COUNTS = { need = 0, needOff = 0, transmog = 0, greed = 0, pass = 0,
 
 --- Summarise one drop into what the frame renders.
 --- @param drop table|nil EncounterLootDropInfo
---- @return table|nil summary { counts, total, rolled, leaderName, leaderRoll, isTied, winnerName, winnerRoll, allPassed, youRolled }
+--- `players` carries the names behind each count, so the frame can answer
+--- "who needed?" — the counts alone cannot be checked against chat in a raid.
+--- @return table|nil summary { counts, players, total, rolled, leaderName, leaderRoll, isTied, winnerName, winnerRoll, allPassed, youRolled }
 function T.Summarise(drop)
     if type(drop) ~= "table" then return nil end
 
-    local counts = {}
-    for k, v in pairs(EMPTY_COUNTS) do counts[k] = v end
+    local counts, players = {}, {}
+    for k, v in pairs(EMPTY_COUNTS) do
+        counts[k] = v
+        players[k] = {}
+    end
 
     local total, rolled, youRolled = 0, 0, nil
     for _, info in ipairs(drop.rollInfos or {}) do
         local bucket = T.BucketForState(info.state)
         if bucket then
             counts[bucket] = (counts[bucket] or 0) + 1
+            local list = players[bucket]
+            list[#list + 1] = {
+                name   = R.SafeString(info.playerName),
+                class  = R.SafeString(info.playerClass),
+                roll   = tonumber(info.roll),
+                isSelf = info.isSelf and true or false,
+            }
             total = total + 1
             if bucket ~= "waiting" then rolled = rolled + 1 end
             if info.isSelf then youRolled = bucket end
         end
     end
 
+    for _, list in pairs(players) do T.SortPlayers(list) end
+
     local leader = drop.currentLeader
     local winner = drop.winner
 
     return {
         counts     = counts,
+        players    = players,
         total      = total,
         rolled     = rolled,
         youRolled  = youRolled,
@@ -156,6 +171,20 @@ function T.Summarise(drop)
         winnerRoll = winner and tonumber(winner.roll) or nil,
         winnerClass = winner and R.SafeString(winner.playerClass) or nil,
     }
+end
+
+--- Highest roll first, then by name, so the list reads like the standings.
+--- Players with no roll yet (the number arrives when the roll ends) sort by
+--- name after anyone who has one.
+--- @param list table  Array of { name, class, roll, isSelf }
+--- @return table list  Sorted in place
+function T.SortPlayers(list)
+    table.sort(list, function(a, b)
+        local ra, rb = a.roll or -1, b.roll or -1
+        if ra ~= rb then return ra > rb end
+        return (a.name or "") < (b.name or "")
+    end)
+    return list
 end
 
 --- Resolve and summarise in one step.
@@ -237,4 +266,133 @@ function T.FormatLine(summary)
     end
 
     return line
+end
+
+-- ============================================================================
+-- WHO ROLLED WHAT
+-- Names behind the counts, for the roll buttons' tooltips and the tally line's.
+-- In a dungeon you can match five names against chat; in a raid you cannot,
+-- which is the whole reason this exists.
+-- ============================================================================
+
+-- Buttons are RollOnLoot types; summaries are EncounterLootDropRollState
+-- buckets. Need covers off-spec Need as well: both came from the Need button.
+local BUTTON_BUCKETS = {
+    [R.ROLL_NEED]       = { "need", "needOff" },
+    [R.ROLL_GREED]      = { "greed" },
+    [R.ROLL_TRANSMOG]   = { "transmog" },
+    [R.ROLL_PASS]       = { "pass" },
+}
+
+--- @param rollType number  R.ROLL_*
+--- @return table buckets  Empty for a button with no matching history state
+function T.BucketsForButton(rollType)
+    return BUTTON_BUCKETS[rollType] or {}
+end
+
+--- @param class string|nil  Class file token, e.g. "MAGE"
+--- @return number r, number g, number b
+function T.ClassColor(class)
+    if class and class ~= "" then
+        if C_ClassColor and C_ClassColor.GetClassColor then
+            local ok, c = pcall(C_ClassColor.GetClassColor, class)
+            if ok and c and c.r then return c.r, c.g, c.b end
+        end
+        local rc = RAID_CLASS_COLORS and RAID_CLASS_COLORS[class]
+        if rc and rc.r then return rc.r, rc.g, rc.b end
+    end
+    return 1, 1, 1
+end
+
+--- A player's name in their class colour, with "(you)" on your own.
+--- @param p table  { name, class, isSelf }
+--- @return string
+function T.FormatPlayerName(p)
+    local r, g, b = T.ClassColor(p.class)
+    local name = p.name ~= "" and p.name or "?"
+    if p.isSelf then
+        name = name .. " " .. ((L and L["LOOT_ROLL_WHO_YOU"]) or "(you)")
+    end
+    return ("|cFF%02X%02X%02X%s|r"):format(
+        math.floor(r * 255 + 0.5), math.floor(g * 255 + 0.5), math.floor(b * 255 + 0.5), name)
+end
+
+--- Players in the given buckets, merged and sorted.
+--- @param summary table|nil
+--- @param buckets table
+--- @return table list
+function T.PlayersIn(summary, buckets)
+    local out = {}
+    if not (summary and summary.players) then return out end
+    for _, bucket in ipairs(buckets) do
+        for _, p in ipairs(summary.players[bucket] or {}) do out[#out + 1] = p end
+    end
+    return T.SortPlayers(out)
+end
+
+--- Add one bucket group's names to a tooltip.
+--- @param tooltip table  GameTooltip
+--- @param list table  From T.PlayersIn
+--- @return number added
+local function AddPlayerLines(tooltip, list)
+    for _, p in ipairs(list) do
+        if p.roll then
+            tooltip:AddDoubleLine(T.FormatPlayerName(p), tostring(p.roll), 1, 1, 1, 0.8, 0.8, 0.8)
+        else
+            tooltip:AddLine(T.FormatPlayerName(p), 1, 1, 1)
+        end
+    end
+    return #list
+end
+
+--- Names for a single roll button, under whatever the button tooltip already
+--- says. Says "nobody yet" rather than nothing, so an empty list is visibly an
+--- answer and not a missing feature.
+--- @param tooltip table  GameTooltip
+--- @param summary table|nil
+--- @param rollType number  R.ROLL_*
+--- @return boolean added
+function T.AddButtonRollers(tooltip, summary, rollType)
+    if not (tooltip and summary and summary.players) then return false end
+    local buckets = T.BucketsForButton(rollType)
+    if #buckets == 0 then return false end
+    local list = T.PlayersIn(summary, buckets)
+    tooltip:AddLine(" ")
+    if #list == 0 then
+        tooltip:AddLine((L and L["LOOT_ROLL_WHO_NOBODY"]) or "Nobody yet", 0.6, 0.6, 0.6)
+    else
+        AddPlayerLines(tooltip, list)
+    end
+    return true
+end
+
+--- Every bucket with its names, for hovering the tally line.
+--- @param tooltip table  GameTooltip
+--- @param summary table|nil
+--- @return boolean added
+function T.AddAllRollers(tooltip, summary)
+    if not (tooltip and summary and summary.players) then return false end
+    local any = false
+    for _, bucket in ipairs(BUCKET_ORDER) do
+        local list = summary.players[bucket] or {}
+        if #list > 0 then
+            if any then tooltip:AddLine(" ") end
+            local label = (L and L[BUCKET_LABEL[bucket]]) or bucket
+            tooltip:AddLine(("%s%s (%d)|r"):format(BUCKET_COLOR[bucket] or "|cFFFFFFFF", label, #list))
+            AddPlayerLines(tooltip, list)
+            any = true
+        end
+    end
+    local waiting = summary.players.waiting or {}
+    if #waiting > 0 then
+        if any then tooltip:AddLine(" ") end
+        local template = (L and L["LOOT_ROLL_WHO_WAITING"]) or "Still choosing (%d)"
+        tooltip:AddLine(template:format(#waiting), 0.6, 0.6, 0.6)
+        AddPlayerLines(tooltip, waiting)
+        any = true
+    end
+    if not any then
+        tooltip:AddLine((L and L["LOOT_ROLL_WHO_NOBODY"]) or "Nobody yet", 0.6, 0.6, 0.6)
+    end
+    return true
 end

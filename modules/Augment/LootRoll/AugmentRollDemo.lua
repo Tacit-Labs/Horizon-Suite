@@ -33,10 +33,15 @@ local FALLBACK_ICON = "Interface\\Icons\\INV_Misc_QuestionMark"
 local SAMPLES = {
     {   itemID = 19019, quality = 5, count = 1,            -- Thunderfury
         canNeed = true, canGreed = true, bindOnPickUp = true,
-        tally = { need = 2, greed = 1, pass = 1, leader = "Sarah", leaderRoll = 91 } },
+        tally = { leader = "Sarah", leaderRoll = 91,
+                  need  = { { "Sarah", "PALADIN", 91 }, { "Mikhail", "WARRIOR", 47 } },
+                  greed = { { "Ines", "MAGE" } },
+                  pass  = { { "Tomas", "PRIEST" } } } },
     {   itemID = 18832, quality = 4, count = 1,            -- Brutality Blade
         canNeed = true, canGreed = true, bindOnPickUp = true,
-        tally = { need = 1, greed = 2, pass = 0, leader = "Mikhail", leaderRoll = 64 } },
+        tally = { leader = "Mikhail", leaderRoll = 64,
+                  need  = { { "Mikhail", "WARRIOR", 64 } },
+                  greed = { { "Sarah", "PALADIN" }, { "Ines", "MAGE" } } } },
     {   itemID = 12064, quality = 3, count = 1,            -- Serpentine Sash
         canNeed = false, canGreed = true, canTransmog = true,
         reasonNeed = 1 },
@@ -52,13 +57,22 @@ local function BuildDemoTally(spec)
     if spec.allPassed then
         return { counts = {}, total = 0, rolled = 0, allPassed = true }
     end
+    -- Fabricated names, so hovering a demo row shows the who-rolled-what
+    -- tooltips exactly as a live one would.
+    local counts, players, total = {}, {}, 0
+    for _, bucket in ipairs({ "need", "needOff", "transmog", "greed", "pass", "waiting" }) do
+        local list = {}
+        for _, p in ipairs(spec[bucket] or {}) do
+            list[#list + 1] = { name = p[1], class = p[2], roll = p[3], isSelf = false }
+        end
+        counts[bucket], players[bucket] = #list, list
+        if bucket ~= "waiting" then total = total + #list end
+    end
     return {
-        counts = {
-            need = spec.need or 0, needOff = 0, transmog = 0,
-            greed = spec.greed or 0, pass = spec.pass or 0, waiting = 0,
-        },
-        total      = (spec.need or 0) + (spec.greed or 0) + (spec.pass or 0),
-        rolled     = (spec.need or 0) + (spec.greed or 0) + (spec.pass or 0),
+        counts     = counts,
+        players    = players,
+        total      = total,
+        rolled     = total,
         isTied     = false,
         allPassed  = false,
         leaderName = spec.leader,

@@ -78,6 +78,7 @@ run(read('locales/horizon/enUS.lua'), 'enUS');
 run(read('modules/Augment/LootRoll/AugmentRollState.lua'),  'RollState');
 run(read('modules/Augment/LootRoll/AugmentRollTally.lua'),  'RollTally');
 run(read('modules/Augment/LootRoll/AugmentRollBadges.lua'), 'RollBadges');
+run(read('modules/Augment/LootRoll/AugmentRollWindow.lua'), 'RollWindow');
 run(read('modules/Augment/LootRoll/AugmentRollFrames.lua'), 'RollFrames');
 run(read('modules/Augment/LootRoll/AugmentRollDemo.lua'), 'RollDemo');
 
@@ -224,6 +225,119 @@ run(`
   check("summary waiting=1", s.counts.waiting == 1, s.counts.waiting)
   check("summary youRolled", s.youRolled == "need", s.youRolled)
   check("summary leader",  s.leaderName == "Ana" and s.leaderRoll == 87, s.leaderName)
+
+  -- Who rolled what: names behind the counts (feedback: the counts alone
+  -- cannot be matched to anyone in a raid).
+  check("players.need has both needers", #s.players.need == 2, #s.players.need)
+  check("players.greed names Cy", s.players.greed[1].name == "Cy", s.players.greed[1] and s.players.greed[1].name)
+  check("players carry class", s.players.greed[1].class == "PRIEST", s.players.greed[1].class)
+  check("players.waiting names Ed", s.players.waiting[1].name == "Ed", #s.players.waiting)
+
+  local sorted = T.SortPlayers({ { name = "Zo" }, { name = "Al", roll = 12 }, { name = "Bea", roll = 80 }, { name = "Ab" } })
+  check("sort: highest roll first", sorted[1].name == "Bea" and sorted[2].name == "Al", sorted[1].name)
+  check("sort: unrolled by name after", sorted[3].name == "Ab" and sorted[4].name == "Zo", sorted[3].name)
+
+  local function FakeTooltip()
+    local t = { lines = {} }
+    function t:AddLine(text) self.lines[#self.lines + 1] = text end
+    function t:AddDoubleLine(l, r) self.lines[#self.lines + 1] = l .. " | " .. r end
+    function t:Text() return table.concat(self.lines, "\\n") end
+    return t
+  end
+
+  local tip = FakeTooltip()
+  check("need button adds rollers", T.AddButtonRollers(tip, s, R.ROLL_NEED) == true)
+  local txt = tip:Text()
+  check("need tooltip names Ana", txt:find("Ana") ~= nil, txt)
+  check("need tooltip marks self", txt:find("Bo %(you%)") ~= nil, txt)
+  check("need tooltip omits greeders", txt:find("Cy") == nil, txt)
+
+  -- Off-spec Need came from the Need button too.
+  local offspec = T.Summarise({ rollInfos = {
+    { playerName = "Fi", playerClass = "HUNTER", state = 1 } } })
+  tip = FakeTooltip()
+  T.AddButtonRollers(tip, offspec, R.ROLL_NEED)
+  check("need tooltip includes off-spec", tip:Text():find("Fi") ~= nil, tip:Text())
+
+  tip = FakeTooltip()
+  T.AddButtonRollers(tip, offspec, R.ROLL_GREED)
+  check("empty bucket says nobody yet", tip:Text():find("Nobody yet") ~= nil, tip:Text())
+
+  tip = FakeTooltip()
+  check("disenchant adds nothing", T.AddButtonRollers(tip, s, R.ROLL_DISENCHANT) == false and #tip.lines == 0)
+  check("no summary adds nothing", T.AddButtonRollers(FakeTooltip(), nil, R.ROLL_NEED) == false)
+
+  tip = FakeTooltip()
+  T.AddAllRollers(tip, s)
+  txt = tip:Text()
+  check("all-rollers lists every name", txt:find("Ana") and txt:find("Cy") and txt:find("Di") and txt:find("Ed"), txt)
+  check("all-rollers lists need before greed", txt:find("Need") < txt:find("Greed"), txt)
+  check("all-rollers shows waiting", txt:find("Still choosing %(1%)") ~= nil, txt)
+
+  local withRolls = T.Summarise({ rollInfos = {
+    { playerName = "Gil", playerClass = "MAGE", state = 0, roll = 73 } } })
+  tip = FakeTooltip()
+  T.AddButtonRollers(tip, withRolls, R.ROLL_NEED)
+  check("roll number shown beside name", tip:Text():find("Gil.*| 73") ~= nil, tip:Text())
+
+  -- Roll list window model (feature request: movable window, collapsible lists)
+  local W = R.Window
+  local function kinds(lines)
+    local out = {}
+    for _, l in ipairs(lines) do
+      out[#out + 1] = l.kind == "header" and ("H:" .. l.section .. (l.collapsed and "+" or "-"))
+        or l.kind == "player" and ("P:" .. l.player.name)
+        or (l.kind .. ":" .. tostring(l.text))
+    end
+    return table.concat(out, ",")
+  end
+  local open = {}
+  local function isCollapsed(k) return open[k] == false or (open[k] == nil and (k == "pass" or k == "waiting")) end
+
+  local m = W.BuildModel({ { name = "Sword", quality = 4, summary = s } }, isCollapsed)
+  local got = kinds(m)
+  check("window: item, need, greed, collapsed pass and waiting",
+        got == "item:Sword,H:need-,P:Ana,P:Bo,H:greed-,P:Cy,H:pass+,H:waiting+", got)
+
+  open.need = false
+  got = kinds(W.BuildModel({ { name = "Sword", quality = 4, summary = s } }, isCollapsed))
+  check("window: collapsing Need hides its names only",
+        got == "item:Sword,H:need+,H:greed-,P:Cy,H:pass+,H:waiting+", got)
+  open.need = nil
+
+  open.pass = true
+  got = kinds(W.BuildModel({ { name = "Sword", quality = 4, summary = s } }, isCollapsed))
+  check("window: expanding Pass lists passers", got:find("H:pass%-,P:Di") ~= nil, got)
+  open.pass = nil
+
+  got = kinds(W.BuildModel({ { name = "Ring", summary = offspec } }, isCollapsed))
+  check("window: empty Greed still shown, says nobody yet",
+        got == "item:Ring,H:need-,P:Fi,H:greed-,note:Nobody yet", got)
+
+  got = kinds(W.BuildModel({ { name = "Cloak", summary = nil } }, isCollapsed))
+  check("window: unmatched roll says no data, no empty headers", got == "item:Cloak,note:No roll data yet", got)
+
+  got = kinds(W.BuildModel({ { name = "Bar", summary = T.Summarise({ rollInfos = {}, allPassed = true }) } }, isCollapsed))
+  check("window: all passed", got == "item:Bar,note:Everyone passed", got)
+
+  got = kinds(W.BuildModel({}, isCollapsed))
+  check("window: nothing open", got == "note:No rolls in progress", got)
+
+  local two = W.BuildModel({ { name = "A", summary = withRolls }, { name = "B", summary = offspec } }, isCollapsed)
+  local items = 0
+  for _, l in ipairs(two) do if l.kind == "item" then items = items + 1 end end
+  check("window: one block per open roll", items == 2, items)
+
+  local needHeader
+  for _, l in ipairs(m) do if l.section == "need" then needHeader = l end end
+  check("window: header carries count", needHeader and needHeader.count == 2, needHeader and needHeader.count)
+
+  -- Collapse defaults when nothing is saved: Pass and the undecided start closed.
+  check("window default: need open", W.IsCollapsed("need") == false)
+  check("window default: pass collapsed", W.IsCollapsed("pass") == true)
+  HorizonSuite.db.lootRollWindowCollapsed_pass = false
+  check("window: saved choice beats default", W.IsCollapsed("pass") == false)
+  HorizonSuite.db.lootRollWindowCollapsed_pass = nil
 
   -- Formatting
   local line = T.FormatLine(s)
