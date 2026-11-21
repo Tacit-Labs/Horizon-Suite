@@ -225,6 +225,60 @@ run(`
   check("summary youRolled", s.youRolled == "need", s.youRolled)
   check("summary leader",  s.leaderName == "Ana" and s.leaderRoll == 87, s.leaderName)
 
+  -- Who rolled what: names behind the counts (feedback: the counts alone
+  -- cannot be matched to anyone in a raid).
+  check("players.need has both needers", #s.players.need == 2, #s.players.need)
+  check("players.greed names Cy", s.players.greed[1].name == "Cy", s.players.greed[1] and s.players.greed[1].name)
+  check("players carry class", s.players.greed[1].class == "PRIEST", s.players.greed[1].class)
+  check("players.waiting names Ed", s.players.waiting[1].name == "Ed", #s.players.waiting)
+
+  local sorted = T.SortPlayers({ { name = "Zo" }, { name = "Al", roll = 12 }, { name = "Bea", roll = 80 }, { name = "Ab" } })
+  check("sort: highest roll first", sorted[1].name == "Bea" and sorted[2].name == "Al", sorted[1].name)
+  check("sort: unrolled by name after", sorted[3].name == "Ab" and sorted[4].name == "Zo", sorted[3].name)
+
+  local function FakeTooltip()
+    local t = { lines = {} }
+    function t:AddLine(text) self.lines[#self.lines + 1] = text end
+    function t:AddDoubleLine(l, r) self.lines[#self.lines + 1] = l .. " | " .. r end
+    function t:Text() return table.concat(self.lines, "\\n") end
+    return t
+  end
+
+  local tip = FakeTooltip()
+  check("need button adds rollers", T.AddButtonRollers(tip, s, R.ROLL_NEED) == true)
+  local txt = tip:Text()
+  check("need tooltip names Ana", txt:find("Ana") ~= nil, txt)
+  check("need tooltip marks self", txt:find("Bo %(you%)") ~= nil, txt)
+  check("need tooltip omits greeders", txt:find("Cy") == nil, txt)
+
+  -- Off-spec Need came from the Need button too.
+  local offspec = T.Summarise({ rollInfos = {
+    { playerName = "Fi", playerClass = "HUNTER", state = 1 } } })
+  tip = FakeTooltip()
+  T.AddButtonRollers(tip, offspec, R.ROLL_NEED)
+  check("need tooltip includes off-spec", tip:Text():find("Fi") ~= nil, tip:Text())
+
+  tip = FakeTooltip()
+  T.AddButtonRollers(tip, offspec, R.ROLL_GREED)
+  check("empty bucket says nobody yet", tip:Text():find("Nobody yet") ~= nil, tip:Text())
+
+  tip = FakeTooltip()
+  check("disenchant adds nothing", T.AddButtonRollers(tip, s, R.ROLL_DISENCHANT) == false and #tip.lines == 0)
+  check("no summary adds nothing", T.AddButtonRollers(FakeTooltip(), nil, R.ROLL_NEED) == false)
+
+  tip = FakeTooltip()
+  T.AddAllRollers(tip, s)
+  txt = tip:Text()
+  check("all-rollers lists every name", txt:find("Ana") and txt:find("Cy") and txt:find("Di") and txt:find("Ed"), txt)
+  check("all-rollers lists need before greed", txt:find("Need") < txt:find("Greed"), txt)
+  check("all-rollers shows waiting", txt:find("Still choosing %(1%)") ~= nil, txt)
+
+  local withRolls = T.Summarise({ rollInfos = {
+    { playerName = "Gil", playerClass = "MAGE", state = 0, roll = 73 } } })
+  tip = FakeTooltip()
+  T.AddButtonRollers(tip, withRolls, R.ROLL_NEED)
+  check("roll number shown beside name", tip:Text():find("Gil.*| 73") ~= nil, tip:Text())
+
   -- Formatting
   local line = T.FormatLine(s)
   check("line mentions counts", line:find("2") ~= nil and line:find("1") ~= nil, line)

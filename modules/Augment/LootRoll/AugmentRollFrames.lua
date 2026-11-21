@@ -146,6 +146,11 @@ local function CreateRollButton(parent, rollType)
             GameTooltip:AddLine((L and L["LOOT_ROLL_DEMO_BUTTON_INERT"]) or
                 "Demo roll — this button does nothing.", 0.7, 0.7, 0.7, true)
         end
+        -- Who has already chosen this button. The tally line gives the count;
+        -- in a raid the count alone cannot be matched to anyone.
+        if row and row.summary and R.Tally and R.Tally.AddButtonRollers then
+            R.Tally.AddButtonRollers(GameTooltip, row.summary, self.rollType)
+        end
         GameTooltip:Show()
     end)
     b:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -255,6 +260,21 @@ local function CreateRow(parent)
         GameTooltip:Show()
     end)
     iconHit:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
+    -- Hovering the tally line lists everyone by choice. Sized and placed over
+    -- whichever line holds the tally by R.SetInfoLines.
+    local tallyHit = CreateFrame("Frame", nil, f)
+    tallyHit:EnableMouse(true)
+    tallyHit:Hide()
+    tallyHit:SetScript("OnEnter", function(self)
+        local row = RowOf(self)
+        if not (row and row.summary and R.Tally and R.Tally.AddAllRollers) then return end
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText((L and L["LOOT_ROLL_WHO_TITLE"]) or "Rolls", 1, 1, 1)
+        R.Tally.AddAllRollers(GameTooltip, row.summary)
+        GameTooltip:Show()
+    end)
+    tallyHit:SetScript("OnLeave", function() GameTooltip:Hide() end)
     iconHit:RegisterForClicks("LeftButtonUp")
     iconHit:SetScript("OnClick", function(self)
         local row = RowOf(self)
@@ -267,7 +287,7 @@ local function CreateRow(parent)
         frame = f, icon = icon, iconBg = iconBg, iconDark = iconDark,
         count = count, title = title, body = body, tally = tally,
         bar = bar, buttons = buttons, timer = timer, iconHit = iconHit,
-        active = false,
+        tallyHit = tallyHit, active = false,
     }
     f.row = row   -- see RowOf
     return row
@@ -361,6 +381,20 @@ function R.SetInfoLines(row, badges, tally)
     end
     row.lineCount = lines
     ReanchorText(row, R.GetIconSide(), lines)
+
+    -- Cover the line that ended up holding the tally, if any.
+    local hit = row.tallyHit
+    if hit then
+        local holder = (lines == 3 and row.tally) or (lines == 2 and badges == "" and row.body) or nil
+        hit:ClearAllPoints()
+        if holder and row.summary then
+            hit:SetPoint("TOPLEFT", holder, "TOPLEFT", 0, 0)
+            hit:SetPoint("BOTTOMRIGHT", holder, "BOTTOMRIGHT", 0, 0)
+            hit:Show()
+        else
+            hit:Hide()
+        end
+    end
 end
 
 -- Pack the visible buttons into the bar and anchor the bar to the far edge.
@@ -612,15 +646,18 @@ function R.RefreshRowInfoLine(row, roll)
 
     -- The demo honours the tally toggle too, so it previews what a real roll
     -- would look like with the player's own settings.
-    local tally = ""
+    local tally, summary = "", nil
     if R.IsTallyEnabled() and R.Tally then
         if row.demo then
-            if row.demoTally then tally = R.Tally.FormatLine(row.demoTally) end
+            summary = row.demoTally
         else
-            tally = R.Tally.FormatLine(R.Tally.ForItemLink(row.itemLink))
+            summary = R.Tally.ForItemLink(row.itemLink)
         end
+        tally = R.Tally.FormatLine(summary)
     end
 
+    -- Kept for the hover tooltips, which name who chose what.
+    row.summary = summary
     R.SetInfoLines(row, badges, tally)
 end
 
@@ -630,6 +667,14 @@ function R.RefreshAllTallies()
     if not framesCreated then return end
     for i = 1, R.POOL_SIZE do
         if pool[i].active then R.RefreshRowInfoLine(pool[i]) end
+    end
+
+    -- A tooltip open over a roll keeps listing names as they come in, rather
+    -- than freezing on whatever was true when the mouse arrived.
+    local owner = GameTooltip and GameTooltip:IsShown() and GameTooltip:GetOwner()
+    if owner and owner.IsMouseOver and owner:IsMouseOver() and RowOf(owner) then
+        local onEnter = owner:GetScript("OnEnter")
+        if onEnter then onEnter(owner) end
     end
 end
 
@@ -694,6 +739,7 @@ function R.ReleaseRoll(rollID)
     if not row then return end
     row.active = false
     row.rollID = nil
+    row.summary = nil
     row.frame:Hide()
     -- Blizzard hides its own confirm popup when the roll frame goes away
     -- (GroupLootFrame_Remove). We suppress its frame, so that cleanup is ours.
@@ -722,6 +768,7 @@ function R.ClearAllRolls()
         if row.active then
             row.active = false
             row.rollID = nil
+            row.summary = nil
             row.frame:Hide()
         end
     end
