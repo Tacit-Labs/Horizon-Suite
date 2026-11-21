@@ -87,6 +87,7 @@ modules/Focus/providers/FocusAdventureGuide.lua
 modules/Focus/rendering/FocusAggregator.lua
 modules/Focus/integrations/RareScannerFocus.lua
 modules/Focus/integrations/SilverDragonFocus.lua
+modules/Focus/integrations/SpokenFocus.lua
 modules/Focus/integration/FocusAuctionCraftDialog.lua
 modules/Focus/rendering/FocusEntryPool.lua
 modules/Focus/rendering/FocusHighlightEffects.lua
