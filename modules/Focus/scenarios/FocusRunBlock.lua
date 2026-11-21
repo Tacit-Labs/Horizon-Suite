@@ -55,7 +55,9 @@ runTimerText:SetJustifyH("LEFT")
 
 -- Lines 3+: stat ledger. Each row is a muted label on the left and the figure on
 -- the right, so the numbers line up in a column however long the labels get.
-local ROW_KEYS = { "xp", "money", "bosses" }
+local ROW_KEYS = { "xp", "money", "currencies", "lives", "bosses" }
+-- The currency row shows this many icons; the tooltip lists the rest by name.
+local CURRENCY_ROW_MAX = 4
 local rows = {}
 for _, key in ipairs(ROW_KEYS) do
     local label = runBlock:CreateFontString(nil, "OVERLAY")
@@ -282,9 +284,14 @@ local function UpdateRunBlockDisplay(data)
     local timerSize = ClampedSize("runTimerSize", 13)
 
     -- Line 1: dungeon name + difficulty
+    -- In a Delve the tier says more than the difficulty name, which is just "Delves".
     local heroStr = data.instanceName ~= "" and data.instanceName or L["FOCUS_RUN_DUNGEON_RUN"]
-    if data.difficultyName and data.difficultyName ~= "" then
-        heroStr = heroStr .. " (" .. data.difficultyName .. ")"
+    local qualifier = data.difficultyName
+    if data.delveTier then
+        qualifier = L["FOCUS_RUN_TIER_FMT"]:format(data.delveTier)
+    end
+    if qualifier and qualifier ~= "" then
+        heroStr = heroStr .. " (" .. qualifier .. ")"
     end
     addon.SetTextWithShadow(runHeroText, runHeroShadow, heroStr)
 
@@ -314,6 +321,41 @@ local function UpdateRunBlockDisplay(data)
             FormatMoney(data.moneyGained),
             data.moneyPerHour and FormatMoneyRate(data.moneyPerHour) or nil))
         shown[#shown + 1] = "money"
+    end
+
+    local currencies = data.currencies or {}
+    if addon.GetDB("runShowCurrencies", true) and #currencies > 0 then
+        local icon = math.floor(statSize)
+        local parts = {}
+        for i = 1, math.min(#currencies, CURRENCY_ROW_MAX) do
+            local c = currencies[i]
+            local mark = (type(c.icon) == "number" and c.icon > 0)
+                and ("|T%d:%d:%d:0:0|t"):format(c.icon, icon, icon)
+                or c.name
+            parts[#parts + 1] = mark .. TICK_TEXT_GAP .. Grouped(c.amount)
+        end
+        local text = table.concat(parts, "  ")
+        if #currencies > CURRENCY_ROW_MAX then
+            text = text .. "  +" .. (#currencies - CURRENCY_ROW_MAX)
+        end
+        rows.currencies.label:SetText(L["FOCUS_RUN_CURRENCIES"])
+        rows.currencies.value:SetText(text)
+        shown[#shown + 1] = "currencies"
+    end
+
+    -- Delves only: the tracker leaves livesLost nil anywhere else.
+    if addon.GetDB("runShowLives", true) and data.livesLost then
+        local value = Grouped(data.livesLost)
+        if data.livesLeft then
+            value = value .. "  " .. ColorHex(
+                addon.GetDB("runLabelColorR", 0.66),
+                addon.GetDB("runLabelColorG", 0.70),
+                addon.GetDB("runLabelColorB", 0.80))
+                .. L["FOCUS_RUN_LIVES_LEFT_FMT"]:format(data.livesLeft) .. "|r"
+        end
+        rows.lives.label:SetText(L["FOCUS_RUN_LIVES_LOST"])
+        rows.lives.value:SetText(value)
+        shown[#shown + 1] = "lives"
     end
 
     local bossCount = data.bosses and #data.bosses or 0
@@ -404,6 +446,19 @@ local function ShowRunTooltip()
 
     tt:AddLine(L["FOCUS_RUN_MONEY"] .. ": " .. FormatMoney(data.moneyGained), 0.8, 0.8, 0.8)
 
+    if data.livesLost then
+        tt:AddLine(L["FOCUS_RUN_LIVES_LOST"] .. ": " .. Grouped(data.livesLost), 0.8, 0.8, 0.8)
+    end
+
+    if data.currencies and #data.currencies > 0 then
+        tt:AddLine(" ")
+        tt:AddLine(L["FOCUS_RUN_CURRENCIES"], 1, 1, 1)
+        for _, c in ipairs(data.currencies) do
+            local icon = (type(c.icon) == "number" and c.icon > 0) and ("|T%d:0|t "):format(c.icon) or ""
+            tt:AddLine(icon .. (c.name ~= "" and c.name or ("#" .. tostring(c.id))) .. ": " .. Grouped(c.amount), 0.8, 0.8, 0.8)
+        end
+    end
+
     if data.bosses and #data.bosses > 0 then
         tt:AddLine(" ")
         tt:AddLine(L["FOCUS_RUN_BOSSES"], 1, 1, 1)
@@ -478,7 +533,14 @@ runBlock:SetScript("OnUpdate", function(self, elapsed)
     timeSinceLastUpdate = timeSinceLastUpdate + elapsed
     if timeSinceLastUpdate >= 1.0 then
         timeSinceLastUpdate = 0
+        -- A row can appear on a repaint (Delve lives arrive once the header has
+        -- loaded), and only a full layout moves the quest list out of its way.
+        -- The second pass measures the same height, so this cannot loop.
+        local before = self:GetHeight()
         UpdateRunBlockDisplay(addon.GetDungeonRunData())
+        if math.abs((self:GetHeight() or 0) - (before or 0)) > 0.5 and addon.FullLayout then
+            addon.FullLayout()
+        end
     end
 end)
 
