@@ -790,6 +790,11 @@ local function ReadTrackedQuests()
             end
             objectives = filtered
         end
+        -- A failed quest's objectives no longer mean anything; show a single red "Failed" line instead.
+        if isFailed then
+            objectives = { { text = _G.FAILED or "Failed", finished = false, isFailed = true, noBullet = true } }
+            objectivesDoneCount, objectivesTotalCount = nil, nil
+        end
         local color = addon.GetQuestColor(category)
         local isSuper = (questID == superTracked)
         local zoneName = addon.GetQuestZoneName(questID)

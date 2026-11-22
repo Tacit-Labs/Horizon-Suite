@@ -891,11 +891,13 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
             obj._hsFinished = oData.finished and true or false
             obj._hsAlpha = alpha
             obj._hsItemQuality = oData.itemQuality
+            obj._hsFailed = oData.isFailed and true or false
             local useObjColor = objColor
             if questData.isRecipe and addon.GetDB("recipeRarityColors", true) and oData.itemQuality then
                 local qc = ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[oData.itemQuality]
                 if qc then useObjColor = { qc.r, qc.g, qc.b } end
             end
+            if oData.isFailed then useObjColor = addon.ApplyFailedQuestTitleColor(questData, useObjColor) end
             local outA = alpha * dimTextAlpha
             if oData.finished then
                 if useTick then

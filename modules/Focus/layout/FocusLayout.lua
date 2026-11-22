@@ -1778,6 +1778,9 @@ function addon.ApplyFocusColors()
                         if isFinished and not useTick then
                             targetColor = doneColor
                         end
+                        if obj._hsFailed then
+                            targetColor = addon.ApplyFailedQuestTitleColor(entry, targetColor)
+                        end
                         obj.text:SetTextColor(targetColor[1], targetColor[2], targetColor[3], alpha * dimAlpha)
 
                         -- Live-update progress bar colors
