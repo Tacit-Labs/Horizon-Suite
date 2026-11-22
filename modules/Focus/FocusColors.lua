@@ -220,6 +220,21 @@ local function GetCompletedObjectiveColor(category)
     return addon.OBJ_DONE_COLOR or { 0.20, 1.00, 0.40 }
 end
 
+-- A failed quest's title is always red, whatever its category, section or highlight colour.
+-- Keeps the super-track dim so a failed quest that isn't focused still recedes like its neighbours.
+-- @param row table  questData or a rendered entry (reads isFailed)
+-- @param color table  the title colour the row would otherwise use
+-- @return table color
+local function ApplyFailedQuestTitleColor(row, color)
+    if not (row and row.isFailed) then return color end
+    local red = addon.QUEST_FAILED_COLOR or { 1, 0.125, 0.125 }
+    if addon.ShouldApplySuperTrackQuestDim and addon.ShouldApplySuperTrackQuestDim(row) then
+        return addon.ApplyDimColor(red)
+    end
+    return red
+end
+
+addon.ApplyFailedQuestTitleColor   = ApplyFailedQuestTitleColor
 addon.GetEffectiveColorCategory   = GetEffectiveColorCategory
 addon.GetCompletedObjectiveColor = GetCompletedObjectiveColor
 addon.GetTitleColor        = GetTitleColor

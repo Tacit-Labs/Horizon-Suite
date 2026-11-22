@@ -1736,6 +1736,7 @@ function addon.ApplyFocusColors()
                     if qc then titleColor = { qc.r, qc.g, qc.b } end
                 end
                 titleColor = addon.GetFocusedTitleHighlightColor(entry) or titleColor
+                titleColor = addon.ApplyFailedQuestTitleColor(entry, titleColor)
                 entry.titleText:SetTextColor(titleColor[1], titleColor[2], titleColor[3], dimAlpha)
             end
 

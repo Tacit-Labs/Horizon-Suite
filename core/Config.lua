@@ -184,6 +184,10 @@ addon.QUEST_COLORS = {
     ADVENTURE  = { 0.90, 0.80, 0.50 },  -- artifact gold (WoW e6cc80; distinct from CAMPAIGN)
 }
 
+-- Title colour for a failed quest (e.g. an escort whose NPC died). Overrides every category
+-- and highlight colour so the failure stands out; Blizzard's RED_FONT_COLOR.
+addon.QUEST_FAILED_COLOR = { 1.00, 0.125, 0.125 }
+
 -- ============================================================================
 -- CORE-OWNED DB KEYS
 -- ============================================================================

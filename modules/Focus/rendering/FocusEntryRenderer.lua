@@ -2121,6 +2121,7 @@ local function PopulateEntry(entry, questData, groupKey)
         if qc then c = { qc.r, qc.g, qc.b } end
     end
     c = addon.GetFocusedTitleHighlightColor(questData) or c
+    c = addon.ApplyFailedQuestTitleColor(questData, c)
     local dimAlpha = addon.ShouldApplySuperTrackQuestDim(questData) and addon.GetDimAlpha() or 1
     local baseColor = { c[1], c[2], c[3], dimAlpha }
     entry._baseTitleColor = baseColor
@@ -2487,6 +2488,7 @@ local function PopulateEntry(entry, questData, groupKey)
     entry.baseCategory = questData.baseCategory
     entry.isEventQuest = questData.isEventQuest and true or false
     entry.isComplete = questData.isComplete and true or false
+    entry.isFailed = questData.isFailed and true or false
     entry.isSuperTracked = questData.isSuperTracked and true or false
     entry.isDungeonQuest = questData.isDungeonQuest and true or false
     entry.isGroupQuest = questData.isGroupQuest and true or false
@@ -2654,6 +2656,7 @@ local function BuildEntrySignature(qData, groupKey)
         tostring(qData.level or ""),
         tostring(UnitLevel and UnitLevel("player") or ""),
         qData.isComplete and "1" or "0",
+        qData.isFailed and "1" or "0",
         qData.isSuperTracked and "1" or "0",
         qData.isTracked and "1" or "0",
         qData.isInQuestArea and "1" or "0",
