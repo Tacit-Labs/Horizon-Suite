@@ -19,6 +19,24 @@ local addon = _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["6.16.0"] = {
+        date = "2026-11-25",
+        {
+            section = "New Features",
+            bullets = {
+                "Augment: flight path tracker. While you're on a flight path, a banner shows where you're heading, where you left from, each stop along the route and the time left, then names the place when you land. Times are learned from your own flights; routes you haven't flown yet show an estimate marked \"est.\". Settings are under Augment, and /h flight has a demo.",
+                "Focus: a collapsed section's title shows how many entries it holds, such as \"The Barrens (2)\". It's on by default; you can turn it off under Sections.",
+            },
+        },
+        {
+            section = "Improvements",
+            bullets = {
+                "Axis: the dashboard's corner grip now resizes width and height separately, so the window no longer has to stay 16:9. It remembers its size between sessions.",
+                "Focus: a failed quest, such as an escort whose NPC died, gets a red title and one red \"Failed\" line in place of its objectives.",
+            },
+        },
+    },
+
     ["6.15.1"] = {
         date = "2026-11-20",
         {
