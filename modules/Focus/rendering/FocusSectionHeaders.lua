@@ -108,6 +108,20 @@ local function ConfigureRareNav(s, groupKey)
     nextBtn:Show()
 end
 
+-- Writes the header label, adding the number of entries it holds while the section is
+-- collapsed, e.g. "+ The Barrens (2)". Called on acquire and straight from the click so the
+-- count appears with the "+" rather than after the collapse animation finishes.
+-- @param s table Section header frame (uses s.baseLabel and s.itemCount)
+-- @param isCollapsed boolean Whether the section's entries are hidden
+local function SetSectionHeaderLabel(s, isCollapsed)
+    local label = s.baseLabel or ""
+    local n = s.itemCount
+    if isCollapsed and n and n > 0 and addon.GetDB("showSectionCountWhenCollapsed", true) then
+        label = ("%s (%d)"):format(label, n)
+    end
+    addon.SetTextWithShadow(s.text, s.shadow, label)
+end
+
 local function GetFocusedGroupKey(grouped)
     if not grouped then return nil end
     for _, grp in ipairs(grouped) do
@@ -120,7 +134,10 @@ local function GetFocusedGroupKey(grouped)
     return nil
 end
 
-local function AcquireSectionHeader(groupKey, focusedGroupKey)
+-- @param groupKey string Section group key
+-- @param focusedGroupKey string|nil Group holding the super-tracked entry
+-- @param itemCount number|nil Entries in the section, shown after the label while collapsed
+local function AcquireSectionHeader(groupKey, focusedGroupKey, itemCount)
     local fadeOutKeys = addon.focus.collapse and addon.focus.collapse.sectionHeadersFadingOutKeys
     local s
     repeat
@@ -140,7 +157,8 @@ local function AcquireSectionHeader(groupKey, focusedGroupKey)
     local label = (addon.GetZoneGroupName and addon.GetZoneGroupName(groupKey)) or addon.L[labelKey]
     label = addon.ApplyTextCase(label, "sectionHeaderTextCase", "upper")
     local color = addon.GetSectionHeaderDisplayColor(groupKey, focusedGroupKey)
-    addon.SetTextWithShadow(s.text, s.shadow, label)
+    s.baseLabel = label
+    s.itemCount = itemCount
     local secA = addon.SECTION_COLOR_A or 1
     if addon.ShouldDimSectionHeaderForSuperTrack(groupKey, focusedGroupKey) then
         secA = secA * addon.GetDimAlpha()
@@ -185,16 +203,17 @@ local function AcquireSectionHeader(groupKey, focusedGroupKey)
         s.shadow:SetPoint("CENTER", s.text, "CENTER", addon.SHADOW_OX, addon.SHADOW_OY)
     end
 
-    if s.chevron then
-        if addon.focus.collapsed and addon.GetDB("showSectionHeadersWhenCollapsed", false) then
-            local pceg = addon.focus.collapse.panelCollapsedExpandedGroups
-            s.chevron:SetText((pceg and pceg[groupKey]) and "-" or "+")
-        elseif addon.IsCategoryCollapsed(groupKey) then
-            s.chevron:SetText("+")
-        else
-            s.chevron:SetText("-")
-        end
+    local isCollapsed
+    if addon.focus.collapsed and addon.GetDB("showSectionHeadersWhenCollapsed", false) then
+        local pceg = addon.focus.collapse.panelCollapsedExpandedGroups
+        isCollapsed = not (pceg and pceg[groupKey])
+    else
+        isCollapsed = addon.IsCategoryCollapsed(groupKey) and true or false
     end
+    if s.chevron then
+        s.chevron:SetText(isCollapsed and "+" or "-")
+    end
+    SetSectionHeaderLabel(s, isCollapsed)
 
     ConfigureRareNav(s, groupKey)
 
@@ -211,6 +230,7 @@ local function AcquireSectionHeader(groupKey, focusedGroupKey)
                 -- Collapsing a category
                 pceg[key] = nil
                 if self.chevron then self.chevron:SetText("+") end
+                SetSectionHeaderLabel(self, true)
                 -- If no categories remain expanded, slide header back to bottom
                 local anyLeft = false
                 for _, v in pairs(pceg) do if v then anyLeft = true; break end end
@@ -250,6 +270,7 @@ local function AcquireSectionHeader(groupKey, focusedGroupKey)
                 for _, v in pairs(pceg) do if v then wasAnyExpanded = true; break end end
                 pceg[key] = true
                 if self.chevron then self.chevron:SetText("-") end
+                SetSectionHeaderLabel(self, false)
                 -- First expand: slide header from bottom to top
                 if not wasAnyExpanded
                     and addon.GetDB("growUp", false)
@@ -281,6 +302,7 @@ local function AcquireSectionHeader(groupKey, focusedGroupKey)
             if self.chevron then
                 self.chevron:SetText("-")
             end
+            SetSectionHeaderLabel(self, false)
             -- Slide header from bottom to top when first category expands
             if wasAllCollapsed
                 and addon.GetDB("growUp", false)
@@ -308,6 +330,7 @@ local function AcquireSectionHeader(groupKey, focusedGroupKey)
             if self.chevron then
                 self.chevron:SetText("+")
             end
+            SetSectionHeaderLabel(self, true)
             -- Check if after this collapse, all categories will be collapsed
             local willAllBeCollapsed = false
             if addon.GetDB("growUp", false)

@@ -641,7 +641,7 @@ local function FullLayout()
                     if gi > 1 then
                         yOff = yOff - addon.GetSectionSpacing()
                     end
-                    local sec = addon.AcquireSectionHeader(grp.key, focusedGroupKey)
+                    local sec = addon.AcquireSectionHeader(grp.key, focusedGroupKey, #grp.quests)
                     if sec then
                         sec:ClearAllPoints()
                         local x = addon.GetScaledPadding()
@@ -1277,7 +1277,7 @@ local function FullLayout()
                     yOff = yOff - sectionGap
                 end
             end
-            local sec = addon.AcquireSectionHeader(grp.key, focusedGroupKey)
+            local sec = addon.AcquireSectionHeader(grp.key, focusedGroupKey, #grp.quests)
             if sec then
                 sec:ClearAllPoints()
                 local x = addon.GetScaledPadding()
