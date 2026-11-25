@@ -83,6 +83,29 @@ for _, fold in ipairs(W.FOLDS) do
     Y.DB_KEYS["lootRollWindowCollapsed_" .. fold.key] = true
 end
 Y.DB_KEYS.lootRollWindowLinger = true
+Y.DB_KEYS.lootRollWindowWidth  = true
+Y.DB_KEYS.lootRollWindowHeight = true
+Y.DB_KEYS.lootRollWindowScale  = true
+
+local function Clamped(key, fallback)
+    local D = addon.AUGMENT_DEFAULTS
+    local lim = addon.AUGMENT_LIMITS and addon.AUGMENT_LIMITS[key]
+    local v = tonumber(R.GetDB(key, D and D[key])) or fallback
+    if lim then v = math.max(lim.min, math.min(lim.max, v)) end
+    return v
+end
+
+--- Window width, set by dragging the corner grip.
+--- @return number
+function W.GetWidth() return Clamped("lootRollWindowWidth", 260) end
+
+--- Tallest the window grows before it scrolls, set by the corner grip.
+--- @return number
+function W.GetMaxHeight() return Clamped("lootRollWindowHeight", 480) end
+
+--- The window's own scale, independent of the roll frames' scale.
+--- @return number
+function W.GetScale() return Clamped("lootRollWindowScale", 1.0) end
 
 -- A finished roll whose winner never reaches loot history should not hold the
 -- window open forever: after this long it counts as settled anyway.
@@ -366,8 +389,10 @@ end
 -- Everything below needs the WoW UI; the test harness never reaches it.
 -- ============================================================================
 
-local WIDTH        = 260
-local MAX_HEIGHT   = 480
+-- Width and max height are the player's (W.GetWidth / W.GetMaxHeight); these
+-- are the floor the corner grip can shrink to.
+local MIN_WIDTH    = 220
+local MIN_HEIGHT   = 120
 local TITLE_HEIGHT = 22
 local PAD          = 6    -- window edge to cards
 local CARD_PAD     = 6    -- card edge to its contents
@@ -381,6 +406,7 @@ local DEFAULT_POINT, DEFAULT_REL, DEFAULT_X, DEFAULT_Y = "TOPLEFT", "CENTER", 26
 
 local window, scroll, content, font, smallFont, titleFont, emptyText
 local cardPool = {}
+local sizing = false   -- corner grip held: Refresh leaves the size alone
 local manuallyOpen = false   -- /h roll list, or the options button
 local dismissed    = false   -- closed with [x] until the next new roll
 local entries      = {}      -- open and finished rolls, see W.SyncEntries
@@ -425,8 +451,11 @@ function W.ResetPosition()
         addon.SetDB("lootRollWindowRelPoint", nil)
         addon.SetDB("lootRollWindowX", nil)
         addon.SetDB("lootRollWindowY", nil)
+        addon.SetDB("lootRollWindowWidth", nil)
+        addon.SetDB("lootRollWindowHeight", nil)
     end
     RestorePosition()
+    W.Refresh()
 end
 
 local function Backdrop(f, bg, border)
@@ -549,7 +578,7 @@ local function CreateCard()
     line:SetPoint("TOPLEFT", name, "BOTTOMLEFT", 0, -3)
     -- A fixed width, so GetStringHeight is right on the first draw, before
     -- the card has been laid out.
-    line:SetWidth(WIDTH - 2 * PAD - 2 * CARD_PAD - ICON - 6)
+    line:SetWidth(W.GetWidth() - 2 * PAD - 2 * CARD_PAD - ICON - 6)
     c.line = line
 
     c.rows = {}
@@ -622,6 +651,8 @@ local function DrawCard(c, card)
     else
         c.status:SetTextColor(0.6, 0.6, 0.6, 1)
     end
+    -- Re-set every draw: the width follows the corner grip.
+    c.line:SetWidth(W.GetWidth() - 2 * PAD - 2 * CARD_PAD - ICON - 6)
     c.line:SetText(card.line or "")
     local tc = TONE_COLORS[card.tone] or TONE_COLORS.info
     c.line:SetTextColor(tc[1], tc[2], tc[3], 1)
@@ -655,7 +686,7 @@ local function Build()
     UpdateFonts()
 
     window = CreateFrame("Frame", "HorizonSuiteRollWindow", UIParent, "BackdropTemplate")
-    window:SetSize(WIDTH, 120)
+    window:SetSize(W.GetWidth(), 120)
     window:SetFrameStrata("MEDIUM")
     window:SetClampedToScreen(true)
     window:SetMovable(true)
@@ -703,7 +734,43 @@ local function Build()
         W.Tick()
     end)
 
-    -- Grows to fit up to MAX_HEIGHT, then scrolls with the mouse wheel.
+    -- Corner grip: drag to set the width and the tallest the window may grow.
+    -- Height otherwise follows the content, so what is saved is the cap.
+    window:SetResizable(true)
+    if window.SetResizeBounds then
+        window:SetResizeBounds(MIN_WIDTH, MIN_HEIGHT, 480, 900)
+    elseif window.SetMinResize then
+        window:SetMinResize(MIN_WIDTH, MIN_HEIGHT)
+        if window.SetMaxResize then window:SetMaxResize(480, 900) end
+    end
+    local grip = CreateFrame("Button", nil, window)
+    grip:SetSize(14, 14)
+    grip:SetPoint("BOTTOMRIGHT", window, "BOTTOMRIGHT", -1, 1)
+    grip:SetFrameLevel(window:GetFrameLevel() + 10)
+    grip:SetNormalTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Up")
+    grip:SetHighlightTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Highlight")
+    grip:SetPushedTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Down")
+    grip:SetScript("OnMouseDown", function(_, button)
+        if button ~= "LeftButton" then return end
+        sizing = true
+        window:StartSizing("BOTTOMRIGHT")
+    end)
+    grip:SetScript("OnMouseUp", function()
+        if not sizing then return end
+        window:StopMovingOrSizing()
+        sizing = false
+        if addon.SetDB then
+            addon.SetDB("lootRollWindowWidth", math.floor(window:GetWidth() + 0.5))
+            addon.SetDB("lootRollWindowHeight", math.floor(window:GetHeight() + 0.5))
+        end
+        SavePosition()
+        W.Refresh()
+    end)
+    window:SetScript("OnSizeChanged", function(self, w)
+        if content then content:SetWidth(math.max(1, (w or self:GetWidth()) - 2 * PAD)) end
+    end)
+
+    -- Grows to fit up to the saved height, then scrolls with the mouse wheel.
     scroll = CreateFrame("ScrollFrame", nil, window)
     scroll:SetPoint("TOPLEFT", window, "TOPLEFT", PAD, -(TITLE_HEIGHT + 2))
     scroll:SetPoint("BOTTOMRIGHT", window, "BOTTOMRIGHT", -PAD, PAD)
@@ -715,7 +782,7 @@ local function Build()
     end)
 
     content = CreateFrame("Frame", nil, scroll)
-    content:SetSize(WIDTH - 2 * PAD, 1)
+    content:SetSize(W.GetWidth() - 2 * PAD, 1)
     scroll:SetScrollChild(content)
 
     emptyText = content:CreateFontString(nil, "OVERLAY")
@@ -819,11 +886,15 @@ function W.Refresh()
     if #cards == 0 then y = RowHeight() + 8 else y = y - CARD_GAP end
 
     content:SetHeight(math.max(1, y))
-    window:SetHeight(math.min(MAX_HEIGHT, TITLE_HEIGHT + 2 + y + PAD))
+    if not sizing then
+        window:SetWidth(W.GetWidth())
+        content:SetWidth(W.GetWidth() - 2 * PAD)
+        window:SetHeight(math.max(MIN_HEIGHT, math.min(W.GetMaxHeight(), TITLE_HEIGHT + 2 + y + PAD)))
+    end
     local max = scroll:GetVerticalScrollRange() or 0
     if (scroll:GetVerticalScroll() or 0) > max then scroll:SetVerticalScroll(max) end
 
-    window:SetScale(R.GetScale())
+    window:SetScale(W.GetScale())
     window:SetAlpha(R.GetOpacity())
     window:Show()
 end
@@ -856,6 +927,15 @@ function W.Toggle()
         window:Hide()
         return
     end
+    manuallyOpen = true
+    dismissed = false
+    W.Refresh()
+end
+
+--- Open the window regardless of the option, as /h roll list does. Used by
+--- the played demo so the result view is always on screen for it.
+--- @return nil
+function W.Open()
     manuallyOpen = true
     dismissed = false
     W.Refresh()

@@ -17,6 +17,13 @@ local function HandleRollSlash(msg)
     local cmd = strtrim(msg or ""):lower()
 
     if cmd == "demo" then
+        R.Demo.Play()
+        return
+    end
+
+    if cmd == "demo hold" then
+        -- The old static demo: rolls sit for 60s with everyone chosen, for
+        -- checking layout and hovering at leisure.
         R.Demo.Run()
         return
     end
@@ -83,7 +90,8 @@ local function HandleRollSlash(msg)
     if cmd == "" or cmd == "help" then
         HSPrint("Loot roll commands:")
         HSPrint("  /h roll          - Show this help")
-        HSPrint("  /h roll demo     - Show fabricated rolls (works solo, buttons inert)")
+        HSPrint("  /h roll demo     - Play a demo roll through to its result (works solo)")
+        HSPrint("  /h roll demo hold - Show demo rolls that sit for 60s, for checking layout")
         HSPrint("  /h roll demo end - End the demo rolls now and show their results")
         HSPrint("  /h roll clear    - Clear every roll frame on screen")
         HSPrint("  /h roll edit     - Toggle edit mode to reposition the stack")

@@ -86,7 +86,7 @@ local category = {
           name = L["LOOT_ROLL_DEMO"], desc = L["LOOT_ROLL_DEMO_DESC"],
           onClick = function()
               local R = addon.Augment and addon.Augment.Roll
-              if R and R.Demo then R.Demo.Run() end
+              if R and R.Demo then R.Demo.Play() end
           end,
         },
         { type = "button",
@@ -156,6 +156,14 @@ local category = {
           min = LIM.lootRollWindowLinger.min, max = LIM.lootRollWindowLinger.max, step = 1,
           get = function() return clamp(tonumber(getDB("lootRollWindowLinger", D.lootRollWindowLinger)) or D.lootRollWindowLinger, "lootRollWindowLinger") end,
           set = function(v) setDB("lootRollWindowLinger", clamp(v, "lootRollWindowLinger")); applyRoll() end,
+        },
+        { type = "slider",
+          name = L["LOOT_ROLL_WINDOW_SCALE"], desc = L["LOOT_ROLL_WINDOW_SCALE_DESC"],
+          dbKey = "lootRollWindowScale",
+          requires = "lootHistory",
+          min = LIM.lootRollWindowScale.min, max = LIM.lootRollWindowScale.max, step = 0.05,
+          get = function() return clamp(tonumber(getDB("lootRollWindowScale", D.lootRollWindowScale)) or D.lootRollWindowScale, "lootRollWindowScale") end,
+          set = function(v) setDB("lootRollWindowScale", clamp(v, "lootRollWindowScale")); applyRoll() end,
         },
         { type = "dropdown",
           name = L["LOOT_ROLL_MIN_QUALITY"], desc = L["LOOT_ROLL_MIN_QUALITY_DESC"],

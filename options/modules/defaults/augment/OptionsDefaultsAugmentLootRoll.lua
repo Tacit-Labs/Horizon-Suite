@@ -61,6 +61,11 @@ D.lootRollShowBadgeBind        = true
 D.lootRollShowWindow           = false
 -- Seconds the roll list window stays after the last result, then it fades.
 D.lootRollWindowLinger         = 8
+-- Roll list window size: width and max height come from its corner grip;
+-- scale is its own, so it can be sized apart from the roll frames.
+D.lootRollWindowWidth          = 260
+D.lootRollWindowHeight         = 480
+D.lootRollWindowScale          = 1.0
 
 D.lootRollEditModeShow         = true
 D.lootRollDebugLive            = false
@@ -78,3 +83,6 @@ LIM.lootRollMaxVisible  = { min = 1,   max = 4   }
 LIM.lootRollWidth       = { min = 280, max = 640 }
 LIM.lootRollMinQuality  = { min = 0,   max = 5   }
 LIM.lootRollWindowLinger = { min = 3,  max = 30  }
+LIM.lootRollWindowWidth  = { min = 220, max = 480 }
+LIM.lootRollWindowHeight = { min = 120, max = 900 }
+LIM.lootRollWindowScale  = { min = 0.5, max = 2.0 }

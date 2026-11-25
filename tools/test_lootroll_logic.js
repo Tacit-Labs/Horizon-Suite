@@ -816,6 +816,44 @@ run(`
   check("linger clamped", RW.GetLinger() == 30, RW.GetLinger())
   HorizonSuite.db.lootRollWindowLinger = nil
 
+  -- Window size: grip-set width/height and its own scale, clamped
+  HorizonSuite.AUGMENT_LIMITS.lootRollWindowWidth = { min = 220, max = 480 }
+  HorizonSuite.AUGMENT_LIMITS.lootRollWindowScale = { min = 0.5, max = 2.0 }
+  check("window width default", RW.GetWidth() == 260, RW.GetWidth())
+  HorizonSuite.db.lootRollWindowWidth = 9999
+  check("window width clamped", RW.GetWidth() == 480, RW.GetWidth())
+  HorizonSuite.db.lootRollWindowWidth = nil
+  HorizonSuite.db.lootRollScale = 1.5
+  check("window scale independent of roll scale", RW.GetScale() == 1.0, RW.GetScale())
+  HorizonSuite.db.lootRollScale = nil
+
+  -- Played demo: rolls open with nobody chosen, choices arrive in steps,
+  -- then the rolls close (Demo.Clear) and the window shows the results.
+  local shown, timers, opened, cleared = {}, {}, false, 0
+  R.ShowRoll = function(roll) shown[#shown + 1] = roll; return true end
+  R.FindRow = function() return nil end
+  R.Window.Open = function() opened = true end
+  C_Timer = { After = function(t, fn) timers[#timers + 1] = { t = t, fn = fn } end }
+  local realClear = R.Demo.Clear
+  R.Demo.Clear = function() cleared = cleared + 1 end
+  R.Demo.Play()
+  check("play: opens the roll list", opened)
+  check("play: short roll timer", shown[1] and shown[1].rollTime == 9000, shown[1] and shown[1].rollTime)
+  local t1 = shown[1] and shown[1].demoTally
+  check("play: nobody has chosen at the start",
+        t1 and t1.counts.need == 0 and t1.counts.waiting == 4, t1 and t1.counts.waiting)
+  local gold = shown[4] and shown[4].demoTally
+  check("play: Gold Bar not all-passed until everyone passes", gold and not gold.allPassed)
+  check("play: result built for every roll", shown[1].demoResult and shown[1].demoResult.winnerName == "Sarah")
+  local last = timers[#timers]
+  check("play: steps then an end", #timers >= 3 and last.t > timers[#timers - 1].t, #timers)
+  last.fn()
+  check("play: end closes the rolls", cleared == 1, cleared)
+  R.Demo.Play()
+  for _, tm in ipairs(timers) do if tm == last then tm.fn() end end
+  check("play: an old run's timer does nothing after a replay", cleared == 1, cleared)
+  R.Demo.Clear = realClear
+
   print(("\\n%d passed, %d failed"):format(pass, fail))
   if fail > 0 then error("assertions failed") end
 `, 'assertions');
