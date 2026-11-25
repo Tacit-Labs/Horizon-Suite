@@ -1047,6 +1047,7 @@ function Insight.Init()
             TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Item, OnItemTooltip)
         end
     end
+    Insight.HookMinimapTooltipSpacing()
 
     -- Defer LSM registration so IsAddOnLoaded is available (runs when API is ready)
     if C_Timer and C_Timer.After and addon.RegisterRondoClassIconsWithLSM then

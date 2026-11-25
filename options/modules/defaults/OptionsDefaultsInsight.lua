@@ -86,6 +86,8 @@ addon.INSIGHT_KEYS = {
     insightItemQualityBorder     = true,
     insightItemNameGradient      = true,
     insightItemSectionSpacing    = true,
+    -- Minimap tooltip
+    insightMinimapSectionSpacing = true,
     insightItemHeaderSize        = true,
     insightItemBodySize          = true,
     insightItemTransmogSize      = true,
@@ -186,6 +188,8 @@ addon.INSIGHT_DEFAULTS = {
     insightItemQualityBorder     = true,
     insightItemNameGradient      = false,
     insightItemSectionSpacing    = false,
+    -- Minimap
+    insightMinimapSectionSpacing = false,
     insightItemHeaderSize        = 14,
     insightItemBodySize          = 12,
     insightItemTransmogSize      = 11,

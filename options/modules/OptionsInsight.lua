@@ -77,6 +77,7 @@ local categories = {
             Toggle(L["INSIGHT_HIDE_IN_COMBAT"], L["INSIGHT_HIDE_IN_COMBAT_DESC"], "insightHideTooltipsInCombat", D.insightHideTooltipsInCombat),
             Section(L["AXIS_SEPARATION"], { page = "look", card = "icons" }),
             { type = "dropdown", name = L["AXIS_SEPARATION"], desc = L["AXIS_SEPARATION_DESC"], dbKey = "insightSeparatorMode", options = { { L["AXIS_SEPARATION_DIVIDERS"], "divider" }, { L["AXIS_SEPARATION_BLANK"], "blank" }, { L["AXIS_SEPARATION_NONE"], "none" } }, preserveOrder = true, get = function() local v = getDB("insightSeparatorMode", nil); if v == "divider" or v == "blank" or v == "none" then return v end; return getDB("insightBlankSeparator", D.insightBlankSeparator) and "blank" or "divider" end, set = function(v) v = (v == "blank") and "blank" or (v == "none") and "none" or "divider"; setDB("insightSeparatorMode", v) end, tooltip = L["AXIS_SEPARATION_TOOLTIP"] },
+            Toggle(L["INSIGHT_MINIMAP_SECTION_SPACING"], L["INSIGHT_MINIMAP_SECTION_SPACING_DESC"], "insightMinimapSectionSpacing", D.insightMinimapSectionSpacing, { isNew = "6.17.0", tooltip = L["INSIGHT_MINIMAP_SECTION_SPACING_TOOLTIP"] }),
         },
     },
     {
