@@ -649,6 +649,74 @@ function R.ShowRoll(roll)
     return true
 end
 
+--- The history drop behind a row.
+--- A row keeps the drop key once it has one (row.dropKey): the link join only
+--- sees unfinished drops, and the roll list window still wants the result
+--- after the roll ends. Rows for the same item link are resolved together, so
+--- two copies of one item can be told apart (T.PairCopies), and the pairing
+--- is checked against which copy you pressed (T.FindMisPair).
+--- @param row table
+--- @return table|nil dropInfo
+function R.ResolveRowDrop(row)
+    local T = R.Tally
+    if not (row and row.itemLink and T) then return nil end
+
+    local group, taken = {}, {}
+    for i = 1, R.POOL_SIZE do
+        local r = pool[i]
+        if r.active and not r.demo then
+            if r.itemLink == row.itemLink then group[#group + 1] = r end
+            if r.dropKey then
+                local k = T.KeyString(r.dropKey.encounterID, r.dropKey.lootListID)
+                if k then taken[k] = true end
+            end
+        end
+    end
+    if #group == 0 then group[1] = row end
+
+    local unkeyed = {}
+    for _, r in ipairs(group) do
+        if not r.dropKey then unkeyed[#unkeyed + 1] = { rollID = r.rollID, startedAt = r.startedAt, row = r } end
+    end
+    if #unkeyed > 0 then
+        local free = {}
+        for _, c in ipairs(T.Candidates(row.itemLink)) do
+            if not taken[T.KeyString(c.encounterID, c.key) or ""] then free[#free + 1] = c end
+        end
+        local pairs_ = T.PairCopies(unkeyed, free)
+        for _, u in ipairs(unkeyed) do
+            local c = pairs_[u.rollID]
+            if c then u.row.dropKey = { encounterID = c.encounterID, lootListID = c.key } end
+        end
+    end
+
+    local drops = {}
+    for i, r in ipairs(group) do
+        drops[i] = r.dropKey and T.FindDrop(r.dropKey.encounterID, r.dropKey.lootListID) or nil
+    end
+
+    if #group > 1 then
+        local entries = {}
+        for i, r in ipairs(group) do
+            entries[i] = { pressed = r.rolledAs ~= nil, selfBucket = T.SelfBucket(drops[i]) }
+        end
+        local a, b = T.FindMisPair(entries)
+        if a and b then
+            if addon.Log and addon.Log.debug then
+                addon.Log.debug("augmentLootRoll", ("roll %s and %s were paired the wrong way round; swapping")
+                    :format(tostring(group[a].rollID), tostring(group[b].rollID)))
+            end
+            group[a].dropKey, group[b].dropKey = group[b].dropKey, group[a].dropKey
+            drops[a], drops[b] = drops[b], drops[a]
+        end
+    end
+
+    for i, r in ipairs(group) do
+        if r == row then return drops[i] end
+    end
+    return nil
+end
+
 --- Rebuild the badges and tally lines for a row.
 --- @param row table
 --- @param roll table|nil  Descriptor; falls back to what the row already holds
@@ -667,14 +735,7 @@ function R.RefreshRowInfoLine(row, roll)
         if row.demo then
             summary = row.demoTally
         else
-            local drop, encounterID = R.Tally.ResolveDrop(row.itemLink)
-            summary = R.Tally.Summarise(drop)
-            -- Remember exactly which drop this is. Once the roll ends, the
-            -- link join stops matching it (it only looks at unfinished
-            -- drops), and the roll list window still wants its result.
-            if drop and encounterID and drop.lootListID then
-                row.dropKey = { encounterID = encounterID, lootListID = drop.lootListID }
-            end
+            summary = R.Tally.Summarise(R.ResolveRowDrop(row))
         end
         tally = R.Tally.FormatLine(summary)
     end
@@ -804,6 +865,8 @@ function R.GetActiveRolls()
                 rollID    = row.rollID,
                 name      = row.roll and row.roll.name or "",
                 quality   = row.quality,
+                icon      = row.roll and row.roll.texture,
+                itemLink  = row.itemLink,
                 summary   = row.summary,
                 dropKey   = row.dropKey,
                 demoResult = row.roll and row.roll.demoResult,

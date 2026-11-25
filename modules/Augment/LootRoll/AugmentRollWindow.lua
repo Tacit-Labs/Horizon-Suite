@@ -1,7 +1,7 @@
 --[[
     Horizon Suite - Augment / Loot Roll - Roll List Window
-    A small movable window listing who chose Need, Greed and the rest on every
-    open roll, with each choice's list collapsible from its header.
+    A small movable window with one card per open roll: who chose what, and
+    once the roll ends, who won it.
 
     The button and tally-line tooltips answer "who needed this?" for one roll
     at a time, and only while the mouse is on it. In a raid with several rolls
@@ -9,36 +9,34 @@
     (feature request, "Check N&G rolls player"). This is that.
 
     Data comes from the roll rows (R.GetActiveRolls), which already hold each
-    roll's loot-history summary. The window keeps no copy of its own, so it can
-    never show a roll the frames have released, and it inherits the tally's
-    fail-closed join: a roll whose history cannot be matched shows no names.
+    roll's loot-history summary. A roll whose history cannot be matched shows
+    no names (the tally's fail-closed join).
 
-    Layout:
+    Each card reads like a standings table, not a set of lists:
 
-        Loot rolls                                   [x]
-        Thunderfury, Blessed Blade of the Windseeker
-          [-] Need (2)
-                Sarah                                91
-                Mikhail                              47
-          [-] Greed (1)
-                Ines
-          [+] Pass (1)
+        [icon] Thunderfury, Blessed Blade              Result
+               Sarah won with Need 91. You rolled 47.
+          [N]  Sarah                       ======== 91
+          [N]  Mikhail (you)               ====     47
+          [G]  Ines                        ======   63
+          [+]  Passed (14)
 
-    Collapse state is per choice, not per roll, and saved: collapsing Pass once
-    collapses it on every roll from then on.
+    Winner first, then Need above Transmog above Greed, then the highest roll.
+    Pass and the undecided fold into one line each (click to open): in a raid
+    they are the long, least interesting part. Fold state is saved per kind,
+    not per roll.
 
-    WHEN A ROLL ENDS its block flips to the result: who won and with what, then
-    every choice with the numbers rolled. The roll frame itself closes the
-    moment the roll ends, so this is the only place the outcome stays on screen.
-    Results are kept until the window is closed or the next roll starts. A
-    boss's drops roll together, so "next roll" means "next boss".
+    WHEN A ROLL ENDS its card flips to the result. The roll frame itself closes
+    the moment the roll ends, so this is the only place the outcome stays on
+    screen. Results are kept until the window is closed or the next roll
+    starts. A boss's drops roll together, so "next roll" means "next boss".
 
     The roll rows forget a roll when it ends, so the window keeps its own list
     of entries. While a roll is open its entry mirrors the row; once the row is
     gone the entry looks its drop up again by the key the row recorded
-    (encounterID + lootListID), which names one drop exactly.
+    (encounterID + drop key), which names one drop exactly.
 
-    BuildModel is pure (no frames) so the test harness can check it.
+    BuildCards is pure (no frames) so the test harness can check it.
 ]]
 
 local addon = _G.HorizonSuite
@@ -60,26 +58,26 @@ Y.DB_KEYS.lootRollWindowRelPoint  = true
 Y.DB_KEYS.lootRollWindowX         = true
 Y.DB_KEYS.lootRollWindowY         = true
 
--- Sections in display order. `buckets` are Tally buckets merged into one list:
--- off-spec Need came from the Need button, so it belongs under Need.
--- Need and Greed always show, even empty — "nobody needed" is an answer. The
--- rest show only when someone is in them. Pass and the undecided start
--- collapsed: they are the long, least interesting lists in a raid.
-W.SECTIONS = {
-    { key = "need",     buckets = { "need", "needOff" }, label = "LOOT_ROLL_TALLY_NEED",
-      color = { 0.25, 0.75, 0.25 } },
-    { key = "greed",    buckets = { "greed" },           label = "LOOT_ROLL_TALLY_GREED",
-      color = { 0.90, 0.80, 0.32 } },
-    { key = "transmog", buckets = { "transmog" },        label = "LOOT_ROLL_TALLY_TRANSMOG",
-      color = { 1.00, 0.50, 1.00 }, hideEmpty = true },
-    { key = "pass",     buckets = { "pass" },            label = "LOOT_ROLL_TALLY_PASS",
-      color = { 0.60, 0.60, 0.60 }, hideEmpty = true, collapsedByDefault = true },
-    { key = "waiting",  buckets = { "waiting" },         label = "LOOT_ROLL_WINDOW_WAITING",
-      color = { 0.60, 0.60, 0.60 }, hideEmpty = true, collapsedByDefault = true },
+-- What each choice looks like on a card. `rank` orders the standings (higher
+-- first); `rollType` picks the roll button's icon for the row.
+W.PICKS = {
+    need     = { rank = 5, rollType = R.ROLL_NEED,     label = "LOOT_ROLL_TALLY_NEED",     color = { 0.25, 0.75, 0.25 } },
+    needOff  = { rank = 4, rollType = R.ROLL_NEED,     label = "LOOT_ROLL_TALLY_NEED_OFF", color = { 0.56, 0.82, 0.56 } },
+    transmog = { rank = 3, rollType = R.ROLL_TRANSMOG, label = "LOOT_ROLL_TALLY_TRANSMOG", color = { 1.00, 0.50, 1.00 } },
+    greed    = { rank = 2, rollType = R.ROLL_GREED,    label = "LOOT_ROLL_TALLY_GREED",    color = { 0.90, 0.80, 0.32 } },
+    pass     = { rank = 0, rollType = R.ROLL_PASS,     label = "LOOT_ROLL_TALLY_PASS",     color = { 0.60, 0.60, 0.60 } },
+}
+-- Choices that make up the standings, in rank order.
+W.STANDING_BUCKETS = { "need", "needOff", "transmog", "greed" }
+
+-- Folded lines under the standings. Both start collapsed.
+W.FOLDS = {
+    { key = "pass",    label = "LOOT_ROLL_WINDOW_PASSED",         fallback = "Passed (%d)" },
+    { key = "waiting", label = "LOOT_ROLL_WINDOW_STILL_CHOOSING", fallback = "Still choosing (%d)", openOnly = true },
 }
 
-for _, sec in ipairs(W.SECTIONS) do
-    Y.DB_KEYS["lootRollWindowCollapsed_" .. sec.key] = true
+for _, fold in ipairs(W.FOLDS) do
+    Y.DB_KEYS["lootRollWindowCollapsed_" .. fold.key] = true
 end
 
 local function Text(key, fallback)
@@ -93,19 +91,15 @@ function W.IsEnabled()
     return R.GetDB("lootRollShowWindow", D and D.lootRollShowWindow) == true
 end
 
---- @param key string  Section key
+--- @param key string  Fold key ("pass" or "waiting")
 --- @return boolean
 function W.IsCollapsed(key)
-    local default = false
-    for _, sec in ipairs(W.SECTIONS) do
-        if sec.key == key then default = sec.collapsedByDefault and true or false end
-    end
     local v = R.GetDB("lootRollWindowCollapsed_" .. key, nil)
-    if v == nil then return default end
+    if v == nil then return true end
     return v and true or false
 end
 
---- @param key string  Section key
+--- @param key string  Fold key
 --- @return nil
 function W.ToggleCollapsed(key)
     if addon.SetDB then addon.SetDB("lootRollWindowCollapsed_" .. key, not W.IsCollapsed(key)) end
@@ -113,7 +107,7 @@ function W.ToggleCollapsed(key)
 end
 
 -- ============================================================================
--- MODEL
+-- ENTRIES
 -- ============================================================================
 
 --- Merge the open rolls into the window's entries.
@@ -132,6 +126,7 @@ function W.SyncEntries(list, rolls, resolve)
         local r = open[e.rollID]
         if r then
             e.name, e.quality, e.summary = r.name, r.quality, r.summary
+            e.icon, e.itemLink = r.icon or e.icon, r.itemLink or e.itemLink
             e.dropKey = r.dropKey or e.dropKey
             e.demoResult = r.demoResult
             e.finished = false
@@ -146,6 +141,7 @@ function W.SyncEntries(list, rolls, resolve)
         if r.rollID ~= nil and open[r.rollID] then
             list[#list + 1] = {
                 rollID = r.rollID, name = r.name, quality = r.quality,
+                icon = r.icon, itemLink = r.itemLink,
                 summary = r.summary, dropKey = r.dropKey, demoResult = r.demoResult,
                 finished = false,
             }
@@ -164,73 +160,168 @@ function W.DropFinished(list)
     return list
 end
 
--- Choice sections, under an open roll or a finished one's result.
-local function AddSections(lines, summary, isCollapsed, finished)
-    local T = R.Tally
-    for _, sec in ipairs(W.SECTIONS) do
-        local list = T.PlayersIn(summary, sec.buckets)
-        -- Nobody is still choosing once a roll is over.
-        local skip = finished and sec.key == "waiting"
-        if not skip and (#list > 0 or not sec.hideEmpty) then
-            local collapsed = isCollapsed and isCollapsed(sec.key) or false
-            lines[#lines + 1] = {
-                kind = "header", section = sec.key, count = #list,
-                text = Text(sec.label, sec.key), color = sec.color,
-                collapsed = collapsed,
-            }
-            if not collapsed then
-                if #list == 0 then
-                    local text = finished and Text("LOOT_ROLL_WINDOW_NOBODY", "Nobody")
-                                          or  Text("LOOT_ROLL_WHO_NOBODY", "Nobody yet")
-                    lines[#lines + 1] = { kind = "note", text = text, indent = true }
-                end
-                for _, p in ipairs(list) do
-                    lines[#lines + 1] = { kind = "player", player = p }
-                end
-            end
+-- ============================================================================
+-- MODEL
+-- ============================================================================
+
+--- Everyone who chose Need, Transmog or Greed, best first: the winner, then
+--- by choice (Need beats off-spec Need beats Transmog beats Greed), then the
+--- highest roll, then the name.
+--- @param summary table|nil  From R.Tally.Summarise
+--- @return table list  Array of { player, bucket }
+function W.Standings(summary)
+    local out = {}
+    if not (summary and summary.players) then return out end
+    local winnerName = summary.winnerName
+    for _, bucket in ipairs(W.STANDING_BUCKETS) do
+        for _, p in ipairs(summary.players[bucket] or {}) do
+            local won = p.isWinner or (winnerName ~= nil and winnerName ~= "" and p.name == winnerName)
+            out[#out + 1] = { player = p, bucket = bucket, winner = won and true or false }
         end
     end
+    table.sort(out, function(a, b)
+        if a.winner ~= b.winner then return a.winner end
+        local ra, rb = W.PICKS[a.bucket].rank, W.PICKS[b.bucket].rank
+        if ra ~= rb then return ra > rb end
+        local na, nb = a.player.roll or -1, b.player.roll or -1
+        if na ~= nb then return na > nb end
+        return (a.player.name or "") < (b.player.name or "")
+    end)
+    return out
 end
 
---- Flatten the entries into the lines the window draws.
---- @param list table  From W.SyncEntries (open rolls work too: no `finished`)
---- @param isCollapsed function(key) -> boolean
---- @return table lines  Array of { kind = "item"|"winner"|"header"|"player"|"note", ... }
-function W.BuildModel(list, isCollapsed)
-    local lines = {}
-    for _, e in ipairs(list or {}) do
-        local finished = e.finished and true or false
-        lines[#lines + 1] = {
-            kind = "item", text = e.name or "", quality = e.quality, finished = finished,
-            status = finished and Text("LOOT_ROLL_WINDOW_RESULT", "Result")
-                              or  Text("LOOT_ROLL_WINDOW_ROLLING", "Rolling"),
-        }
-        local summary = e.summary
-        if summary and summary.allPassed then
-            lines[#lines + 1] = { kind = "note", text = Text("LOOT_ROLL_TALLY_ALL_PASSED", "Everyone passed") }
-        elseif finished then
-            if summary and summary.winnerName then
-                lines[#lines + 1] = { kind = "winner", player = {
-                    name = summary.winnerName, class = summary.winnerClass, roll = summary.winnerRoll } }
-                if summary.players then AddSections(lines, summary, isCollapsed, true) end
-            elseif e.dropKey or e.demoResult then
-                -- History records the winner a moment after the roll closes.
-                lines[#lines + 1] = { kind = "note", text = Text("LOOT_ROLL_WINDOW_PENDING", "Waiting for the result...") }
-            else
-                lines[#lines + 1] = { kind = "note", text = Text("LOOT_ROLL_WINDOW_NO_RESULT", "Result unavailable") }
-            end
-        elseif not (summary and summary.players) then
-            -- No history match (or the tally is off): say so rather than
-            -- drawing empty Need/Greed headers that look like "nobody rolled".
-            lines[#lines + 1] = { kind = "note", text = Text("LOOT_ROLL_WINDOW_NO_DATA", "No roll data yet") }
-        else
-            AddSections(lines, summary, isCollapsed, false)
+local function ColoredName(p)
+    local r, g, b = R.Tally.ClassColor(p.class)
+    local name = (p.name and p.name ~= "") and p.name or "?"
+    return ("|cFF%02X%02X%02X%s|r"):format(
+        math.floor(r * 255 + 0.5), math.floor(g * 255 + 0.5), math.floor(b * 255 + 0.5), name)
+end
+
+local function FindSelf(summary)
+    for bucket, list in pairs(summary.players or {}) do
+        for _, p in ipairs(list) do
+            if p.isSelf then return p, bucket end
         end
     end
-    if #lines == 0 then
-        lines[1] = { kind = "note", text = Text("LOOT_ROLL_WINDOW_EMPTY", "No rolls in progress") }
+    return nil
+end
+
+--- The one line under the item name: where the roll stands, or how it ended.
+--- @param e table  A window entry
+--- @return string text, string tone  tone is "result", "info" or "muted"
+function W.SummaryLine(e)
+    local summary, finished = e.summary, e.finished and true or false
+    if summary and summary.allPassed then
+        return Text("LOOT_ROLL_TALLY_ALL_PASSED", "Everyone passed"), "info"
     end
-    return lines
+
+    if finished then
+        if not (summary and summary.winnerName) then
+            if e.dropKey or e.demoResult then
+                -- History records the winner a moment after the roll closes.
+                return Text("LOOT_ROLL_WINDOW_PENDING", "Waiting for the result..."), "muted"
+            end
+            return Text("LOOT_ROLL_WINDOW_NO_RESULT", "Result unavailable"), "muted"
+        end
+        local winner, winnerBucket
+        for _, s in ipairs(W.Standings(summary)) do
+            if s.winner then winner, winnerBucket = s.player, s.bucket break end
+        end
+        winner = winner or { name = summary.winnerName, class = summary.winnerClass, roll = summary.winnerRoll }
+        local roll = winner.roll or summary.winnerRoll
+        local choice = winnerBucket and Text(W.PICKS[winnerBucket].label, winnerBucket)
+
+        if winner.isSelf then
+            if roll and choice then
+                return Text("LOOT_ROLL_WINDOW_YOU_WON", "You won with %s %d!"):format(choice, roll), "result"
+            end
+            return Text("LOOT_ROLL_WINDOW_YOU_WON_NO_ROLL", "You won!"), "result"
+        end
+
+        local text
+        if roll and choice then
+            text = Text("LOOT_ROLL_WINDOW_WON", "%s won with %s %d."):format(ColoredName(winner), choice, roll)
+        else
+            text = Text("LOOT_ROLL_WINDOW_WON_NO_ROLL", "%s won."):format(ColoredName(winner))
+        end
+        local me, myBucket = FindSelf(summary)
+        if me and myBucket == "pass" then
+            text = text .. " " .. Text("LOOT_ROLL_WINDOW_YOU_PASSED", "You passed.")
+        elseif me and me.roll then
+            text = text .. " " .. Text("LOOT_ROLL_WINDOW_YOU_ROLLED", "You rolled %d."):format(me.roll)
+        end
+        return text, "result"
+    end
+
+    if not (summary and summary.players) then
+        -- No history match (or the tally is off): say so rather than an empty
+        -- card that looks like "nobody rolled".
+        return Text("LOOT_ROLL_WINDOW_NO_DATA", "No roll data yet"), "muted"
+    end
+    if summary.isTied then
+        return Text("LOOT_ROLL_WINDOW_TIED", "Tied, rolling again"), "info"
+    end
+    local total, waiting = summary.total or 0, (summary.counts and summary.counts.waiting) or 0
+    if waiting > 0 then
+        return Text("LOOT_ROLL_WINDOW_CHOSEN", "%d of %d have chosen"):format(total - waiting, total), "info"
+    end
+    return Text("LOOT_ROLL_WINDOW_ALL_CHOSEN", "Everyone has chosen, rolling..."), "info"
+end
+
+--- One card for one entry.
+--- @param e table  A window entry
+--- @param isCollapsed function(key) -> boolean
+--- @return table card  { rollID, name, quality, icon, itemLink, finished, status, line, tone, rows }
+---         rows: { kind = "player", player, bucket, winner, dim } | { kind = "fold", fold, count, collapsed, text }
+function W.BuildCard(e, isCollapsed)
+    local finished = e.finished and true or false
+    local card = {
+        rollID = e.rollID, name = e.name or "", quality = e.quality,
+        icon = e.icon, itemLink = e.itemLink, finished = finished,
+        status = finished and Text("LOOT_ROLL_WINDOW_RESULT", "Result")
+                          or  Text("LOOT_ROLL_WINDOW_ROLLING", "Rolling"),
+        rows = {},
+    }
+    card.line, card.tone = W.SummaryLine(e)
+
+    local summary = e.summary
+    -- Names only once there is something to show: an open roll with data, or
+    -- a finished one whose winner is known. Everyone passing needs no list.
+    local hasNames = summary and summary.players and not summary.allPassed
+        and (not finished or summary.winnerName)
+    if not hasNames then return card end
+
+    for _, s in ipairs(W.Standings(summary)) do
+        card.rows[#card.rows + 1] = { kind = "player", player = s.player, bucket = s.bucket, winner = s.winner }
+    end
+    for _, fold in ipairs(W.FOLDS) do
+        if not (fold.openOnly and finished) then
+            local list = R.Tally.PlayersIn(summary, { fold.key })
+            if #list > 0 then
+                local collapsed = isCollapsed and isCollapsed(fold.key) or false
+                card.rows[#card.rows + 1] = {
+                    kind = "fold", fold = fold.key, count = #list, collapsed = collapsed,
+                    text = Text(fold.label, fold.fallback):format(#list),
+                }
+                if not collapsed then
+                    for _, p in ipairs(list) do
+                        card.rows[#card.rows + 1] = { kind = "player", player = p, bucket = fold.key, dim = true }
+                    end
+                end
+            end
+        end
+    end
+    return card
+end
+
+--- Every entry as a card, oldest roll first.
+--- @param list table  From W.SyncEntries
+--- @param isCollapsed function(key) -> boolean
+--- @return table cards
+function W.BuildCards(list, isCollapsed)
+    local cards = {}
+    for _, e in ipairs(list or {}) do cards[#cards + 1] = W.BuildCard(e, isCollapsed) end
+    return cards
 end
 
 -- ============================================================================
@@ -238,28 +329,33 @@ end
 -- Everything below needs the WoW UI; the test harness never reaches it.
 -- ============================================================================
 
-local WIDTH        = 230
-local MAX_HEIGHT   = 420
+local WIDTH        = 260
+local MAX_HEIGHT   = 480
 local TITLE_HEIGHT = 22
-local PAD          = 8
-local INDENT       = 14
+local PAD          = 6    -- window edge to cards
+local CARD_PAD     = 6    -- card edge to its contents
+local CARD_GAP     = 6
+local ICON         = 30
+local PICK_ICON    = 13
+local BAR_WIDTH    = 46
+local NUM_WIDTH    = 24
 
 local DEFAULT_POINT, DEFAULT_REL, DEFAULT_X, DEFAULT_Y = "TOPLEFT", "CENTER", 260, 220
 
-local window, scroll, content, font, titleFont
-local linePool = {}
+local window, scroll, content, font, smallFont, titleFont, emptyText
+local cardPool = {}
 local manuallyOpen = false   -- /h roll list, or the options button
 local dismissed    = false   -- closed with [x] until the next new roll
 local entries      = {}      -- open and finished rolls, see W.SyncEntries
 
-local function LineHeight()
-    return math.max(9, R.GetFontSize() - 1) + 5
-end
+local function FontSize() return math.max(9, R.GetFontSize() - 1) end
+local function RowHeight() return FontSize() + 7 end
 
 local function UpdateFonts()
     if not font then return end
-    local size = math.max(9, R.GetFontSize() - 1)
+    local size = FontSize()
     font:SetFont(R.GetFontPath(), size, R.GetFontFlags())
+    smallFont:SetFont(R.GetFontPath(), math.max(8, size - 2), R.GetFontFlags())
     titleFont:SetFont(R.GetFontPath(), size + 1, R.GetFontFlags())
 end
 
@@ -294,114 +390,228 @@ function W.ResetPosition()
     RestorePosition()
 end
 
-local function CreateLine()
-    local b = CreateFrame("Button", nil, content)
-    b:SetHeight(LineHeight())
+local function Backdrop(f, bg, border)
+    if not f.SetBackdrop then return end
+    f:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8x8", edgeFile = "Interface\\Buttons\\WHITE8x8", edgeSize = 1 })
+    f:SetBackdropColor(bg[1], bg[2], bg[3], bg[4])
+    f:SetBackdropBorderColor(border[1], border[2], border[3], border[4])
+end
 
-    local icon = b:CreateTexture(nil, "ARTWORK")
-    icon:SetSize(11, 11)
-    icon:SetPoint("LEFT", b, "LEFT", 0, 0)
-    icon:Hide()
-    b.icon = icon
+local function QualityColor(quality)
+    local colors = R.QUALITY_COLORS
+    return colors and (colors[tonumber(quality) or 1] or colors[1]) or { 1, 1, 1 }
+end
 
-    local left = b:CreateFontString(nil, "OVERLAY")
-    left:SetFontObject(font)
-    left:SetJustifyH("LEFT")
-    left:SetWordWrap(false)
-    b.left = left
+-- One row inside a card: a player, or a fold line.
+local function CreateRow(card)
+    local b = CreateFrame("Button", nil, card)
 
-    local right = b:CreateFontString(nil, "OVERLAY")
-    right:SetFontObject(font)
-    right:SetJustifyH("RIGHT")
-    right:SetPoint("RIGHT", b, "RIGHT", 0, 0)
-    right:SetTextColor(0.8, 0.8, 0.8, 1)
-    b.right = right
+    local wash = b:CreateTexture(nil, "BACKGROUND")
+    wash:SetAllPoints(b)
+    wash:SetColorTexture(1, 0.82, 0, 0.12)
+    wash:Hide()
+    b.wash = wash
 
     local hl = b:CreateTexture(nil, "HIGHLIGHT")
     hl:SetAllPoints(b)
     hl:SetColorTexture(1, 1, 1, 0.06)
     b.hl = hl
 
+    local pick = b:CreateTexture(nil, "ARTWORK")
+    pick:SetSize(PICK_ICON, PICK_ICON)
+    pick:SetPoint("LEFT", b, "LEFT", CARD_PAD, 0)
+    b.pick = pick
+
+    local num = b:CreateFontString(nil, "OVERLAY")
+    num:SetFontObject(font)
+    num:SetJustifyH("RIGHT")
+    num:SetWidth(NUM_WIDTH)
+    num:SetPoint("RIGHT", b, "RIGHT", -CARD_PAD, 0)
+    b.num = num
+
+    local bar = CreateFrame("StatusBar", nil, b)
+    bar:SetSize(BAR_WIDTH, 4)
+    bar:SetPoint("RIGHT", num, "LEFT", -5, 0)
+    bar:SetStatusBarTexture("Interface\\Buttons\\WHITE8x8")
+    bar:SetMinMaxValues(0, 100)
+    local barBg = bar:CreateTexture(nil, "BACKGROUND")
+    barBg:SetAllPoints(bar)
+    barBg:SetColorTexture(1, 1, 1, 0.08)
+    b.bar = bar
+
+    local name = b:CreateFontString(nil, "OVERLAY")
+    name:SetFontObject(font)
+    name:SetJustifyH("LEFT")
+    name:SetWordWrap(false)
+    name:SetPoint("LEFT", pick, "RIGHT", 5, 0)
+    name:SetPoint("RIGHT", bar, "LEFT", -5, 0)
+    b.name = name
+
     b:RegisterForClicks("LeftButtonUp")
     b:SetScript("OnClick", function(self)
-        if self.section then W.ToggleCollapsed(self.section) end
+        if self.fold then W.ToggleCollapsed(self.fold) end
     end)
     return b
 end
 
-local function GetLine(i)
-    if not linePool[i] then linePool[i] = CreateLine() end
-    return linePool[i]
+local function CreateCard()
+    local c = CreateFrame("Frame", nil, content, "BackdropTemplate")
+    Backdrop(c, { 1, 1, 1, 0.03 }, { 1, 1, 1, 0.10 })
+
+    -- Quality colour along the top edge, as on the roll frame.
+    local edge = c:CreateTexture(nil, "ARTWORK")
+    edge:SetPoint("TOPLEFT", c, "TOPLEFT", 1, -1)
+    edge:SetPoint("TOPRIGHT", c, "TOPRIGHT", -1, -1)
+    edge:SetHeight(2)
+    edge:SetColorTexture(1, 1, 1, 1)
+    c.edge = edge
+
+    -- The item: its tooltip on hover, shift-click links it like any item.
+    local icon = CreateFrame("Button", nil, c)
+    icon:SetSize(ICON, ICON)
+    icon:SetPoint("TOPLEFT", c, "TOPLEFT", CARD_PAD, -CARD_PAD - 1)
+    icon.tex = icon:CreateTexture(nil, "ARTWORK")
+    icon.tex:SetAllPoints(icon)
+    icon.tex:SetTexCoord(0.07, 0.93, 0.07, 0.93)
+    icon:SetScript("OnEnter", function(self)
+        if not (c.itemLink and GameTooltip) then return end
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        pcall(GameTooltip.SetHyperlink, GameTooltip, c.itemLink)
+        GameTooltip:Show()
+    end)
+    icon:SetScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
+    icon:RegisterForClicks("LeftButtonUp")
+    icon:SetScript("OnClick", function()
+        if c.itemLink and IsModifiedClick and IsModifiedClick("CHATLINK") and ChatEdit_InsertLink then
+            ChatEdit_InsertLink(c.itemLink)
+        end
+    end)
+    c.icon = icon
+
+    local status = c:CreateFontString(nil, "OVERLAY")
+    status:SetFontObject(smallFont)
+    status:SetJustifyH("RIGHT")
+    status:SetPoint("TOPRIGHT", c, "TOPRIGHT", -CARD_PAD, -CARD_PAD - 2)
+    c.status = status
+
+    local name = c:CreateFontString(nil, "OVERLAY")
+    name:SetFontObject(font)
+    name:SetJustifyH("LEFT")
+    name:SetWordWrap(false)
+    name:SetPoint("TOPLEFT", icon, "TOPRIGHT", 6, -1)
+    name:SetPoint("RIGHT", status, "LEFT", -6, 0)
+    c.name = name
+
+    local line = c:CreateFontString(nil, "OVERLAY")
+    line:SetFontObject(smallFont)
+    line:SetJustifyH("LEFT")
+    line:SetJustifyV("TOP")
+    line:SetWordWrap(true)
+    line:SetPoint("TOPLEFT", name, "BOTTOMLEFT", 0, -3)
+    -- A fixed width, so GetStringHeight is right on the first draw, before
+    -- the card has been laid out.
+    line:SetWidth(WIDTH - 2 * PAD - 2 * CARD_PAD - ICON - 6)
+    c.line = line
+
+    c.rows = {}
+    return c
 end
 
-local function DrawLine(b, line)
-    local indent = 0
-    b.section = nil
-    b.icon:Hide()
-    b.hl:Hide()
-    b:EnableMouse(false)
-    b.right:SetText("")
-    b.left:SetTextColor(1, 1, 1, 1)
+local function DrawRow(b, row)
+    b.fold = nil
+    b.wash:Hide()
+    b.bar:Hide()
+    b.num:SetText("")
+    b.pick:Show()
+    b:SetAlpha(1)
 
-    if line.kind == "item" then
-        local c = R.QUALITY_COLORS and (R.QUALITY_COLORS[tonumber(line.quality) or 1] or R.QUALITY_COLORS[1])
-        b.left:SetText(line.text)
-        if c then b.left:SetTextColor(c[1], c[2], c[3], 1) end
-        b.right:SetText(line.status or "")
-        if line.finished then
-            b.right:SetTextColor(0.95, 0.65, 0.25, 1)
-        else
-            b.right:SetTextColor(0.6, 0.6, 0.6, 1)
-        end
-    elseif line.kind == "winner" then
-        indent = 4
-        local template = Text("LOOT_ROLL_WINDOW_WINNER", "Won by %s")
-        b.left:SetText(template:format(R.Tally.FormatPlayerName(line.player)))
-        b.left:SetTextColor(1, 0.82, 0, 1)
-        if line.player.roll then
-            b.right:SetText(tostring(line.player.roll))
-            b.right:SetTextColor(1, 0.82, 0, 1)
-        end
-    elseif line.kind == "header" then
-        indent = 4
-        b.section = line.section
+    if row.kind == "fold" then
+        b.fold = row.fold
         b:EnableMouse(true)
         b.hl:Show()
-        b.icon:SetTexture(line.collapsed and "Interface\\Buttons\\UI-PlusButton-Up" or "Interface\\Buttons\\UI-MinusButton-Up")
-        b.icon:ClearAllPoints()
-        b.icon:SetPoint("LEFT", b, "LEFT", indent, 0)
-        b.icon:Show()
-        indent = indent + 14
-        local c = line.color or { 1, 1, 1 }
-        b.left:SetText(("%s (%d)"):format(line.text, line.count or 0))
-        b.left:SetTextColor(c[1], c[2], c[3], 1)
-    elseif line.kind == "player" then
-        indent = 4 + INDENT + 4
-        local p = line.player
-        b.left:SetText(R.Tally.FormatPlayerName(p))
-        if p.roll then
-            b.right:SetText(tostring(p.roll))
-            if p.isWinner then
-                b.right:SetTextColor(1, 0.82, 0, 1)
-            else
-                b.right:SetTextColor(0.8, 0.8, 0.8, 1)
-            end
-        end
-    else
-        indent = line.indent and (4 + INDENT + 4) or 4
-        b.left:SetText(line.text or "")
-        b.left:SetTextColor(0.6, 0.6, 0.6, 1)
+        b.pick:SetTexture(row.collapsed and "Interface\\Buttons\\UI-PlusButton-Up" or "Interface\\Buttons\\UI-MinusButton-Up")
+        b.pick:SetTexCoord(0, 1, 0, 1)
+        b.name:SetText(row.text)
+        b.name:SetTextColor(0.6, 0.6, 0.6, 1)
+        return
     end
 
-    b.left:ClearAllPoints()
-    b.left:SetPoint("LEFT", b, "LEFT", indent, 0)
-    b.left:SetPoint("RIGHT", b.right, "LEFT", -4, 0)
+    b:EnableMouse(false)
+    b.hl:Hide()
+    local p, pick = row.player, W.PICKS[row.bucket]
+    b.pick:SetTexCoord(0, 1, 0, 1)
+    if not (pick and pick.rollType and R.ApplyButtonArt(b.pick, pick.rollType, R.BUTTON_ATLASES)) then
+        b.pick:Hide()
+    end
+    b.name:SetText(R.Tally.FormatPlayerName(p))
+    b.name:SetTextColor(1, 1, 1, 1)
+
+    if p.roll then
+        b.num:SetText(tostring(p.roll))
+        local color = pick and pick.color or { 0.8, 0.8, 0.8 }
+        if row.winner then
+            b.num:SetTextColor(1, 0.82, 0, 1)
+            b.bar:SetStatusBarColor(1, 0.82, 0, 1)
+        else
+            b.num:SetTextColor(0.85, 0.85, 0.85, 1)
+            b.bar:SetStatusBarColor(color[1], color[2], color[3], 0.9)
+        end
+        b.bar:SetValue(math.max(0, math.min(100, p.roll)))
+        b.bar:Show()
+    end
+    if row.winner then b.wash:Show() end
+    if row.dim then b:SetAlpha(0.6) end
+end
+
+local TONE_COLORS = {
+    result = { 1, 0.82, 0 },
+    info   = { 0.85, 0.85, 0.85 },
+    muted  = { 0.6, 0.6, 0.6 },
+}
+
+-- Fill one card and return its height.
+local function DrawCard(c, card)
+    local qc = QualityColor(card.quality)
+    c.itemLink = card.itemLink
+    c.edge:SetVertexColor(qc[1], qc[2], qc[3], 0.9)
+    c.icon.tex:SetTexture(card.icon or 134400)
+    c.name:SetText(card.name)
+    c.name:SetTextColor(qc[1], qc[2], qc[3], 1)
+    c.status:SetText(card.status or "")
+    if card.finished then
+        c.status:SetTextColor(0.95, 0.65, 0.25, 1)
+    else
+        c.status:SetTextColor(0.6, 0.6, 0.6, 1)
+    end
+    c.line:SetText(card.line or "")
+    local tc = TONE_COLORS[card.tone] or TONE_COLORS.info
+    c.line:SetTextColor(tc[1], tc[2], tc[3], 1)
+
+    -- The header is as tall as the icon, or the name and a wrapped line.
+    local textH = (c.name:GetStringHeight() or 0) + 3 + (c.line:GetStringHeight() or 0)
+    local headH = CARD_PAD + 1 + math.max(ICON, textH) + 4
+
+    local h, y = RowHeight(), headH
+    for i, row in ipairs(card.rows) do
+        local b = c.rows[i]
+        if not b then b = CreateRow(c); c.rows[i] = b end
+        b:ClearAllPoints()
+        b:SetPoint("TOPLEFT", c, "TOPLEFT", 1, -y)
+        b:SetPoint("TOPRIGHT", c, "TOPRIGHT", -1, -y)
+        b:SetHeight(h)
+        DrawRow(b, row)
+        b:Show()
+        y = y + h
+    end
+    for i = #card.rows + 1, #c.rows do c.rows[i]:Hide() end
+    return y + CARD_PAD
 end
 
 local function Build()
     if window then return end
 
     font = CreateFont("HorizonSuiteRollWindowFont")
+    smallFont = CreateFont("HorizonSuiteRollWindowSmallFont")
     titleFont = CreateFont("HorizonSuiteRollWindowTitleFont")
     UpdateFonts()
 
@@ -412,15 +622,7 @@ local function Build()
     window:SetMovable(true)
     window:EnableMouse(true)
     window:Hide()
-    if window.SetBackdrop then
-        window:SetBackdrop({
-            bgFile = "Interface\\Buttons\\WHITE8x8",
-            edgeFile = "Interface\\Buttons\\WHITE8x8",
-            edgeSize = 1,
-        })
-        window:SetBackdropColor(0.05, 0.05, 0.07, 0.9)
-        window:SetBackdropBorderColor(1, 1, 1, 0.15)
-    end
+    Backdrop(window, { 0.05, 0.05, 0.07, 0.9 }, { 1, 1, 1, 0.15 })
 
     -- Title bar doubles as the drag handle.
     local title = CreateFrame("Frame", nil, window)
@@ -437,7 +639,7 @@ local function Build()
 
     local titleText = title:CreateFontString(nil, "OVERLAY")
     titleText:SetFontObject(titleFont)
-    titleText:SetPoint("LEFT", title, "LEFT", PAD, 0)
+    titleText:SetPoint("LEFT", title, "LEFT", PAD + 2, 0)
     titleText:SetText(Text("LOOT_ROLL_WINDOW_TITLE", "Loot rolls"))
     titleText:SetTextColor(0.95, 0.65, 0.25, 1)
 
@@ -451,27 +653,26 @@ local function Build()
         window:Hide()
     end)
 
-    local divider = title:CreateTexture(nil, "ARTWORK")
-    divider:SetColorTexture(1, 1, 1, 0.1)
-    divider:SetHeight(1)
-    divider:SetPoint("BOTTOMLEFT", title, "BOTTOMLEFT", 1, 0)
-    divider:SetPoint("BOTTOMRIGHT", title, "BOTTOMRIGHT", -1, 0)
-
-    -- Grows to fit up to MAX_HEIGHT, then scrolls with the mouse wheel. A
-    -- 25-player raid can put twenty names under one Need header.
+    -- Grows to fit up to MAX_HEIGHT, then scrolls with the mouse wheel.
     scroll = CreateFrame("ScrollFrame", nil, window)
-    scroll:SetPoint("TOPLEFT", window, "TOPLEFT", PAD, -(TITLE_HEIGHT + 4))
+    scroll:SetPoint("TOPLEFT", window, "TOPLEFT", PAD, -(TITLE_HEIGHT + 2))
     scroll:SetPoint("BOTTOMRIGHT", window, "BOTTOMRIGHT", -PAD, PAD)
     scroll:EnableMouseWheel(true)
     scroll:SetScript("OnMouseWheel", function(self, delta)
         local max = self:GetVerticalScrollRange() or 0
-        local v = (self:GetVerticalScroll() or 0) - delta * LineHeight() * 3
+        local v = (self:GetVerticalScroll() or 0) - delta * RowHeight() * 3
         self:SetVerticalScroll(math.max(0, math.min(max, v)))
     end)
 
     content = CreateFrame("Frame", nil, scroll)
     content:SetSize(WIDTH - 2 * PAD, 1)
     scroll:SetScrollChild(content)
+
+    emptyText = content:CreateFontString(nil, "OVERLAY")
+    emptyText:SetFontObject(font)
+    emptyText:SetPoint("TOPLEFT", content, "TOPLEFT", 2, -4)
+    emptyText:SetTextColor(0.6, 0.6, 0.6, 1)
+    emptyText:SetText(Text("LOOT_ROLL_WINDOW_EMPTY", "No rolls in progress"))
 
     RestorePosition()
 end
@@ -506,26 +707,25 @@ function W.Refresh()
     end
     Build()
 
-    local lines = W.BuildModel(entries, W.IsCollapsed)
-    local h = LineHeight()
+    local cards = W.BuildCards(entries, W.IsCollapsed)
     local y = 0
-    for i, line in ipairs(lines) do
-        local b = GetLine(i)
-        -- A little air above each item after the first, so rolls read as blocks.
-        if line.kind == "item" and i > 1 then y = y + math.floor(h / 2) end
-        b:ClearAllPoints()
-        b:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -y)
-        b:SetPoint("TOPRIGHT", content, "TOPRIGHT", 0, -y)
-        b:SetHeight(h)
-        DrawLine(b, line)
-        b:Show()
-        y = y + h
+    for i, card in ipairs(cards) do
+        local c = cardPool[i]
+        if not c then c = CreateCard(); cardPool[i] = c end
+        c:ClearAllPoints()
+        c:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -y)
+        c:SetPoint("TOPRIGHT", content, "TOPRIGHT", 0, -y)
+        local h = DrawCard(c, card)
+        c:SetHeight(h)
+        c:Show()
+        y = y + h + CARD_GAP
     end
-    for i = #lines + 1, #linePool do linePool[i]:Hide() end
+    for i = #cards + 1, #cardPool do cardPool[i]:Hide() end
+    emptyText:SetShown(#cards == 0)
+    if #cards == 0 then y = RowHeight() + 8 else y = y - CARD_GAP end
 
     content:SetHeight(math.max(1, y))
-    local height = math.min(MAX_HEIGHT, TITLE_HEIGHT + 4 + y + PAD)
-    window:SetHeight(height)
+    window:SetHeight(math.min(MAX_HEIGHT, TITLE_HEIGHT + 2 + y + PAD))
     local max = scroll:GetVerticalScrollRange() or 0
     if (scroll:GetVerticalScroll() or 0) > max then scroll:SetVerticalScroll(max) end
 
@@ -578,12 +778,6 @@ end
 --- @return nil
 function W.ApplyOptions()
     UpdateFonts()
-    if window then
-        for _, b in ipairs(linePool) do
-            b.left:SetFontObject(font)
-            b.right:SetFontObject(font)
-        end
-    end
     W.Refresh()
 end
 

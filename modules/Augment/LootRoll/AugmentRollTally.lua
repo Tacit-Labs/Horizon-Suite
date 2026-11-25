@@ -12,10 +12,19 @@
     history data onto the roll frame.
 
     The only key available is the item link. That is ambiguous when two rolls
-    run at once for the identical link, so ResolveDrop FAILS CLOSED: more than
-    one surviving candidate returns nil and the row renders blank. A missing
-    tally costs one line. A tally naming the wrong winner would be believed,
-    and is worse than showing nothing at all.
+    run at once for the identical link (two copies of one token off a boss).
+    PairCopies handles that case: the history numbers a boss's drops in the
+    order they dropped, and the rolls start in that same order, so the oldest
+    open roll takes the lowest unclaimed drop key. It still FAILS CLOSED when
+    the counts disagree (a copy already finished, one not yet in history):
+    a missing tally costs one line, a tally naming the wrong winner would be
+    believed. FindMisPair then checks the guess against the one thing we know
+    for certain, which copy YOU pressed a button on, and asks for a swap when
+    the history recorded your choice on the other one.
+
+    SECRET VALUES. Every field read from C_LootHistory goes through Plain():
+    under the client's restrictions a field can come back secret, and testing
+    or comparing a secret value throws.
 ]]
 
 local addon = _G.HorizonSuite
@@ -33,6 +42,28 @@ local WINDOW_SLACK = 5
 
 local function Has(capability)
     return addon.Platform and addon.Platform.Has(capability)
+end
+
+--- A loot-history field as a plain Lua value, or nil when it is secret or not
+--- of the expected type.
+--- @param v any
+--- @param kind string|nil  Lua type name; nil accepts any non-secret value
+--- @return any
+local function Plain(v, kind)
+    local secret = _G.issecretvalue
+    if secret and secret(v) then return nil end
+    if kind == nil or type(v) == kind then return v end
+    return nil
+end
+T.Plain = Plain
+
+--- A drop's list key. Retail names it lootListID; WoW: Forever's addons read
+--- lootListKey. Either one, whichever this client fills in.
+--- @param drop table|nil  EncounterLootDropInfo
+--- @return number|nil
+function T.DropKey(drop)
+    if type(drop) ~= "table" then return nil end
+    return Plain(drop.lootListID, "number") or Plain(drop.lootListKey, "number")
 end
 
 -- ============================================================================
@@ -73,60 +104,140 @@ end
 local function IsUnfinished(drop)
     -- Same filter Blizzard uses in LootHistory.lua to decide a roll is still
     -- running: no winner recorded and not everyone passed.
-    return not (drop.winner or drop.allPassed)
+    return Plain(drop.winner, "table") == nil and Plain(drop.allPassed, "boolean") ~= true
 end
 
 local function InWindow(drop, now)
-    if not now or not drop.startTime then return true end
-    local elapsed = now - drop.startTime
+    local start = Plain(drop.startTime, "number")
+    if not now or not start then return true end
+    local elapsed = now - start
     if elapsed < -WINDOW_SLACK then return false end
-    local duration = tonumber(drop.duration) or 0
+    local duration = Plain(drop.duration, "number") or 0
     if duration <= 0 then return true end
     return elapsed <= (duration + WINDOW_SLACK)
 end
 
---- Find the loot-history drop matching an open roll.
+--- Every unfinished history drop that could be the roll for this link, lowest
+--- drop key first (the order the boss dropped them). Drops with no readable
+--- key keep the order history gave them, after the keyed ones.
 --- @param itemLink string|nil From GetLootRollItemLink(rollID)
---- @return table|nil dropInfo  nil when absent, unavailable, or ambiguous
---- @return number|nil encounterID  With lootListID, a key that finds this drop
----         again after the roll ends, when the link join can no longer see it
-function T.ResolveDrop(itemLink)
-    if not itemLink or itemLink == "" then return nil end
-    if not Has("lootHistory") then return nil end
+--- @return table list  Array of { drop, encounterID, key }
+function T.Candidates(itemLink)
+    if not itemLink or itemLink == "" then return {} end
+    if not Has("lootHistory") then return {} end
 
-    local ok, matches = pcall(function()
-        local now = C_LootHistory.GetLootHistoryTime and C_LootHistory.GetLootHistoryTime() or nil
-        local found = {}
-        local encounters = C_LootHistory.GetAllEncounterInfos() or {}
-        for _, encounter in ipairs(encounters) do
-            local drops = C_LootHistory.GetSortedDropsForEncounter(encounter.encounterID) or {}
+    local ok, found = pcall(function()
+        local now = C_LootHistory.GetLootHistoryTime and Plain(C_LootHistory.GetLootHistoryTime(), "number") or nil
+        local out = {}
+        for _, encounter in ipairs(C_LootHistory.GetAllEncounterInfos() or {}) do
+            local encounterID = Plain(encounter.encounterID, "number")
+            local drops = encounterID and C_LootHistory.GetSortedDropsForEncounter(encounterID) or {}
             for _, drop in ipairs(drops) do
-                if drop.itemHyperlink == itemLink and IsUnfinished(drop) and InWindow(drop, now) then
-                    found[#found + 1] = { drop = drop, encounterID = encounter.encounterID }
+                if Plain(drop.itemHyperlink, "string") == itemLink and IsUnfinished(drop) and InWindow(drop, now) then
+                    out[#out + 1] = { drop = drop, encounterID = encounterID, key = T.DropKey(drop), seq = #out }
                 end
             end
         end
-        return found
+        table.sort(out, function(a, b)
+            if a.key and b.key and a.key ~= b.key then return a.key < b.key end
+            if (a.key ~= nil) ~= (b.key ~= nil) then return a.key ~= nil end
+            return a.seq < b.seq
+        end)
+        return out
     end)
+    if ok and type(found) == "table" then return found end
+    return {}
+end
 
-    if not ok or type(matches) ~= "table" then return nil end
-    -- Exactly one candidate, or nothing. See the header: ambiguity renders blank.
+--- Find the loot-history drop matching an open roll, when only one can match.
+--- @param itemLink string|nil From GetLootRollItemLink(rollID)
+--- @return table|nil dropInfo  nil when absent, unavailable, or ambiguous
+--- @return number|nil encounterID  With the drop key, finds this drop again
+---         after the roll ends, when the link join can no longer see it
+function T.ResolveDrop(itemLink)
+    local matches = T.Candidates(itemLink)
+    -- Exactly one candidate, or nothing. Two copies go through PairCopies.
     if #matches ~= 1 then return nil end
     return matches[1].drop, matches[1].encounterID
 end
 
---- Find a drop again by the key ResolveDrop handed out. Unlike ResolveDrop this
---- does not skip finished drops: finding the finished one is the point. The key
---- names exactly one drop, so there is no ambiguity to fail closed on.
+--- "encounterID:key", the identity of one drop across the whole history.
+--- @return string|nil
+function T.KeyString(encounterID, key)
+    if encounterID == nil or key == nil then return nil end
+    return tostring(encounterID) .. ":" .. tostring(key)
+end
+
+--- Pair open rolls for one item link with that link's history drops.
+--- The oldest roll takes the lowest drop key: a boss's drops are numbered in
+--- the order they dropped, and their rolls start in that order. Fails closed
+--- (returns no pairs) when the number of rolls and drops disagree, or when a
+--- drop has no readable key to remember it by.
+--- @param rolls table  Array of { rollID, startedAt } still without a drop
+--- @param candidates table  From T.Candidates, drops other rolls hold removed
+--- @return table pairs  rollID -> candidate
+function T.PairCopies(rolls, candidates)
+    local out = {}
+    if type(rolls) ~= "table" or type(candidates) ~= "table" then return out end
+    if #rolls == 0 or #rolls ~= #candidates then return out end
+    for _, c in ipairs(candidates) do
+        if c.key == nil or c.encounterID == nil then return out end
+    end
+    local ordered = {}
+    for i, r in ipairs(rolls) do ordered[i] = r end
+    table.sort(ordered, function(a, b)
+        local sa, sb = a.startedAt or 0, b.startedAt or 0
+        if sa ~= sb then return sa < sb end
+        return (a.rollID or 0) < (b.rollID or 0)
+    end)
+    for i, r in ipairs(ordered) do out[r.rollID] = candidates[i] end
+    return out
+end
+
+--- Your own choice as history recorded it on a drop.
+--- @param drop table|nil  EncounterLootDropInfo
+--- @return string|nil  A bucket ("need", "pass", "waiting", ...), nil if you are not on it
+function T.SelfBucket(drop)
+    if type(drop) ~= "table" then return nil end
+    for _, info in ipairs(Plain(drop.rollInfos, "table") or {}) do
+        if Plain(info.isSelf, "boolean") == true then
+            return T.BucketForState(Plain(info.state, "number"))
+        end
+    end
+    return nil
+end
+
+--- Check a pairing of copies against what you pressed. A drop that records a
+--- choice of yours on a roll you never pressed, while a roll you did press
+--- sits on a drop with no choice of yours, means those two were paired the
+--- wrong way round.
+--- @param entries table  Array of { pressed = boolean, selfBucket = string|nil }
+--- @return number|nil i, number|nil j  Indexes whose drops should swap
+function T.FindMisPair(entries)
+    if type(entries) ~= "table" then return nil end
+    local function chose(e) return e.selfBucket ~= nil and e.selfBucket ~= "waiting" end
+    for i, x in ipairs(entries) do
+        if not x.pressed and chose(x) then
+            for j, y in ipairs(entries) do
+                if j ~= i and y.pressed and not chose(y) then return i, j end
+            end
+        end
+    end
+    return nil
+end
+
+--- Find a drop again by its key. Unlike Candidates this does not skip
+--- finished drops: finding the finished one is the point. The key names
+--- exactly one drop, so there is no ambiguity to fail closed on.
 --- @param encounterID number
---- @param lootListID number
+--- @param lootListID number  The drop key (T.DropKey)
 --- @return table|nil dropInfo
 function T.FindDrop(encounterID, lootListID)
     if encounterID == nil or lootListID == nil then return nil end
     if not Has("lootHistory") then return nil end
     local ok, found = pcall(function()
         for _, drop in ipairs(C_LootHistory.GetSortedDropsForEncounter(encounterID) or {}) do
-            if drop.lootListID == lootListID then return drop end
+            if T.DropKey(drop) == lootListID then return drop end
         end
     end)
     if ok then return found end
@@ -154,28 +265,33 @@ function T.Summarise(drop)
     end
 
     local total, rolled, youRolled = 0, 0, nil
-    for _, info in ipairs(drop.rollInfos or {}) do
-        local bucket = T.BucketForState(info.state)
+    for _, info in ipairs(Plain(drop.rollInfos, "table") or {}) do
+        local bucket = T.BucketForState(Plain(info.state, "number"))
         if bucket then
+            local isSelf = Plain(info.isSelf, "boolean") == true
             counts[bucket] = (counts[bucket] or 0) + 1
             local list = players[bucket]
             list[#list + 1] = {
-                name   = R.SafeString(info.playerName),
-                class  = R.SafeString(info.playerClass),
-                roll   = tonumber(info.roll),
-                isSelf = info.isSelf and true or false,
-                isWinner = info.isWinner and true or false,
+                name   = R.SafeString(Plain(info.playerName, "string")),
+                class  = R.SafeString(Plain(info.playerClass, "string")),
+                roll   = Plain(info.roll, "number"),
+                isSelf = isSelf,
+                isWinner = Plain(info.isWinner, "boolean") == true,
+                bucket = bucket,
             }
             total = total + 1
             if bucket ~= "waiting" then rolled = rolled + 1 end
-            if info.isSelf then youRolled = bucket end
+            if isSelf then youRolled = bucket end
         end
     end
 
     for _, list in pairs(players) do T.SortPlayers(list) end
 
-    local leader = drop.currentLeader
-    local winner = drop.winner
+    local leader = Plain(drop.currentLeader, "table")
+    local winner = Plain(drop.winner, "table")
+    local function Name(p) return p and R.SafeString(Plain(p.playerName, "string")) or nil end
+    local function Class(p) return p and R.SafeString(Plain(p.playerClass, "string")) or nil end
+    local function Roll(p) return p and Plain(p.roll, "number") or nil end
 
     return {
         counts     = counts,
@@ -183,14 +299,14 @@ function T.Summarise(drop)
         total      = total,
         rolled     = rolled,
         youRolled  = youRolled,
-        isTied     = drop.isTied and true or false,
-        allPassed  = drop.allPassed and true or false,
-        leaderName = leader and R.SafeString(leader.playerName) or nil,
-        leaderRoll = leader and tonumber(leader.roll) or nil,
-        leaderClass = leader and R.SafeString(leader.playerClass) or nil,
-        winnerName = winner and R.SafeString(winner.playerName) or nil,
-        winnerRoll = winner and tonumber(winner.roll) or nil,
-        winnerClass = winner and R.SafeString(winner.playerClass) or nil,
+        isTied     = Plain(drop.isTied, "boolean") == true,
+        allPassed  = Plain(drop.allPassed, "boolean") == true,
+        leaderName = Name(leader),
+        leaderRoll = Roll(leader),
+        leaderClass = Class(leader),
+        winnerName = Name(winner),
+        winnerRoll = Roll(winner),
+        winnerClass = Class(winner),
     }
 end
 
