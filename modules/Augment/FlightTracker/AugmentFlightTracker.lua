@@ -249,9 +249,15 @@ local function BuildBanner()
     banner.estimate = banner:CreateFontString(nil, "OVERLAY")
     banner.estimate:SetJustifyH("RIGHT")
     banner.estimate:SetTextColor(0.7, 0.7, 0.7, 1)
-    banner.estimate:SetPoint("BASELINE", banner.time, "BASELINE", 0, 0)
-    banner.estimate:SetPoint("RIGHT", banner.time, "LEFT", -4, 0)
+    -- Bottom edges aligned, so the small label sits on the time's baseline.
+    banner.estimate:SetPoint("BOTTOMRIGHT", banner.time, "BOTTOMLEFT", -4, 1)
     banner.estimate:Hide()
+
+    -- A font on every string from the start: LayoutBanner sets the real ones,
+    -- but SetText on a font-less string errors on every tick if it never runs.
+    for _, fs in ipairs({ banner.flyingTo, banner.dest, banner.origin, banner.time, banner.estimate }) do
+        fs:SetFontObject(GameFontNormal)
+    end
 
     return banner
 end
