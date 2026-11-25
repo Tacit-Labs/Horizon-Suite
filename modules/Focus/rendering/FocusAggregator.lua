@@ -727,6 +727,9 @@ local function ReadTrackedQuests()
         -- actionable from anywhere, and a click-to-complete quest has no objectives, so no map POI
         -- puts it in nearbySet. Mirrors the same bypass in CollectTrackedQuests.
         local isCompleteQuest = C_QuestLog.IsComplete and C_QuestLog.IsComplete(questID) or false
+        -- Failed quests (an escort whose NPC died, a timer that ran out) stay in the log until
+        -- abandoned or retried; the title is painted red so the failure is visible.
+        local isFailed = (C_QuestLog.IsFailed and C_QuestLog.IsFailed(questID)) and true or false
         local bypassZoneFilter = isExplicitlyTracked or (alwaysShowComplete and isCompleteQuest)
         local category = opts.forceCategory or addon.GetQuestCategory(questID)
         if not isAccepted and not isExplicitlyTracked and (category == "WORLD" or category == "CALLING" or category == "WEEKLY" or category == "PREY" or category == "DAILY") then
@@ -786,6 +789,11 @@ local function ReadTrackedQuests()
                 if not o.finished then filtered[#filtered + 1] = o end
             end
             objectives = filtered
+        end
+        -- A failed quest's objectives no longer mean anything; show a single red "Failed" line instead.
+        if isFailed then
+            objectives = { { text = _G.FAILED or "Failed", finished = false, isFailed = true, noBullet = true } }
+            objectivesDoneCount, objectivesTotalCount = nil, nil
         end
         local color = addon.GetQuestColor(category)
         local isSuper = (questID == superTracked)
@@ -883,7 +891,7 @@ local function ReadTrackedQuests()
         local entry = {
             entryKey = questID, questID = questID, title = title, objectives = objectives,
             color = color, category = category, baseCategory = baseCategory,
-            isComplete = isComplete, isSuperTracked = isSuper, isNearby = isNearby,
+            isComplete = isComplete, isFailed = isFailed, isSuperTracked = isSuper, isNearby = isNearby,
             isAccepted = isAccepted, zoneName = zoneName, itemLink = itemLink, itemTexture = itemTexture,
             questTypeAtlas = questTypeAtlas, isDungeonQuest = isDungeonQuest, isRaidQuest = isRaidQuest, isTracked = isTracked, level = questLevel,
             isAutoComplete = isAutoComplete,

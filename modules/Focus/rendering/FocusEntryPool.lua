@@ -927,6 +927,7 @@ local function ClearEntry(entry, full)
     entry.isRareLoot = nil
     entry.isEventQuest = nil
     entry.isComplete = nil
+    entry.isFailed = nil
     entry.isSuperTracked = nil
     if addon.FocusHighlight_Clear then addon.FocusHighlight_Clear(entry) end
     if entry.questTypeIcon then addon.ApplyDimToTrackerIconTexture(entry.questTypeIcon, true) end
