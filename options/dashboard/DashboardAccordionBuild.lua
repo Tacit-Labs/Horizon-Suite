@@ -1804,7 +1804,9 @@ function addon.DashboardAccordionBuild_Init(f, p)
 
         UpdateDetailLayout()
 
-        f._dashboardRelayoutDetailCards = function()
+        --- @param sizeOnly boolean|nil  true during a live resize drag: only the width
+        ---   changed, so skip re-reading the per-widget profile markers.
+        f._dashboardRelayoutDetailCards = function(sizeOnly)
             -- detailScroll is inset 40px on each side from detailView, so its effective
             -- width = detailView:GetWidth() - 80.  Update detailContent to match so all
             -- cards (and their widgets) cascade to the correct width via RIGHT anchors.
@@ -1815,8 +1817,10 @@ function addon.DashboardAccordionBuild_Init(f, p)
             for _, card in ipairs(currentDetailCards) do
                 -- A profile switch (OnActiveProfileChangedDeferred -> Dashboard_Refresh) lands
                 -- here: re-read every marker before the relayout recounts the card.
-                for _, entry in ipairs(card.widgetList or {}) do
-                    if entry.frame and entry.frame._hsMarkUpdate then entry.frame._hsMarkUpdate() end
+                if not sizeOnly then
+                    for _, entry in ipairs(card.widgetList or {}) do
+                        if entry.frame and entry.frame._hsMarkUpdate then entry.frame._hsMarkUpdate() end
+                    end
                 end
                 RelayoutCard(card)
             end
