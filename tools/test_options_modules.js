@@ -51,6 +51,7 @@ const FILES = [
   'options/modules/defaults/augment/OptionsDefaultsAugmentAchievementTracker.lua',
   'options/modules/defaults/augment/OptionsDefaultsAugmentAlerts.lua',
   'options/modules/defaults/augment/OptionsDefaultsAugmentLootRoll.lua',
+  'options/modules/defaults/augment/OptionsDefaultsAugmentFlightTracker.lua',
   'options/modules/defaults/OptionsDefaultsAugment.lua',
   'options/modules/defaults/OptionsDefaultsPresence.lua',
   'options/modules/defaults/OptionsDefaultsInsight.lua',
@@ -71,6 +72,7 @@ const FILES = [
   'options/modules/OptionsAugmentTalkingHead.lua',
   'options/modules/OptionsAugmentAlerts.lua',
   'options/modules/OptionsAugmentLootRoll.lua',
+  'options/modules/OptionsAugmentFlightTracker.lua',
   'options/modules/OptionsFocusIntegrations.lua',
   'options/OptionsAssemble.lua',
   'options/OptionsPlatform.lua',  // prunes rows whose `requires` capability is absent
@@ -89,7 +91,7 @@ const EXPECTED = {
   echo: ['echo:general', 'echo:layout', 'echo:look', 'echo:feeds'],
   essence: ['essence:general', 'essence:layout'],
   augment: ['augment:loot', 'augment:alerts', 'augment:lootRoll', 'augment:talkingHead',
-    'augment:vendor', 'augment:selfHighlight', 'augment:achievementTracker'],
+    'augment:vendor', 'augment:selfHighlight', 'augment:achievementTracker', 'augment:flightTracker'],
 };
 
 // Forever's off-list, read from core/Platform.lua so this test follows it.

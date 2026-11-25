@@ -91,6 +91,13 @@ read_globals = {
     "GetLootMethod",
     "GetLootThreshold",
 
+    -- Flight paths (Augment/FlightTracker). The taxi functions themselves are
+    -- read through _G with a type check, so only these appear bare.
+    "UnitOnTaxi",
+    "C_TaxiMap",
+    "CreateVector2D",
+    "STANDARD_TEXT_FONT",
+
     -- Widely used elsewhere in the addon but previously unlisted, so every call
     -- site warned. Added while filling in the gaps this list's own comment
     -- anticipates (see .github/workflows/luacheck.yml).
