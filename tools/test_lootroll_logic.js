@@ -280,6 +280,14 @@ run(`
   T.AddButtonRollers(tip, withRolls, R.ROLL_NEED)
   check("roll number shown beside name", tip:Text():find("Gil.*| 73") ~= nil, tip:Text())
 
+  -- Counts drawn on the button icons
+  check("button count: need", T.CountForButton(s, R.ROLL_NEED) == 2, T.CountForButton(s, R.ROLL_NEED))
+  check("button count: greed", T.CountForButton(s, R.ROLL_GREED) == 1, T.CountForButton(s, R.ROLL_GREED))
+  check("button count: pass", T.CountForButton(s, R.ROLL_PASS) == 1, T.CountForButton(s, R.ROLL_PASS))
+  check("button count: need includes off-spec", T.CountForButton(offspec, R.ROLL_NEED) == 1)
+  check("button count: disenchant always 0", T.CountForButton(s, R.ROLL_DISENCHANT) == 0)
+  check("button count: no summary 0", T.CountForButton(nil, R.ROLL_NEED) == 0)
+
   -- Roll list window model (feature request: movable window, collapsible lists)
   local W = R.Window
   local function kinds(lines)

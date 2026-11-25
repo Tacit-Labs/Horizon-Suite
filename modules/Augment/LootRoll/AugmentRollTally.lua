@@ -290,6 +290,19 @@ function T.BucketsForButton(rollType)
     return BUTTON_BUCKETS[rollType] or {}
 end
 
+--- How many players chose a roll button, for the number drawn on its icon.
+--- @param summary table|nil
+--- @param rollType number  R.ROLL_*
+--- @return number
+function T.CountForButton(summary, rollType)
+    if not (summary and summary.counts) then return 0 end
+    local n = 0
+    for _, bucket in ipairs(T.BucketsForButton(rollType)) do
+        n = n + (summary.counts[bucket] or 0)
+    end
+    return n
+end
+
 --- @param class string|nil  Class file token, e.g. "MAGE"
 --- @return number r, number g, number b
 function T.ClassColor(class)

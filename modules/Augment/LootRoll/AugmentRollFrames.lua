@@ -127,6 +127,19 @@ local function CreateRollButton(parent, rollType)
     R.ApplyButtonArt(icon, rollType, R.BUTTON_ATLASES)
     b.icon = icon
 
+    -- How many people chose this button, on the icon's corner. Its own frame,
+    -- above the art, ignoring the button's alpha: a greyed-out Need button
+    -- (you cannot Need) still needs a readable count of who did.
+    local badge = CreateFrame("Frame", nil, b)
+    badge:SetAllPoints(b)
+    badge:SetFrameLevel((b:GetFrameLevel() or 0) + 2)
+    if badge.SetIgnoreParentAlpha then badge:SetIgnoreParentAlpha(true) end
+    local count = badge:CreateFontString(nil, "OVERLAY", "NumberFontNormal")
+    count:SetPoint("TOPRIGHT", b, "TOPRIGHT", 4, 4)
+    count:SetTextColor(1, 1, 1, 1)
+    count:Hide()
+    b.count = count
+
     local highlight = b:CreateTexture(nil, "HIGHLIGHT")
     highlight:SetAllPoints(b)
     if not R.ApplyButtonArt(highlight, rollType, R.BUTTON_HIGHLIGHT_ATLASES) then
@@ -660,6 +673,20 @@ function R.RefreshRowInfoLine(row, roll)
     -- Kept for the hover tooltips, which name who chose what.
     row.summary = summary
     R.SetInfoLines(row, badges, tally)
+
+    -- Count on each button's icon. Hidden at zero so an untouched choice stays clean.
+    for rollType, b in pairs(row.buttons) do
+        if b.count then
+            local n = (summary and not summary.allPassed and R.Tally)
+                and R.Tally.CountForButton(summary, rollType) or 0
+            if n > 0 then
+                b.count:SetText(n)
+                b.count:Show()
+            else
+                b.count:Hide()
+            end
+        end
+    end
 end
 
 --- Refresh every open row's tally. Called from LOOT_HISTORY_UPDATE_DROP.
