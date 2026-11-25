@@ -491,8 +491,8 @@ local byKey = {}
 for _, cat in ipairs(categories) do byKey[cat.key] = cat end
 local FromCategory = addon.OptionsPages.FromCategory
 
--- One page per Augment feature, in this order. Alerts, Loot Roll and Talking Head
--- replace their placeholder defs from their own files, keeping this order.
+-- One page per Augment feature, in this order. Alerts, Loot Roll, Talking Head
+-- and Flight Tracker replace their placeholder defs from their own files, keeping this order.
 addon.RegisterModulePages("augment", {
     FromCategory(byKey.AugmentImprovements, "loot", {
         headerButtons = {
@@ -508,6 +508,7 @@ addon.RegisterModulePages("augment", {
     FromCategory(byKey.AugmentSelfHighlight, "selfHighlight"),
     -- Its only control is the page's on/off switch, so it is emitted with no cards.
     FromCategory(byKey.AugmentAchievementTracker, "achievementTracker", { allowEmpty = true }),
+    { key = "flightTracker" },
 })
 
 for i = 1, #categories do

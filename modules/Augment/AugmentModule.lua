@@ -8,7 +8,7 @@ if not addon or not addon.RegisterModule then return end
 
 addon:RegisterModule("augment", {
     title       = "Augment",
-    description = "Loot notifications, vendor automation, self-highlight, Talking Head customisation, achievement tracking, and status alerts.",
+    description = "Loot notifications, vendor automation, self-highlight, Talking Head customisation, achievement tracking, status alerts, and a flight path tracker.",
     order       = 30,
 
     OnInit = function()
@@ -28,6 +28,7 @@ addon:RegisterModule("augment", {
             -- Loot rolls default OFF pending a live test pass on both clients
             -- (see options/modules/defaults/augment/OptionsDefaultsAugmentLootRoll.lua).
             local rollOn   = GetDB and GetDB("augmentLootRollEnabled",              false) ~= false
+            local flightOn = not GetDB or GetDB("augmentFlightTrackerEnabled",      true)  ~= false
             if addon.Augment.InitFrames then addon.Augment.InitFrames() end
             -- Loot Frame mini-module: toasts (loot events + Blizzard suppression)
             -- and the loot window skin each follow their own switch.
@@ -42,6 +43,9 @@ addon:RegisterModule("augment", {
             if atOn and addon.Augment.AchievementTracker then addon.Augment.AchievementTracker.Enable() end
             if alertsOn and addon.Augment.Alerts then addon.Augment.Alerts.Enable() end
             if rollOn and addon.Augment.Roll then addon.Augment.Roll.Enable() end
+            if flightOn and addon.Augment.Flight and addon.Augment.Flight.Enable then
+                addon.Augment.Flight.Enable()
+            end
         end
     end,
 
@@ -51,6 +55,7 @@ addon:RegisterModule("augment", {
             if addon.Augment.SelfHighlight then addon.Augment.SelfHighlight.Disable() end
             if addon.Augment.AchievementTracker then addon.Augment.AchievementTracker.Disable() end
             if addon.Augment.Alerts then addon.Augment.Alerts.Disable() end
+            if addon.Augment.Flight and addon.Augment.Flight.Disable then addon.Augment.Flight.Disable() end
             -- Disable before the rest: it must put GroupLootContainer_AddRoll
             -- back, or Blizzard's roll frames stay suppressed with nothing
             -- drawing in their place.

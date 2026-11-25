@@ -145,6 +145,9 @@ modules/Augment/LootRoll/AugmentRollEvents.lua
 modules/Augment/LootRoll/AugmentRollCore.lua
 modules/Augment/LootRoll/AugmentRollDemo.lua
 modules/Augment/LootRoll/AugmentRollSlash.lua
+modules/Augment/FlightTracker/AugmentFlightState.lua
+modules/Augment/FlightTracker/AugmentFlightTracker.lua
+modules/Augment/FlightTracker/AugmentFlightSlash.lua
 modules/Augment/AugmentModule.lua
 
 modules/Vista/VistaTeleports.lua
@@ -202,6 +205,7 @@ options/modules/defaults/augment/OptionsDefaultsAugmentTalkingHead.lua
 options/modules/defaults/augment/OptionsDefaultsAugmentAchievementTracker.lua
 options/modules/defaults/augment/OptionsDefaultsAugmentAlerts.lua
 options/modules/defaults/augment/OptionsDefaultsAugmentLootRoll.lua
+options/modules/defaults/augment/OptionsDefaultsAugmentFlightTracker.lua
 options/modules/defaults/OptionsDefaultsAugment.lua
 options/modules/defaults/OptionsDefaultsPresence.lua
 options/modules/defaults/OptionsDefaultsInsight.lua
@@ -222,6 +226,7 @@ options/modules/OptionsAugment.lua
 options/modules/OptionsAugmentTalkingHead.lua
 options/modules/OptionsAugmentAlerts.lua
 options/modules/OptionsAugmentLootRoll.lua
+options/modules/OptionsAugmentFlightTracker.lua
 options/modules/OptionsFocusIntegrations.lua
 options/OptionsAssemble.lua
 options/OptionsPlatform.lua
