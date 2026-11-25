@@ -138,6 +138,7 @@ addon.FOCUS_DEFAULTS = {
     showSectionHeaders        = true,
     showSectionDividers       = false,
     showSectionHeadersWhenCollapsed = false,
+    showSectionCountWhenCollapsed = true,
     showZoneLabels            = true,
     -- Entry details
     showCategoryEntryNumbers  = true,

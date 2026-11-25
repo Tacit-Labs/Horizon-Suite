@@ -427,6 +427,7 @@ local categories = {
             { type = "dropdown", name = L["FOCUS_SECTION_HEADER_CASE"], desc = L["FOCUS_DISPLAY_CASE_CATEGORY_LABELS"], dbKey = "sectionHeaderTextCase", options = TEXT_CASE_OPTIONS, get = function() local v = getDB("sectionHeaderTextCase", D.sectionHeaderTextCase); return (v == "default") and D.sectionHeaderTextCase or v end, set = function(v) setDB("sectionHeaderTextCase", v) end, parent = "showSectionHeaders" },
             -- Needs section headers: with them off a collapsed tracker has nothing to show.
             Toggle(L["SECTIONS_COLLAPSED"], L["KEEP_SECTION_HEADERS_VISIBLE_COLLAPSED"], "showSectionHeadersWhenCollapsed", D.showSectionHeadersWhenCollapsed, { tooltip = L["FOCUS_CLICK_A_SECTION_HEADER_EXPAND_CATEGORY"], parent = "showSectionHeaders" }),
+            Toggle(L["FOCUS_SECTION_COUNT_COLLAPSED"], L["FOCUS_SECTION_COUNT_COLLAPSED_DESC"], "showSectionCountWhenCollapsed", D.showSectionCountWhenCollapsed, { parent = "showSectionHeaders" }),
             Toggle(L["SECTION_DIVIDERS"], L["A_VISUAL_DIVIDER_LINE_BETWEEN_FOCUS"], "showSectionDividers", D.showSectionDividers),
             Color(L["SECTION_DIVIDER_COLOUR"], L["COLOUR_OF_DIVIDER_LINES_BETWEEN_SECTIONS"], "sectionDividerColor", { 0.3, 0.3, 0.35, 0.4 }, { hasAlpha = true, parent = "showSectionDividers", tooltip = FocusClassTint }),
             Section(L["ZONE_LABELS"], { page = "header", card = "zoneLabels" }),
