@@ -796,6 +796,26 @@ run(`
         received[1] and ("self=Item? " .. tostring(received[1].selfIsItem) ..
                          " itemID=" .. tostring(received[1].itemID)) or "no calls")
 
+  -- Auto-hide: the window lingers only once every roll is over and settled
+  -- (feedback, 2026-11-25: it should pop up and go, not stay).
+  local RW = R.Window
+  local a1, s1 = RW.ExpiryState({})
+  check("expiry: nothing open, no countdown", a1 == false and s1 == false)
+  a1, s1 = RW.ExpiryState({ { finished = false }, { finished = true, summary = { winnerName = "A" } } })
+  check("expiry: a roll still open, no countdown", a1 == false)
+  a1, s1 = RW.ExpiryState({ { finished = true, dropKey = {}, summary = { winnerName = "A" } },
+                            { finished = true, dropKey = {}, summary = { allPassed = true } } })
+  check("expiry: all ended with results, settled", a1 == true and s1 == true)
+  a1, s1 = RW.ExpiryState({ { finished = true, dropKey = {}, summary = { players = {} } } })
+  check("expiry: result still pending, not settled", a1 == true and s1 == false)
+  a1, s1 = RW.ExpiryState({ { finished = true, summary = nil } })
+  check("expiry: no key, nothing to wait for, settled", a1 == true and s1 == true)
+  check("linger default 8s", RW.GetLinger() == 8, RW.GetLinger())
+  HorizonSuite.AUGMENT_LIMITS.lootRollWindowLinger = { min = 3, max = 30 }
+  HorizonSuite.db.lootRollWindowLinger = 99
+  check("linger clamped", RW.GetLinger() == 30, RW.GetLinger())
+  HorizonSuite.db.lootRollWindowLinger = nil
+
   print(("\\n%d passed, %d failed"):format(pass, fail))
   if fail > 0 then error("assertions failed") end
 `, 'assertions');

@@ -59,6 +59,8 @@ D.lootRollShowBadgeBind        = true
 -- Roll list window: opt-in. The button and tally-line tooltips already name
 -- who rolled; the window is for players who want it on screen all the time.
 D.lootRollShowWindow           = false
+-- Seconds the roll list window stays after the last result, then it fades.
+D.lootRollWindowLinger         = 8
 
 D.lootRollEditModeShow         = true
 D.lootRollDebugLive            = false
@@ -75,3 +77,4 @@ LIM.lootRollIconGap     = { min = 0,   max = 32  }
 LIM.lootRollMaxVisible  = { min = 1,   max = 4   }
 LIM.lootRollWidth       = { min = 280, max = 640 }
 LIM.lootRollMinQuality  = { min = 0,   max = 5   }
+LIM.lootRollWindowLinger = { min = 3,  max = 30  }

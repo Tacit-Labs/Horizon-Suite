@@ -28,8 +28,11 @@
 
     WHEN A ROLL ENDS its card flips to the result. The roll frame itself closes
     the moment the roll ends, so this is the only place the outcome stays on
-    screen. Results are kept until the window is closed or the next roll
-    starts. A boss's drops roll together, so "next roll" means "next boss".
+    screen — but only briefly. Once every roll has ended and every result is
+    in, the window lingers for a few seconds (lootRollWindowLinger), then fades
+    and clears itself. It is a pop-up for the moment, not a panel that stays
+    (feedback, 2026-11-25). Hovering it holds it open; a new roll cancels the
+    countdown.
 
     The roll rows forget a roll when it ends, so the window keeps its own list
     of entries. While a roll is open its entry mirrors the row; once the row is
@@ -78,6 +81,40 @@ W.FOLDS = {
 
 for _, fold in ipairs(W.FOLDS) do
     Y.DB_KEYS["lootRollWindowCollapsed_" .. fold.key] = true
+end
+Y.DB_KEYS.lootRollWindowLinger = true
+
+-- A finished roll whose winner never reaches loot history should not hold the
+-- window open forever: after this long it counts as settled anyway.
+W.RESULT_WAIT = 15
+-- Length of the closing fade, inside the linger time.
+W.FADE = 0.5
+
+--- Seconds the window stays up after the last result arrives.
+--- @return number
+function W.GetLinger()
+    local D = addon.AUGMENT_DEFAULTS
+    local lim = addon.AUGMENT_LIMITS and addon.AUGMENT_LIMITS.lootRollWindowLinger
+    local v = tonumber(R.GetDB("lootRollWindowLinger", D and D.lootRollWindowLinger)) or 8
+    if lim then v = math.max(lim.min, math.min(lim.max, v)) end
+    return v
+end
+
+--- Is every roll over, and does every finished roll have its outcome?
+--- @param list table  Window entries
+--- @return boolean allFinished, boolean allSettled
+function W.ExpiryState(list)
+    if #list == 0 then return false, false end
+    local settled = true
+    for _, e in ipairs(list) do
+        if not e.finished then return false, false end
+        local s = e.summary
+        local known = s and (s.allPassed or s.winnerName)
+        -- No key and no demo result: nothing more will ever arrive.
+        local hopeless = not (e.dropKey or e.demoResult)
+        if not (known or hopeless) then settled = false end
+    end
+    return true, settled
 end
 
 local function Text(key, fallback)
@@ -347,6 +384,8 @@ local cardPool = {}
 local manuallyOpen = false   -- /h roll list, or the options button
 local dismissed    = false   -- closed with [x] until the next new roll
 local entries      = {}      -- open and finished rolls, see W.SyncEntries
+local finishedAt   = nil     -- GetTime() when every roll had ended
+local settledAt    = nil     -- GetTime() when every result was in: the linger starts here
 
 local function FontSize() return math.max(9, R.GetFontSize() - 1) end
 local function RowHeight() return FontSize() + 7 end
@@ -653,6 +692,17 @@ local function Build()
         window:Hide()
     end)
 
+    -- Linger, then fade and clear. Hover holds it: the countdown restarts
+    -- from the moment the mouse leaves, so a result is never pulled away
+    -- from under someone reading it.
+    local elapsed = 0
+    window:SetScript("OnUpdate", function(self, dt)
+        elapsed = elapsed + (dt or 0)
+        if elapsed < 0.1 then return end
+        elapsed = 0
+        W.Tick()
+    end)
+
     -- Grows to fit up to MAX_HEIGHT, then scrolls with the mouse wheel.
     scroll = CreateFrame("ScrollFrame", nil, window)
     scroll:SetPoint("TOPLEFT", window, "TOPLEFT", PAD, -(TITLE_HEIGHT + 2))
@@ -675,6 +725,49 @@ local function Build()
     emptyText:SetText(Text("LOOT_ROLL_WINDOW_EMPTY", "No rolls in progress"))
 
     RestorePosition()
+end
+
+local function Now() return GetTime and GetTime() or 0 end
+
+-- Track when every roll ended and when every result was in.
+local function UpdateExpiry()
+    local allFinished, allSettled = W.ExpiryState(entries)
+    if not allFinished then
+        finishedAt, settledAt = nil, nil
+        return
+    end
+    local now = Now()
+    finishedAt = finishedAt or now
+    if not settledAt and (allSettled or now - finishedAt >= W.RESULT_WAIT) then
+        settledAt = now
+    end
+end
+
+local function Expire()
+    finishedAt, settledAt = nil, nil
+    manuallyOpen = false
+    W.DropFinished(entries)
+    if window then window:Hide() end
+end
+
+--- Countdown step, run from the window's OnUpdate.
+--- @return nil
+function W.Tick()
+    if not (window and window:IsShown()) then return end
+    UpdateExpiry()
+    if not settledAt then return end
+    local now = Now()
+    if window:IsMouseOver() then
+        settledAt = now
+        window:SetAlpha(R.GetOpacity())
+        return
+    end
+    local left = W.GetLinger() - (now - settledAt)
+    if left <= 0 then
+        Expire()
+    elseif left < W.FADE then
+        window:SetAlpha(R.GetOpacity() * left / W.FADE)
+    end
 end
 
 local function ShouldShow(hasEntries)
@@ -700,6 +793,7 @@ function W.Refresh()
     local rolls = R.GetActiveRolls and R.GetActiveRolls() or {}
     W.SyncEntries(entries, rolls, ResolveFinished)
     if #entries == 0 then dismissed = false end
+    UpdateExpiry()
 
     if not ShouldShow(#entries > 0) then
         if window then window:Hide() end
@@ -771,6 +865,7 @@ end
 --- @return nil
 function W.Clear()
     entries = {}
+    finishedAt, settledAt = nil, nil
     W.Refresh()
 end
 
@@ -785,5 +880,6 @@ end
 function W.Hide()
     manuallyOpen = false
     entries = {}
+    finishedAt, settledAt = nil, nil
     if window then window:Hide() end
 end
