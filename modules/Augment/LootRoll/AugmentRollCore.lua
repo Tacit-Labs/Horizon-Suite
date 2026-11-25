@@ -368,6 +368,7 @@ function R.Disable()
     RemoveSuppressionHook()
     R.ForgetRoll(nil)
     R.ClearAllRolls()
+    if R.Window and R.Window.Hide then R.Window.Hide() end
 end
 
 --- Re-apply everything an options change can affect.
@@ -384,4 +385,5 @@ function R.ApplyOptions()
         RemoveSuppressionHook()
         R.ClearAllRolls()
     end
+    if R.Window and R.Window.ApplyOptions then R.Window.ApplyOptions() end
 end

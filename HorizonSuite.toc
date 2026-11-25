@@ -141,6 +141,7 @@ modules/Augment/LootRoll/AugmentRollState.lua
 modules/Augment/LootRoll/AugmentRollTally.lua
 modules/Augment/LootRoll/AugmentRollBadges.lua
 modules/Augment/LootRoll/AugmentRollFrames.lua
+modules/Augment/LootRoll/AugmentRollWindow.lua
 modules/Augment/LootRoll/AugmentRollEvents.lua
 modules/Augment/LootRoll/AugmentRollCore.lua
 modules/Augment/LootRoll/AugmentRollDemo.lua

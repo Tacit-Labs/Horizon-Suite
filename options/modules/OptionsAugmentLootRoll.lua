@@ -86,7 +86,7 @@ local category = {
           name = L["LOOT_ROLL_DEMO"], desc = L["LOOT_ROLL_DEMO_DESC"],
           onClick = function()
               local R = addon.Augment and addon.Augment.Roll
-              if R and R.Demo then R.Demo.Run() end
+              if R and R.Demo then R.Demo.Play() end
           end,
         },
         { type = "button",
@@ -94,6 +94,14 @@ local category = {
           onClick = function()
               local R = addon.Augment and addon.Augment.Roll
               if R and R.ToggleEditMode then R.ToggleEditMode() end
+          end,
+        },
+        { type = "button",
+          name = L["LOOT_ROLL_WINDOW_TOGGLE"], desc = L["LOOT_ROLL_WINDOW_TOGGLE_DESC"],
+          requires = "lootHistory",
+          onClick = function()
+              local R = addon.Augment and addon.Augment.Roll
+              if R and R.Window then R.Window.Toggle() end
           end,
         },
 
@@ -107,6 +115,13 @@ local category = {
                       requires = "lootHistory",
                       get = function() return getDB("lootRollShowTally", D.lootRollShowTally) end,
                       set = function(v) setDB("lootRollShowTally", v); applyRoll() end,
+                    },
+                    { type = "toggle",
+                      name = L["LOOT_ROLL_SHOW_WINDOW"], desc = L["LOOT_ROLL_SHOW_WINDOW_DESC"],
+                      dbKey = "lootRollShowWindow",
+                      requires = "lootHistory",
+                      get = function() return getDB("lootRollShowWindow", D.lootRollShowWindow) end,
+                      set = function(v) setDB("lootRollShowWindow", v); applyRoll() end,
                     },
                     { type = "toggle",
                       name = L["LOOT_ROLL_BADGE_APPEARANCE"], desc = L["LOOT_ROLL_BADGE_APPEARANCE_DESC"],
@@ -133,6 +148,22 @@ local category = {
                     },
                 },
             },
+        },
+        { type = "slider",
+          name = L["LOOT_ROLL_WINDOW_LINGER"], desc = L["LOOT_ROLL_WINDOW_LINGER_DESC"],
+          dbKey = "lootRollWindowLinger",
+          requires = "lootHistory",
+          min = LIM.lootRollWindowLinger.min, max = LIM.lootRollWindowLinger.max, step = 1,
+          get = function() return clamp(tonumber(getDB("lootRollWindowLinger", D.lootRollWindowLinger)) or D.lootRollWindowLinger, "lootRollWindowLinger") end,
+          set = function(v) setDB("lootRollWindowLinger", clamp(v, "lootRollWindowLinger")); applyRoll() end,
+        },
+        { type = "slider",
+          name = L["LOOT_ROLL_WINDOW_SCALE"], desc = L["LOOT_ROLL_WINDOW_SCALE_DESC"],
+          dbKey = "lootRollWindowScale",
+          requires = "lootHistory",
+          min = LIM.lootRollWindowScale.min, max = LIM.lootRollWindowScale.max, step = 0.05,
+          get = function() return clamp(tonumber(getDB("lootRollWindowScale", D.lootRollWindowScale)) or D.lootRollWindowScale, "lootRollWindowScale") end,
+          set = function(v) setDB("lootRollWindowScale", clamp(v, "lootRollWindowScale")); applyRoll() end,
         },
         { type = "dropdown",
           name = L["LOOT_ROLL_MIN_QUALITY"], desc = L["LOOT_ROLL_MIN_QUALITY_DESC"],

@@ -15,7 +15,10 @@
  *     has no off-spec.
  *   - ResolveDrop must fail closed. Loot history carries no rollID, so the join
  *     is by item link; two simultaneous rolls on the same link must yield NO
- *     tally rather than a confident wrong one.
+ *     tally rather than a confident wrong one. PairCopies may pair them (oldest
+ *     roll, lowest drop key) but only when the counts agree, and FindMisPair
+ *     catches a wrong pairing from which copy you pressed.
+ *   - Loot history fields can be secret values; they are skipped, never compared.
  *
  * Usage:
  *   npm install fengari     # one dependency, not vendored
@@ -78,6 +81,7 @@ run(read('locales/horizon/enUS.lua'), 'enUS');
 run(read('modules/Augment/LootRoll/AugmentRollState.lua'),  'RollState');
 run(read('modules/Augment/LootRoll/AugmentRollTally.lua'),  'RollTally');
 run(read('modules/Augment/LootRoll/AugmentRollBadges.lua'), 'RollBadges');
+run(read('modules/Augment/LootRoll/AugmentRollWindow.lua'), 'RollWindow');
 run(read('modules/Augment/LootRoll/AugmentRollFrames.lua'), 'RollFrames');
 run(read('modules/Augment/LootRoll/AugmentRollDemo.lua'), 'RollDemo');
 
@@ -225,11 +229,205 @@ run(`
   check("summary youRolled", s.youRolled == "need", s.youRolled)
   check("summary leader",  s.leaderName == "Ana" and s.leaderRoll == 87, s.leaderName)
 
+  -- Who rolled what: names behind the counts (feedback: the counts alone
+  -- cannot be matched to anyone in a raid).
+  check("players.need has both needers", #s.players.need == 2, #s.players.need)
+  check("players.greed names Cy", s.players.greed[1].name == "Cy", s.players.greed[1] and s.players.greed[1].name)
+  check("players carry class", s.players.greed[1].class == "PRIEST", s.players.greed[1].class)
+  check("players.waiting names Ed", s.players.waiting[1].name == "Ed", #s.players.waiting)
+
+  local sorted = T.SortPlayers({ { name = "Zo" }, { name = "Al", roll = 12 }, { name = "Bea", roll = 80 }, { name = "Ab" } })
+  check("sort: highest roll first", sorted[1].name == "Bea" and sorted[2].name == "Al", sorted[1].name)
+  check("sort: unrolled by name after", sorted[3].name == "Ab" and sorted[4].name == "Zo", sorted[3].name)
+
+  local function FakeTooltip()
+    local t = { lines = {} }
+    function t:AddLine(text) self.lines[#self.lines + 1] = text end
+    function t:AddDoubleLine(l, r) self.lines[#self.lines + 1] = l .. " | " .. r end
+    function t:Text() return table.concat(self.lines, "\\n") end
+    return t
+  end
+
+  local tip = FakeTooltip()
+  check("need button adds rollers", T.AddButtonRollers(tip, s, R.ROLL_NEED) == true)
+  local txt = tip:Text()
+  check("need tooltip names Ana", txt:find("Ana") ~= nil, txt)
+  check("need tooltip marks self", txt:find("Bo %(you%)") ~= nil, txt)
+  check("need tooltip omits greeders", txt:find("Cy") == nil, txt)
+
+  -- Off-spec Need came from the Need button too.
+  local offspec = T.Summarise({ rollInfos = {
+    { playerName = "Fi", playerClass = "HUNTER", state = 1 } } })
+  tip = FakeTooltip()
+  T.AddButtonRollers(tip, offspec, R.ROLL_NEED)
+  check("need tooltip includes off-spec", tip:Text():find("Fi") ~= nil, tip:Text())
+
+  tip = FakeTooltip()
+  T.AddButtonRollers(tip, offspec, R.ROLL_GREED)
+  check("empty bucket says nobody yet", tip:Text():find("Nobody yet") ~= nil, tip:Text())
+
+  tip = FakeTooltip()
+  check("disenchant adds nothing", T.AddButtonRollers(tip, s, R.ROLL_DISENCHANT) == false and #tip.lines == 0)
+  check("no summary adds nothing", T.AddButtonRollers(FakeTooltip(), nil, R.ROLL_NEED) == false)
+
+  tip = FakeTooltip()
+  T.AddAllRollers(tip, s)
+  txt = tip:Text()
+  check("all-rollers lists every name", txt:find("Ana") and txt:find("Cy") and txt:find("Di") and txt:find("Ed"), txt)
+  check("all-rollers lists need before greed", txt:find("Need") < txt:find("Greed"), txt)
+  check("all-rollers shows waiting", txt:find("Still choosing %(1%)") ~= nil, txt)
+
+  local withRolls = T.Summarise({ rollInfos = {
+    { playerName = "Gil", playerClass = "MAGE", state = 0, roll = 73 } } })
+  tip = FakeTooltip()
+  T.AddButtonRollers(tip, withRolls, R.ROLL_NEED)
+  check("roll number shown beside name", tip:Text():find("Gil.*| 73") ~= nil, tip:Text())
+
+  -- Counts drawn on the button icons
+  check("button count: need", T.CountForButton(s, R.ROLL_NEED) == 2, T.CountForButton(s, R.ROLL_NEED))
+  check("button count: greed", T.CountForButton(s, R.ROLL_GREED) == 1, T.CountForButton(s, R.ROLL_GREED))
+  check("button count: pass", T.CountForButton(s, R.ROLL_PASS) == 1, T.CountForButton(s, R.ROLL_PASS))
+  check("button count: need includes off-spec", T.CountForButton(offspec, R.ROLL_NEED) == 1)
+  check("button count: disenchant always 0", T.CountForButton(s, R.ROLL_DISENCHANT) == 0)
+  check("button count: no summary 0", T.CountForButton(nil, R.ROLL_NEED) == 0)
+
+  -- Roll list window: one card per roll (feedback, 2026-11-25: a card per
+  -- item reading like standings, not a long list of collapsible headers)
+  local W = R.Window
+  local function rows(card)
+    local out = {}
+    for _, r in ipairs(card.rows) do
+      out[#out + 1] = r.kind == "fold" and ("F:" .. r.fold .. (r.collapsed and "+" or "-") .. r.count)
+        or ((r.winner and "W:" or "P:") .. r.player.name .. (r.dim and "~" or ""))
+    end
+    return table.concat(out, ",")
+  end
+  local open = {}
+  local function isCollapsed(k) if open[k] ~= nil then return not open[k] end return true end
+
+  local card = W.BuildCard({ name = "Sword", quality = 4, summary = s }, isCollapsed)
+  local got = rows(card)
+  check("card: Need above Greed, pass and undecided folded",
+        got == "P:Ana,P:Bo,P:Cy,F:pass+1,F:waiting+1", got)
+  check("card: open roll says how many have chosen", card.line == "4 of 5 have chosen", card.line)
+  check("card: open roll marked Rolling", card.status == "Rolling", card.status)
+  check("card: need rows carry their bucket", card.rows[1].bucket == "need" and card.rows[3].bucket == "greed")
+
+  open.pass = true
+  got = rows(W.BuildCard({ name = "Sword", summary = s }, isCollapsed))
+  check("card: opening Passed lists passers dimmed", got == "P:Ana,P:Bo,P:Cy,F:pass-1,P:Di~,F:waiting+1", got)
+  open.pass = nil
+
+  local offCard = W.BuildCard({ name = "Ring", summary = offspec }, isCollapsed)
+  check("card: off-spec Need listed", rows(offCard) == "P:Fi", rows(offCard))
+  check("card: everyone chosen says rolling", offCard.line == "Everyone has chosen, rolling...", offCard.line)
+
+  card = W.BuildCard({ name = "Cloak", summary = nil }, isCollapsed)
+  check("card: unmatched roll says no data, no rows", card.line == "No roll data yet" and #card.rows == 0, card.line)
+
+  card = W.BuildCard({ name = "Bar", summary = T.Summarise({ rollInfos = {}, allPassed = true }) }, isCollapsed)
+  check("card: all passed", card.line == "Everyone passed" and #card.rows == 0, card.line)
+
+  card = W.BuildCard({ name = "Tie", summary = T.Summarise({ isTied = true, rollInfos = {
+    { playerName = "A", playerClass = "MAGE", state = 0, roll = 50 },
+    { playerName = "B", playerClass = "MAGE", state = 0, roll = 50 } } }) }, isCollapsed)
+  check("card: tie says rolling again", card.line == "Tied, rolling again", card.line)
+
+  check("cards: none open", #W.BuildCards({}, isCollapsed) == 0)
+  check("cards: one per roll", #W.BuildCards({ { name = "A", summary = s }, { name = "B", summary = offspec } }, isCollapsed) == 2)
+
+  -- Standings order: winner, then choice, then roll
+  local ranked = W.Standings(T.Summarise({ rollInfos = {
+    { playerName = "G1", playerClass = "MAGE", state = 3, roll = 99 },
+    { playerName = "N1", playerClass = "MAGE", state = 0, roll = 20 },
+    { playerName = "N2", playerClass = "MAGE", state = 0, roll = 60 },
+    { playerName = "T1", playerClass = "MAGE", state = 2, roll = 90 },
+    { playerName = "O1", playerClass = "MAGE", state = 1, roll = 95 },
+  } }))
+  local order = {}
+  for _, r in ipairs(ranked) do order[#order + 1] = r.player.name end
+  check("standings: Need > off-spec > Transmog > Greed, then roll",
+        table.concat(order, ",") == "N2,N1,O1,T1,G1", table.concat(order, ","))
+
+  -- Fold defaults when nothing is saved: both start closed.
+  check("window default: pass collapsed", W.IsCollapsed("pass") == true)
+  check("window default: waiting collapsed", W.IsCollapsed("waiting") == true)
+  HorizonSuite.db.lootRollWindowCollapsed_pass = false
+  check("window: saved choice beats default", W.IsCollapsed("pass") == false)
+  HorizonSuite.db.lootRollWindowCollapsed_pass = nil
+
+  -- Result view: a finished roll flips to who won (feedback, 2026-11-25)
+  local live = { { rollID = 7, name = "Axe", quality = 4, icon = 123, itemLink = "AXE", summary = s,
+                   dropKey = { encounterID = 1, lootListID = 3 } } }
+  local entries = W.SyncEntries({}, live, nil)
+  check("sync: open roll added", #entries == 1 and entries[1].finished == false, #entries)
+  check("sync: icon and link carried", entries[1].icon == 123 and entries[1].itemLink == "AXE")
+
+  local final = T.Summarise({
+    rollInfos = {
+      { playerName = "Ana", playerClass = "MAGE",   state = 0, roll = 87, isWinner = true },
+      { playerName = "Bo",  playerClass = "ROGUE",  state = 0, roll = 40, isSelf = true },
+      { playerName = "Cy",  playerClass = "PRIEST", state = 3, roll = 95 },
+      { playerName = "Di",  playerClass = "DRUID",  state = 5 },
+    },
+    winner = { playerName = "Ana", playerClass = "MAGE", roll = 87 },
+  })
+  check("summary marks winner", final.players.need[1].isWinner == true)
+  local asked
+  W.SyncEntries(entries, {}, function(e) asked = e.dropKey; return final end)
+  check("sync: closed roll finished", entries[1].finished == true)
+  check("sync: resolves by drop key", asked and asked.lootListID == 3)
+  local res = W.BuildCard(entries[1], isCollapsed)
+  got = rows(res)
+  check("result: winner first, then the rest, pass folded, no Still choosing",
+        got == "W:Ana,P:Bo,P:Cy,F:pass+1", got)
+  check("result: card marked Result", res.status == "Result", res.status)
+  check("result: line names winner, choice and roll", res.line:find("Ana|r won with Need 87%.") ~= nil, res.line)
+  check("result: line adds your own roll", res.line:find("You rolled 40%.") ~= nil, res.line)
+  check("result: tone is result", res.tone == "result", res.tone)
+
+  local mine = W.BuildCard({ finished = true, name = "Orb", summary = T.Summarise({
+    rollInfos = { { playerName = "Me", playerClass = "MAGE", state = 3, roll = 70, isSelf = true, isWinner = true } },
+    winner = { playerName = "Me", playerClass = "MAGE", roll = 70 } }) }, isCollapsed)
+  check("result: you won", mine.line == "You won with Greed 70!", mine.line)
+
+  local passedMe = W.BuildCard({ finished = true, name = "Orb", summary = T.Summarise({
+    rollInfos = { { playerName = "Ana", playerClass = "MAGE", state = 0, roll = 12, isWinner = true },
+                  { playerName = "Me", playerClass = "MAGE", state = 5, isSelf = true } },
+    winner = { playerName = "Ana", playerClass = "MAGE", roll = 12 } }) }, isCollapsed)
+  check("result: you passed", passedMe.line:find("You passed%.") ~= nil, passedMe.line)
+
+  -- Resolve failing keeps the last summary; no winner yet means pending.
+  local pend = W.SyncEntries({}, { { rollID = 8, name = "Orb", summary = s, dropKey = { encounterID = 1, lootListID = 4 } } }, nil)
+  W.SyncEntries(pend, {}, function() return nil end)
+  card = W.BuildCard(pend[1], isCollapsed)
+  check("result: pending until history has the winner",
+        card.line == "Waiting for the result..." and #card.rows == 0, card.line)
+
+  local nokey = W.SyncEntries({}, { { rollID = 9, name = "Gem", summary = nil } }, nil)
+  W.SyncEntries(nokey, {}, nil)
+  card = W.BuildCard(nokey[1], isCollapsed)
+  check("result: no key, unavailable", card.line == "Result unavailable", card.line)
+
+  -- A new roll after results: DropFinished keeps open rolls only.
+  local mixed = W.SyncEntries({}, { { rollID = 1, name = "A" }, { rollID = 2, name = "B" } }, nil)
+  W.SyncEntries(mixed, { { rollID = 2, name = "B" } }, nil)
+  W.DropFinished(mixed)
+  check("drop finished keeps open rolls", #mixed == 1 and mixed[1].rollID == 2, #mixed)
+
+  -- Tally line: result shows the winner
+  check("tally line shows winner after roll", T.FormatLine(final):find("Ana won with 87") ~= nil, T.FormatLine(final))
+
   -- Formatting
   local line = T.FormatLine(s)
-  check("line mentions counts", line:find("2") ~= nil and line:find("1") ~= nil, line)
-  check("line mentions leader", line:find("Ana") ~= nil, line)
-  check("line mentions leader roll", line:find("87") ~= nil, line)
+  -- Counts live on the button icons and the leader is not known until
+  -- everyone has chosen, so mid-roll the line only says who is still to choose.
+  check("line says who is still to choose", line == "waiting on 1", line)
+  check("line has no counts", line:find("Need") == nil and line:find("Greed") == nil, line)
+  check("line has no leader", line:find("Ana") == nil and line:find("87") == nil, line)
+  local allChosen = T.Summarise({ rollInfos = { { playerName = "A", state = 0 } },
+                                  currentLeader = { playerName = "A", roll = 50 } })
+  check("everyone chosen, no result yet -> empty", T.FormatLine(allChosen) == "", T.FormatLine(allChosen))
 
   check("nil summary -> empty", T.FormatLine(nil) == "", T.FormatLine(nil))
 
@@ -292,6 +490,20 @@ run(`
   end
   check("single match resolves", T.ResolveDrop("ONE") ~= nil, "single")
 
+  -- The key that finds the drop again once it is finished
+  C_LootHistory.GetSortedDropsForEncounter = function()
+    return { { itemHyperlink = "KEYED", lootListID = 6, startTime = 98, duration = 30, rollInfos = {} } }
+  end
+  local d, enc = T.ResolveDrop("KEYED")
+  check("resolve hands back encounterID", d ~= nil and enc ~= nil, tostring(enc))
+  C_LootHistory.GetSortedDropsForEncounter = function()
+    return { { itemHyperlink = "KEYED", lootListID = 6, winner = { playerName = "Zed", roll = 5 }, rollInfos = {} } }
+  end
+  check("finished drop invisible to link join", T.ResolveDrop("KEYED") == nil)
+  local fd = T.FindDrop(enc, 6)
+  check("FindDrop finds the finished drop by key", fd ~= nil and fd.winner.playerName == "Zed")
+  check("FindDrop wrong lootListID -> nil", T.FindDrop(enc, 7) == nil)
+
   -- A finished drop is not a candidate for a roll still on screen
   C_LootHistory.GetSortedDropsForEncounter = function()
     return { { itemHyperlink = "DONE", startTime = 98, duration = 30, rollInfos = {},
@@ -304,6 +516,80 @@ run(`
     return { { itemHyperlink = "OLD", startTime = 10, duration = 30, rollInfos = {} } }
   end
   check("stale drop ignored", T.ResolveDrop("OLD") == nil, "stale")
+
+  -- Drop key: retail's lootListID or Forever's lootListKey
+  check("DropKey reads lootListID", T.DropKey({ lootListID = 4 }) == 4)
+  check("DropKey reads lootListKey", T.DropKey({ lootListKey = 9 }) == 9)
+  check("DropKey nil without either", T.DropKey({}) == nil)
+  C_LootHistory.GetSortedDropsForEncounter = function()
+    return { { itemHyperlink = "FV", lootListKey = 2, rollInfos = {} } }
+  end
+  check("FindDrop works with lootListKey", T.FindDrop(1, 2) ~= nil)
+
+  -- Two copies of one item: candidates come back lowest key first
+  C_LootHistory.GetSortedDropsForEncounter = function()
+    return {
+      { itemHyperlink = "TOKEN", lootListID = 12, startTime = 99, duration = 30, rollInfos = {} },
+      { itemHyperlink = "TOKEN", lootListID = 11, startTime = 98, duration = 30, rollInfos = {} },
+    }
+  end
+  local cands = T.Candidates("TOKEN")
+  check("candidates: both copies", #cands == 2, #cands)
+  check("candidates: lowest key first", cands[1].key == 11 and cands[2].key == 12,
+        tostring(cands[1] and cands[1].key))
+  check("ResolveDrop still fails closed on two copies", T.ResolveDrop("TOKEN") == nil)
+
+  -- Oldest roll takes the lowest key
+  local paired = T.PairCopies({ { rollID = 50, startedAt = 10.5 }, { rollID = 49, startedAt = 10.0 } }, cands)
+  check("pair: oldest roll gets lowest key", paired[49] and paired[49].key == 11, paired[49] and paired[49].key)
+  check("pair: newer roll gets next key", paired[50] and paired[50].key == 12, paired[50] and paired[50].key)
+  local tie = T.PairCopies({ { rollID = 8, startedAt = 1 }, { rollID = 7, startedAt = 1 } }, cands)
+  check("pair: same start time falls back to rollID", tie[7].key == 11 and tie[8].key == 12)
+
+  -- Fails closed when counts disagree or a key is missing
+  local none = T.PairCopies({ { rollID = 1, startedAt = 1 } }, cands)
+  check("pair: one roll, two drops -> nothing", next(none) == nil)
+  none = T.PairCopies({ { rollID = 1, startedAt = 1 }, { rollID = 2, startedAt = 2 } }, { cands[1] })
+  check("pair: two rolls, one drop -> nothing", next(none) == nil)
+  none = T.PairCopies({ { rollID = 1, startedAt = 1 } }, { { drop = {}, encounterID = 1, key = nil } })
+  check("pair: drop without a key -> nothing", next(none) == nil)
+  local single = T.PairCopies({ { rollID = 1, startedAt = 1 } }, { cands[1] })
+  check("pair: one roll, one drop pairs", single[1] == cands[1])
+
+  -- Your own choice on a drop
+  check("SelfBucket need", T.SelfBucket({ rollInfos = { { isSelf = true, state = 0 } } }) == "need")
+  check("SelfBucket waiting", T.SelfBucket({ rollInfos = { { isSelf = true, state = 4 } } }) == "waiting")
+  check("SelfBucket nil when not on it", T.SelfBucket({ rollInfos = { { isSelf = false, state = 0 } } }) == nil)
+
+  -- Mispair: you pressed roll 2, but history put your choice on roll 1's drop
+  local i, j = T.FindMisPair({ { pressed = false, selfBucket = "need" }, { pressed = true, selfBucket = "waiting" } })
+  check("mispair: swap found", i == 1 and j == 2, tostring(i) .. "," .. tostring(j))
+  i = T.FindMisPair({ { pressed = true, selfBucket = "need" }, { pressed = false, selfBucket = "waiting" } })
+  check("mispair: right way round -> nothing", i == nil)
+  i = T.FindMisPair({ { pressed = true, selfBucket = "need" }, { pressed = true, selfBucket = "greed" } })
+  check("mispair: pressed both -> nothing", i == nil)
+  i = T.FindMisPair({ { pressed = false, selfBucket = "waiting" }, { pressed = true, selfBucket = "waiting" } })
+  check("mispair: history not caught up -> nothing", i == nil)
+
+  -- Secret values: unreadable fields are skipped, never compared
+  local SECRET = setmetatable({}, { __eq = function() error("compared a secret") end })
+  issecretvalue = function(v) return v == nil and false or rawequal(v, SECRET) end
+  local sec = T.Summarise({ rollInfos = {
+    { playerName = SECRET, playerClass = "MAGE", state = 0, roll = SECRET, isSelf = SECRET },
+    { playerName = "Ok", playerClass = "MAGE", state = SECRET },
+  }, isTied = SECRET, allPassed = SECRET, winner = SECRET })
+  check("secret: summary built", sec ~= nil)
+  check("secret: secret state skipped", sec.total == 1, sec.total)
+  check("secret: secret name blank, roll dropped",
+        sec.players.need[1].name == "" and sec.players.need[1].roll == nil)
+  check("secret: secret flags read as false", sec.isTied == false and sec.allPassed == false and sec.winnerName == nil)
+  C_LootHistory.GetSortedDropsForEncounter = function()
+    return { { itemHyperlink = SECRET, lootListID = 1, rollInfos = {} },
+             { itemHyperlink = "PLAIN", lootListID = SECRET, startTime = 99, duration = 30, rollInfos = {} } }
+  end
+  check("secret: secret link never matches", #T.Candidates("PLAIN") == 1)
+  check("secret: secret key reads as no key", T.Candidates("PLAIN")[1].key == nil)
+  issecretvalue = nil
 
   -- Badges
   local B = R.Badges
@@ -509,6 +795,64 @@ run(`
   check("CreateFromItemID called as a method with a real itemID", allGood,
         received[1] and ("self=Item? " .. tostring(received[1].selfIsItem) ..
                          " itemID=" .. tostring(received[1].itemID)) or "no calls")
+
+  -- Auto-hide: the window lingers only once every roll is over and settled
+  -- (feedback, 2026-11-25: it should pop up and go, not stay).
+  local RW = R.Window
+  local a1, s1 = RW.ExpiryState({})
+  check("expiry: nothing open, no countdown", a1 == false and s1 == false)
+  a1, s1 = RW.ExpiryState({ { finished = false }, { finished = true, summary = { winnerName = "A" } } })
+  check("expiry: a roll still open, no countdown", a1 == false)
+  a1, s1 = RW.ExpiryState({ { finished = true, dropKey = {}, summary = { winnerName = "A" } },
+                            { finished = true, dropKey = {}, summary = { allPassed = true } } })
+  check("expiry: all ended with results, settled", a1 == true and s1 == true)
+  a1, s1 = RW.ExpiryState({ { finished = true, dropKey = {}, summary = { players = {} } } })
+  check("expiry: result still pending, not settled", a1 == true and s1 == false)
+  a1, s1 = RW.ExpiryState({ { finished = true, summary = nil } })
+  check("expiry: no key, nothing to wait for, settled", a1 == true and s1 == true)
+  check("linger default 8s", RW.GetLinger() == 8, RW.GetLinger())
+  HorizonSuite.AUGMENT_LIMITS.lootRollWindowLinger = { min = 3, max = 30 }
+  HorizonSuite.db.lootRollWindowLinger = 99
+  check("linger clamped", RW.GetLinger() == 30, RW.GetLinger())
+  HorizonSuite.db.lootRollWindowLinger = nil
+
+  -- Window size: grip-set width/height and its own scale, clamped
+  HorizonSuite.AUGMENT_LIMITS.lootRollWindowWidth = { min = 220, max = 480 }
+  HorizonSuite.AUGMENT_LIMITS.lootRollWindowScale = { min = 0.5, max = 2.0 }
+  check("window width default", RW.GetWidth() == 260, RW.GetWidth())
+  HorizonSuite.db.lootRollWindowWidth = 9999
+  check("window width clamped", RW.GetWidth() == 480, RW.GetWidth())
+  HorizonSuite.db.lootRollWindowWidth = nil
+  HorizonSuite.db.lootRollScale = 1.5
+  check("window scale independent of roll scale", RW.GetScale() == 1.0, RW.GetScale())
+  HorizonSuite.db.lootRollScale = nil
+
+  -- Played demo: rolls open with nobody chosen, choices arrive in steps,
+  -- then the rolls close (Demo.Clear) and the window shows the results.
+  local shown, timers, opened, cleared = {}, {}, false, 0
+  R.ShowRoll = function(roll) shown[#shown + 1] = roll; return true end
+  R.FindRow = function() return nil end
+  R.Window.Open = function() opened = true end
+  C_Timer = { After = function(t, fn) timers[#timers + 1] = { t = t, fn = fn } end }
+  local realClear = R.Demo.Clear
+  R.Demo.Clear = function() cleared = cleared + 1 end
+  R.Demo.Play()
+  check("play: opens the roll list", opened)
+  check("play: short roll timer", shown[1] and shown[1].rollTime == 9000, shown[1] and shown[1].rollTime)
+  local t1 = shown[1] and shown[1].demoTally
+  check("play: nobody has chosen at the start",
+        t1 and t1.counts.need == 0 and t1.counts.waiting == 4, t1 and t1.counts.waiting)
+  local gold = shown[4] and shown[4].demoTally
+  check("play: Gold Bar not all-passed until everyone passes", gold and not gold.allPassed)
+  check("play: result built for every roll", shown[1].demoResult and shown[1].demoResult.winnerName == "Sarah")
+  local last = timers[#timers]
+  check("play: steps then an end", #timers >= 3 and last.t > timers[#timers - 1].t, #timers)
+  last.fn()
+  check("play: end closes the rolls", cleared == 1, cleared)
+  R.Demo.Play()
+  for _, tm in ipairs(timers) do if tm == last then tm.fn() end end
+  check("play: an old run's timer does nothing after a replay", cleared == 1, cleared)
+  R.Demo.Clear = realClear
 
   print(("\\n%d passed, %d failed"):format(pass, fail))
   if fail > 0 then error("assertions failed") end

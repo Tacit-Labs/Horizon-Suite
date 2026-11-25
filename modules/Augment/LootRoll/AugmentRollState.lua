@@ -65,9 +65,9 @@ R.POOL_SIZE    = 4
 
 -- Fallback only; R.GetWidth() is the live value. Measured, not guessed: on the
 -- Forever demo at 420 the text column was ~257 units and held ~39 characters,
--- about 6.6 units each at the default font. The longest tally line, "2 Need
--- 1 Greed  1 Pass   Sarah leads with 91", is 46 characters, ~304 units — too
--- wide for 420 even on a line of its own. 480 leaves ~320.
+-- about 6.6 units each at the default font. The tally line used to carry
+-- counts and the leader (46 characters, ~304 units); it is now much shorter
+-- (counts moved onto the buttons), but item names and badges still use it.
 R.WIDTH        = 480
 R.ICON_SIZE    = 40
 R.ICON_BG_PAD  = 1

@@ -9,9 +9,10 @@
 
     Layout per row (icon side left; mirrored when the icon sits right):
 
+                                                 2     1     1
         [icon] Item Name                      [Need][Greed][Pass]
         [icon] New look  +13 ilvl  BoP
-               2 Need  1 Greed  1 Pass   Sarah leads with 91
+               waiting on 3                    (counts sit on the buttons)
         [================= timer bar =====================]
 
     Badges and tally get a line each. They shared one until the first live
@@ -127,6 +128,19 @@ local function CreateRollButton(parent, rollType)
     R.ApplyButtonArt(icon, rollType, R.BUTTON_ATLASES)
     b.icon = icon
 
+    -- How many people chose this button, on the icon's corner. Its own frame,
+    -- above the art, ignoring the button's alpha: a greyed-out Need button
+    -- (you cannot Need) still needs a readable count of who did.
+    local badge = CreateFrame("Frame", nil, b)
+    badge:SetAllPoints(b)
+    badge:SetFrameLevel((b:GetFrameLevel() or 0) + 2)
+    if badge.SetIgnoreParentAlpha then badge:SetIgnoreParentAlpha(true) end
+    local count = badge:CreateFontString(nil, "OVERLAY", "NumberFontNormal")
+    count:SetPoint("TOPRIGHT", b, "TOPRIGHT", 4, 4)
+    count:SetTextColor(1, 1, 1, 1)
+    count:Hide()
+    b.count = count
+
     local highlight = b:CreateTexture(nil, "HIGHLIGHT")
     highlight:SetAllPoints(b)
     if not R.ApplyButtonArt(highlight, rollType, R.BUTTON_HIGHLIGHT_ATLASES) then
@@ -145,6 +159,11 @@ local function CreateRollButton(parent, rollType)
         elseif row and row.demo then
             GameTooltip:AddLine((L and L["LOOT_ROLL_DEMO_BUTTON_INERT"]) or
                 "Demo roll — this button does nothing.", 0.7, 0.7, 0.7, true)
+        end
+        -- Who has already chosen this button. The tally line gives the count;
+        -- in a raid the count alone cannot be matched to anyone.
+        if row and row.summary and R.Tally and R.Tally.AddButtonRollers then
+            R.Tally.AddButtonRollers(GameTooltip, row.summary, self.rollType)
         end
         GameTooltip:Show()
     end)
@@ -255,6 +274,21 @@ local function CreateRow(parent)
         GameTooltip:Show()
     end)
     iconHit:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
+    -- Hovering the tally line lists everyone by choice. Sized and placed over
+    -- whichever line holds the tally by R.SetInfoLines.
+    local tallyHit = CreateFrame("Frame", nil, f)
+    tallyHit:EnableMouse(true)
+    tallyHit:Hide()
+    tallyHit:SetScript("OnEnter", function(self)
+        local row = RowOf(self)
+        if not (row and row.summary and R.Tally and R.Tally.AddAllRollers) then return end
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText((L and L["LOOT_ROLL_WHO_TITLE"]) or "Rolls", 1, 1, 1)
+        R.Tally.AddAllRollers(GameTooltip, row.summary)
+        GameTooltip:Show()
+    end)
+    tallyHit:SetScript("OnLeave", function() GameTooltip:Hide() end)
     iconHit:RegisterForClicks("LeftButtonUp")
     iconHit:SetScript("OnClick", function(self)
         local row = RowOf(self)
@@ -267,7 +301,7 @@ local function CreateRow(parent)
         frame = f, icon = icon, iconBg = iconBg, iconDark = iconDark,
         count = count, title = title, body = body, tally = tally,
         bar = bar, buttons = buttons, timer = timer, iconHit = iconHit,
-        active = false,
+        tallyHit = tallyHit, active = false,
     }
     f.row = row   -- see RowOf
     return row
@@ -361,6 +395,20 @@ function R.SetInfoLines(row, badges, tally)
     end
     row.lineCount = lines
     ReanchorText(row, R.GetIconSide(), lines)
+
+    -- Cover the line that ended up holding the tally, if any.
+    local hit = row.tallyHit
+    if hit then
+        local holder = (lines == 3 and row.tally) or (lines == 2 and badges == "" and row.body) or nil
+        hit:ClearAllPoints()
+        if holder and row.summary then
+            hit:SetPoint("TOPLEFT", holder, "TOPLEFT", 0, 0)
+            hit:SetPoint("BOTTOMRIGHT", holder, "BOTTOMRIGHT", 0, 0)
+            hit:Show()
+        else
+            hit:Hide()
+        end
+    end
 end
 
 -- Pack the visible buttons into the bar and anchor the bar to the far edge.
@@ -541,6 +589,7 @@ function R.ShowRoll(roll)
     row.demoTally    = roll.demoTally
     row.startedAt    = GetTime and GetTime() or 0
     row.rolledAs     = nil
+    row.dropKey      = nil
 
     row.icon:SetTexture(roll.texture)
     row.icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
@@ -596,7 +645,76 @@ function R.ShowRoll(roll)
     row.frame:Show()
     Frame:Show()
     Restack()
+    if R.Window and R.Window.OnRollShown then R.Window.OnRollShown(roll.rollID) end
     return true
+end
+
+--- The history drop behind a row.
+--- A row keeps the drop key once it has one (row.dropKey): the link join only
+--- sees unfinished drops, and the roll list window still wants the result
+--- after the roll ends. Rows for the same item link are resolved together, so
+--- two copies of one item can be told apart (T.PairCopies), and the pairing
+--- is checked against which copy you pressed (T.FindMisPair).
+--- @param row table
+--- @return table|nil dropInfo
+function R.ResolveRowDrop(row)
+    local T = R.Tally
+    if not (row and row.itemLink and T) then return nil end
+
+    local group, taken = {}, {}
+    for i = 1, R.POOL_SIZE do
+        local r = pool[i]
+        if r.active and not r.demo then
+            if r.itemLink == row.itemLink then group[#group + 1] = r end
+            if r.dropKey then
+                local k = T.KeyString(r.dropKey.encounterID, r.dropKey.lootListID)
+                if k then taken[k] = true end
+            end
+        end
+    end
+    if #group == 0 then group[1] = row end
+
+    local unkeyed = {}
+    for _, r in ipairs(group) do
+        if not r.dropKey then unkeyed[#unkeyed + 1] = { rollID = r.rollID, startedAt = r.startedAt, row = r } end
+    end
+    if #unkeyed > 0 then
+        local free = {}
+        for _, c in ipairs(T.Candidates(row.itemLink)) do
+            if not taken[T.KeyString(c.encounterID, c.key) or ""] then free[#free + 1] = c end
+        end
+        local pairs_ = T.PairCopies(unkeyed, free)
+        for _, u in ipairs(unkeyed) do
+            local c = pairs_[u.rollID]
+            if c then u.row.dropKey = { encounterID = c.encounterID, lootListID = c.key } end
+        end
+    end
+
+    local drops = {}
+    for i, r in ipairs(group) do
+        drops[i] = r.dropKey and T.FindDrop(r.dropKey.encounterID, r.dropKey.lootListID) or nil
+    end
+
+    if #group > 1 then
+        local entries = {}
+        for i, r in ipairs(group) do
+            entries[i] = { pressed = r.rolledAs ~= nil, selfBucket = T.SelfBucket(drops[i]) }
+        end
+        local a, b = T.FindMisPair(entries)
+        if a and b then
+            if addon.Log and addon.Log.debug then
+                addon.Log.debug("augmentLootRoll", ("roll %s and %s were paired the wrong way round; swapping")
+                    :format(tostring(group[a].rollID), tostring(group[b].rollID)))
+            end
+            group[a].dropKey, group[b].dropKey = group[b].dropKey, group[a].dropKey
+            drops[a], drops[b] = drops[b], drops[a]
+        end
+    end
+
+    for i, r in ipairs(group) do
+        if r == row then return drops[i] end
+    end
+    return nil
 end
 
 --- Rebuild the badges and tally lines for a row.
@@ -612,16 +730,33 @@ function R.RefreshRowInfoLine(row, roll)
 
     -- The demo honours the tally toggle too, so it previews what a real roll
     -- would look like with the player's own settings.
-    local tally = ""
+    local tally, summary = "", nil
     if R.IsTallyEnabled() and R.Tally then
         if row.demo then
-            if row.demoTally then tally = R.Tally.FormatLine(row.demoTally) end
+            summary = row.demoTally
         else
-            tally = R.Tally.FormatLine(R.Tally.ForItemLink(row.itemLink))
+            summary = R.Tally.Summarise(R.ResolveRowDrop(row))
         end
+        tally = R.Tally.FormatLine(summary)
     end
 
+    -- Kept for the hover tooltips, which name who chose what.
+    row.summary = summary
     R.SetInfoLines(row, badges, tally)
+
+    -- Count on each button's icon. Hidden at zero so an untouched choice stays clean.
+    for rollType, b in pairs(row.buttons) do
+        if b.count then
+            local n = (summary and not summary.allPassed and R.Tally)
+                and R.Tally.CountForButton(summary, rollType) or 0
+            if n > 0 then
+                b.count:SetText(n)
+                b.count:Show()
+            else
+                b.count:Hide()
+            end
+        end
+    end
 end
 
 --- Refresh every open row's tally. Called from LOOT_HISTORY_UPDATE_DROP.
@@ -630,6 +765,16 @@ function R.RefreshAllTallies()
     if not framesCreated then return end
     for i = 1, R.POOL_SIZE do
         if pool[i].active then R.RefreshRowInfoLine(pool[i]) end
+    end
+
+    if R.Window and R.Window.Refresh then R.Window.Refresh() end
+
+    -- A tooltip open over a roll keeps listing names as they come in, rather
+    -- than freezing on whatever was true when the mouse arrived.
+    local owner = GameTooltip and GameTooltip:IsShown() and GameTooltip:GetOwner()
+    if owner and owner.IsMouseOver and owner:IsMouseOver() and RowOf(owner) then
+        local onEnter = owner:GetScript("OnEnter")
+        if onEnter then onEnter(owner) end
     end
 end
 
@@ -694,6 +839,7 @@ function R.ReleaseRoll(rollID)
     if not row then return end
     row.active = false
     row.rollID = nil
+    row.summary = nil
     row.frame:Hide()
     -- Blizzard hides its own confirm popup when the roll frame goes away
     -- (GroupLootFrame_Remove). We suppress its frame, so that cleanup is ours.
@@ -702,6 +848,35 @@ function R.ReleaseRoll(rollID)
     if R.HasActiveRows and not R.HasActiveRows() and not R.IsEditing() then
         Frame:Hide()
     end
+    if R.Window and R.Window.Refresh then R.Window.Refresh() end
+end
+
+--- Open rolls, oldest first, as { name, quality, summary, demo } — what the
+--- roll list window draws. Read from the rows rather than kept separately, so
+--- the window can never list a roll the frames have already let go of.
+--- @return table
+function R.GetActiveRolls()
+    local out = {}
+    if not framesCreated then return out end
+    for i = 1, R.POOL_SIZE do
+        local row = pool[i]
+        if row.active then
+            out[#out + 1] = {
+                rollID    = row.rollID,
+                name      = row.roll and row.roll.name or "",
+                quality   = row.quality,
+                icon      = row.roll and row.roll.texture,
+                itemLink  = row.itemLink,
+                summary   = row.summary,
+                dropKey   = row.dropKey,
+                demoResult = row.roll and row.roll.demoResult,
+                demo      = row.demo,
+                startedAt = row.startedAt or 0,
+            }
+        end
+    end
+    table.sort(out, function(a, b) return a.startedAt < b.startedAt end)
+    return out
 end
 
 --- @return boolean
@@ -722,10 +897,12 @@ function R.ClearAllRolls()
         if row.active then
             row.active = false
             row.rollID = nil
+            row.summary = nil
             row.frame:Hide()
         end
     end
     if not R.IsEditing() then Frame:Hide() end
+    if R.Window and R.Window.Refresh then R.Window.Refresh() end
 end
 
 -- ============================================================================

@@ -17,18 +17,44 @@ local function HandleRollSlash(msg)
     local cmd = strtrim(msg or ""):lower()
 
     if cmd == "demo" then
+        R.Demo.Play()
+        return
+    end
+
+    if cmd == "demo hold" then
+        -- The old static demo: rolls sit for 60s with everyone chosen, for
+        -- checking layout and hovering at leisure.
         R.Demo.Run()
+        return
+    end
+
+    if cmd == "demo end" then
+        -- End the demo rolls now rather than waiting out their 60s, so the
+        -- roll list window's result view can be checked straight away.
+        R.Demo.Clear()
         return
     end
 
     if cmd == "clear" then
         R.Demo.Clear()
         R.ClearAllRolls()
+        if R.Window and R.Window.Clear then R.Window.Clear() end
         return
     end
 
     if cmd == "edit" or cmd == "move" then
         R.ToggleEditMode()
+        return
+    end
+
+    if cmd == "list" then
+        if R.Window then R.Window.Toggle() end
+        return
+    end
+
+    if cmd == "list reset" then
+        if R.Window then R.Window.ResetPosition() end
+        HSPrint("Roll list window position reset to default.")
         return
     end
 
@@ -64,10 +90,14 @@ local function HandleRollSlash(msg)
     if cmd == "" or cmd == "help" then
         HSPrint("Loot roll commands:")
         HSPrint("  /h roll          - Show this help")
-        HSPrint("  /h roll demo     - Show fabricated rolls (works solo, buttons inert)")
+        HSPrint("  /h roll demo     - Play a demo roll through to its result (works solo)")
+        HSPrint("  /h roll demo hold - Show demo rolls that sit for 60s, for checking layout")
+        HSPrint("  /h roll demo end - End the demo rolls now and show their results")
         HSPrint("  /h roll clear    - Clear every roll frame on screen")
         HSPrint("  /h roll edit     - Toggle edit mode to reposition the stack")
         HSPrint("  /h roll reset    - Reset position to default")
+        HSPrint("  /h roll list     - Show / hide the roll list window")
+        HSPrint("  /h roll list reset - Reset the roll list window position")
         HSPrint("  /h roll toggle   - Enable / disable the loot roll frames")
         HSPrint("  /h roll status   - Print client capabilities and module state")
         HSPrint("  /h platform probe - Ask this client what group loot reports")

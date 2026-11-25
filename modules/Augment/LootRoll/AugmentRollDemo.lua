@@ -30,46 +30,133 @@ local DEMO_ROLL_BASE = 900000
 local FALLBACK_ICON = "Interface\\Icons\\INV_Misc_QuestionMark"
 
 -- itemID, quality, and which buttons the fabricated roll offers.
+-- Tally entries are { name, class, roll }. The roll number is only revealed in
+-- the result: the server rolls once everyone has chosen, so the live view
+-- never shows numbers, exactly as a real roll would not.
 local SAMPLES = {
     {   itemID = 19019, quality = 5, count = 1,            -- Thunderfury
         canNeed = true, canGreed = true, bindOnPickUp = true,
-        tally = { need = 2, greed = 1, pass = 1, leader = "Sarah", leaderRoll = 91 } },
+        tally = { need  = { { "Sarah", "PALADIN", 91 }, { "Mikhail", "WARRIOR", 47 } },
+                  greed = { { "Ines", "MAGE", 88 } },
+                  pass  = { { "Tomas", "PRIEST" } } } },
     {   itemID = 18832, quality = 4, count = 1,            -- Brutality Blade
         canNeed = true, canGreed = true, bindOnPickUp = true,
-        tally = { need = 1, greed = 2, pass = 0, leader = "Mikhail", leaderRoll = 64 } },
+        tally = { need  = { { "Mikhail", "WARRIOR", 64 } },
+                  greed = { { "Sarah", "PALADIN", 12 }, { "Ines", "MAGE", 70 } },
+                  waiting = { { "Tomas", "PRIEST" } } } },
     {   itemID = 12064, quality = 3, count = 1,            -- Serpentine Sash
         canNeed = false, canGreed = true, canTransmog = true,
-        reasonNeed = 1 },
+        reasonNeed = 1,
+        tally = { transmog = { { "Ines", "MAGE", 33 }, { "Tomas", "PRIEST", 58 } },
+                  pass     = { { "Sarah", "PALADIN" }, { "Mikhail", "WARRIOR" } } } },
     {   itemID = 3577,  quality = 2, count = 4,            -- Gold Bar
         canNeed = false, canGreed = true, reasonNeed = 5,
-        tally = { allPassed = true } },
+        tally = { pass = { { "Sarah", "PALADIN" }, { "Mikhail", "WARRIOR" },
+                           { "Ines", "MAGE" }, { "Tomas", "PRIEST" } },
+                  allPassed = true } },
 }
+
+-- The played demo (/h roll demo): rolls open with nobody chosen, one more
+-- player chooses each step, the roll closes, and the window shows the result
+-- then fades. Times in seconds from the start.
+local PLAY_ROLL_SECONDS = 9     -- roll timer length, so the bar visibly runs down
+local PLAY_STEP_FIRST   = 1.0
+local PLAY_STEP_EVERY   = 1.2
+local PLAY_END          = 7.0   -- the rolls close here and the results show
+
+-- Bumped by every Play, so a timer left over from an earlier run does nothing.
+local playToken = 0
+
+-- Order players reveal their choice in: one from each choice in turn, so the
+-- counts climb on every button rather than filling Need first.
+local REVEAL_BUCKETS = { "need", "needOff", "transmog", "greed", "pass" }
+local function RevealOrder(spec)
+    local order, i, more = {}, 1, true
+    while more do
+        more = false
+        for _, bucket in ipairs(REVEAL_BUCKETS) do
+            local p = spec[bucket] and spec[bucket][i]
+            if p then
+                order[#order + 1] = p
+                more = true
+            end
+        end
+        i = i + 1
+    end
+    return order
+end
+
+local BUCKETS = { "need", "needOff", "transmog", "greed", "pass", "waiting" }
+-- Need beats Greed and Transmog whatever the numbers, as on a real roll.
+local WIN_ORDER = { "need", "needOff", "transmog", "greed" }
 
 -- Build the summary shape AugmentRollTally.Summarise produces, so the demo
 -- exercises the real formatter rather than a parallel one that could drift.
-local function BuildDemoTally(spec)
+-- `final` builds the finished roll: numbers revealed, nobody left choosing
+-- (anyone still waiting is treated as having passed), and a winner.
+-- `revealed` (played demo only) is how many players have chosen so far; the
+-- rest show as still choosing. nil means everyone has.
+local function BuildDemoTally(spec, final, revealed)
     if not spec then return nil end
-    if spec.allPassed then
-        return { counts = {}, total = 0, rolled = 0, allPassed = true }
+    local order = RevealOrder(spec)
+    local allIn = final or revealed == nil or revealed >= #order
+    if spec.allPassed and allIn then
+        return { counts = {}, players = {}, total = 0, rolled = 0, allPassed = true }
     end
-    return {
-        counts = {
-            need = spec.need or 0, needOff = 0, transmog = 0,
-            greed = spec.greed or 0, pass = spec.pass or 0, waiting = 0,
-        },
-        total      = (spec.need or 0) + (spec.greed or 0) + (spec.pass or 0),
-        rolled     = (spec.need or 0) + (spec.greed or 0) + (spec.pass or 0),
-        isTied     = false,
-        allPassed  = false,
-        leaderName = spec.leader,
-        leaderRoll = spec.leaderRoll,
+    if not allIn then
+        local shown = {}
+        for i = 1, revealed do shown[order[i]] = true end
+        local staged = { waiting = {} }
+        for _, bucket in ipairs(REVEAL_BUCKETS) do
+            staged[bucket] = {}
+            for _, p in ipairs(spec[bucket] or {}) do
+                local list = shown[p] and staged[bucket] or staged.waiting
+                list[#list + 1] = p
+            end
+        end
+        for _, p in ipairs(spec.waiting or {}) do staged.waiting[#staged.waiting + 1] = p end
+        spec = staged
+    end
+    local counts, players, total = {}, {}, 0
+    for _, bucket in ipairs(BUCKETS) do players[bucket] = {} end
+    for _, bucket in ipairs(BUCKETS) do
+        local target = (final and bucket == "waiting") and "pass" or bucket
+        for _, p in ipairs(spec[bucket] or {}) do
+            local list = players[target]
+            list[#list + 1] = { name = p[1], class = p[2],
+                                roll = final and target ~= "pass" and p[3] or nil,
+                                isSelf = false, isWinner = false }
+        end
+    end
+    for _, bucket in ipairs(BUCKETS) do
+        counts[bucket] = #players[bucket]
+        if bucket ~= "waiting" then total = total + #players[bucket] end
+        if R.Tally and R.Tally.SortPlayers then R.Tally.SortPlayers(players[bucket]) end
+    end
+
+    local summary = {
+        counts = counts, players = players, total = total, rolled = total - counts.waiting,
+        isTied = false, allPassed = false,
     }
+    if final then
+        for _, bucket in ipairs(WIN_ORDER) do
+            local best = players[bucket][1]   -- sorted, highest roll first
+            if best and best.roll then
+                best.isWinner = true
+                summary.winnerName, summary.winnerRoll, summary.winnerClass = best.name, best.roll, best.class
+                break
+            end
+        end
+    end
+    return summary
 end
 
 --- Build one fabricated roll descriptor.
 --- @param index number  Index into SAMPLES
+--- @param opts table|nil  { rollTime = ms, revealed = n } for the played demo
 --- @return table
-local function BuildDemoRoll(index)
+local function BuildDemoRoll(index, opts)
+    opts = opts or {}
     local sample = SAMPLES[index]
     local name, link, texture
 
@@ -92,7 +179,7 @@ local function BuildDemoRoll(index)
         -- A real roll's length: Blizzard's own timer bar is sized for 60s
         -- (GroupLootFrame.xml, Timer maxValue). At 12s the demo vanished
         -- before there was time to hover everything on it.
-        rollTime      = 60000,
+        rollTime      = opts.rollTime or 60000,
         texture       = texture or FALLBACK_ICON,
         name          = name,
         itemLink      = link,
@@ -106,7 +193,8 @@ local function BuildDemoRoll(index)
         reasonNeed    = (not sample.canNeed) and sample.reasonNeed
                         and _G["LOOT_ROLL_INELIGIBLE_REASON" .. sample.reasonNeed] or nil,
         demo          = true,
-        demoTally     = BuildDemoTally(sample.tally),
+        demoTally     = BuildDemoTally(sample.tally, false, opts.revealed),
+        demoResult    = BuildDemoTally(sample.tally, true),
     }
 end
 
@@ -114,14 +202,15 @@ end
 --- Respects the visible cap, so what you see is what a real burst would look
 --- like with your current settings.
 --- @param count number|nil  How many rows (default: fill the visible cap)
---- @return nil
-function Demo.Run(count)
+--- @param opts table|nil  { rollTime, revealed } for the played demo
+--- @return boolean started
+function Demo.Run(count, opts)
     if not addon.IsModuleEnabled or not addon:IsModuleEnabled("augment") then
         if addon.HSPrint then
             addon.HSPrint((addon.L and addon.L["LOOT_ROLL_DEMO_AUGMENT_OFF"])
                 or "Augment is disabled — enable it first.")
         end
-        return
+        return false
     end
 
     R.InitFrames()
@@ -129,10 +218,21 @@ function Demo.Run(count)
 
     local wanted = math.min(tonumber(count) or R.GetMaxVisible(), #SAMPLES)
 
+    local drawn = false
     local function show()
         for i = 1, wanted do
-            R.ShowRoll(BuildDemoRoll(i))
+            local existing = drawn and R.FindRow and R.FindRow(DEMO_ROLL_BASE + i)
+            -- A late item load must not restart a played roll's timer or
+            -- rewind its choices; only fill in the name and icon.
+            if existing and existing.demo and opts then
+                local roll = BuildDemoRoll(i, opts)
+                existing.title:SetText(roll.name or "")
+                existing.icon:SetTexture(roll.texture)
+            else
+                R.ShowRoll(BuildDemoRoll(i, opts))
+            end
         end
+        drawn = true
     end
 
     -- Draw immediately so the frames appear the instant the command is run,
@@ -155,7 +255,7 @@ function Demo.Run(count)
                 pcall(function() item:ContinueOnItemLoad(show) end)
             end
         end
-        return
+        return true
     end
 
     -- No ItemMixin on this client: fall back to asking, then redrawing twice.
@@ -166,10 +266,48 @@ function Demo.Run(count)
     end
     C_Timer.After(0.5, show)
     C_Timer.After(2.0, show)
+    return true
 end
 
 --- Clear every demo row.
 --- @return nil
+--- Play a whole roll from start to result: rolls open with nobody chosen,
+--- players choose one at a time (watch the counts on the buttons and the roll
+--- list cards fill in), the rolls close, and the roll list window shows who
+--- won, then fades. Opens the window for the demo even with its option off.
+--- @return nil
+function Demo.Play()
+    playToken = playToken + 1
+    local token = playToken
+    local opts = { rollTime = PLAY_ROLL_SECONDS * 1000, revealed = 0 }
+    if not Demo.Run(nil, opts) then return end
+    if R.Window and R.Window.Open then R.Window.Open() end
+    if not (C_Timer and C_Timer.After) then return end
+
+    local steps = 0
+    for i = 1, #SAMPLES do steps = math.max(steps, #RevealOrder(SAMPLES[i].tally or {})) end
+
+    for step = 1, steps do
+        C_Timer.After(PLAY_STEP_FIRST + (step - 1) * PLAY_STEP_EVERY, function()
+            if token ~= playToken then return end
+            for i = 1, #SAMPLES do
+                local row = R.FindRow and R.FindRow(DEMO_ROLL_BASE + i)
+                if row and row.demo then
+                    local t = BuildDemoTally(SAMPLES[i].tally, false, step)
+                    row.demoTally = t
+                    if row.roll then row.roll.demoTally = t end
+                end
+            end
+            if R.RefreshAllTallies then R.RefreshAllTallies() end
+        end)
+    end
+
+    C_Timer.After(PLAY_END, function()
+        if token ~= playToken then return end
+        Demo.Clear()
+    end)
+end
+
 function Demo.Clear()
     for i = 1, #SAMPLES do
         R.ReleaseRoll(DEMO_ROLL_BASE + i)
