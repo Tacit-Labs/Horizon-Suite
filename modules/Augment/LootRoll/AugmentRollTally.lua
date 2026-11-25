@@ -219,6 +219,12 @@ local BUCKET_COLOR = {
 }
 
 --- Build the tally line shown under the item name.
+---
+--- Choice counts are NOT here: they sit on the roll buttons' icons, and
+--- repeating them on the line was noise (feedback, 2026-11-25). Nor is the
+--- current leader: the numbers are only rolled once everyone has chosen, so a
+--- "leads with" mid-roll was a result shown before there was one. The line
+--- says who is still to choose while the roll runs, and the outcome after.
 --- @param summary table|nil
 --- @return string  "" when there is nothing worth saying
 function T.FormatLine(summary)
@@ -233,39 +239,12 @@ function T.FormatLine(summary)
         return template:format(summary.winnerName, summary.winnerRoll or 0)
     end
 
-    local parts = {}
-    for _, bucket in ipairs(BUCKET_ORDER) do
-        local n = summary.counts and summary.counts[bucket] or 0
-        if n > 0 then
-            local label = (L and L[BUCKET_LABEL[bucket]]) or bucket
-            parts[#parts + 1] = ("%s%d %s|r"):format(BUCKET_COLOR[bucket] or "|cFFFFFFFF", n, label)
-        end
+    local waiting = summary.counts and summary.counts.waiting or 0
+    if waiting > 0 then
+        local template = (L and L["LOOT_ROLL_TALLY_WAITING"]) or "waiting on %d"
+        return template:format(waiting)
     end
-
-    -- Nobody has chosen yet: say that rather than rendering an empty strip.
-    if #parts == 0 then
-        local waiting = summary.counts and summary.counts.waiting or 0
-        if waiting > 0 then
-            local template = (L and L["LOOT_ROLL_TALLY_WAITING"]) or "waiting on %d"
-            return template:format(waiting)
-        end
-        return ""
-    end
-
-    local line = table.concat(parts, "  ")
-
-    if summary.leaderName and summary.leaderRoll then
-        local template = summary.isTied
-            and ((L and L["LOOT_ROLL_TALLY_TIED"]) or "tied at %d")
-            or  ((L and L["LOOT_ROLL_TALLY_LEADER"]) or "%s leads with %d")
-        if summary.isTied then
-            line = line .. "   " .. template:format(summary.leaderRoll)
-        else
-            line = line .. "   " .. template:format(summary.leaderName, summary.leaderRoll)
-        end
-    end
-
-    return line
+    return ""
 end
 
 -- ============================================================================

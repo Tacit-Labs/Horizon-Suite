@@ -9,9 +9,10 @@
 
     Layout per row (icon side left; mirrored when the icon sits right):
 
+                                                 2     1     1
         [icon] Item Name                      [Need][Greed][Pass]
         [icon] New look  +13 ilvl  BoP
-               2 Need  1 Greed  1 Pass   Sarah leads with 91
+               waiting on 3                    (counts sit on the buttons)
         [================= timer bar =====================]
 
     Badges and tally get a line each. They shared one until the first live

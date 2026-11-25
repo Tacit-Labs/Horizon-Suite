@@ -349,9 +349,14 @@ run(`
 
   -- Formatting
   local line = T.FormatLine(s)
-  check("line mentions counts", line:find("2") ~= nil and line:find("1") ~= nil, line)
-  check("line mentions leader", line:find("Ana") ~= nil, line)
-  check("line mentions leader roll", line:find("87") ~= nil, line)
+  -- Counts live on the button icons and the leader is not known until
+  -- everyone has chosen, so mid-roll the line only says who is still to choose.
+  check("line says who is still to choose", line == "waiting on 1", line)
+  check("line has no counts", line:find("Need") == nil and line:find("Greed") == nil, line)
+  check("line has no leader", line:find("Ana") == nil and line:find("87") == nil, line)
+  local allChosen = T.Summarise({ rollInfos = { { playerName = "A", state = 0 } },
+                                  currentLeader = { playerName = "A", roll = 50 } })
+  check("everyone chosen, no result yet -> empty", T.FormatLine(allChosen) == "", T.FormatLine(allChosen))
 
   check("nil summary -> empty", T.FormatLine(nil) == "", T.FormatLine(nil))
 
