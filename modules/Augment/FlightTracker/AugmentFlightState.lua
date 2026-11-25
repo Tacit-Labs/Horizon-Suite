@@ -15,7 +15,7 @@
     A route never flown is estimated per leg: a learned leg time when there is
     one, otherwise the leg's straight-line length over the learned pace (or
     FALLBACK_PACE before anything is learned). Estimates are flagged so the
-    banner can mark them with "~"; a route flown once before is exact.
+    banner can mark them "est."; a route flown once before is exact.
 
     Everything below the ACCESSORS section is pure: no frames, no events. It is
     exercised by tools/test_flight_logic.js in a plain Lua VM.

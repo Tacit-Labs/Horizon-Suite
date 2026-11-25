@@ -41,7 +41,7 @@ Quality-of-life improvements to Blizzard's own UI, starting with loot that deser
 *   **Talking Head:** Restyles the NPC dialogue frame, with options to hide the portrait or mute the voice-over.
 *   **Self Highlight:** Uses Blizzard's "find yourself" outline, circle or icon, in combat, and optionally whenever you target an enemy. Off by default.
 *   **Achievement Tracker:** Removes achievements from your tracked list as soon as you earn them. Off by default.
-*   **Flight Tracker:** While you're on a flight path, a banner shows where you're going, where you left from, a route line with a dot for each stop, and the time left. Times are learned from your own flights and shared across your characters; a route you haven't flown yet gets an estimate marked with ~. A short notice names where you landed. Move it, resize it and pick what it shows.
+*   **Flight Tracker:** While you're on a flight path, a banner shows where you're going, where you left from, a route line with a dot for each stop, and the time left. Times are learned from your own flights and shared across your characters; a route you haven't flown yet gets an estimate, marked "est.". A short notice names where you landed. Move it, resize it and pick what it shows.
 
 ***
 

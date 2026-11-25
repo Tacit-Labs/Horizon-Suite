@@ -34,6 +34,9 @@ local LINE_GAP     = 4
 local BAR_HEIGHT   = 3
 local DOT_SIZE     = 7
 local END_DOT_SIZE = 9
+local ACCENT_INSET_X = 6
+local ACCENT_INSET_Y = 4
+local CIRCLE_MASK  = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask"
 local TICK         = 0.1
 local PENDING_TTL  = 15
 local RESUME_MAX_AGE = 3600
@@ -185,6 +188,21 @@ local function SaveBannerPosition()
     F.SavePosition("TOP", "TOP", x, y)
 end
 
+--- A round dot: a white square masked to a circle, tinted with SetVertexColor.
+local function MakeDot(size)
+    local d = banner:CreateTexture(nil, "OVERLAY")
+    d:SetTexture("Interface\\Buttons\\WHITE8X8")
+    d:SetSize(size, size)
+    if banner.CreateMaskTexture then
+        local mask = banner:CreateMaskTexture()
+        mask:SetTexture(CIRCLE_MASK, "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+        mask:SetAllPoints(d)
+        d:AddMaskTexture(mask)
+        d.mask = mask
+    end
+    return d
+end
+
 local function BuildBanner()
     if banner then return banner end
     banner = CreateFrame("Frame", "HorizonSuiteFlightTracker", UIParent, "BackdropTemplate")
@@ -192,10 +210,12 @@ local function BuildBanner()
     banner:SetClampedToScreen(true)
     banner:Hide()
 
+    -- Inset past the border and its rounded corners so the line sits inside
+    -- the frame rather than over its edge.
     banner.accent = banner:CreateTexture(nil, "ARTWORK")
     banner.accent:SetHeight(2)
-    banner.accent:SetPoint("TOPLEFT", banner, "TOPLEFT", 3, -3)
-    banner.accent:SetPoint("TOPRIGHT", banner, "TOPRIGHT", -3, -3)
+    banner.accent:SetPoint("TOPLEFT", banner, "TOPLEFT", ACCENT_INSET_X, -ACCENT_INSET_Y)
+    banner.accent:SetPoint("TOPRIGHT", banner, "TOPRIGHT", -ACCENT_INSET_X, -ACCENT_INSET_Y)
     banner.accent:SetColorTexture(1, 1, 1, 1)
 
     banner.flyingTo = banner:CreateFontString(nil, "OVERLAY")
@@ -213,12 +233,8 @@ local function BuildBanner()
     banner.fill:SetColorTexture(1, 1, 1, 1)
 
     banner.dots = {}
-    banner.startDot = banner:CreateTexture(nil, "OVERLAY")
-    banner.endDot = banner:CreateTexture(nil, "OVERLAY")
-    for _, d in ipairs({ banner.startDot, banner.endDot }) do
-        d:SetTexture("Interface\\Buttons\\WHITE8X8")
-        d:SetSize(END_DOT_SIZE, END_DOT_SIZE)
-    end
+    banner.startDot = MakeDot(END_DOT_SIZE)
+    banner.endDot = MakeDot(END_DOT_SIZE)
 
     banner.origin = banner:CreateFontString(nil, "OVERLAY")
     banner.origin:SetJustifyH("LEFT")
@@ -229,15 +245,21 @@ local function BuildBanner()
     banner.time:SetJustifyH("RIGHT")
     banner.time:SetTextColor(1, 1, 1, 1)
 
+    -- "est." before a time that is an estimate, small and dim like the origin.
+    banner.estimate = banner:CreateFontString(nil, "OVERLAY")
+    banner.estimate:SetJustifyH("RIGHT")
+    banner.estimate:SetTextColor(0.7, 0.7, 0.7, 1)
+    banner.estimate:SetPoint("BASELINE", banner.time, "BASELINE", 0, 0)
+    banner.estimate:SetPoint("RIGHT", banner.time, "LEFT", -4, 0)
+    banner.estimate:Hide()
+
     return banner
 end
 
 local function GetDot(i)
     local d = banner.dots[i]
     if not d then
-        d = banner:CreateTexture(nil, "OVERLAY")
-        d:SetTexture("Interface\\Buttons\\WHITE8X8")
-        d:SetSize(DOT_SIZE, DOT_SIZE)
+        d = MakeDot(DOT_SIZE)
         banner.dots[i] = d
     end
     return d
@@ -263,6 +285,7 @@ local function LayoutBanner()
     SetFont(banner.dest, destSize)
     SetFont(banner.origin, small)
     SetFont(banner.time, timeSize)
+    SetFont(banner.estimate, small)
     banner.dest:SetWidth(inner)
 
     local y = -PAD
@@ -345,8 +368,11 @@ local function UpdateBanner()
     banner.origin:SetText(L["FLIGHT_FROM"]:format(F.ShortName(nodes[1].name)))
 
     local progress, kind, seconds = F.Progress(active.est, elapsed)
+    local isEstimate = kind == "left" and not active.est.exact
+    banner.estimate:SetText(L["FLIGHT_ESTIMATE"])
+    banner.estimate:SetShown(isEstimate and F.Opt("flightShowTimeLeft"))
     if kind == "left" then
-        banner.time:SetText((active.est.exact and "" or "~") .. F.FormatTime(seconds))
+        banner.time:SetText(F.FormatTime(seconds))
     elseif kind == "due" then
         banner.time:SetText(L["FLIGHT_ARRIVING"])
     else
