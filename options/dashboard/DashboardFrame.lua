@@ -1040,7 +1040,9 @@ function addon.Dashboard_BuildMainFrame()
             LayoutPatchNotesFooter()
 
             f._patchNotesTypoRefs = {}
-            f._layoutPatchNotesScroll = function()
+            --- @param keepScroll boolean|nil  true on resize: keep the reader's place
+            ---   (clamped to the new range) instead of jumping back to the top.
+            f._layoutPatchNotesScroll = function(keepScroll)
                 local inner = pnContent._inner
                 local layoutItems = f._patchNotesLayoutItems
                 if not inner or not layoutItems then return end
@@ -1061,7 +1063,12 @@ function addon.Dashboard_BuildMainFrame()
                 local totalH = math.max(1, -y)
                 inner:SetHeight(totalH)
                 pnContent:SetHeight(totalH)
-                pnScroll:SetVerticalScroll(0)
+                if keepScroll then
+                    local maxScroll = math.max(0, totalH - (pnScroll:GetHeight() or 0))
+                    pnScroll:SetVerticalScroll(math.min(pnScroll:GetVerticalScroll() or 0, maxScroll))
+                else
+                    pnScroll:SetVerticalScroll(0)
+                end
             end
 
             -- Updates widths of all patch notes items without rebuilding content.
@@ -2260,12 +2267,14 @@ function addon.Dashboard_BuildMainFrame()
 
             --- Resize + reflow the dashboard to new size ratios without navigating.
             --- ratio: width ratio 0.5 – 2.0 (1.0 = native 1280 wide)
-            --- skipHeavy: when true, skips typography walk and detail card reflow (used during
-            ---   live drag to reduce per-frame cost; always false on DragStop and panel open).
+            --- skipHeavy: when true (live drag), skips the typography walk and limits card /
+            ---   patch-notes reflow to the visible view, and only when the width changed.
+            ---   Always false on DragStop and panel open, which run the full reflow.
             --- ratioH: height ratio 0.5 – 2.0 (1.0 = native 720 tall); defaults to ratio.
             --- @param ratio number
             --- @param skipHeavy boolean|nil
             --- @param ratioH number|nil
+            local _liveReflowW = nil  -- view width at the last live (drag) card reflow
             local function Dashboard_CommitResize(ratio, skipHeavy, ratioH)
                 ratio = DC.ClampRatio(ratio, 1.0)
                 ratioH = DC.ClampRatio(ratioH, ratio)
@@ -2371,18 +2380,33 @@ function addon.Dashboard_BuildMainFrame()
                     addon.ApplyDashboardTypography()
                 end
 
-                -- 9. Detail cards reflow (skipped during live drag — runs on DragStop)
-                if not skipHeavy and f._dashboardRelayoutDetailCards then
-                    f._dashboardRelayoutDetailCards()
+                -- 9-10. Card and patch notes reflow. Full on DragStop / panel open. During a
+                -- live drag, reflow only the visible view and only when the width changed
+                -- (height-only drags do not change card layout), so cards follow the cursor.
+                local widthChanged = (_liveReflowW ~= lc.viewWidth)
+                if skipHeavy then
+                    _liveReflowW = lc.viewWidth
+                else
+                    _liveReflowW = nil
+                end
+                local liveReflow = skipHeavy and widthChanged
+
+                -- 9. Detail cards reflow
+                if f._dashboardRelayoutDetailCards then
+                    if not skipHeavy then
+                        f._dashboardRelayoutDetailCards()
+                    elseif liveReflow and detailView:IsShown() then
+                        f._dashboardRelayoutDetailCards(true)
+                    end
                 end
 
-                -- 10. Patch notes content reflow (skipped during live drag — runs on DragStop)
-                if not skipHeavy then
+                -- 10. Patch notes content reflow
+                if not skipHeavy or (liveReflow and patchNotesView:IsShown()) then
                     if f._relayoutPatchNotesWidths then
                         f._relayoutPatchNotesWidths(lc.contentWidth)
                     end
                     if f._layoutPatchNotesScroll then
-                        f._layoutPatchNotesScroll()
+                        f._layoutPatchNotesScroll(true)
                     end
                 end
             end
@@ -2514,8 +2538,8 @@ function addon.Dashboard_BuildMainFrame()
                 -- CommitResize grows it right and down with no anchor drift.
                 local ratio, ratioH = RatiosFromCursor()
 
-                -- skipHeavy=true: skip font walk + detail card reflow during live drag.
-                -- Both are applied in full on DragStop.
+                -- skipHeavy=true: skip the font walk and keep card reflow to the visible
+                -- view; the full reflow runs on DragStop.
                 Dashboard_CommitResize(ratio, true, ratioH)
             end)
 
