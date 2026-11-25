@@ -30,54 +30,75 @@ local DEMO_ROLL_BASE = 900000
 local FALLBACK_ICON = "Interface\\Icons\\INV_Misc_QuestionMark"
 
 -- itemID, quality, and which buttons the fabricated roll offers.
+-- Tally entries are { name, class, roll }. The roll number is only revealed in
+-- the result: the server rolls once everyone has chosen, so the live view
+-- never shows numbers, exactly as a real roll would not.
 local SAMPLES = {
     {   itemID = 19019, quality = 5, count = 1,            -- Thunderfury
         canNeed = true, canGreed = true, bindOnPickUp = true,
-        tally = { leader = "Sarah", leaderRoll = 91,
-                  need  = { { "Sarah", "PALADIN", 91 }, { "Mikhail", "WARRIOR", 47 } },
-                  greed = { { "Ines", "MAGE" } },
+        tally = { need  = { { "Sarah", "PALADIN", 91 }, { "Mikhail", "WARRIOR", 47 } },
+                  greed = { { "Ines", "MAGE", 88 } },
                   pass  = { { "Tomas", "PRIEST" } } } },
     {   itemID = 18832, quality = 4, count = 1,            -- Brutality Blade
         canNeed = true, canGreed = true, bindOnPickUp = true,
-        tally = { leader = "Mikhail", leaderRoll = 64,
-                  need  = { { "Mikhail", "WARRIOR", 64 } },
-                  greed = { { "Sarah", "PALADIN" }, { "Ines", "MAGE" } } } },
+        tally = { need  = { { "Mikhail", "WARRIOR", 64 } },
+                  greed = { { "Sarah", "PALADIN", 12 }, { "Ines", "MAGE", 70 } },
+                  waiting = { { "Tomas", "PRIEST" } } } },
     {   itemID = 12064, quality = 3, count = 1,            -- Serpentine Sash
         canNeed = false, canGreed = true, canTransmog = true,
-        reasonNeed = 1 },
+        reasonNeed = 1,
+        tally = { transmog = { { "Ines", "MAGE", 33 }, { "Tomas", "PRIEST", 58 } },
+                  pass     = { { "Sarah", "PALADIN" }, { "Mikhail", "WARRIOR" } } } },
     {   itemID = 3577,  quality = 2, count = 4,            -- Gold Bar
         canNeed = false, canGreed = true, reasonNeed = 5,
         tally = { allPassed = true } },
 }
 
+local BUCKETS = { "need", "needOff", "transmog", "greed", "pass", "waiting" }
+-- Need beats Greed and Transmog whatever the numbers, as on a real roll.
+local WIN_ORDER = { "need", "needOff", "transmog", "greed" }
+
 -- Build the summary shape AugmentRollTally.Summarise produces, so the demo
 -- exercises the real formatter rather than a parallel one that could drift.
-local function BuildDemoTally(spec)
+-- `final` builds the finished roll: numbers revealed, nobody left choosing
+-- (anyone still waiting is treated as having passed), and a winner.
+local function BuildDemoTally(spec, final)
     if not spec then return nil end
     if spec.allPassed then
-        return { counts = {}, total = 0, rolled = 0, allPassed = true }
+        return { counts = {}, players = {}, total = 0, rolled = 0, allPassed = true }
     end
-    -- Fabricated names, so hovering a demo row shows the who-rolled-what
-    -- tooltips exactly as a live one would.
     local counts, players, total = {}, {}, 0
-    for _, bucket in ipairs({ "need", "needOff", "transmog", "greed", "pass", "waiting" }) do
-        local list = {}
+    for _, bucket in ipairs(BUCKETS) do players[bucket] = {} end
+    for _, bucket in ipairs(BUCKETS) do
+        local target = (final and bucket == "waiting") and "pass" or bucket
         for _, p in ipairs(spec[bucket] or {}) do
-            list[#list + 1] = { name = p[1], class = p[2], roll = p[3], isSelf = false }
+            local list = players[target]
+            list[#list + 1] = { name = p[1], class = p[2],
+                                roll = final and target ~= "pass" and p[3] or nil,
+                                isSelf = false, isWinner = false }
         end
-        counts[bucket], players[bucket] = #list, list
-        if bucket ~= "waiting" then total = total + #list end
     end
-    return {
-        counts     = counts,
-        players    = players,
-        total      = total,
-        rolled     = total,
-        isTied     = false,
-        allPassed  = false,
-        leaderName = spec.leader,
-        leaderRoll = spec.leaderRoll,
+    for _, bucket in ipairs(BUCKETS) do
+        counts[bucket] = #players[bucket]
+        if bucket ~= "waiting" then total = total + #players[bucket] end
+        if R.Tally and R.Tally.SortPlayers then R.Tally.SortPlayers(players[bucket]) end
+    end
+
+    local summary = {
+        counts = counts, players = players, total = total, rolled = total - counts.waiting,
+        isTied = false, allPassed = false,
     }
+    if final then
+        for _, bucket in ipairs(WIN_ORDER) do
+            local best = players[bucket][1]   -- sorted, highest roll first
+            if best and best.roll then
+                best.isWinner = true
+                summary.winnerName, summary.winnerRoll, summary.winnerClass = best.name, best.roll, best.class
+                break
+            end
+        end
+    end
+    return summary
 end
 
 --- Build one fabricated roll descriptor.
@@ -120,7 +141,8 @@ local function BuildDemoRoll(index)
         reasonNeed    = (not sample.canNeed) and sample.reasonNeed
                         and _G["LOOT_ROLL_INELIGIBLE_REASON" .. sample.reasonNeed] or nil,
         demo          = true,
-        demoTally     = BuildDemoTally(sample.tally),
+        demoTally     = BuildDemoTally(sample.tally, false),
+        demoResult    = BuildDemoTally(sample.tally, true),
     }
 end
 

@@ -347,6 +347,54 @@ run(`
   check("window: saved choice beats default", W.IsCollapsed("pass") == false)
   HorizonSuite.db.lootRollWindowCollapsed_pass = nil
 
+  -- Result view: a finished roll flips to who won (feedback, 2026-11-25)
+  local live = { { rollID = 7, name = "Axe", quality = 4, summary = s, dropKey = { encounterID = 1, lootListID = 3 } } }
+  local entries = W.SyncEntries({}, live, nil)
+  check("sync: open roll added", #entries == 1 and entries[1].finished == false, #entries)
+  local item = W.BuildModel(entries, isCollapsed)[1]
+  check("open roll marked Rolling", item.status == "Rolling", item.status)
+
+  local final = T.Summarise({
+    rollInfos = {
+      { playerName = "Ana", playerClass = "MAGE",   state = 0, roll = 87, isWinner = true },
+      { playerName = "Bo",  playerClass = "ROGUE",  state = 0, roll = 40 },
+      { playerName = "Cy",  playerClass = "PRIEST", state = 3, roll = 95 },
+      { playerName = "Di",  playerClass = "DRUID",  state = 5 },
+    },
+    winner = { playerName = "Ana", playerClass = "MAGE", roll = 87 },
+  })
+  check("summary marks winner", final.players.need[1].isWinner == true)
+  local asked
+  W.SyncEntries(entries, {}, function(e) asked = e.dropKey; return final end)
+  check("sync: closed roll finished", entries[1].finished == true)
+  check("sync: resolves by drop key", asked and asked.lootListID == 3)
+  local res = W.BuildModel(entries, isCollapsed)
+  got = kinds(res)
+  check("result: winner then choices with rolls, no Still choosing",
+        got == "item:Axe,winner:nil,H:need-,P:Ana,P:Bo,H:greed-,P:Cy,H:pass+", got)
+  check("result: item marked Result", res[1].status == "Result", res[1].status)
+  check("result: winner line names winner", res[2].player.name == "Ana" and res[2].player.roll == 87)
+
+  -- Resolve failing keeps the last summary; no winner yet means pending.
+  local pend = W.SyncEntries({}, { { rollID = 8, name = "Orb", summary = s, dropKey = { encounterID = 1, lootListID = 4 } } }, nil)
+  W.SyncEntries(pend, {}, function() return nil end)
+  got = kinds(W.BuildModel(pend, isCollapsed))
+  check("result: pending until history has the winner", got == "item:Orb,note:Waiting for the result...", got)
+
+  local nokey = W.SyncEntries({}, { { rollID = 9, name = "Gem", summary = nil } }, nil)
+  W.SyncEntries(nokey, {}, nil)
+  got = kinds(W.BuildModel(nokey, isCollapsed))
+  check("result: no key, unavailable", got == "item:Gem,note:Result unavailable", got)
+
+  -- A new roll after results: DropFinished keeps open rolls only.
+  local mixed = W.SyncEntries({}, { { rollID = 1, name = "A" }, { rollID = 2, name = "B" } }, nil)
+  W.SyncEntries(mixed, { { rollID = 2, name = "B" } }, nil)
+  W.DropFinished(mixed)
+  check("drop finished keeps open rolls", #mixed == 1 and mixed[1].rollID == 2, #mixed)
+
+  -- Tally line: result shows the winner
+  check("tally line shows winner after roll", T.FormatLine(final):find("Ana won with 87") ~= nil, T.FormatLine(final))
+
   -- Formatting
   local line = T.FormatLine(s)
   -- Counts live on the button icons and the leader is not known until
@@ -418,6 +466,20 @@ run(`
     return { { itemHyperlink = "ONE", startTime = 98, duration = 30, rollInfos = {} } }
   end
   check("single match resolves", T.ResolveDrop("ONE") ~= nil, "single")
+
+  -- The key that finds the drop again once it is finished
+  C_LootHistory.GetSortedDropsForEncounter = function()
+    return { { itemHyperlink = "KEYED", lootListID = 6, startTime = 98, duration = 30, rollInfos = {} } }
+  end
+  local d, enc = T.ResolveDrop("KEYED")
+  check("resolve hands back encounterID", d ~= nil and enc ~= nil, tostring(enc))
+  C_LootHistory.GetSortedDropsForEncounter = function()
+    return { { itemHyperlink = "KEYED", lootListID = 6, winner = { playerName = "Zed", roll = 5 }, rollInfos = {} } }
+  end
+  check("finished drop invisible to link join", T.ResolveDrop("KEYED") == nil)
+  local fd = T.FindDrop(enc, 6)
+  check("FindDrop finds the finished drop by key", fd ~= nil and fd.winner.playerName == "Zed")
+  check("FindDrop wrong lootListID -> nil", T.FindDrop(enc, 7) == nil)
 
   -- A finished drop is not a candidate for a roll still on screen
   C_LootHistory.GetSortedDropsForEncounter = function()

@@ -21,9 +21,17 @@ local function HandleRollSlash(msg)
         return
     end
 
+    if cmd == "demo end" then
+        -- End the demo rolls now rather than waiting out their 60s, so the
+        -- roll list window's result view can be checked straight away.
+        R.Demo.Clear()
+        return
+    end
+
     if cmd == "clear" then
         R.Demo.Clear()
         R.ClearAllRolls()
+        if R.Window and R.Window.Clear then R.Window.Clear() end
         return
     end
 
@@ -76,6 +84,7 @@ local function HandleRollSlash(msg)
         HSPrint("Loot roll commands:")
         HSPrint("  /h roll          - Show this help")
         HSPrint("  /h roll demo     - Show fabricated rolls (works solo, buttons inert)")
+        HSPrint("  /h roll demo end - End the demo rolls now and show their results")
         HSPrint("  /h roll clear    - Clear every roll frame on screen")
         HSPrint("  /h roll edit     - Toggle edit mode to reposition the stack")
         HSPrint("  /h roll reset    - Reset position to default")

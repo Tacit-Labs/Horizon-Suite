@@ -88,6 +88,8 @@ end
 --- Find the loot-history drop matching an open roll.
 --- @param itemLink string|nil From GetLootRollItemLink(rollID)
 --- @return table|nil dropInfo  nil when absent, unavailable, or ambiguous
+--- @return number|nil encounterID  With lootListID, a key that finds this drop
+---         again after the roll ends, when the link join can no longer see it
 function T.ResolveDrop(itemLink)
     if not itemLink or itemLink == "" then return nil end
     if not Has("lootHistory") then return nil end
@@ -100,7 +102,7 @@ function T.ResolveDrop(itemLink)
             local drops = C_LootHistory.GetSortedDropsForEncounter(encounter.encounterID) or {}
             for _, drop in ipairs(drops) do
                 if drop.itemHyperlink == itemLink and IsUnfinished(drop) and InWindow(drop, now) then
-                    found[#found + 1] = drop
+                    found[#found + 1] = { drop = drop, encounterID = encounter.encounterID }
                 end
             end
         end
@@ -110,7 +112,25 @@ function T.ResolveDrop(itemLink)
     if not ok or type(matches) ~= "table" then return nil end
     -- Exactly one candidate, or nothing. See the header: ambiguity renders blank.
     if #matches ~= 1 then return nil end
-    return matches[1]
+    return matches[1].drop, matches[1].encounterID
+end
+
+--- Find a drop again by the key ResolveDrop handed out. Unlike ResolveDrop this
+--- does not skip finished drops: finding the finished one is the point. The key
+--- names exactly one drop, so there is no ambiguity to fail closed on.
+--- @param encounterID number
+--- @param lootListID number
+--- @return table|nil dropInfo
+function T.FindDrop(encounterID, lootListID)
+    if encounterID == nil or lootListID == nil then return nil end
+    if not Has("lootHistory") then return nil end
+    local ok, found = pcall(function()
+        for _, drop in ipairs(C_LootHistory.GetSortedDropsForEncounter(encounterID) or {}) do
+            if drop.lootListID == lootListID then return drop end
+        end
+    end)
+    if ok then return found end
+    return nil
 end
 
 -- ============================================================================
@@ -144,6 +164,7 @@ function T.Summarise(drop)
                 class  = R.SafeString(info.playerClass),
                 roll   = tonumber(info.roll),
                 isSelf = info.isSelf and true or false,
+                isWinner = info.isWinner and true or false,
             }
             total = total + 1
             if bucket ~= "waiting" then rolled = rolled + 1 end

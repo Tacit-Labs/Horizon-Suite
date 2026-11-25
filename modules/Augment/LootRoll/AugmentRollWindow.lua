@@ -27,6 +27,17 @@
     Collapse state is per choice, not per roll, and saved: collapsing Pass once
     collapses it on every roll from then on.
 
+    WHEN A ROLL ENDS its block flips to the result: who won and with what, then
+    every choice with the numbers rolled. The roll frame itself closes the
+    moment the roll ends, so this is the only place the outcome stays on screen.
+    Results are kept until the window is closed or the next roll starts. A
+    boss's drops roll together, so "next roll" means "next boss".
+
+    The roll rows forget a roll when it ends, so the window keeps its own list
+    of entries. While a roll is open its entry mirrors the row; once the row is
+    gone the entry looks its drop up again by the key the row recorded
+    (encounterID + lootListID), which names one drop exactly.
+
     BuildModel is pure (no frames) so the test harness can check it.
 ]]
 
@@ -105,42 +116,115 @@ end
 -- MODEL
 -- ============================================================================
 
---- Flatten the open rolls into the lines the window draws.
+--- Merge the open rolls into the window's entries.
+--- Open rolls update (or add) their entry; an entry whose roll is no longer
+--- open is marked finished and asks `resolve` for its final summary.
+--- @param list table  Entries, updated in place, in the order rolls appeared
 --- @param rolls table  From R.GetActiveRolls
---- @param isCollapsed function(key) -> boolean
---- @return table lines  Array of { kind = "item"|"header"|"player"|"note", ... }
-function W.BuildModel(rolls, isCollapsed)
-    local lines = {}
+--- @param resolve function(entry) -> summary|nil  For finished entries
+--- @return table list
+function W.SyncEntries(list, rolls, resolve)
+    local open = {}
+    for _, r in ipairs(rolls or {}) do
+        if r.rollID ~= nil then open[r.rollID] = r end
+    end
+    for _, e in ipairs(list) do
+        local r = open[e.rollID]
+        if r then
+            e.name, e.quality, e.summary = r.name, r.quality, r.summary
+            e.dropKey = r.dropKey or e.dropKey
+            e.demoResult = r.demoResult
+            e.finished = false
+            open[e.rollID] = nil
+        else
+            e.finished = true
+            local final = resolve and resolve(e)
+            if final then e.summary = final end
+        end
+    end
+    for _, r in ipairs(rolls or {}) do
+        if r.rollID ~= nil and open[r.rollID] then
+            list[#list + 1] = {
+                rollID = r.rollID, name = r.name, quality = r.quality,
+                summary = r.summary, dropKey = r.dropKey, demoResult = r.demoResult,
+                finished = false,
+            }
+        end
+    end
+    return list
+end
+
+--- Drop finished entries, keeping open ones.
+--- @param list table
+--- @return table list
+function W.DropFinished(list)
+    for i = #list, 1, -1 do
+        if list[i].finished then table.remove(list, i) end
+    end
+    return list
+end
+
+-- Choice sections, under an open roll or a finished one's result.
+local function AddSections(lines, summary, isCollapsed, finished)
     local T = R.Tally
-    for _, roll in ipairs(rolls or {}) do
-        lines[#lines + 1] = { kind = "item", text = roll.name or "", quality = roll.quality }
-        local summary = roll.summary
+    for _, sec in ipairs(W.SECTIONS) do
+        local list = T.PlayersIn(summary, sec.buckets)
+        -- Nobody is still choosing once a roll is over.
+        local skip = finished and sec.key == "waiting"
+        if not skip and (#list > 0 or not sec.hideEmpty) then
+            local collapsed = isCollapsed and isCollapsed(sec.key) or false
+            lines[#lines + 1] = {
+                kind = "header", section = sec.key, count = #list,
+                text = Text(sec.label, sec.key), color = sec.color,
+                collapsed = collapsed,
+            }
+            if not collapsed then
+                if #list == 0 then
+                    local text = finished and Text("LOOT_ROLL_WINDOW_NOBODY", "Nobody")
+                                          or  Text("LOOT_ROLL_WHO_NOBODY", "Nobody yet")
+                    lines[#lines + 1] = { kind = "note", text = text, indent = true }
+                end
+                for _, p in ipairs(list) do
+                    lines[#lines + 1] = { kind = "player", player = p }
+                end
+            end
+        end
+    end
+end
+
+--- Flatten the entries into the lines the window draws.
+--- @param list table  From W.SyncEntries (open rolls work too: no `finished`)
+--- @param isCollapsed function(key) -> boolean
+--- @return table lines  Array of { kind = "item"|"winner"|"header"|"player"|"note", ... }
+function W.BuildModel(list, isCollapsed)
+    local lines = {}
+    for _, e in ipairs(list or {}) do
+        local finished = e.finished and true or false
+        lines[#lines + 1] = {
+            kind = "item", text = e.name or "", quality = e.quality, finished = finished,
+            status = finished and Text("LOOT_ROLL_WINDOW_RESULT", "Result")
+                              or  Text("LOOT_ROLL_WINDOW_ROLLING", "Rolling"),
+        }
+        local summary = e.summary
         if summary and summary.allPassed then
             lines[#lines + 1] = { kind = "note", text = Text("LOOT_ROLL_TALLY_ALL_PASSED", "Everyone passed") }
+        elseif finished then
+            if summary and summary.winnerName then
+                lines[#lines + 1] = { kind = "winner", player = {
+                    name = summary.winnerName, class = summary.winnerClass, roll = summary.winnerRoll } }
+                if summary.players then AddSections(lines, summary, isCollapsed, true) end
+            elseif e.dropKey or e.demoResult then
+                -- History records the winner a moment after the roll closes.
+                lines[#lines + 1] = { kind = "note", text = Text("LOOT_ROLL_WINDOW_PENDING", "Waiting for the result...") }
+            else
+                lines[#lines + 1] = { kind = "note", text = Text("LOOT_ROLL_WINDOW_NO_RESULT", "Result unavailable") }
+            end
         elseif not (summary and summary.players) then
             -- No history match (or the tally is off): say so rather than
             -- drawing empty Need/Greed headers that look like "nobody rolled".
             lines[#lines + 1] = { kind = "note", text = Text("LOOT_ROLL_WINDOW_NO_DATA", "No roll data yet") }
         else
-            for _, sec in ipairs(W.SECTIONS) do
-                local list = T.PlayersIn(summary, sec.buckets)
-                if #list > 0 or not sec.hideEmpty then
-                    local collapsed = isCollapsed and isCollapsed(sec.key) or false
-                    lines[#lines + 1] = {
-                        kind = "header", section = sec.key, count = #list,
-                        text = Text(sec.label, sec.key), color = sec.color,
-                        collapsed = collapsed,
-                    }
-                    if not collapsed then
-                        if #list == 0 then
-                            lines[#lines + 1] = { kind = "note", text = Text("LOOT_ROLL_WHO_NOBODY", "Nobody yet"), indent = true }
-                        end
-                        for _, p in ipairs(list) do
-                            lines[#lines + 1] = { kind = "player", player = p }
-                        end
-                    end
-                end
-            end
+            AddSections(lines, summary, isCollapsed, false)
         end
     end
     if #lines == 0 then
@@ -166,7 +250,7 @@ local window, scroll, content, font, titleFont
 local linePool = {}
 local manuallyOpen = false   -- /h roll list, or the options button
 local dismissed    = false   -- closed with [x] until the next new roll
-local seenRolls    = {}      -- rollIDs already announced, so a refresh is not a "new roll"
+local entries      = {}      -- open and finished rolls, see W.SyncEntries
 
 local function LineHeight()
     return math.max(9, R.GetFontSize() - 1) + 5
@@ -263,6 +347,21 @@ local function DrawLine(b, line)
         local c = R.QUALITY_COLORS and (R.QUALITY_COLORS[tonumber(line.quality) or 1] or R.QUALITY_COLORS[1])
         b.left:SetText(line.text)
         if c then b.left:SetTextColor(c[1], c[2], c[3], 1) end
+        b.right:SetText(line.status or "")
+        if line.finished then
+            b.right:SetTextColor(0.95, 0.65, 0.25, 1)
+        else
+            b.right:SetTextColor(0.6, 0.6, 0.6, 1)
+        end
+    elseif line.kind == "winner" then
+        indent = 4
+        local template = Text("LOOT_ROLL_WINDOW_WINNER", "Won by %s")
+        b.left:SetText(template:format(R.Tally.FormatPlayerName(line.player)))
+        b.left:SetTextColor(1, 0.82, 0, 1)
+        if line.player.roll then
+            b.right:SetText(tostring(line.player.roll))
+            b.right:SetTextColor(1, 0.82, 0, 1)
+        end
     elseif line.kind == "header" then
         indent = 4
         b.section = line.section
@@ -280,7 +379,14 @@ local function DrawLine(b, line)
         indent = 4 + INDENT + 4
         local p = line.player
         b.left:SetText(R.Tally.FormatPlayerName(p))
-        if p.roll then b.right:SetText(tostring(p.roll)) end
+        if p.roll then
+            b.right:SetText(tostring(p.roll))
+            if p.isWinner then
+                b.right:SetTextColor(1, 0.82, 0, 1)
+            else
+                b.right:SetTextColor(0.8, 0.8, 0.8, 1)
+            end
+        end
     else
         indent = line.indent and (4 + INDENT + 4) or 4
         b.left:SetText(line.text or "")
@@ -341,6 +447,7 @@ local function Build()
     close:SetScript("OnClick", function()
         manuallyOpen = false
         dismissed = true
+        W.DropFinished(entries)
         window:Hide()
     end)
 
@@ -369,28 +476,37 @@ local function Build()
     RestorePosition()
 end
 
-local function ShouldShow(hasRolls)
+local function ShouldShow(hasEntries)
     if manuallyOpen then return true end
     if dismissed or not W.IsEnabled() then return false end
-    return hasRolls
+    return hasEntries
 end
 
---- Redraw from the live rows. Cheap enough to call on every tally update.
+-- Final summary for a roll whose row has gone.
+local function ResolveFinished(e)
+    if e.demoResult then return e.demoResult end
+    if e.dropKey and R.Tally then
+        local drop = R.Tally.FindDrop(e.dropKey.encounterID, e.dropKey.lootListID)
+        if drop then return R.Tally.Summarise(drop) end
+    end
+    return nil
+end
+
+--- Redraw from the live rows and kept results. Cheap enough to call on every
+--- tally update.
 --- @return nil
 function W.Refresh()
     local rolls = R.GetActiveRolls and R.GetActiveRolls() or {}
-    if #rolls == 0 then
-        dismissed = false
-        seenRolls = {}
-    end
+    W.SyncEntries(entries, rolls, ResolveFinished)
+    if #entries == 0 then dismissed = false end
 
-    if not ShouldShow(#rolls > 0) then
+    if not ShouldShow(#entries > 0) then
         if window then window:Hide() end
         return
     end
     Build()
 
-    local lines = W.BuildModel(rolls, W.IsCollapsed)
+    local lines = W.BuildModel(entries, W.IsCollapsed)
     local h = LineHeight()
     local y = 0
     for i, line in ipairs(lines) do
@@ -418,13 +534,18 @@ function W.Refresh()
     window:Show()
 end
 
---- A roll got a row. A new roll brings a closed window back; the same roll
---- being redrawn does not.
+--- A roll got a row. A NEW roll clears the previous rolls' results (they
+--- belong to the last boss) and brings a closed window back; the same roll
+--- being redrawn does neither.
 --- @param rollID number
 --- @return nil
 function W.OnRollShown(rollID)
-    if rollID and not seenRolls[rollID] then
-        seenRolls[rollID] = true
+    local known = false
+    for _, e in ipairs(entries) do
+        if e.rollID == rollID then known = true end
+    end
+    if rollID and not known then
+        W.DropFinished(entries)
         dismissed = false
     end
     W.Refresh()
@@ -437,11 +558,19 @@ function W.Toggle()
     if window and window:IsShown() then
         manuallyOpen = false
         dismissed = true
+        W.DropFinished(entries)
         window:Hide()
         return
     end
     manuallyOpen = true
     dismissed = false
+    W.Refresh()
+end
+
+--- Forget every roll and result.
+--- @return nil
+function W.Clear()
+    entries = {}
     W.Refresh()
 end
 
@@ -461,5 +590,6 @@ end
 --- @return nil
 function W.Hide()
     manuallyOpen = false
+    entries = {}
     if window then window:Hide() end
 end

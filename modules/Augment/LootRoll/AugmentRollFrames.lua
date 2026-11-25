@@ -589,6 +589,7 @@ function R.ShowRoll(roll)
     row.demoTally    = roll.demoTally
     row.startedAt    = GetTime and GetTime() or 0
     row.rolledAs     = nil
+    row.dropKey      = nil
 
     row.icon:SetTexture(roll.texture)
     row.icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
@@ -666,7 +667,14 @@ function R.RefreshRowInfoLine(row, roll)
         if row.demo then
             summary = row.demoTally
         else
-            summary = R.Tally.ForItemLink(row.itemLink)
+            local drop, encounterID = R.Tally.ResolveDrop(row.itemLink)
+            summary = R.Tally.Summarise(drop)
+            -- Remember exactly which drop this is. Once the roll ends, the
+            -- link join stops matching it (it only looks at unfinished
+            -- drops), and the roll list window still wants its result.
+            if drop and encounterID and drop.lootListID then
+                row.dropKey = { encounterID = encounterID, lootListID = drop.lootListID }
+            end
         end
         tally = R.Tally.FormatLine(summary)
     end
@@ -797,6 +805,8 @@ function R.GetActiveRolls()
                 name      = row.roll and row.roll.name or "",
                 quality   = row.quality,
                 summary   = row.summary,
+                dropKey   = row.dropKey,
+                demoResult = row.roll and row.roll.demoResult,
                 demo      = row.demo,
                 startedAt = row.startedAt or 0,
             }
